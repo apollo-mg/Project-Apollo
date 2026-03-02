@@ -1,0 +1,23 @@
+WARNING 02-28 20:57:36 _core_ext.py:180] Failed to import from vllm._core_C with ImportError('libtorch_hip.so: cannot open shared object file: No such file or directory')
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/runpy.py", line 187, in _run_module_as_main
+    mod_name, mod_spec, code = _get_module_details(mod_name, _Error)
+  File "/usr/lib/python3.10/runpy.py", line 110, in _get_module_details
+    __import__(pkg_name)
+  File "/home/mark/gemini/venv_apollo/lib/python3.10/site-packages/vllm/__init__.py", line 3, in <module>
+    from vllm.engine.arg_utils import AsyncEngineArgs, EngineArgs
+  File "/home/mark/gemini/venv_apollo/lib/python3.10/site-packages/vllm/engine/arg_utils.py", line 11, in <module>
+    from vllm.config import (CacheConfig, ConfigFormat, DecodingConfig,
+  File "/home/mark/gemini/venv_apollo/lib/python3.10/site-packages/vllm/config.py", line 12, in <module>
+    from vllm.model_executor.layers.quantization import QUANTIZATION_METHODS
+  File "/home/mark/gemini/venv_apollo/lib/python3.10/site-packages/vllm/model_executor/layers/quantization/__init__.py", line 3, in <module>
+    from vllm.model_executor.layers.quantization.aqlm import AQLMConfig
+  File "/home/mark/gemini/venv_apollo/lib/python3.10/site-packages/vllm/model_executor/layers/quantization/aqlm.py", line 11, in <module>
+    from vllm import _custom_ops as ops
+  File "/home/mark/gemini/venv_apollo/lib/python3.10/site-packages/vllm/_custom_ops.py", line 9, in <module>
+    from vllm._core_ext import ScalarType
+  File "/home/mark/gemini/venv_apollo/lib/python3.10/site-packages/vllm/_core_ext.py", line 182, in <module>
+    ScalarType = torch.classes._core_C.ScalarType
+  File "/home/mark/gemini/venv_apollo/lib/python3.10/site-packages/torch/_classes.py", line 13, in __getattr__
+    proxy = torch._C._get_custom_class_python_wrapper(self.name, attr)
+RuntimeError: Tried to instantiate class '_core_C.ScalarType', but it does not exist! Ensure that it is registered via torch::class_

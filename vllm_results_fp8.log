@@ -1,0 +1,70 @@
+Starting vLLM benchmark using Docker with native ROCm 7.2 Triton and HIP graphs enabled...
+Loading enferAI/DeepSeek-R1-Distill-Qwen-14B-FP8...
+Settings: TP=1, Enforce Eager=False (False = HIP/CUDA Graphs Enabled)
+INFO 03-01 17:28:09 [utils.py:253] non-default args: {'trust_remote_code': True, 'dtype': 'half', 'max_model_len': 1024, 'gpu_memory_utilization': 0.75, 'disable_log_stats': True, 'model': 'enferAI/DeepSeek-R1-Distill-Qwen-14B-FP8'}
+The argument `trust_remote_code` is to be used with Auto classes. It has no effect here and is ignored.
+INFO 03-01 17:28:17 [model.py:514] Resolved architecture: Qwen2ForCausalLM
+WARNING 03-01 17:28:17 [model.py:2005] Casting torch.bfloat16 to torch.float16.
+INFO 03-01 17:28:17 [model.py:1661] Using max model len 1024
+[aiter] start build [module_aiter_enum] under /opt/venv/lib/python3.12/site-packages/aiter/jit/build/module_aiter_enum
+[2026-03-01 17:28:18] INFO core.py:517: start build [module_aiter_enum] under /opt/venv/lib/python3.12/site-packages/aiter/jit/build/module_aiter_enum
+clang (LLVM option parsing): Unknown command line argument '-amdgpu-coerce-illegal-types=1'.  Try: 'clang (LLVM option parsing) --help'
+clang (LLVM option parsing): Did you mean '--amdgpu-mode-register=1'?
+failed to execute:/opt/rocm/lib/llvm/bin/clang++  --offload-arch=gfx1201 -O3  -mllvm -amdgpu-coerce-illegal-types=1 -x hip -E -P /dev/null -o "/dev/null"
+[aiter] -mllvm -amdgpu-coerce-illegal-types=1 is not supported by hipcc.
+[2026-03-01 17:28:21] WARNING core.py:382: -mllvm -amdgpu-coerce-illegal-types=1 is not supported by hipcc.
+[aiter] [32mfinish build [module_aiter_enum], cost 12.6s [0m
+[2026-03-01 17:28:31] INFO core.py:666: [32mfinish build [module_aiter_enum], cost 12.6s [0m
+[aiter] import [module_aiter_enum] under /opt/venv/lib/python3.12/site-packages/aiter/jit/module_aiter_enum.so
+[2026-03-01 17:28:31] INFO core.py:469: import [module_aiter_enum] under /opt/venv/lib/python3.12/site-packages/aiter/jit/module_aiter_enum.so
+WARNING 03-01 17:28:31 [vllm.py:1406] Current vLLM config is not set.
+INFO 03-01 17:28:31 [scheduler.py:230] Chunked prefill is enabled with max_num_batched_tokens=2048.
+INFO 03-01 17:28:31 [scheduler.py:230] Chunked prefill is enabled with max_num_batched_tokens=8192.
+Traceback (most recent call last):
+  File "/workspace/vllm_benchmark.py", line 64, in <module>
+    benchmark(args.model, enforce_eager=args.eager)
+  File "/workspace/vllm_benchmark.py", line 11, in benchmark
+    llm = LLM(
+          ^^^^
+  File "/opt/venv/lib/python3.12/site-packages/vllm/entrypoints/llm.py", line 335, in __init__
+    self.llm_engine = LLMEngine.from_engine_args(
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/vllm/v1/engine/llm_engine.py", line 183, in from_engine_args
+    return cls(
+           ^^^^
+  File "/opt/venv/lib/python3.12/site-packages/vllm/v1/engine/llm_engine.py", line 89, in __init__
+    tokenizer = cached_tokenizer_from_config(self.model_config)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/vllm/tokenizers/registry.py", line 219, in cached_tokenizer_from_config
+    return cached_get_tokenizer(
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/vllm/tokenizers/registry.py", line 202, in get_tokenizer
+    tokenizer = tokenizer_cls_.from_pretrained(tokenizer_name, *args, **kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/vllm/tokenizers/hf.py", line 79, in from_pretrained
+    tokenizer = AutoTokenizer.from_pretrained(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/transformers/models/auto/tokenization_auto.py", line 1156, in from_pretrained
+    return tokenizer_class.from_pretrained(pretrained_model_name_or_path, *inputs, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/transformers/tokenization_utils_base.py", line 2113, in from_pretrained
+    return cls._from_pretrained(
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/transformers/tokenization_utils_base.py", line 2151, in _from_pretrained
+    slow_tokenizer = (cls.slow_tokenizer_class)._from_pretrained(
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/transformers/tokenization_utils_base.py", line 2359, in _from_pretrained
+    tokenizer = cls(*init_inputs, **init_kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/transformers/models/llama/tokenization_llama.py", line 171, in __init__
+    self.sp_model = self.get_spm_processor(kwargs.pop("from_slow", False))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/transformers/models/llama/tokenization_llama.py", line 198, in get_spm_processor
+    tokenizer.Load(self.vocab_file)
+  File "/opt/venv/lib/python3.12/site-packages/sentencepiece/__init__.py", line 961, in Load
+    return self.LoadFromFile(model_file)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/sentencepiece/__init__.py", line 316, in LoadFromFile
+    return _sentencepiece.SentencePieceProcessor_LoadFromFile(self, arg)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: not a string

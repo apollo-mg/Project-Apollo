@@ -1,0 +1,1 @@
+    speak(response.replace(''''', '').strip())

@@ -1,0 +1,180 @@
+ggml_cuda_init: found 1 ROCm devices:
+  Device 0: AMD Radeon RX 9070 XT, gfx1100 (0x1100), VMM: no, Wave Size: 32
+main: n_parallel is set to auto, using n_parallel = 4 and kv_unified = true
+build: 8173 (2e7e63852) with Clang 20.0.0 for Linux x86_64
+system info: n_threads = 8, n_threads_batch = 8, total_threads = 16
+
+system_info: n_threads = 8 (n_threads_batch = 8) / 16 | ROCm : NO_VMM = 1 | PEER_MAX_BATCH_SIZE = 128 | CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | AVX2 = 1 | F16C = 1 | FMA = 1 | BMI2 = 1 | LLAMAFILE = 1 | OPENMP = 1 | REPACK = 1 | 
+
+init: using 15 threads for HTTP server
+start: binding port with default address family
+main: loading model
+srv    load_model: loading model '/media/mark/TG 2TB/ollama_models/models/blobs/sha256-6e9f90f02bb3b39b59e81916e8cfce9deb45aeaeb9a54a5be4414486b907dc1e'
+common_init_result: fitting params to device memory, for bugs during this step try to reproduce them with -fit off, or provide --verbose logs if the bug only occurs with -fit on
+llama_params_fit_impl: projected to use 9111 MiB of device memory vs. 16048 MiB of free device memory
+llama_params_fit_impl: will leave 6936 >= 1024 MiB of free device memory, no changes needed
+llama_params_fit: successfully fit params to free device memory
+llama_params_fit: fitting params to free memory took 0.49 seconds
+llama_model_load_from_file_impl: using device ROCm0 (AMD Radeon RX 9070 XT) (0000:2d:00.0) - 16048 MiB free
+llama_model_loader: loaded meta data with 26 key-value pairs and 579 tensors from /media/mark/TG 2TB/ollama_models/models/blobs/sha256-6e9f90f02bb3b39b59e81916e8cfce9deb45aeaeb9a54a5be4414486b907dc1e (version GGUF V3 (latest))
+llama_model_loader: Dumping metadata keys/values. Note: KV overrides do not apply in this output.
+llama_model_loader: - kv   0:                       general.architecture str              = qwen2
+llama_model_loader: - kv   1:                               general.type str              = model
+llama_model_loader: - kv   2:                               general.name str              = DeepSeek R1 Distill Qwen 14B
+llama_model_loader: - kv   3:                           general.basename str              = DeepSeek-R1-Distill-Qwen
+llama_model_loader: - kv   4:                         general.size_label str              = 14B
+llama_model_loader: - kv   5:                          qwen2.block_count u32              = 48
+llama_model_loader: - kv   6:                       qwen2.context_length u32              = 131072
+llama_model_loader: - kv   7:                     qwen2.embedding_length u32              = 5120
+llama_model_loader: - kv   8:                  qwen2.feed_forward_length u32              = 13824
+llama_model_loader: - kv   9:                 qwen2.attention.head_count u32              = 40
+llama_model_loader: - kv  10:              qwen2.attention.head_count_kv u32              = 8
+llama_model_loader: - kv  11:                       qwen2.rope.freq_base f32              = 1000000.000000
+llama_model_loader: - kv  12:     qwen2.attention.layer_norm_rms_epsilon f32              = 0.000010
+llama_model_loader: - kv  13:                          general.file_type u32              = 15
+llama_model_loader: - kv  14:                       tokenizer.ggml.model str              = gpt2
+llama_model_loader: - kv  15:                         tokenizer.ggml.pre str              = qwen2
+llama_model_loader: - kv  16:                      tokenizer.ggml.tokens arr[str,152064]  = ["!", "\"", "#", "$", "%", "&", "'", ...
+llama_model_loader: - kv  17:                  tokenizer.ggml.token_type arr[i32,152064]  = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ...
+llama_model_loader: - kv  18:                      tokenizer.ggml.merges arr[str,151387]  = ["Ġ Ġ", "ĠĠ ĠĠ", "i n", "Ġ t",...
+llama_model_loader: - kv  19:                tokenizer.ggml.bos_token_id u32              = 151646
+llama_model_loader: - kv  20:                tokenizer.ggml.eos_token_id u32              = 151643
+llama_model_loader: - kv  21:            tokenizer.ggml.padding_token_id u32              = 151643
+llama_model_loader: - kv  22:               tokenizer.ggml.add_bos_token bool             = true
+llama_model_loader: - kv  23:               tokenizer.ggml.add_eos_token bool             = false
+llama_model_loader: - kv  24:                    tokenizer.chat_template str              = {% if not add_generation_prompt is de...
+llama_model_loader: - kv  25:               general.quantization_version u32              = 2
+llama_model_loader: - type  f32:  241 tensors
+llama_model_loader: - type q4_K:  289 tensors
+llama_model_loader: - type q6_K:   49 tensors
+print_info: file format = GGUF V3 (latest)
+print_info: file type   = Q4_K - Medium
+print_info: file size   = 8.37 GiB (4.87 BPW) 
+load: 0 unused tokens
+load: control-looking token: 128247 '</s>' was not control-type; this is probably a bug in the model. its type will be overridden
+load: special_eos_id is not in special_eog_ids - the tokenizer config may be incorrect
+load: printing all EOG tokens:
+load:   - 128247 ('</s>')
+load:   - 151643 ('<｜end▁of▁sentence｜>')
+load:   - 151662 ('<|fim_pad|>')
+load:   - 151663 ('<|repo_name|>')
+load:   - 151664 ('<|file_sep|>')
+load: special tokens cache size = 23
+load: token to piece cache size = 0.9310 MB
+print_info: arch                  = qwen2
+print_info: vocab_only            = 0
+print_info: no_alloc              = 0
+print_info: n_ctx_train           = 131072
+print_info: n_embd                = 5120
+print_info: n_embd_inp            = 5120
+print_info: n_layer               = 48
+print_info: n_head                = 40
+print_info: n_head_kv             = 8
+print_info: n_rot                 = 128
+print_info: n_swa                 = 0
+print_info: is_swa_any            = 0
+print_info: n_embd_head_k         = 128
+print_info: n_embd_head_v         = 128
+print_info: n_gqa                 = 5
+print_info: n_embd_k_gqa          = 1024
+print_info: n_embd_v_gqa          = 1024
+print_info: f_norm_eps            = 0.0e+00
+print_info: f_norm_rms_eps        = 1.0e-05
+print_info: f_clamp_kqv           = 0.0e+00
+print_info: f_max_alibi_bias      = 0.0e+00
+print_info: f_logit_scale         = 0.0e+00
+print_info: f_attn_scale          = 0.0e+00
+print_info: n_ff                  = 13824
+print_info: n_expert              = 0
+print_info: n_expert_used         = 0
+print_info: n_expert_groups       = 0
+print_info: n_group_used          = 0
+print_info: causal attn           = 1
+print_info: pooling type          = -1
+print_info: rope type             = 2
+print_info: rope scaling          = linear
+print_info: freq_base_train       = 1000000.0
+print_info: freq_scale_train      = 1
+print_info: n_ctx_orig_yarn       = 131072
+print_info: rope_yarn_log_mul     = 0.0000
+print_info: rope_finetuned        = unknown
+print_info: model type            = 14B
+print_info: model params          = 14.77 B
+print_info: general.name          = DeepSeek R1 Distill Qwen 14B
+print_info: vocab type            = BPE
+print_info: n_vocab               = 152064
+print_info: n_merges              = 151387
+print_info: BOS token             = 151646 '<｜begin▁of▁sentence｜>'
+print_info: EOS token             = 151643 '<｜end▁of▁sentence｜>'
+print_info: EOT token             = 151643 '<｜end▁of▁sentence｜>'
+print_info: PAD token             = 151643 '<｜end▁of▁sentence｜>'
+print_info: LF token              = 198 'Ċ'
+print_info: FIM PRE token         = 151659 '<|fim_prefix|>'
+print_info: FIM SUF token         = 151661 '<|fim_suffix|>'
+print_info: FIM MID token         = 151660 '<|fim_middle|>'
+print_info: FIM PAD token         = 151662 '<|fim_pad|>'
+print_info: FIM REP token         = 151663 '<|repo_name|>'
+print_info: FIM SEP token         = 151664 '<|file_sep|>'
+print_info: EOG token             = 128247 '</s>'
+print_info: EOG token             = 151643 '<｜end▁of▁sentence｜>'
+print_info: EOG token             = 151662 '<|fim_pad|>'
+print_info: EOG token             = 151663 '<|repo_name|>'
+print_info: EOG token             = 151664 '<|file_sep|>'
+print_info: max token length      = 256
+load_tensors: loading model tensors, this can take a while... (mmap = true, direct_io = false)
+load_tensors: offloading output layer to GPU
+load_tensors: offloading 47 repeating layers to GPU
+load_tensors: offloaded 48/49 layers to GPU
+load_tensors:   CPU_Mapped model buffer size =   584.07 MiB
+load_tensors:        ROCm0 model buffer size =  7981.97 MiB
+.....:0:rocdevice.cpp            :3587: 1012355198 us:  Callback: Queue 0x7cb113a00000 aborting with error : HSA_STATUS_ERROR_EXCEPTION: An HSAIL operation resulted in a hardware exception. code: 0x1016
+Kernel Name: __amd_rocclr_copyBuffer
+VGPU=0x19cf1d00 SWq=0x7cb2728dc000, HWq=0x7cb113a00000, id=1
+	Dispatch Header =0x1502 (type=2, barrier=1, acquire=2, release=2), setup=0
+	grid=[512, 1, 1], workgroup=[512, 1, 1]
+	private_seg_size=0, group_seg_size=0
+	kernel_obj=0x7cb26dc657c0, kernarg_address=0x0x7cb124400000
+	completion_signal=0x0, correlation_id=0
+	rptr=0, wptr=2
+ ROCm error: unspecified launch failure
+/home/mark/gemini/llama.cpp/ggml/src/ggml-cuda/ggml-cuda.cu:97: ROCm error
+  current device: -1, in function ggml_backend_cuda_buffer_set_tensor at /home/mark/gemini/llama.cpp/ggml/src/ggml-cuda/ggml-cuda.cu:632
+  hipStreamSynchronize(((hipStream_t)2))
+[New LWP 24819]
+[New LWP 24822]
+[New LWP 24823]
+[New LWP 24824]
+[New LWP 24825]
+[New LWP 24826]
+[New LWP 24827]
+[New LWP 24828]
+[New LWP 24829]
+[New LWP 24830]
+[New LWP 24831]
+[New LWP 24832]
+[New LWP 24833]
+[New LWP 24834]
+[New LWP 24835]
+[New LWP 24836]
+[New LWP 24837]
+[New LWP 24838]
+[New LWP 24839]
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+0x00007cb26daea42f in __GI___wait4 (pid=24843, stat_loc=0x0, options=0, usage=0x0) at ../sysdeps/unix/sysv/linux/wait4.c:30
+30	../sysdeps/unix/sysv/linux/wait4.c: No such file or directory.
+#0  0x00007cb26daea42f in __GI___wait4 (pid=24843, stat_loc=0x0, options=0, usage=0x0) at ../sysdeps/unix/sysv/linux/wait4.c:30
+30	in ../sysdeps/unix/sysv/linux/wait4.c
+#1  0x00007cb27292e266 in ggml_print_backtrace () from /home/mark/gemini/llama.cpp/build/bin/libggml-base.so.0
+#2  0x00007cb272943d19 in ggml_abort () from /home/mark/gemini/llama.cpp/build/bin/libggml-base.so.0
+#3  0x00007cb271cce1a2 in ggml_cuda_error(char const*, char const*, char const*, int, char const*) () from /home/mark/gemini/llama.cpp/build/bin/libggml-hip.so.0
+#4  0x00007cb271cd09d0 in ggml_backend_cuda_buffer_set_tensor(ggml_backend_buffer*, ggml_tensor*, void const*, unsigned long, unsigned long) () from /home/mark/gemini/llama.cpp/build/bin/libggml-hip.so.0
+#5  0x00007cb272773d8d in llama_model_loader::load_all_data(ggml_context*, std::unordered_map<unsigned int, ggml_backend_buffer*, std::hash<unsigned int>, std::equal_to<unsigned int>, std::allocator<std::pair<unsigned int const, ggml_backend_buffer*> > >&, std::vector<std::unique_ptr<llama_mlock, std::default_delete<llama_mlock> >, std::allocator<std::unique_ptr<llama_mlock, std::default_delete<llama_mlock> > > >*, bool (*)(float, void*), void*) () from /home/mark/gemini/llama.cpp/build/bin/libllama.so.0
+#6  0x00007cb2727c9383 in llama_model::load_tensors(llama_model_loader&) () from /home/mark/gemini/llama.cpp/build/bin/libllama.so.0
+#7  0x00007cb2726e84dd in llama_model_load_from_file_impl(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > >&, llama_model_params) () from /home/mark/gemini/llama.cpp/build/bin/libllama.so.0
+#8  0x00007cb2726e794c in llama_model_load_from_file () from /home/mark/gemini/llama.cpp/build/bin/libllama.so.0
+#9  0x0000000000580150 in common_init_result::common_init_result(common_params&) ()
+#10 0x0000000000581b4f in common_init_from_params(common_params&) ()
+#11 0x00000000003993ae in server_context_impl::load_model(common_params const&) ()
+#12 0x00000000002dcd49 in main ()
+[Inferior 1 (process 24816) detached]
