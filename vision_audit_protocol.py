@@ -43,9 +43,9 @@ def vision_audit_protocol(image_path):
         "You are the Engineer Mind. You evaluate hardware using a Probability Matrix.\n"
         "TASK 1: Review the available context. Create a probability matrix of your top guesses for the hardware.\n"
         "TASK 2: Based on your highest confidence score:\n"
-        "  - If Confidence is < 90% AND you haven't searched yet: Formulate a tool call to `web_search` using extracted silkscreen text, part numbers, or anchor points to find the exact model.\n"
+        "  - IF YOU HAVE NOT SEARCHED YET: You MUST formulate a tool call to `web_search` to verify the exact model name, silkscreen text, or part numbers. (Vision models frequently hallucinate 'B' as '6' or '8' as 'B'). DO NOT skip this step for specific part numbers or obscure boards.\n"
         "  - IF YOU HAVE ALREADY SEARCHED AND GOT IRRELEVANT RESULTS: You MUST stop searching. Output a tool call to `diff_inventory` using your best guess.\n"
-        "  - If Confidence is >= 90%: Formulate a tool call to `diff_inventory` passing your best guess hardware name as an array to check if it exists in our inventory.\n"
+        "  - IF YOU HAVE SEARCHED AND CONFIRMED THE MODEL (or if it is a completely generic item like 'Mouse'): Formulate a tool call to `diff_inventory` passing your verified hardware name as an array to check if it exists in our inventory.\n"
         "ACTION: Output your thought process, followed by a Strict JSON block containing the matrix and tool call.\n\n"
         "FORMAT REQUIRED:\n"
         "```json\n"
@@ -53,11 +53,11 @@ def vision_audit_protocol(image_path):
         "  \"probability_matrix\": [\n"
         "    {\"guess\": \"Exact Model Name Here\", \"confidence\": 0.85}\n"
         "  ],\n"
-        "  \"tool\": \"diff_inventory\",\n"
-        "  \"args\": {\"items_to_check\": [\"Best Guess Model\"]}\n"
+        "  \"tool\": \"web_search\",\n"
+        "  \"args\": {\"query\": \"Search text here\"}\n"
         "}\n"
         "```\n"
-        "CRITICAL: Every single turn MUST output a tool call (either web_search or diff_inventory). Do not exit without calling diff_inventory."
+        "Available tools: web_search, diff_inventory."
     )
     
     messages = [
@@ -162,7 +162,9 @@ def vision_audit_protocol(image_path):
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
-        res = vision_audit_protocol(sys.argv[1])
+        # Pass all arguments as a list of image paths
+        paths = sys.argv[1:]
+        res = vision_audit_protocol(paths if len(paths) > 1 else paths[0])
         print(f"\n{res}")
     else:
-        print("Usage: python vision_audit_protocol.py <image_path>")
+        print("Usage: python vision_audit_protocol.py <image_path> [image_path2 ...]")
