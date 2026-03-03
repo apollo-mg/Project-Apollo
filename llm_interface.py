@@ -59,7 +59,7 @@ def nuclear_unload(model_name):
         print(f"Nuclear unload error: {e}")
         return False
 
-def query_llm(prompt, system_message=None, model_override=None, messages_override=None, image_path=None):
+def query_llm(prompt, system_message=None, model_override=None, messages_override=None, image_path=None, schema=None):
     target_model = model_override or MODEL_NAME
     
     with MODEL_LOCK:
@@ -85,6 +85,9 @@ def query_llm(prompt, system_message=None, model_override=None, messages_overrid
             "keep_alive": keep_alive,
             "options": {"num_ctx": 8192}
         }
+        
+        if schema:
+            payload["format"] = schema
 
     if system_message:
         payload["messages"].append({"role": "system", "content": system_message})
@@ -133,7 +136,7 @@ def get_loaded_models():
         pass
     return []
 
-def stream_llm(prompt, system_message=None, model_override=None, messages_override=None, image_path=None):
+def stream_llm(prompt, system_message=None, model_override=None, messages_override=None, image_path=None, schema=None):
     """
     Generator that streams the LLM response token by token.
     Enables Unified Tool Interception (UTI) by allowing the agent to inspect output in real-time.
@@ -165,6 +168,9 @@ def stream_llm(prompt, system_message=None, model_override=None, messages_overri
             "keep_alive": keep_alive,
             "options": {"num_ctx": 8192}
         }
+        
+        if schema:
+            payload["format"] = schema
 
         if system_message:
             payload["messages"].append({"role": "system", "content": system_message})
