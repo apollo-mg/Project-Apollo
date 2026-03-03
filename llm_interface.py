@@ -82,7 +82,8 @@ def query_llm(prompt, system_message=None, model_override=None, messages_overrid
             "model": target_model,
             "stream": False,
             "messages": [],
-            "keep_alive": keep_alive
+            "keep_alive": keep_alive,
+            "options": {"num_ctx": 8192}
         }
 
     if system_message:
@@ -96,11 +97,17 @@ def query_llm(prompt, system_message=None, model_override=None, messages_overrid
         payload["messages"].append({"role": "user", "content": prompt or "Describe this image in detail."})
 
     if image_path:
-        encoded_image = encode_image(image_path)
+        images_to_attach = []
+        if isinstance(image_path, list):
+            for path in image_path:
+                images_to_attach.append(encode_image(path))
+        else:
+            images_to_attach.append(encode_image(image_path))
+            
         # Attach image to the last user message
         for msg in reversed(payload["messages"]):
             if msg["role"] == "user":
-                msg["images"] = [encoded_image]
+                msg["images"] = images_to_attach
                 break
 
     def attempt_query():
@@ -155,7 +162,8 @@ def stream_llm(prompt, system_message=None, model_override=None, messages_overri
             "model": target_model,
             "stream": True,
             "messages": [],
-            "keep_alive": keep_alive
+            "keep_alive": keep_alive,
+            "options": {"num_ctx": 8192}
         }
 
         if system_message:
@@ -169,11 +177,17 @@ def stream_llm(prompt, system_message=None, model_override=None, messages_overri
             payload["messages"].append({"role": "user", "content": prompt or "Describe this image in detail."})
 
         if image_path:
-            encoded_image = encode_image(image_path)
+            images_to_attach = []
+            if isinstance(image_path, list):
+                for path in image_path:
+                    images_to_attach.append(encode_image(path))
+            else:
+                images_to_attach.append(encode_image(image_path))
+                
             # Attach image to the last user message
             for msg in reversed(payload["messages"]):
                 if msg["role"] == "user":
-                    msg["images"] = [encoded_image]
+                    msg["images"] = images_to_attach
                     break
 
         try:

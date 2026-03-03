@@ -89,14 +89,13 @@ def chat_with_buddy(user_input, log_callback=None):
         log("alert", "INTEGRITY BREACH!", col=CLR_GOLD)
 
     # 3. Vision Shortcut
-    image_path = None
-    m = re.search(r'\[ATTACHED_IMAGE:\s*(.*?)\s*\]', user_input)
-    if m:
-        image_path = m.group(1).strip()
+    image_path = []
+    
+    for m in re.finditer(r'\[ATTACHED_IMAGE:\s*(.*?)\s*\]', user_input):
+        image_path.append(m.group(1).strip())
         user_input = user_input.replace(m.group(0), "").strip()
         
-    m_pdf = re.search(r'\[ATTACHED_PDF:\s*(.*?)\s*\]', user_input)
-    if m_pdf:
+    for m_pdf in re.finditer(r'\[ATTACHED_PDF:\s*(.*?)\s*\]', user_input):
         pdf_path = m_pdf.group(1).strip()
         user_input = user_input.replace(m_pdf.group(0), "").strip()
         try:
@@ -108,7 +107,7 @@ def chat_with_buddy(user_input, log_callback=None):
                 pix = page.get_pixmap(matrix=fitz.Matrix(1, 1))
                 out_path = pdf_path.replace(".pdf", "_page0.jpg")
                 pix.save(out_path)
-                image_path = out_path
+                image_path.append(out_path)
                 log("vision", f"Rendered PDF page 0 to {out_path}", col=CLR_GOLD)
         except Exception as e:
             log("vision", f"Error rendering PDF: {e}", col=CLR_GOLD)
@@ -116,8 +115,11 @@ def chat_with_buddy(user_input, log_callback=None):
     if "capture" in user_input.lower() and "vision" in user_input.lower():
         log("vision", "DIRECT CAPTURE...", col=CLR_GOLD)
         res = Toolbox.capture_vision()
-        if "Error" not in res: image_path = res
+        if "Error" not in res: image_path.append(res)
         else: return res, None
+        
+    if not image_path:
+        image_path = None
 
     if mod == "CHITCHAT" and not image_path:
         log("receptionist", "Routing...", col=CLR_BLUE)
