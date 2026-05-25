@@ -123,6 +123,8 @@ def call_llm(messages, temperature=1.0, response_format=None):
         print(f"LLM API Error: {e}")
         return None
 
+from modules.graph_memory import extract_and_store_edges
+
 def trigger_daydream():
     """Executes the dual-pass daydream logic using the Master Chronology."""
     print("🧠 System idle. Initiating Daydream V2 sequence...")
@@ -131,6 +133,19 @@ def trigger_daydream():
     if not recent:
         print("Not enough history in chronology yet.")
         return
+
+    # ==========================================
+    # PASS 0: The Edge Extractor (Regex Cascade)
+    # ==========================================
+    print("🕸️ Pass 0: Deterministic Graph Wiring (Regex Cascade)...")
+    try:
+        new_edges = extract_and_store_edges(recent, default_source="Daydream_Daemon")
+        if new_edges > 0:
+            print(f"🔗 Wired {new_edges} new relationship edges into vault/graph_memory.db")
+        else:
+            print("🔗 No new deterministic edges found in recent logs.")
+    except Exception as e:
+        print(f"Pass 0 Failed: {e}")
 
     context_str = f"--- RECENT STRUGGLES ---\n{recent}\n\n"
     if historical:

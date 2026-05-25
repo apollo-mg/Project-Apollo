@@ -50,13 +50,42 @@ class SovereignRouter:
     Priority is given to the 'weakest' capable node to maximize cluster efficiency.
     """
     def __init__(self):
-        # In production, this would load from a local nodes.json registry
-        self.fleet: List[HardwareNode] = [
-            HardwareNode("RX_9070_XT", "127.0.0.1", 8082, 32768, 80.0, 8.0, True),
-            HardwareNode("BonPi_Edge", "100.66.52.81", 8080, 65536, 2.8, 1.0, False),
-            HardwareNode("PocketAssistant_S21", "100.75.156.52", 8080, 4096, 20.0, 4.0, True)
-        ]
         logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+        self.fleet: List[HardwareNode] = self._load_fleet_from_db()
+        
+        if not self.fleet:
+            logging.info("Hardware profiles DB empty or missing. Falling back to default fleet.")
+            self.fleet = [
+                HardwareNode("RX_9070_XT", "127.0.0.1", 8082, 32768, 80.0, 8.0, True),
+                HardwareNode("BonPi_Edge", "100.66.52.81", 8080, 65536, 2.8, 1.0, False),
+                HardwareNode("PocketAssistant_S21", "100.75.156.52", 8080, 4096, 20.0, 4.0, True)
+            ]
+
+    def _load_fleet_from_db(self) -> List[HardwareNode]:
+        import sqlite3
+        import os
+        db_path = "vault/hardware_profiles.db"
+        fleet = []
+        if os.path.exists(db_path):
+            try:
+                conn = sqlite3.connect(db_path)
+                conn.row_factory = sqlite3.Row
+                cursor = conn.execute("SELECT * FROM node_capabilities")
+                for row in cursor:
+                    fleet.append(HardwareNode(
+                        name=row["node_name"],
+                        ip=row["ip"],
+                        port=row["port"],
+                        context_window=row["context_window"],
+                        tps_baseline=row["tps_baseline"],
+                        precision_bits=row["precision_bits"],
+                        internet_access=bool(row["internet_access"]),
+                        status=row["status"]
+                    ))
+                conn.close()
+            except Exception as e:
+                logging.error(f"Failed to load fleet from DB: {e}")
+        return fleet
 
     def evaluate_tool_request(self, requirement: ToolRequirement, max_wait_time_sec: Optional[int] = None) -> Optional[HardwareNode]:
         """

@@ -1,107 +1,157 @@
-import requests
-from bs4 import BeautifulSoup
-from ddgs import DDGS
-import re
-import llm_interface
+import os
+import sqlite3
+import logging
+from modules.vdb import get_vector_store
 
-def fetch_url_content(url):
-    """Fetches and extracts clean text from a webpage."""
-    print(f"    [Scraping] {url}")
+logger = logging.getLogger("SovereignSearch")
+
+SQLITE_DB_PATH = "vault/bm25_index.db"
+RRF_K = 60
+
+def get_sqlite_conn():
+    if not os.path.exists(SQLITE_DB_PATH):
+        return None
+    conn = sqlite3.connect(SQLITE_DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def search_bm25(query: str, n_results: int = 10):
+    """Executes a BM25 exact keyword search using SQLite FTS5."""
+    conn = get_sqlite_conn()
+    if not conn:
+        return []
+
     try:
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
+        # We use ORDER BY bm25(chunks_fts) to get the best matches
+        cursor = conn.execute("""
+            SELECT chunk_id, source, content, bm25(chunks_fts) as bm25_score
+            FROM chunks_fts
+            WHERE chunks_fts MATCH ?
+            ORDER BY bm25_score
+            LIMIT ?
+        """, (query, n_results))
         
-        soup = BeautifulSoup(response.text, 'lxml')
-        
-        # Kill javascript and CSS
-        for script in soup(["script", "style", "nav", "footer", "header", "aside"]):
-            script.extract()
-            
-        text = soup.get_text(separator=' ', strip=True)
-        # Condense whitespace
-        text = re.sub(r'\s+', ' ', text).strip()
-        
-        # Return first 1500 chars to avoid blowing up the context window
-        return text[:1500]
+        results = []
+        for row in cursor:
+            results.append({
+                "chunk_id": row["chunk_id"],
+                "source": row["source"],
+                "content": row["content"],
+                "score": row["bm25_score"] # FTS5 bm25 returns lower score for better matches (negative values)
+            })
+        return results
     except Exception as e:
-        return f"Error fetching URL: {e}"
+        logger.error(f"BM25 Search Error: {e}")
+        return []
+    finally:
+        conn.close()
 
-def perform_search(query, num_results=3):
-    """Uses DuckDuckGo to find relevant links, then scrapes them."""
-    print(f"\n[*] Executing Web Search: '{query}'")
-    results_data = []
-    
+def search_vector(query: str, n_results: int = 10):
+    """Executes a semantic vector search using ChromaDB."""
     try:
-        with DDGS() as ddgs:
-            results = [r for r in ddgs.text(query, max_results=num_results)]
+        vector_store = get_vector_store()
+        
+        # We need the IDs. We can query the underlying collection directly.
+        results = vector_store._collection.query(
+            query_texts=[query],
+            n_results=n_results
+        )
+        
+        if not results or not results["ids"] or not results["ids"][0]:
+            return []
             
-            for r in results:
-                url = r.get('href')
-                snippet = r.get('body')
-                title = r.get('title')
+        vector_results = []
+        for i in range(len(results["ids"][0])):
+            vector_results.append({
+                "chunk_id": results["ids"][0][i],
+                "source": results["metadatas"][0][i].get("source", "Unknown"),
+                "content": results["documents"][0][i],
+                "score": results["distances"][0][i] # Lower distance is better
+            })
+        return vector_results
+    except Exception as e:
+        logger.error(f"Vector Search Error: {e}")
+        return []
+
+def rrf_fusion_weighted(lists, k=60):
+    """
+    Reciprocal Rank Fusion algorithm ported from Garry Tan's GBrain architecture.
+    Takes a list of result lists and fuses them.
+    """
+    scores = {}
+
+    for result_list in lists:
+        for rank, r in enumerate(result_list):
+            chunk_id = r["chunk_id"]
+            rrf_score = 1.0 / (k + rank)
+            
+            if chunk_id in scores:
+                scores[chunk_id]["score"] += rrf_score
+            else:
+                scores[chunk_id] = {
+                    "result": {
+                        "chunk_id": chunk_id,
+                        "source": r["source"],
+                        "content": r["content"]
+                    },
+                    "score": rrf_score
+                }
                 
-                content = fetch_url_content(url)
-                
-                results_data.append({
-                    "title": title,
-                    "url": url,
-                    "snippet": snippet,
-                    "scraped_content": content
-                })
-    except Exception as e:
-        print(f"[-] Search failed: {e}")
-            
-    return results_data
+    fused = list(scores.values())
+    fused.sort(key=lambda x: x["score"], reverse=True)
+    return [item["result"] for item in fused]
 
-def synthesize_answer(query, search_results):
-    """Feeds the scraped web data to the Architect to synthesize a Google-like answer."""
-    print(f"\n[*] Synthesizing data with Unified Model...")
+def sovereign_search(query: str, n_results: int = 5):
+    """
+    The master Hybrid Search loop. 
+    Fuses ChromaDB (Vector) and SQLite FTS5 (BM25 Keyword) via RRF (k=60).
+    """
+    print(f"\n[*] Executing Hybrid Search (Vector + BM25 + RRF): '{query}'")
     
-    context = ""
-    for idx, r in enumerate(search_results):
-        context += f"\n--- Source [{idx+1}]: {r['title']} ---\n"
-        context += f"URL: {r['url']}\n"
-        context += f"Content: {r['scraped_content']}\n"
-
-    prompt = f"""You are the Sovereign Research AI. Answer the user's query using ONLY the provided web search context.
-Cite your sources using brackets (e.g. [1]). Do not hallucinate information outside of the context.
-
-User Query: {query}
-
-Web Context:
-{context}
-"""
+    # 1. Fetch from Vector DB
+    vector_results = search_vector(query, n_results=10)
     
-    try:
-        final_answer = llm_interface.query_llm(prompt)
-        return final_answer
-    except Exception as e:
-        return f"[-] Synthesis failed: {e}"
-
-def sovereign_search(query):
-    """The master search loop."""
-    raw_data = perform_search(query)
-    if not raw_data:
-        return "No results found."
+    # 2. Fetch from BM25 FTS5
+    # FTS5 matches can use simple quote escaping for robustness
+    escaped_query = '"{}"'.format(query.replace('"', '""'))
+    bm25_results = search_bm25(escaped_query, n_results=10)
+    
+    if not vector_results and not bm25_results:
+        return "No results found in Sovereign memory."
         
-    answer = synthesize_answer(query, raw_data)
+    # 3. Apply Reciprocal Rank Fusion
+    lists_to_fuse = []
+    if vector_results:
+        lists_to_fuse.append(vector_results)
+    if bm25_results:
+        lists_to_fuse.append(bm25_results)
+        
+    fused_results = rrf_fusion_weighted(lists_to_fuse, k=RRF_K)
+    
+    # Take top N
+    top_results = fused_results[:n_results]
     
     # Format the return string to look exactly like the console output
     output = []
     output.append("========================================================")
-    output.append("                 SOVEREIGN SEARCH RESULT")
+    output.append("             SOVEREIGN HYBRID SEARCH RESULT")
     output.append("========================================================\n")
-    output.append(answer)
-    output.append("\n--------------------------------------------------------")
-    output.append("Sources:")
-    for idx, r in enumerate(raw_data):
-        output.append(f"[{idx+1}] {r['url']}")
+    
+    for idx, r in enumerate(top_results):
+        output.append(f"--- Source [{idx+1}]: {r['source']} ---")
+        output.append(r['content'])
+        output.append("")
+        
+    output.append("--------------------------------------------------------")
+    output.append(f"Fused {len(vector_results)} Vector + {len(bm25_results)} BM25 results.")
     output.append("========================================================\n")
     
     result_str = "\n".join(output)
     return result_str
 
 if __name__ == "__main__":
-    test_query = "What were the major changes in the latest Linux kernel release?"
+    import sys
+    test_query = "What is Reciprocal Rank Fusion?"
+    if len(sys.argv) > 1:
+        test_query = sys.argv[1]
     print(sovereign_search(test_query))

@@ -155,3 +155,6 @@ Whenever you're ready to start building the "V2" of Apollo's tool registry, thes
   2. **Hybrid Search (Vector + BM25 + RRF):** Upgrade the Librarian workflow. Combine ChromaDB semantic vectors with exact keyword matching (BM25) and Reciprocal Rank Fusion to ensure explicit searches (like "Message Bus WAL error") don't get lost in semantic noise.
   3. **Memory via MCP:** Spin up a dedicated `memory_daemon.py` MCP server. Allow the Architect to surgically mutate relationship edges in a graph database (or Postgres/PGLite) without needing to load and parse massive local JSON files.
 
+## Phase 3 Deliverables
+1. **Seed Vault Architecture (Semantic System Prompting):** Distribute Apollo with a pre-compiled `bm25_index.db` and ChromaDB snapshot containing enterprise best practices, documentation, and architecture rules. This replaces massive static system prompts, drastically reducing KV cache pressure by only pulling rules into working memory exactly when the Swarm needs them.
+
