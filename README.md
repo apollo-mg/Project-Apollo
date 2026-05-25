@@ -54,4 +54,27 @@ Project Apollo stands on the shoulders of giants. This Sovereign OS is made poss
 * **Anthropic:** For pioneering the open Model Context Protocol (MCP) standard that powers Project Starbuck.
 
 ---
+
+## ❓ Frequently Asked Questions (FAQ)
+
+**Q: I already run my own LLM server (vLLM, Ollama, TabbyAPI). Do I have to use your inference stack?**
+**A:** Absolutely not. Apollo is fundamentally an *orchestration layer*. While we include automated LLMOps tools (like "The Scientist") specifically tuned for `llama-server` and ROCm, the core TS engine (`apollo_coordinator.ts`) and the subagents communicate exclusively via standard OpenAI-compatible API schemas. As long as your existing inference engine exposes an OpenAI-compatible `/v1/chat/completions` endpoint and supports tool-calling (function calling), you can plug it directly into Apollo's `profiles.yaml`. 
+
+**Q: What models work best with this architecture?**
+**A:** Because Apollo heavily utilizes complex, multi-turn tool calling and schema enforcement, you need models with strong structural adherence. 
+*   **The Orchestrator:** We strongly recommend **Qwen 3.6 27B** (Dense) or the **Qwopus** variants. They exhibit exceptional tool-calling stability, rarely hallucinate syntax, and survive 15+ turn loops without degrading into "apology loops."
+*   **The Edge Workers:** For basic logging or simple regex extractions, smaller 8B or 14B models (like Llama 3 or DeepSeek-R1 14B) are perfectly viable for the remote worker nodes.
+*   *Note on Gemma 4:* While fantastic for creative/philosophical reasoning (ideal for the Daydream Daemon), we have found their strict JSON tool-calling capabilities to be currently unreliable for the main orchestration loop.
+
+**Q: How many agents or nodes can run at once?**
+**A:** The bottleneck is no longer the database lock. Because Apollo uses an SQLite Message Bus operating in **WAL (Write-Ahead Logging)** mode, you can theoretically have dozens of Worker Daemons polling the queue simultaneously. The true limit is your network latency (for A2A State-Sync file transfers) and your aggregate VRAM limits across the cluster. We currently run a stable dual-node setup (1x 9070 XT Coordinator, 1x Dual-P100 Worker).
+
+**Q: Something broke. Where are the logs?**
+**A:** Apollo keeps its logs decentralized based on the service:
+*   **Orchestration Logic:** Check the terminal stdout where you launched `apollo_coordinator.ts`.
+*   **Message Bus/Worker Issues:** The worker daemons output to stdout, but you can also directly inspect the queue by running `sqlite3 deploy/data/message_bus.db "SELECT * FROM task_queue;"`.
+*   **Librarian / Memory Errors:** Ingestion errors are logged to `librarian_ingest.log` in the root directory.
+*   **Daydream / Metacognition:** The actual architectural epiphanies are saved directly into `data/actionable_epiphanies.jsonl`.
+
+---
 *Developed by Mark | AI Systems Architect | Indianapolis, IN*
