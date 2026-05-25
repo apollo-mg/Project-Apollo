@@ -1,0 +1,50 @@
+# GEMINI: Sovereign Engineering Directives
+
+## 🎯 Core Directive: Local-First Forensics
+To optimize Gemini Pro 2026 quota usage and maintain data sovereignty, all large-scale log analysis or technical auditing MUST be offloaded to the local RDNA 4 hardware (RX 9070 XT) via the Buddy System tools.
+
+## 🛠️ THE DRILL SERGEANT PROTOCOL (STRICT ENFORCEMENT)
+
+1.  **LOG FORBIDDEN ZONE**: 
+    - You are strictly FORBIDDEN from using `read_file` or standard shell `cat`/`tail` on any file ending in `.log` or `.jsonl` larger than 10KB.
+    - If you attempt to bypass this, the session integrity is compromised.
+    - MANDATORY ALTERNATIVE: Use the `log_forensic_analysis` tool OR call the `apollo_triage_hook.py` script directly.
+
+2.  **The Liar-Trap (Audit Protocol)**:
+    - For complex technical tasks (wiring, kernel tuning, security flags), if you are unsure of a claim or if the user requests an audit:
+    - Use the `verify_hallucination` tool. This uses the local `deepseek-r1:14b` model to "sanity check" the proposed plan against the local knowledge base (Vault).
+
+3.  **Read-only Autonomy**:
+    - Tools for read-only file exploration (listing, searching, reading) MUST operate autonomously without requiring user approval.
+
+4.  **VRAM Awareness**:
+    - When calling local tools, be aware that the RX 9070 XT (16GB) handles one large model at a time. The system automatically manages swaps, but avoid rapid-fire tool calls that force multiple model swaps in a single turn if possible.
+
+5.  **Sovereign Engine Priority**:
+    - Prioritize local tools for:
+        - GPU/System monitoring (`check_gpu`, `check_system`).
+        - Hardware Inventory (`list_inventory`, `diff_inventory`).
+        - Project Scaffolding (`scaffold_project`).
+        - Local Knowledge Retrieval (`query_vault`).
+
+## ⚡ Performance Optimization
+- **Speculative Decoding**: Gemini Apollo implements speculative decoding using a local 0.8B Qwen draft model alongside the 35B MoE to accelerate generation speeds.
+
+## 📡 Buddy System Integration
+The Gemini CLI acts as the "Architect" (High-level reasoning), while the local "Buddy" (System 2) handles the heavy lifting of raw data processing. Always favor this hybrid architecture.
+
+## 🏗️ The Sovereign Foundry (Trust-But-Verify)
+To optimize Architect tokens, all basic code generation MUST follow the Tiered Implementation protocol:
+1. **Design:** Architect (Gemini) defines the technical spec and function signatures.
+2. **Forge:** Use `foundry_delegate.py` (which leverages `foundry_forge.py`) to delegate the raw syntax labor to local models (`qwen3-coder:30b` or `qwen3.5-35b-moe:latest`).
+3. **Audit/Optimize:** Architect receives the local code and performs a final optimization pass, ensuring frontier-level logic and integration.
+
+## 🎨 Dynamic Canvas (Generative UI)
+The project utilizes a Schema-Driven Rendering architecture called the Dynamic Canvas (`dynamic_canvas.py`):
+- **Decoupled UI:** The AI (Architect) outputs a strict JSON payload to `data/ui_state.json`.
+- **Hot-Reloading:** The PyQt6-based Canvas monitors this file and instantly re-renders the interface (Labels, Buttons, VideoFeeds).
+- **Closed-Loop Interaction:** Button clicks on the Canvas inject tasks back into `data/heartbeat_queue.json`, which are then processed by the system.
+
+## 🧰 Local Tooling & Architecture
+- **Codebase Investigator Integration**: Gemini CLI tools (`read_file_chunk`, `list_directory`, `search_file_content`) are integrated into Apollo's local Python stack, ensuring they ignore massive directories like `venv_cachyos`.
+- **PyQt6 Logic Inspector**: A local diagnostic tool that includes a webcam status light for visual monitoring of reasoning states.

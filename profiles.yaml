@@ -1,0 +1,253 @@
+architect:
+  endpoint: http://10.0.0.71:8082/v1
+  role: Lead Architect
+  model: Qwen 3.6 27B
+  memory_file: LOCAL_AGENT_CONTEXT.md
+  allowed_tools:
+    - file_read
+    - file_edit
+    - file_write
+    - grep
+    - glob
+    - web_fetch
+    - system_metrics
+    - delegate_task
+    - codebase_investigator
+    - ask_user
+    - starbuck_system_recon
+    - starbuck_read_config
+    - starbuck_write_config
+    - starbuck_deploy_cluster
+    - starbuck_install_package
+    - starbuck_read_scratchpad
+    - starbuck_write_scratchpad
+    - starbuck_manage_service
+    - starbuck_read_journal
+    - starbuck_resolver
+    - software_engineer
+  system_instructions: |
+    # DELEGATION ECONOMICS — Use this to decide when to delegate vs inline:
+
+    ## Cost Model:
+    - INLINE work: costs ~50-200 tokens per turn, uses your current context slot
+    - SUB-AGENT spawn: costs ~1k tokens overhead + burns a dedicated VRAM turn budget
+    - CONTEXT BLOAT risk: every tool call result you absorb grows your own history
+
+    ## Decision Rules:
+    | Task characteristic          | Do inline     | Delegate to sub-agent          |
+    |-----------------------------|---------------|---------------------------------|
+    | Single read/write/edit      | YES           | Overhead not justified          |
+    | Multi-step investigation    | Will bloat    | YES (`codebase_investigator`)   |
+    | Heavy code generation       | Burns turns   | YES (`software_engineer`)       |
+    | OS & Package Management     | NO (Sandboxed)| YES (`starbuck_resolver`)       |
+    | Quick factual lookup/grep   | YES           | Don't spawn an agent to grep    |
+
+    ## Hard Constraints:
+    - NEVER delegate a task you can solve in 1 tool call.
+    - ALWAYS delegate tasks requiring >3 sequential tool calls.
+    - **Coding**: Use `software_engineer` for multi-file edits and iterative testing. Do NOT use for OS tasks.
+    - **Sysadmin**: Use `starbuck_resolver` for OS updates, package failures (`pacman`/`apt`), and host environment repair.
+    - **Research**: Use `codebase_investigator` for pure exploration/mapping (read-only).
+
+    # COMMON DELEGATION MISTAKES (avoid these):
+    - "I'll just ask a sub-agent" for tasks you could solve in 2 lines of bash.
+    - Doing a 10-turn investigation inline when codebase_investigator would do it in 1 turn.
+    - Forgetting to VERIFY the sub-agent's output before acting on it.
+  temperature: 0.6
+  top_p: 0.95
+  top_k: 20
+  min_p: 0.0
+  presence_penalty: 0.0
+  frequency_penalty: 1.0
+  vision: false
+  compress_tool_results: true
+  context_strategy:
+    type: summarize
+    maxTokens: 50000
+    summaryModel: Qwen 3.6 27B
+  extra_body:
+    chat_template_kwargs:
+        preserve_thinking: true
+        enable_thinking: true
+
+codebase_investigator:
+  endpoint: http://10.0.0.71:8082/v1
+  role: Codebase Investigator Subagent
+  model: Qwen 3.6 27B
+  temperature: 0.6
+  top_p: 0.95
+  top_k: 20
+  min_p: 0.0
+  presence_penalty: 0.0
+  frequency_penalty: 1.0
+  compress_tool_results: true
+  context_strategy:
+    type: summarize
+    maxTokens: 50000
+    summaryModel: Qwen 3.6 27B
+  extra_body:
+    chat_template_kwargs:
+        enable_thinking: true
+        preserve_thinking: true
+
+software_engineer:
+#  endpoint: http://10.0.0.71:8082/v1
+  # Note: allowed_tools is currently hardcoded in software-engineer.ts to all safe built-in tools.
+  model: Qwen 3.6 27B
+  system_instructions: |
+    You are a Senior Software Engineer, a specialized sub-agent spawned by Apollo.
+    Your sole purpose is to implement code, fix bugs, run tests, and perform heavy software engineering tasks.
+    You have full access to local file system tools.
+
+    CORE MANDATES:
+    1. **Act-then-Refine:** Write code, run tests, diagnose errors, and iterate until the implementation is successful.
+    2. **Empirical Validation:** Do not report success until you have empirically proven your code works.
+    3. **Safe Shell Execution:** Be careful with destructive commands. Do not overwrite massive files without reading them first if you are making surgical edits.
+    4. **Final Reporting:** When you finish, summarize exactly what you did, the specific files you created or modified, and the empirical proof of success.
+    5. **Provided Resources:** If you are given 'Provided Resources (Scratchpad Keys)' in your prompt, you MUST use the `starbuck_read_scratchpad` tool to retrieve the file data from the Message Bus before beginning work. DO NOT attempt to read the file locally if it was passed via the scratchpad, as you are running on a remote node and cannot see the Architect's filesystem. When returning modified code, write it back to the scratchpad using `starbuck_write_scratchpad` and include the new key in your final report.
+  temperature: 0.6 # Unsloth recommended for precise coding tasks in Qwen 3.6 thinking mode
+  top_p: 0.95
+  top_k: 20
+  min_p: 0.0
+  presence_penalty: 0.0
+  frequency_penalty: 1.0
+  compress_tool_results: true
+  context_strategy:
+    type: summarize
+    maxTokens: 50000 # Lowered slightly to ensure heavy tool results trigger compaction
+    summaryModel: Qwen 3.6 27B
+  extra_body:
+    chat_template_kwargs:
+        enable_thinking: true
+        preserve_thinking: true
+
+qwopus_coder:
+#  endpoint: http://10.0.0.71:8082/v1
+  role: Code Reasoning Specialist
+  model: Qwen 3.6 MoE
+  memory_file: /mnt/TG_2TB/Projects/Apollo/LOCAL_AGENT_CONTEXT.md
+  allowed_tools:
+    - bash
+    - file_read
+    - file_edit
+    - file_write
+    - grep
+    - glob
+  temperature: 0.6
+  top_p: 0.95
+  top_k: 20
+  min_p: 0.1
+  presence_penalty: 0.3
+  frequency_penalty: 1.2
+  compress_tool_results: true
+  context_strategy:
+    type: summarize
+    maxTokens: 50000
+  extra_body:
+    chat_template_kwargs:
+      enable_thinking: true
+      preserve_thinking: false
+
+daydreamer:
+#  endpoint: http://10.0.0.71:8082/v1
+  role: Epiphany Synthesizer
+  model: Qwen 3.6 MoE
+  memory_file: /mnt/TG_2TB/Projects/Apollo/SOUL.md
+  allowed_tools:
+    - file_read
+    - grep
+    - glob
+    - system_metrics
+  temperature: 1.0
+  top_p: 0.95
+  top_k: 20
+  min_p: 0.0
+  presence_penalty: 1.5
+  compress_tool_results: true
+  context_strategy:
+    type: summarize
+    maxTokens: 50000
+    summaryModel: Qwen 3.6 MoE
+  extra_body:
+    chat_template_kwargs:
+      enable_thinking: true
+      preserve_thinking: true
+
+p100_coder:
+#  endpoint: http://10.0.0.71:8082/v1
+  model: Qwen 3.6 27B
+  role: You are a senior software engineer operating on a dedicated dual-P100 AI server.
+  temperature: 0.6
+  top_p: 0.95
+  top_k: 20
+  min_p: 0.0
+  presence_penalty: 0.5
+  frequency_penalty: 1.0
+  context_strategy:
+    type: summarize
+    maxTokens: 50000
+    summaryModel: Qwen 3.6 27B
+  extra_body:
+    chat_template_kwargs:
+        enable_thinking: true
+        preserve_thinking: true
+
+starbuck_resolver:
+  endpoint: http://10.0.0.71:8082/v1
+  role: "Starbuck Dependency Resolver — The Hands"
+  model: Qwen 3.6 27B
+  temperature: 0.2
+  top_p: 0.95
+  top_k: 20
+  min_p: 0.0
+  presence_penalty: 0.0
+  frequency_penalty: 1.0
+  compress_tool_results: true
+  allowed_tools:
+    - "starbuck_execute_fix"
+    - "starbuck_check_locks"
+    - "starbuck_read_apt_log"
+    - "bash"
+  system_instructions: |
+    YOU ARE THE STARBUCK DEPENDENCY RESOLVER.
+
+    ## Identity
+    You are "The Hands" — a surgical, read-then-act subagent. You do NOT reason at a high level; you diagnose, formulate, and execute.
+
+    ## Scope
+    You operate exclusively on Linux package managers:
+      • apt / apt-get / dpkg  (Debian, Ubuntu, Pop!_OS, etc.)
+      • pacman / pamac         (Arch Linux, EndeavourOS, etc.)
+
+    ## Operating Principles
+    1. READ FIRST — Always inspect the current state before acting. You will be provided the raw error logs from the initial failure. Analyze them carefully.
+    2. DIAGNOSE — Classify the failure:
+       - Held/broken packages
+       - Lock conflicts
+       - Missing dependencies
+       - Partial upgrades
+       - Corrupted cache
+    3. FORMULATE — Write a precise, minimal bash command. Never chain unrelated fixes. One problem → one command.
+    4. EXECUTE — Pass the command to `starbuck_execute_fix` (or `bash`).
+    5. VERIFY — Report success or failure with evidence (log excerpts, exit codes).
+
+    ## Safety Rules
+    - NEVER run `rm -rf /var/lib/dpkg/*` or equivalent destructive commands.
+    - NEVER force-remove packages without confirming they are the root cause.
+    - ALWAYS prefer non-destructive fixes first (configure, fix-broken, update).
+    - If you are unsure, STOP and ask the orchestrator for clarification.
+
+    ## Output Format
+    Always respond in this structure:
+      [DIAGNOSIS] <what you found>
+      [ACTION]    <the command you are about to run>
+      [RESULT]    <output after execution>
+      [STATUS]    <RESOLVED | PARTIAL | UNRESOLVED>
+  context_strategy:
+    type: summarize
+    maxTokens: 50000
+    summaryModel: Qwen 3.6 27B
+  extra_body:
+    chat_template_kwargs:
+        enable_thinking: true
+        preserve_thinking: true

@@ -1,0 +1,166 @@
+# Apollo CLI Changelog
+
+**Current working CLI main file:** `/mnt/TG_2TB/Projects/Apollo/engines/open-multi-agent-upstream/examples/apollo_cli.ts`
+
+---
+
+## 🐛 Bug Tracking
+
+### 1. Context Overflow on Large Directory Scans
+*   **Date:** 4/18/2026
+*   **Issue:** Asking the agent to look through folders (e.g., `recovered_source`) can cause a massive context overflow. The native `bash` tool had no guardrails, capturing megabytes of `stdout` and instantly overflowing the 64k context limit, resulting in a silent timeout error.
+*   **Fix:** Implemented a hard context-protection limit in `bash.ts` by strictly truncating `stdout` and `stderr` to 100,000 characters and appending a `[TRUNCATED]` warning.
+*   **Status:** ✅ **Validated** (Fixed by Gemini Pro)
+
+> **Code Patch (`bash.ts`):**
+> ```typescript
+> const MAX_LENGTH = 100000 // Strict truncation to prevent context window overflow
+> 
+> const truncate = (str: string) => {
+>   if (str.length > MAX_LENGTH) {
+>     return str.substring(0, MAX_LENGTH) + `\n\n... [TRUNCATED: Exceeded ${MAX_LENGTH} characters] ...`
+>   }
+>   return str
+> }
+> ```
+
+### 2. Agent Amnesia / Context Loss
+*   **Date:** 4/19/2026
+*   **Issue:** Agent loses track of conversation quickly, resulting in short, unhelpful responses. The `apollo_cli.ts` script was explicitly setting `history.length = 0` every time a turn finished, instantly deleting the entire conversation history.
+*   **Fix:** Patched `apollo_cli.ts` to properly append new messages (`history.push(...result.messages)`) to the ongoing context array rather than replacing it.
+*   **Status:** ✅ **Validated** (Fixed by Gemini Pro)
+
+> **Code Patch (`apollo_cli.ts`):**
+> ```typescript
+> } else if (event.type === 'done') {
+>   // Append the new messages generated during this turn to the existing history
+>   const result = event.data as any
+>   history.push(...result.messages)
+> }
+> ```
+
+### 3. Sub-Agent Silent Failures
+*   **Date:** 4/19/2026
+*   **Issue:** The `codebase_investigator` and `delegate_task` tools were failing silently and returning empty reports. If the sub-agent threw an error (e.g., an API timeout or context budget exceeded), the internal streaming loop ignored it and returned an empty string.
+*   **Fix:** Patched `codebase-investigator.ts` and `delegate-task.ts` to capture `error` events from the sub-agent's `AgentRunner` stream and explicitly throw them, ensuring the main agent is informed of why the task failed.
+*   **Status:** ✅ **Validated** (Fixed by Gemini Pro)
+
+> **Code Patch (`codebase-investigator.ts` & `delegate-task.ts`):**
+> ```typescript
+> for await (const event of runner.stream(history)) {
+>   if (event.type === 'text') {
+>     finalSummary += event.data;
+>   } else if (event.type === 'error') {
+>     throw event.data;
+>   }
+> }
+> ```
+
+### 4. Premature Turn Endings (Budget Exceeded Silencing)
+*   **Date:** 4/22/2026
+*   **Issue:** The agent's generation would abruptly stop mid-sentence without logging an error. This occurred when the session breached the 50k token compaction threshold set in `profiles.json`. The underlying `AgentRunner` emitted a `budget_exceeded` stream event to halt generation and protect the context window, but the CLI lacked a handler for this specific event type, causing it to fail silently and drop back to the Readline prompt.
+*   **Fix:** Added an explicit `else if (event.type === 'budget_exceeded')` handler in the `apollo_cli.ts` Readline loop to catch the event and print a visible `[Context Budget Exceeded]` warning. Also explicitly wired `profile.context_strategy?.maxTokens` to the `maxTokenBudget` property when initializing `AgentRunner`.
+*   **Status:** ✅ **Validated**
+
+### 5. Auto-Compaction Amnesia (Context Strategy Bug)
+*   **Date:** 4/22/2026
+*   **Issue:** The `contextStrategy` auto-compaction feature (triggered at 50k tokens) was failing silently. `AgentRunner.stream()` was only applying the context strategy on subsequent turns (`turns > 1`) and, crucially, failed to return the fully compacted context to the caller. This caused the CLI to retain the full, uncompacted history, endlessly growing until VRAM exhaustion.
+*   **Fix:** Refactored `AgentRunner.stream()` in the `open-multi-agent` framework to apply the context strategy on the first turn and to return the fully compacted history as `finalContext` within `RunResult`. Updated `apollo_cli.ts` to detect `finalContext` and replace its persistent history array, allowing the CLI to successfully shed old context.
+*   **Status:** ✅ **Validated**
+
+### 6. Post-Compaction Token Count (Recursive Bloat)
+*   **Date:** 4/22/2026
+*   **Issue:** After a successful context compaction, the CLI was reporting a massive token footprint (e.g., `[Context: ~35k tokens]`) despite the history having just been summarized. The root cause was the `prependSyntheticPrefixToFirstUser` utility in `AgentRunner.summarizeMessages()`, which blindly merged the `[Conversation summary]` string into the first user message's text block. On repeated compactions, this string grew recursively, massively inflating the token heuristic.
+*   **Fix:** Removed the `prependSyntheticPrefixToFirstUser` call. The framework now injects the summary as a brand new, isolated user message directly following the original `firstUser` block, preventing recursive string concatenation and restoring accurate token counts.
+*   **Status:** ✅ **Validated**
+
+---
+
+## ✨ New Features
+
+* Modified /mnt/TG_2TB/Projects/Apollo/engines/open-multi-agent-upstream/examples/apollo_cli.ts to natively parse the -p and --prompt flags.                 
+                                                                                                                                                                    
+  When provided, the CLI will now bypass the interactive REPL entirely, run a single-shot execution of the provided prompt, stream the model's response (including  
+  full tool-call execution), and then automatically process.exit(0) when the done event is fired.                                              
+
+### 🔍 Codebase Investigator Sub-Agent
+*   **Date:** 4/18/2026 (~10:55PM EST)
+*   **Description:** Built a hyper-specialized sub-agent tool (`codebase_investigator`) to safely explore massive codebases without bloating the main context window.
+*   **Key Capabilities:**
+    1.  **Read-Only Tool Registry:** Strictly limited to `bash`, `file_read`, `glob`, `grep`, and `json_parse`. It cannot edit, write, or delete files, ensuring safe exploration.
+    2.  **Specialized System Prompt:** Instructed to use systematic search, ignore binaries/caches during shell searches, and return structured architectural reports.
+    3.  **Hyper-Deterministic Execution:** Hard-locked to `temperature: 0.0` for infallible, robotic execution.
+
+### 🛑 Graceful Interrupts (Ctrl+C)
+*   **Date:** 4/18/2026 (~9:00PM EST)
+*   **Description:** Injected an `AbortController` into the Readline loop. Pressing `Ctrl+C` now safely aborts an active LLM generation or long-running tool execution and returns to the prompt without crashing the Node process.
+
+> **Implementation:**
+> ```typescript
+> let activeAbortController: AbortController | null = null
+> 
+> rl.on('SIGINT', () => {
+>   if (activeAbortController) {
+>     console.log('\n\x1b[33m[User Interrupted] Cancelling active turn...\x1b[0m')
+>     activeAbortController.abort()
+>     activeAbortController = null
+>   } else {
+>     console.log('\nExiting Apollo. Goodbye!')
+>     process.exit(0)
+>   }
+> })
+> ```
+
+### 🚨 "Silent Exit" Bug Fix & Error Logging
+*   **Date:** 4/18/2026 (~9:00PM EST)
+*   **Description:** The CLI previously exited silently if the underlying `llama-server` threw an error (like a timeout or token limit). Added explicit logging for unhandled `error` events emitted by the `AgentRunner`.
+
+> **Implementation:**
+> ```typescript
+> } else if (event.type === 'error') {
+>   console.error(`\n\x1b[31m[Agent Error]\x1b[0m`, event.data)
+> } else {
+>   console.log(`\n\x1b[34m[Agent Event]\x1b[0m ${event.type}`)
+> }
+> ```
+
+### 🎛️ Granular Model Parameters via Profiles
+*   **Date:** 4/19/2026
+*   **Description:** Exposed advanced sampling parameters (`top_p`, `top_k`, `min_p`, `frequency_penalty`, `presence_penalty`, `extra_body`) dynamically via `profiles.json`. Modified the internal `RunnerOptions` and `AgentRunner` initialization in `apollo_cli.ts` to consume these values directly from the active profile.
+*   **Benefit:** Enables swapping between optimal Unsloth presets for different local models (like Gemma 4's reasoning preset vs Qwen 3.6's precise coding preset) entirely through configuration, without recompiling the CLI.
+
+### 📝 Multiline Pasting & Native Editor Support
+*   **Date:** 4/19/2026
+*   **Description:** Resolved a critical UI issue where pasting multiline text into the Readline prompt would trigger multiple, overlapping LLM calls due to the `\n` characters.
+*   **Fix 1 (Pasting):** Wrapped the `rl.on('line')` event in a 50ms asynchronous debounce buffer. If multiple lines are sent in rapid succession, they are seamlessly concatenated into a single cohesive prompt. The `isGenerating` flag now strictly prevents overlapping execution.
+*   **Fix 2 (Composing):** Added a new `/editor` slash command. Executing this opens the user's default `$EDITOR` (e.g., `nano` or `vim`) in a temporary Markdown file. When the user saves and exits the editor, the CLI reads the multi-line file and submits the entire buffer to the active Agent Runner instantly.
+
+### 🧠 Context Window Awareness
+*   **Date:** 4/19/2026
+*   **Description:** The CLI agent is now aware of its own token consumption in real-time.
+*   **Implementation:** The `apollo_cli.ts` runner was updated to estimate the current context size using `estimateTokens()` before starting an active generation stream. This value is injected into `process.env.APOLLO_SESSION_TOKENS`. The `system_metrics` tool was expanded with a new `session` component flag, enabling the agent to query its active token count versus the 65,536 max limit. This empowers the agent to autonomously decide when to compact its memory or delegate heavy tasks to sub-agents.
+*   **Token Estimation Fix:** The underlying `estimateTokens()` utility in `tokens.ts` was originally flawed, summing and returning the raw string character count (which caused 155k character responses to be mistakenly logged as 155k tokens). This was corrected to accurately divide the character sum by 4 to mimic standard BPE tokenization heuristics.
+
+### 📉 Native Chat Compaction
+*   **Date:** 4/19/2026
+*   **Description:** Wired the framework's native `compressToolResults` and `contextStrategy` directly into `apollo_cli.ts`.
+*   **Implementation:** These settings are now configurable in `profiles.json`. Both the `architect` and `daydreamer` profiles are now configured to compress large tool outputs between turns and dynamically offload to a background LLM summarization pipeline (`type: "summarize"`) when the context exceeds 50,000 tokens.
+
+### 🛡️ Sequential Tool Calling Enforcement
+*   **Date:** 4/19/2026
+*   **Description:** Hardcoded the `parallel_tool_calls: false` parameter into the OpenAI API adapter.
+*   **Rationale:** Local, highly-quantized models (like the IQ3_XXS Qwen MoE) suffer from "2-bit drunk" hallucination loops when forced to manage the structural overhead of generating multiple concurrent JSON tool schemas in a single output block. Enforcing `parallel_tool_calls: false` acts as a strict guardrail, forcing the `llama.cpp` inference engine to execute complex tool chains sequentially, preserving structural integrity and stability at the cost of slower round-trip times.
+
+### 💻 Software Engineer Sub-Agent
+*   **Date:** 4/20/2026
+*   **Description:** Built a dedicated `software_engineer` subagent tool for heavy implementation tasks.
+*   **Implementation:** The subagent is initialized with a high turn limit (`maxTurns: 30`) and a strict system prompt targeting "Act-then-Refine" implementation loops. It dynamically loads its sampling configurations from the `qwopus_coder` profile in `profiles.json` (favoring a lower temperature for coding accuracy). It is exposed to the main `architect` profile to allow offloading of intense software engineering tasks without bloating the primary conversational context.
+
+### 👁️ Native Vision Support (/image)
+*   **Date:** 4/22/2026
+*   **Description:** Added native image capabilities to the `apollo_cli.ts` orchestrator to support local Vision-Language Models (VLMs) like Qwen 3.6 MoE and Holo3-35B.
+*   **Implementation:** Introduced a new `/image <path>` slash command. The CLI reads the specified local image file (supporting JPEG, PNG, GIF, WEBP), determines its MIME type, base64-encodes the data, and stages it in memory. Upon the user's next text prompt, the staged images are bundled as Anthropic-style `image_url` content blocks within the user message and sent to the underlying API runner.
+*   **Safety Guardrails Added:** 
+    1. **Vision Capability Check:** Requires `"vision": true` in `profiles.json` to prevent sending image tokens to text-only models.
+    2. **VRAM Protection:** Hard limits file size to 8MB to prevent ROCm out-of-memory (OOM) crashes.
+    3. **Token Awareness:** Checks image dimensions and prints a warning if width/height exceeds 6000px, alerting the user to massive context consumption.

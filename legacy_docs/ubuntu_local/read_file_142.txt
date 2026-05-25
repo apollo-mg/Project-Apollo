@@ -1,0 +1,156 @@
+
+IMPORTANT: The file content has been truncated.
+Status: Showing lines 1-150 of 575 total lines.
+Action: To read more of the file, you can use the 'start_line' and 'end_line' parameters in a subsequent 'read_file' call. For example, to read the next section of the file, use start_line: 151.
+
+--- FILE CONTENT (truncated) ---
+import os
+import sys
+import time
+import json
+import requests
+import numpy as np
+import sounddevice as sd
+from kokoro_onnx import Kokoro
+import subprocess
+import re
+import warnings
+from datetime import datetime
+import io
+import wave
+import threading
+
+# Suppress annoying warnings
+warnings.filterwarnings("ignore")
+
+# --- CONFIGURATION ---
+WHISPER_SERVER_URL = "http://127.0.0.1:8080/inference"
+OLLAMA_URL = "http://localhost:11434/api/generate"
+OLLAMA_MODEL = "deepseek-r1:14b"
+KOKORO_MODEL_PATH = "/home/mark/commander/kokoro-v0_19.onnx"
+KOKORO_VOICES_PATH = "/home/mark/commander/voices.bin"
+DOSSIER_PATH = "shop_dossier.json"
+PENDING_PATH = "pending_knowledge.json"
+SOUND_DIR = "/home/mark/commander/sounds"
+
+# --- GLOBAL STATE ---
+history = []
+NOISE_HISTORY = []
+WAKE_WORD = "zoey"
+SAMPLE_RATE = 16000
+CHUNK_SIZE = 1024
+SILENCE_DURATION = 1.2
+MAX_RECORD_TIME = 15.0
+IS_SPEAKING = False
+
+# --- MEMORY & CONTEXT CONFIGURATION ---
+MAX_CONTEXT_TOKENS = 32000
+COMPACTION_THRESHOLD = int(MAX_CONTEXT_TOKENS * 0.8) # Flush at 80% capacity
+CURRENT_SESSION_TOKENS = 0
+DAILY_LOG_PATH = f"/home/mark/gemini/memory_{datetime.now().strftime('%Y-%m-%d')}.md"
+
+# Load Dossier
+dossier_content = "{}"
+if os.path.exists(DOSSIER_PATH):
+    with open(DOSSIER_PATH, "r") as f:
+        dossier_content = f.read()
+
+# --- INITIALIZE TTS (KOKORO) ---
+print("Loading Kokoro TTS...")
+kokoro = Kokoro(KOKORO_MODEL_PATH, KOKORO_VOICES_PATH)
+
+def transcribe_audio(audio_data):
+    """Sends raw numpy audio data to the local whisper.cpp server."""
+    wav_buffer = io.BytesIO()
+    with wave.open(wav_buffer, 'wb') as f:
+        f.setnchannels(1)
+        f.setsampwidth(2)
+        f.setframerate(SAMPLE_RATE)
+        if audio_data.size == 0: return {"text": ""}
+        audio_int16 = (audio_data * 32767).astype(np.int16)
+        f.writeframes(audio_int16.tobytes())
+    
+    wav_buffer.seek(0)
+    files = {'file': ('audio.wav', wav_buffer, 'audio/wav')}
+    data = {'response_format': 'json', 'temperature': '0.0'}
+    
+    try:
+        response = requests.post(WHISPER_SERVER_URL, files=files, data=data, timeout=5)
+        if response.status_code == 200:
+            return {"text": response.json().get('text', '').strip()}
+    except requests.exceptions.ConnectionError:
+        print("\n[Zoey Error] Cannot connect to Whisper server. Did you run ./start_whisper.sh?")
+    except Exception as e:
+        print(f"\n[STT API Error] {e}")
+    return {"text": ""}
+
+def play_sound(name):
+    path = os.path.join(SOUND_DIR, f"{name}.wav")
+    if os.path.exists(path):
+        if sys.platform == "win32":
+            import winsound
+            winsound.PlaySound(path, winsound.SND_FILENAME | winsound.SND_ASYNC)
+        else:
+            subprocess.Popen(["paplay", path], stderr=subprocess.DEVNULL)
+    else:
+        sys.stdout.write('\a')
+        sys.stdout.flush()
+
+def get_dynamic_threshold():
+    global NOISE_HISTORY, IS_SPEAKING
+    if not NOISE_HISTORY: return 0.04
+    sorted_noise = sorted(NOISE_HISTORY)
+    baseline = sorted_noise[int(len(sorted_noise) * 0.5)] 
+    margin = 0.25 if IS_SPEAKING else 0.04
+    return max(baseline + margin, 0.04)
+
+def record_until_silence(stream, input_channels, native_sample_rate):
+    print("\n[Zoey] Listening...")
+    play_sound("ready")
+    audio_data = []
+    silent_chunks = 0
+    has_started = False
+    start_time = time.time()
+    
+    ratio = int(native_sample_rate / SAMPLE_RATE)
+    local_chunk_size = CHUNK_SIZE * ratio
+    
+    while True:
+        chunk, _ = stream.read(local_chunk_size)
+        mono_chunk = chunk[:, 0] if input_channels > 1 else chunk.flatten()
+        if ratio > 1: mono_chunk = mono_chunk[::ratio]
+        audio_data.append(mono_chunk)
+        
+        vol = np.max(np.abs(mono_chunk))
+        threshold = get_dynamic_threshold()
+        
+        meter = "#" * int(vol * 50)
+        status = "[WAITING]" if not has_started else "[HEARING]"
+        sys.stdout.write(f"\033[K\rVol: [{meter:<25}] {status} Thresh: {threshold:.4f} ")
+        sys.stdout.flush()
+
+        if vol > threshold:
+            has_started = True
+            silent_chunks = 0
+        else:
+            if has_started: silent_chunks += 1
+        
+        if has_started and silent_chunks > (SILENCE_DURATION * (SAMPLE_RATE / CHUNK_SIZE)):
+            break
+        if not has_started and (time.time() - start_time) > 5.0:
+            print("\n[Zoey] Timeout (No speech detected).")
+            break
+        if (time.time() - start_time) > MAX_RECORD_TIME:
+            print("\n[Zoey] Max record time reached.")
+            break
+    
+    return np.concatenate(audio_data).flatten()
+
+def estimate_tokens(text):
+    """Rough estimation of tokens (1 token ~= 4 chars) to avoid loading a heavy tokenizer."""
+    return len(text) // 4
+
+def append_to_daily_log(role, content):
+    """Writes the raw interaction to the ephemeral daily log (Tier 1 Memory)."""
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    with open(DAILY_LOG_PATH, "a", encoding="utf-8") as f:

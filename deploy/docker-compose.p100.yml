@@ -1,0 +1,14 @@
+services:
+  worker-daemon:
+    image: deploy-worker-daemon:latest
+    container_name: apollo-worker-daemon-p100
+    environment:
+      - NODE_NAME=ai-p100-node
+      - NODE_ROLE=any
+      - CONTEXT_WINDOW=32768
+      - PRECISION_BITS=4.0
+      - INTERNET_ACCESS=true
+      - MESSAGE_BUS_API=http://10.0.0.5:8000 # Connect to the main Desktop's API
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

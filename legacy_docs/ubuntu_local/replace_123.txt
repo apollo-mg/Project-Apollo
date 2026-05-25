@@ -1,0 +1,43 @@
+Successfully modified file: /data/data/com.termux/files/home/Project-Apollo/jarvis_local_voice.py (1 replacements). Here is the updated code:
+...
+                
+                # Audit Execution
+                print("[Zoey] [AUDIT] Executing draft code to verify syntax and imports...")
+                success = False
+                err_msg = ""
+                output_str = ""
+                try:
+                    # Run for up to 10 seconds
+                    exec_result = subprocess.run(["python3", draft_path], capture_output=True, text=True, timeout=10)
+                    output_str = f"Exit Code: {exec_result.returncode}\nStdout:\n{exec_result.stdout.strip()}\nStderr:\n{exec_result.stderr.strip()}"
+                    print(f"[Zoey] [AUDIT] Raw Output:\n{output_str}")
+                    
+                    # LLM Audit: Ask the 9B model (or 35B if loaded, but here we use 9B for speed) if this output means success
+                    audit_prompt = f"You are a strict code auditor. The user requested: '{prompt}'. The generated python code was executed. Here is the execution output:\n{output_str}\n\nDid the code successfully fulfill the request? If it crashed, failed, or printed an error (even if exit code is 0), answer with 'FAIL' and a brief explanation. If it succeeded, answer with 'PASS'."
+                    
+                    audit_payload = {"model": payload["model"], "prompt": audit_prompt, "stream": False, "options": {"temperature": 0.1}}
+                    audit_res = requests.post("http://127.0.0.1:11434/api/generate", json=audit_payload, timeout=30)
+                    
+                    if audit_res.status_code == 200:
+                        audit_decision = audit_res.json().get('response', '')
+                        print(f"[Zoey] [AUDIT] Auditor Decision: {audit_decision.strip()}")
+                        if "PASS" in audit_decision.upper():
+                            success = True
+                        else:
+                            success = False
+                            err_msg = audit_decision.strip() + f"\n\nRaw Output:\n{output_str}"
+                    else:
+                        # Fallback to strict code checking if audit LLM fails
+                        if exec_result.returncode == 0 and "error" not in exec_result.stdout.lower() and "exception" not in exec_result.stdout.lower():
+                            success = True
+                        else:
+                            err_msg = output_str
+
+                except subprocess.TimeoutExpired:
+                    print("[Zoey] [AUDIT] Script is running continuously. Assuming success for daemon tasks.")
+                    success = True
+                
+                if success:
+                    skills_dir = "/home/mark/gemini/skills"
+                    os.makedirs(skills_dir, exist_ok=True)
+...

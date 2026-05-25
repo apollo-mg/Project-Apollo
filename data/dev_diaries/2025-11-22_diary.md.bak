@@ -1,0 +1,146 @@
+# Dev Diary: The Night the VAE Tried to Kill Us
+## 2025-11-22 | Project Apollo | RDNA 4 Conquest Complete
+
+---
+
+### The False Victory
+
+It started with a win.
+
+The KSampler finished. Clean. Fast. 30 seconds of pure Flash Attention bliss on that beautiful, terrible 16GB of VRAM we're trying to wrestle into submission.
+
+Then came the VAE decode.
+
+`HIP out of memory. Tried to allocate 5.06 GiB.`
+
+I watched the stack trace scroll like a death sentence. The Wan 2.2 model—our 14-billion-parameter dream—had successfully compressed latent space, and now we were trying to decode it back into pixels, and the system was choking. Not on the heavy lifting. On the finish line.
+
+Here's the thing that keeps me up at night: **the hard part was easy.** The diffusion pass, the attention mechanisms, the flow matching—all of that completed. But the final decode, the step that turns mathematics into something a human can look at, required more VRAM than existed in physical reality.
+
+The log was brutally honest:
+```
+GPU 0 has a total capacity of 15.92 GiB of which 3.46 GiB is free.
+Of the allocated memory 11.05 GiB is allocated by PyTorch.
+```
+
+We had 3.46 GB free. We needed 5.06 GB. The math was simple. The problem was not.
+
+---
+
+### The Tile Size Epiphhy (That Wasn't)
+
+My first instinct was surgical: reduce the VAE tile size.
+
+The workflow had `tile_size=512`, `temporal_size=64`. I patched it down to `256` and `16`. Saved the JSON. Restarted.
+
+**Same error. Same 5.06 GB.**
+
+The allocation request hadn't changed because *the workflow hadn't changed*—not really. The browser was holding the old state in memory, sending cached parameters to a server that was faithfully executing instructions from three minutes ago.
+
+I had been fighting a ghost.
+
+The fix required something more brutal: a hard clamp directly in `VAEDecodeTiled.decode()`.
+
+```python
+def decode(self, vae, samples, tile_size, overlap=64, temporal_size=64, temporal_overlap=8):
+    # RDNA 4 Safety Clamp - non-negotiable
+    tile_size = min(tile_size, 256)
+    temporal_size = min(temporal_size, 16)
+```
+
+Sometimes you don't negotiate with hardware. You cage it.
+
+---
+
+### The Second Generation Hang
+
+Here's where it got interesting.
+
+First generation: clean, successful, 189 seconds of pure triumph.
+
+Second generation: black screens. The system hung on the second KSampler pass, CPU pinned at 100% on a single core, logs frozen at the DisTorch allocation table.
+
+```
+[MultiGPU DisTorch V2] Final Allocation String:
+cuda:0,0.5580;cpu,0.0032
+```
+
+And then... silence. No errors. No OOM. Just a GPU that had stopped responding to reality.
+
+The pattern was unmistakable: **fresh start = success, subsequent runs = death.**
+
+The question wasn't "what's wrong?" The question was "what isn't unloading?"
+
+---
+
+### The Memory Leak That Wasn't a Leak
+
+The VRAM wasn't being freed, but not because of a traditional leak. The issue was subtler, more insidious:
+
+**RDNA 4 doesn't play by CUDA's rules.**
+
+When I called `torch.cuda.empty_cache()`, PyTorch was releasing its references—but the driver wasn't necessarily returning the memory. The synchronization wasn't happening atomically. On NVIDIA, `empty_cache()` is a promise. On AMD, it's a suggestion that gets lost in translation somewhere between HIP and the silicon.
+
+The fix required forcing the GPU to its knees:
+
+```python
+def soft_empty_cache_multigpu():
+    for device in range(torch.cuda.device_count()):
+        torch.cuda.set_device(device)
+        torch.cuda.synchronize()  # ← Force completion
+        torch.cuda.empty_cache()
+        torch.cuda.synchronize()  # ← Verify it happened
+```
+
+Two synchronizations. Before and after. Because on this hardware, you can't trust the driver to be honest with you.
+
+But that wasn't enough either. The deeper issue was in `distorch_2.py`, where `patched_load_models_gpu()` assumed a clean state that never existed.
+
+I added the nuclear option at the start of every model load:
+
+```python
+gc.collect()  # Python garbage collection - kill orphaned references
+torch.cuda.synchronize()  # Force GPU to finish
+mm.soft_empty_cache()  # PyTorch cache clear
+torch.cuda.synchronize()  # Verify
+```
+
+Four lines that cost us maybe 200ms but saved the entire architecture from dying after its first success.
+
+---
+
+### The Hardware That Refused to Cooperate
+
+Even after Wan 2.2 was generating successfully, the system refused to yield complete control.
+
+The fan controller—Nuvoton NCT6687D on an MSI B550-A PRO—detected perfectly fine. The sensors reported RPM. But CoolerControl showed yellow warning triangles: *"The currently installed driver does not support control of this channel."*
+
+Read-only. Again.
+
+The mainline `nct6683` driver claimed the hardware but refused to write to it. The `nct6775` driver rejected the chip entirely. I needed the patched `nct6687d` driver with DKMS, but `git clone` kept failing—credential helper trying to authenticate to a public repository, the kind of absurd friction that only happens when you're deep in a dependency chain at 2 AM.
+
+Eventually, Python's `requests` library (which doesn't care about your `.gitconfig`) downloaded the source zip. The module compiled. The fans became controllable.
+
+We had thermal control. We had memory stability. We had Wan 2.2 generating 81-frame videos at 640×640 on a card that wanted to kill us.
+
+---
+
+### The Lessons, Carved in VRAM
+
+**1. Browser state is a lie.**
+
+ComfyUI's frontend caches workflows in memory. Editing the JSON file on disk means nothing if the user doesn't refresh. The solution isn't user training—it's defensive coding. Hard limits in the backend that cannot be overridden by stale frontend state.
+
+**2. RDNA 4 requires paranoia.**
+
+`torch.cuda.synchronize()` is not optional. It's not a performance consideration. It's a requirement for correctness. The ROCm stack treats synchronization as a hint; we treat it as a contract.
+
+**3. The first success is a trap.**
+
+If your first generation works but the second hangs, you haven't solved the problem. You've found the edge case that hasn't triggered yet. Memory management on constrained hardware isn't about peak allocation—it's about the delta between loads.
+
+**4. 16GB is not a number. It's a negotiation.**
+
+The Wan 2.2 model wants ~11 GB loaded. The VAE wants another 5 GB peak. We have 15.92 GB. The math doesn't work unless we:
+- Tile aggressively (256×256 spatial, 16 frames temporal)
+- Unload between phases (DisTorch must release before VAE loads)

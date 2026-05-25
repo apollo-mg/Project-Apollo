@@ -1,0 +1,33 @@
+Project Starbuck & Apollo OS Integration Summary
+  Date: May 21, 2026
+
+  1. Project Starbuck: The MCP Bridge (Agentic Bootstrap)
+  Project Starbuck has been initialized as an autonomous Linux deployment and sysadmin tool. To bridge Apollo's TypeScript orchestrator (open-multi-agent) with native Linux system commands, Starbuck is implemented as a Model Context
+  Protocol (MCP) server.
+
+   * Python Daemon (starbuck_daemon.py): Built using the FastMCP SDK. It exposes native Python tools to the local LLM.
+   * The YOLO Permission Hierarchy: Access to system tools is gated by the STARBUCK_YOLO_LEVEL environment variable:
+       * Level 0 (Paranoid): system_recon (Read-only execution of safe commands like lspci, nvidia-smi, df -h).
+       * Level 1 (Supervised): read_config (Read any host file).
+       * Level 2 (Trust but Verify): write_config (Write local files, draft docker-compose.yml).
+       * Level 3 (Full YOLO): deploy_cluster (Runs docker compose up -d) and install_package (Wraps pacman and apt).
+   * Integration: Apollo's apollo_server.ts spawns the Python daemon as a subprocess over stdio and dynamically maps the starbuck_* MCP tools into the LLM's ToolRegistry.
+
+  2. Live Tool Streaming (The Observability Refactor)
+  To support long-running Starbuck tasks (like compiling packages or installing dependencies), the upstream open-multi-agent TypeScript framework underwent a massive async refactor.
+
+   * The Callback Strategy: A new onStream callback was injected into the ToolUseContext.
+   * Real-Time stdout: The built-in bash tool (and Starbuck MCP tools) now hook into their subprocess child.stdout.on('data') events, flushing raw terminal output live to the WebSocket via tool_stdout packets.
+   * Sovereign Guardrails Preserved:
+       * Selective Fidelity: The UI receives the infinite raw stream, but the final string returned to the LLM's context window is still strictly truncated to 100,000 characters to prevent Node.js V8 crashes (ERR_STRING_TOO_LONG).
+       * The Kill Switch: The AbortController remains deeply wired to process.kill(-pid, 'SIGKILL'), allowing the user to click "Stop" in the WebUI to instantly terminate runaway system administration tasks.
+
+  3. Swarm Unification (The "Split-Brain" Fix)
+  Apollo has officially transitioned to a distributed Docker Swarm across heterogeneous hardware (RX 9070 XT + Tesla P100). To prevent configuration drift across nodes, the architecture was refactored to use a centralized SQLite
+  database.
+
+   * Message Bus API: The Python FastAPI message-bus container now serves two critical REST endpoints: /config/profiles and /config/context.
+   * Decoupled Prompts: Hardcoded system prompts (SOVEREIGN_PROMPT) were stripped from the TypeScript source code and merged into a centralized LOCAL_AGENT_CONTEXT.md file mounted directly into the Docker volume.
+   * Dynamic Sub-Agents: The apollo_server.ts, delegate_task, codebase_investigator, and software_engineer agents no longer read flat files. On boot, they query the MESSAGE_BUS_API over the Docker network to fetch their Model,
+     Temperature, Tools, and Identity.
+   * Result: Complete mathematical parity. When a P100 worker claims a task, it uses the exact same configuration as the 9070 XT desktop, eliminating all "Split-Brain" state corruption.

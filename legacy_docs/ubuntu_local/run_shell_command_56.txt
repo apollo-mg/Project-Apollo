@@ -1,0 +1,50 @@
+Output: import subprocess
+import statistics
+
+def ping_google():
+    """
+    Pings google.com four times and prints the average latency.
+    """
+    try:
+        # Run ping command 4 times
+        results = []
+        for _ in range(4):
+            # Run ping command with count=4 and timeout=2000ms
+            result = subprocess.run(
+                ['ping', '-c', '1', '-W', '2000', 'google.com'],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            
+            # Parse the output to extract latency
+            # Format: 64 bytes from 142.250.185.4: icmp_seq=1 ttl=117 time=15.2 ms
+            for line in result.stdout.split('\n'):
+                if 'time=' in line and 'ms' in line:
+                    # Extract the time value
+                    time_str = line.split('time=')[1].split(' ')[0]
+                    try:
+                        latency = float(time_str)
+                        results.append(latency)
+                        break
+                    except ValueError:
+                        continue
+        
+        if len(results) == 4:
+            avg_latency = statistics.mean(results)
+            print(f"Average latency: {avg_latency:.2f} ms")
+            return avg_latency
+        else:
+            print(f"Warning: Only {len(results)} successful pings. Cannot calculate average.")
+            return None
+            
+    except subprocess.TimeoutExpired:
+        print("Error: Ping command timed out.")
+        return None
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return None
+
+if __name__ == "__main__":
+    ping_google()
+Background PIDs: 29302

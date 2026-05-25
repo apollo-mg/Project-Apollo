@@ -1,0 +1,752 @@
+# Qwen3.6 - How to Run Locally
+
+Qwen3.6 is Alibaba’s new family of multimodal hybrid-thinking models, including: **Qwen3.6-27B** and **35B-A3B**. It delivers top performance for its size, supports 256K context across 201 languages. It excels in agentic coding, vision, chat tasks. Qwen3.6-27B runs on **18GB RAM** setups and 35B-A3B runs on **22GB**. You can now run and train the models in [Unsloth Studio](#unsloth-studio-guide).
+
+{% hint style="success" %}
+**NEW:** [**Qwen3.6 MTP is here**](#mtp-guide)**! MTP enables 1.4-2x faster inference without accuracy loss**
+
+We conducted [Qwen3.6 GGUF Benchmarks](#unsloth-gguf-benchmarks) to help you pick the best quant.
+{% endhint %}
+
+<a href="/pages/NpuhjPsxi8BKhuS8nnyY#qwen3.6-inference-tutorials" class="button primary">Run Qwen3.6 Tutorials</a><a href="/pages/NpuhjPsxi8BKhuS8nnyY#mtp-guide" class="button primary">MTP Guide</a>
+
+{% columns %}
+{% column %}
+Qwen3.6 GGUFs use Unsloth [Dynamic 2.0](/docs/basics/unsloth-dynamic-2.0-ggufs.md) for SOTA quant performance - so quants are calibrated on real world use-case datasets and important layers are upcasted. *Thank you Qwen for day zero access.*
+
+* **Developer Role Support** for Codex, OpenCode and more:\
+  Our uploads now support the `developer role` for agentic coding tools.
+* **Tool calling:** Like [Qwen3.5](/docs/models/qwen3.5.md), we improved parsing nested objects to make tool calling succeed more.
+  {% endcolumn %}
+
+{% column %}
+
+<div data-with-frame="true"><figure><img src="/files/PxQ3x37GwzkPPjHW6pVh" alt=""><figcaption><p>Qwen3.6 running in <a href="#unsloth-studio-guide">Unsloth Studio</a>.</p></figcaption></figure></div>
+{% endcolumn %}
+{% endcolumns %}
+
+### :gear: Usage Guide
+
+**Table: Inference hardware requirements** (units = total memory: RAM + VRAM, or unified memory)
+
+<table><thead><tr><th>Qwen3.6</th><th>3-bit</th><th>4-bit</th><th width="128">6-bit</th><th>8-bit</th><th>BF16</th></tr></thead><tbody><tr><td><strong>27B</strong></td><td>15 GB</td><td>18 GB</td><td>24 GB</td><td>30 GB</td><td>55 GB</td></tr><tr><td><strong>35B-A3B</strong></td><td>17 GB</td><td>23 GB</td><td>30 GB</td><td>38 GB</td><td>70 GB</td></tr></tbody></table>
+
+{% hint style="success" %}
+For best performance, make sure your total available memory (VRAM + system RAM) exceeds the size of the quantized model file you’re downloading. If it doesn’t, llama.cpp can still run via SSD/HDD offloading, but inference will be slower.
+{% endhint %}
+
+{% hint style="warning" %}
+Do NOT use CUDA 13.2 as you may get gibberish outputs. NVIDIA is working on a fix.
+{% endhint %}
+
+**To train Qwen3.6, you can refer to our previous** [**Qwen3.5 fine-tuning guide**](/docs/models/qwen3.5/fine-tune.md)**.**
+
+### Recommended Settings
+
+* **Maximum context window:** `262,144` (can be extended to 1M via YaRN)
+* `presence_penalty = 0.0 to 2.0` default this is off, but to reduce repetitions, you can use this, however using a higher value may result in **slight decrease in performance**
+* **Adequate Output Length**: `32,768` tokens for most queries
+
+{% hint style="info" %}
+If you're getting gibberish, your context length might be set too low. Or try using `--cache-type-k bf16 --cache-type-v bf16` which might help.
+{% endhint %}
+
+As Qwen3.6 is hybrid reasoning, thinking and non-thinking mode have different settings:
+
+#### Thinking mode:
+
+{% hint style="success" %}
+Qwen3.6 now has [Preserve Thinking](#turn-on-off-thinking--preserve-thinking).
+{% endhint %}
+
+| General tasks                     | Precise coding tasks (e.g. WebDev) |
+| --------------------------------- | ---------------------------------- |
+| temperature = 1.0                 | temperature = 0.6                  |
+| top\_p = 0.95                     | top\_p = 0.95                      |
+| top\_k = 20                       | top\_k = 20                        |
+| min\_p = 0.0                      | min\_p = 0.0                       |
+| presence\_penalty = 1.5           | presence\_penalty = 0.0            |
+| repeat\_penalty = disabled or 1.0 | repeat\_penalty = disabled or 1.0  |
+
+{% columns %}
+{% column %}
+Thinking mode for general tasks:
+
+{% code overflow="wrap" %}
+
+```bash
+temperature=1.0, top_p=0.95, top_k=20, min_p=0.0, presence_penalty=1.5, repetition_penalty=1.0
+```
+
+{% endcode %}
+{% endcolumn %}
+
+{% column %}
+Thinking mode for precise coding tasks:
+
+{% code overflow="wrap" %}
+
+```bash
+temperature=0.6, top_p=0.95, top_k=20, min_p=0.0, presence_penalty=0.0, repetition_penalty=1.0
+```
+
+{% endcode %}
+{% endcolumn %}
+{% endcolumns %}
+
+#### Instruct (non-thinking) mode settings:
+
+| General tasks                     | Reasoning tasks                   |
+| --------------------------------- | --------------------------------- |
+| temperature = 0.7                 | temperature = 1.0                 |
+| top\_p = 0.8                      | top\_p = 0.95                     |
+| top\_k = 20                       | top\_k = 20                       |
+| min\_p = 0.0                      | min\_p = 0.0                      |
+| presence\_penalty = 1.5           | presence\_penalty = 1.5           |
+| repeat\_penalty = disabled or 1.0 | repeat\_penalty = disabled or 1.0 |
+
+{% hint style="warning" %}
+To [disable thinking / reasoning](#how-to-enable-or-disable-reasoning-and-thinking), use `--chat-template-kwargs '{"enable_thinking":false}'`
+
+If you're on **Windows** Powershell, use: `--chat-template-kwargs "{\"enable_thinking\":false}"`
+
+Use 'true' and 'false' interchangeably.
+{% endhint %}
+
+{% columns %}
+{% column %}
+Instruct (non-thinking) for general tasks:
+
+{% code overflow="wrap" %}
+
+```bash
+temperature=0.7, top_p=0.8, top_k=20, min_p=0.0, presence_penalty=1.5, repetition_penalty=1.0
+```
+
+{% endcode %}
+{% endcolumn %}
+
+{% column %}
+Instruct (non-thinking) for reasoning tasks:
+
+{% code overflow="wrap" %}
+
+```bash
+temperature=1.0, top_p=0.95, top_k=20, min_p=0.0, presence_penalty=1.5, repetition_penalty=1.0
+```
+
+{% endcode %}
+{% endcolumn %}
+{% endcolumns %}
+
+## Qwen3.6 Inference Tutorials:
+
+We'll be using Dynamic 4-bit `UD_Q4_K_XL` GGUF variants for inference workloads. Click below to navigate to designated model instructions:
+
+{% hint style="warning" %}
+Do NOT use CUDA 13.2 as you may get gibberish outputs. NVIDIA is working on a fix.
+{% endhint %}
+
+<a href="/pages/NpuhjPsxi8BKhuS8nnyY#mtp-guide" class="button primary">MTP Guide</a><a href="/pages/JcwJOcoquFknfeDFxM7k#unsloth-studio-guide" class="button primary">Run in Unsloth Studio</a><a href="/pages/NpuhjPsxi8BKhuS8nnyY#llama.cpp-guides" class="button secondary">Run in llama.cpp</a>
+
+{% hint style="info" %}
+`presence_penalty = 0.0 to 2.0` default this is off, but to reduce repetitions, you can use this, however using a higher value may result in **slight decrease in performance.**
+
+Currently no Qwen3.6 GGUF works in Ollama due to separate mmproj vision files. Use llama.cpp compatible backends.
+{% endhint %}
+
+### ⚡ MTP Guide
+
+MTP (Multi Token Prediction) speculative decoding enables models like Qwen3.6 to have **\~1.4-2x faster generation with&#x20;**<mark style="background-color:$success;">**no change in accuracy**</mark>. This enables Qwen3.6 27B and 35B-A3B to have **>1.4x speed-up** over the original baseline which is especially useful for local models.
+
+**Qwen3.6 27B can now do 140 tokens / s generation and Qwen3.6 35B-A3B 220 tokens / s generation!** See [#mtp-benchmarks](#mtp-benchmarks "mention") for more details
+
+| [Qwen3.6-27B-MTP-GGUF](https://huggingface.co/unsloth/Qwen3.6-27B-MTP-GGUF) | [Qwen3.6-35B-A3B-MTP-GGUF](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-MTP-GGUF) |
+| --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+
+<div data-with-frame="true"><figure><img src="/files/29qrAaVWFS41tADjw94j" alt=""><figcaption></figcaption></figure></div>
+
+In practice, MTP predicts several future tokens, then the main model verifies those tokens in parallel. This reduces the number of forward passes needed during generation and make output faster. We found `--spec-draft-n-max 2` to work best!
+
+{% stepper %}
+{% step %}
+Install the **specific** `llama.cpp` PR branch on [**GitHub here**](https://github.com/ggml-org/llama.cpp/pull/22673). You can follow the build instructions below as well. Change `-DGGML_CUDA=ON` to `-DGGML_CUDA=OFF` if you don't have a GPU or just want CPU inference. **For Apple Mac / Metal devices**, set `-DGGML_CUDA=OFF` then continue as usual - Metal support is on by default.
+
+```bash
+apt-get install pciutils build-essential cmake curl libcurl4-openssl-dev -y
+git clone -b mtp-clean https://github.com/am17an/llama.cpp.git
+cmake llama.cpp -B llama.cpp/build -DBUILD_SHARED_LIBS=OFF -DGGML_CUDA=ON
+cmake --build llama.cpp/build --config Release -j --clean-first --target llama-cli llama-server
+cp llama.cpp/build/bin/llama-* llama.cpp
+```
+
+{% endstep %}
+
+{% step %}
+If you want to use `llama.cpp` directly to load models, you can do the below: (:`Q4_K_XL`) is the quantization type. You can also download via Hugging Face (point 3). This is similar to `ollama run` . Use `export LLAMA_CACHE="folder"` to force `llama.cpp` to save to a specific location. The model has a maximum of 256K context length.
+
+Follow one of the commands for the specific models:
+
+<a href="/pages/NpuhjPsxi8BKhuS8nnyY#mtp-qwen3.6-27b" class="button primary">27B MTP</a><a href="/pages/NpuhjPsxi8BKhuS8nnyY#mtp-qwen3.6-35b-a3b" class="button primary">35-A3B MTP</a>
+
+#### MTP Qwen3.6-27B:
+
+**Thinking mode:**
+
+{% hint style="info" %}
+Please see Qwen3.6's new [Preserved Thinking](#thinking-enable-disable--preserve-thinking).
+{% endhint %}
+
+General tasks:
+
+```bash
+export LLAMA_CACHE="unsloth/Qwen3.6-27B-MTP-GGUF"
+./llama.cpp/llama-cli \
+    -hf unsloth/Qwen3.6-27B-GGUF:UD-Q4_K_XL \
+    --temp 1.0 \
+    --top-p 0.95 \
+    --top-k 20 \
+    --presence-penalty 1.5 \
+    --min-p 0.00 \
+    --spec-type mtp --spec-draft-n-max 2
+```
+
+For precise coding tasks, change: `temperature=0.6, presence-penalty=0.0`
+
+**Non-thinking mode:**
+
+General tasks:
+
+```bash
+export LLAMA_CACHE="unsloth/Qwen3.6-27B-MTP-GGUF"
+./llama.cpp/llama-server \
+    -hf unsloth/Qwen3.6-27B-MTP-GGUF:UD-Q4_K_XL \
+    --temp 0.7 \
+    --top-p 0.8 \
+    --top-k 20 \
+    --presence-penalty 1.5 \
+    --min-p 0.00 \
+    --spec-type mtp --spec-draft-n-max 2 \
+    --chat-template-kwargs '{"enable_thinking":false}'
+```
+
+For reasoning tasks, change: `temperature=1.0, top-p=0.95`
+
+#### MTP Qwen3.6-35B-A3B:
+
+**Thinking mode:**
+
+{% hint style="info" %}
+Please see Qwen3.6's new [Preserved Thinking](#thinking-enable-disable--preserve-thinking).
+{% endhint %}
+
+General tasks:
+
+```bash
+export LLAMA_CACHE="unsloth/Qwen3.6-35B-A3B-MTP-GGUF"
+./llama.cpp/llama-cli \
+    -hf unsloth/Qwen3.6-35B-A3B-MTP-GGUF:UD-Q4_K_XL \
+    --temp 1.0 \
+    --top-p 0.95 \
+    --top-k 20 \
+    --presence-penalty 1.5 \
+    --min-p 0.00 \
+    --spec-type mtp --spec-draft-n-max 2
+```
+
+For precise coding tasks, change: `temperature=0.6, presence-penalty=0.0`
+
+**Non-thinking mode:**
+
+General tasks:
+
+```bash
+export LLAMA_CACHE="unsloth/Qwen3.6-35B-A3B-MTP-GGUF"
+./llama.cpp/llama-server \
+    -hf unsloth/Qwen3.6-35B-A3B-MTP-GGUF:UD-Q4_K_XL \
+    --temp 0.7 \
+    --top-p 0.8 \
+    --top-k 20 \
+    --presence-penalty 1.5 \
+    --min-p 0.00 \
+    --spec-type mtp --spec-draft-n-max 2 \
+    --chat-template-kwargs '{"enable_thinking":false}'
+```
+
+For reasoning tasks, change: `temperature=1.0, top-p=0.95`
+{% endstep %}
+
+{% step %}
+Download the model via the code below (after installing `pip install huggingface_hub hf_transfer`). You can choose Q4\_K\_M or other quantized versions like `UD-Q4_K_XL` . We recommend using at least 2-bit dynamic quant `UD-Q2_K_XL` to balance size and accuracy. If downloads get stuck, see: [Hugging Face Hub, XET debugging](/docs/basics/troubleshooting-and-faqs/hugging-face-hub-xet-debugging.md)
+
+```bash
+hf download unsloth/Qwen3.6-35B-A3B-MTP-GGUF \
+    --local-dir unsloth/Qwen3.6-35B-A3B-MTP-GGUF \
+    --include "*mmproj-F16*" \
+    --include "*UD-Q4_K_XL*" # Use "*UD-Q2_K_XL*" for Dynamic 2bit
+```
+
+{% endstep %}
+
+{% step %}
+Then run the model in conversation mode:
+
+{% code overflow="wrap" %}
+
+```bash
+./llama.cpp/llama-cli \
+    --model unsloth/Qwen3.6-35B-A3B-MTP-GGUF/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf \
+    --mmproj unsloth/Qwen3.6-35B-A3B-MTP-GGUF/mmproj-F16.gguf \
+    --temp 1.0 \
+    --top-p 0.95 \
+    --min-p 0.00 \
+    --presence-penalty 1.5 \
+    --top-k 20
+```
+
+{% endcode %}
+{% endstep %}
+{% endstepper %}
+
+### 🦥 Unsloth Studio Guide
+
+Qwen3.6 can be run and fine-tuned in [Unsloth Studio](/docs/new/studio.md), our new open-source web UI for local AI. Unsloth Studio lets you run models locally on **MacOS, Windows**, Linux and:
+
+{% columns %}
+{% column %}
+
+* Search, download, [run GGUFs](/docs/new/studio.md#run-models-locally) and safetensor models
+* [**Self-healing** tool calling](/docs/new/studio.md#execute-code--heal-tool-calling) + **web search**
+* [**Code execution**](/docs/new/studio.md#run-models-locally) (Python, Bash)
+* [Automatic inference](/docs/new/studio.md#model-arena) parameter tuning (temp, top-p, etc.)
+* Fast CPU + GPU inference via llama.cpp
+* [Train LLMs](/docs/new/studio.md#no-code-training) 2x faster with 70% less VRAM
+  {% endcolumn %}
+
+{% column %}
+
+<div data-with-frame="true"><figure><img src="/files/vTGOOXiSgQ6qXSrMZMMw" alt=""><figcaption></figcaption></figure></div>
+{% endcolumn %}
+{% endcolumns %}
+
+{% stepper %}
+{% step %}
+
+#### Install Unsloth
+
+Run in your terminal:
+
+**MacOS, Linux, WSL:**
+
+```bash
+curl -fsSL https://unsloth.ai/install.sh | sh
+```
+
+**Windows PowerShell:**
+
+```bash
+irm https://unsloth.ai/install.ps1 | iex
+```
+
+{% hint style="success" %}
+**Installation will be quick and take approx 20 sec - 1 mins.**
+{% endhint %}
+{% endstep %}
+
+{% step %}
+
+#### Launch Unsloth
+
+**MacOS, Linux, WSL and Windows:**
+
+```bash
+unsloth studio -H 0.0.0.0 -p 8888
+```
+
+<div data-with-frame="true"><figure><img src="/files/J8BaejVXrezdt6B1aeUy" alt="" width="375"><figcaption></figcaption></figure></div>
+
+Then open `http://127.0.0.1:8888` (or your specific URL) in your browser.
+{% endstep %}
+
+{% step %}
+
+#### Search and download Qwen3.6
+
+On first launch you will need to create a password to secure your account and sign in again later. You’ll then see a brief onboarding wizard to choose a model, dataset, and basic settings. You can skip it at any time.
+
+Then go to the [Studio Chat](/docs/new/studio/chat.md) tab and search for Qwen3.6 in the search bar and download your desired model and quant.
+
+<div data-with-frame="true"><figure><img src="/files/kNGckTKk9g9gMgbj0Wg2" alt="" width="375"><figcaption></figcaption></figure></div>
+{% endstep %}
+
+{% step %}
+
+#### Run Qwen3.6
+
+Inference parameters should be auto-set when using Unsloth Studio, however you can still change it manually. You can also edit the context length, chat template and other settings.
+
+For more information, you can view our [Unsloth Studio inference guide](/docs/new/studio/chat.md). Below, the 2-bit Qwen3.6 GGUF made 30+ tool calls, searched 20 sites and executed Python code:
+
+{% embed url="<https://cdn-uploads.huggingface.co/production/uploads/62ecdc18b72a69615d6bd857/9lqVQm1qDX3elt6Uan5Vm.mp4>" %}
+{% endstep %}
+{% endstepper %}
+
+### 🦙 Llama.cpp Guides
+
+For this guide we will be utilizing Dynamic 4-bit which works great on a 24GB RAM / Mac device for fast inference on [llama.cpp](llama.cpphttps://github.com/ggml-org/llama.cpp). Because the model is only around 72GB at full F16 precision, we won't need to worry much about performance. [See our GGUF collection](https://huggingface.co/collections/unsloth/qwen36).
+
+<a href="/pages/NpuhjPsxi8BKhuS8nnyY#qwen3.6-27b" class="button primary">27B</a><a href="/pages/NpuhjPsxi8BKhuS8nnyY#qwen3.6-35b-a3b" class="button primary">35-A3B</a>
+
+{% stepper %}
+{% step %}
+Obtain the latest `llama.cpp` **on** [**GitHub here**](https://github.com/ggml-org/llama.cpp). You can follow the build instructions below as well. Change `-DGGML_CUDA=ON` to `-DGGML_CUDA=OFF` if you don't have a GPU or just want CPU inference. **For Apple Mac / Metal devices**, set `-DGGML_CUDA=OFF` then continue as usual - Metal support is on by default.
+
+```bash
+apt-get update
+apt-get install pciutils build-essential cmake curl libcurl4-openssl-dev -y
+git clone https://github.com/ggml-org/llama.cpp
+cmake llama.cpp -B llama.cpp/build \
+    -DBUILD_SHARED_LIBS=OFF -DGGML_CUDA=ON
+cmake --build llama.cpp/build --config Release -j --clean-first --target llama-cli llama-mtmd-cli llama-server llama-gguf-split
+cp llama.cpp/build/bin/llama-* llama.cpp
+```
+
+{% endstep %}
+
+{% step %}
+If you want to use `llama.cpp` directly to load models, you can do the below: (:`Q4_K_XL`) is the quantization type. You can also download via Hugging Face (point 3). This is similar to `ollama run` . Use `export LLAMA_CACHE="folder"` to force `llama.cpp` to save to a specific location. The model has a maximum of 256K context length.
+
+Follow one of the commands for the specific models:
+
+<a href="/pages/NpuhjPsxi8BKhuS8nnyY#qwen3.5-27b" class="button primary">27B</a><a href="/pages/NpuhjPsxi8BKhuS8nnyY#qwen3.5-35b-a3b" class="button primary">35-A3B</a>
+
+#### Qwen3.6-27B:
+
+**Thinking mode:**
+
+{% hint style="info" %}
+Please see Qwen3.6's new [Preserved Thinking](#thinking-enable-disable--preserve-thinking).
+{% endhint %}
+
+General tasks:
+
+```bash
+export LLAMA_CACHE="unsloth/Qwen3.6-27B-GGUF"
+./llama.cpp/llama-cli \
+    -hf unsloth/Qwen3.6-27B-GGUF:UD-Q4_K_XL \
+    --temp 1.0 \
+    --top-p 0.95 \
+    --top-k 20 \
+    --presence-penalty 1.5 \
+    --min-p 0.00
+```
+
+For precise coding tasks, change: `temperature=0.6, presence-penalty=0.0`
+
+**Non-thinking mode:**
+
+General tasks:
+
+```bash
+export LLAMA_CACHE="unsloth/Qwen3.6-27B-GGUF"
+./llama.cpp/llama-server \
+    -hf unsloth/Qwen3.6-27B-GGUF:UD-Q4_K_XL \
+    --temp 0.7 \
+    --top-p 0.8 \
+    --top-k 20 \
+    --presence-penalty 1.5 \
+    --min-p 0.00 \
+    --chat-template-kwargs '{"enable_thinking":false}'
+```
+
+For reasoning tasks, change: `temperature=1.0, top-p=0.95`
+
+#### Qwen3.6-35B-A3B:
+
+**Thinking mode:**
+
+{% hint style="info" %}
+Please see Qwen3.6's new [Preserved Thinking](#thinking-enable-disable--preserve-thinking).
+{% endhint %}
+
+General tasks:
+
+```bash
+export LLAMA_CACHE="unsloth/Qwen3.6-35B-A3B-GGUF"
+./llama.cpp/llama-cli \
+    -hf unsloth/Qwen3.6-35B-A3B-GGUF:UD-Q4_K_XL \
+    --temp 1.0 \
+    --top-p 0.95 \
+    --top-k 20 \
+    --presence-penalty 1.5 \
+    --min-p 0.00
+```
+
+For precise coding tasks, change: `temperature=0.6, presence-penalty=0.0`
+
+**Non-thinking mode:**
+
+General tasks:
+
+```bash
+export LLAMA_CACHE="unsloth/Qwen3.6-35B-A3B-GGUF"
+./llama.cpp/llama-server \
+    -hf unsloth/Qwen3.6-35B-A3B-GGUF:UD-Q4_K_XL \
+    --temp 0.7 \
+    --top-p 0.8 \
+    --top-k 20 \
+    --presence-penalty 1.5 \
+    --min-p 0.00 \
+    --chat-template-kwargs '{"enable_thinking":false}'
+```
+
+For reasoning tasks, change: `temperature=1.0, top-p=0.95`
+{% endstep %}
+
+{% step %}
+Download the model via the code below (after installing `pip install huggingface_hub hf_transfer`). You can choose Q4\_K\_M or other quantized versions like `UD-Q4_K_XL` . We recommend using at least 2-bit dynamic quant `UD-Q2_K_XL` to balance size and accuracy. If downloads get stuck, see: [Hugging Face Hub, XET debugging](/docs/basics/troubleshooting-and-faqs/hugging-face-hub-xet-debugging.md)
+
+```bash
+hf download unsloth/Qwen3.6-35B-A3B-GGUF \
+    --local-dir unsloth/Qwen3.6-35B-A3B-GGUF \
+    --include "*mmproj-F16*" \
+    --include "*UD-Q4_K_XL*" # Use "*UD-Q2_K_XL*" for Dynamic 2bit
+```
+
+{% endstep %}
+
+{% step %}
+Then run the model in conversation mode:
+
+{% code overflow="wrap" %}
+
+```bash
+./llama.cpp/llama-cli \
+    --model unsloth/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf \
+    --mmproj unsloth/Qwen3.6-35B-A3B-GGUF/mmproj-F16.gguf \
+    --temp 1.0 \
+    --top-p 0.95 \
+    --min-p 0.00 \
+    --presence-penalty 1.5 \
+    --top-k 20
+```
+
+{% endcode %}
+{% endstep %}
+{% endstepper %}
+
+#### Llama-server & OpenAI completion library
+
+To deploy Qwen3.6 for production, we use `llama-server` In a new terminal say via tmux, deploy the model via:
+
+{% code overflow="wrap" %}
+
+```bash
+./llama.cpp/llama-server \
+--model unsloth/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf \
+    --mmproj unsloth/Qwen3.6-35B-A3B-GGUF/mmproj-F16.gguf \
+    --alias "unsloth/Qwen3.6-35B-A3B" \
+    --temp 0.6 \
+    --top-p 0.95 \
+    --ctx-size 16384 \
+    --top-k 20 \
+    --min-p 0.00 \
+    --port 8001
+```
+
+{% endcode %}
+
+Then in a new terminal, after doing `pip install openai`, do:
+
+{% code overflow="wrap" %}
+
+```python
+from openai import OpenAI
+import json
+openai_client = OpenAI(
+    base_url = "http://127.0.0.1:8001/v1",
+    api_key = "sk-no-key-required",
+)
+completion = openai_client.chat.completions.create(
+    model = "unsloth/Qwen3.6-35B-A3B",
+    messages = [{"role": "user", "content": "Create a Snake game."},],
+)
+print(completion.choices[0].message.content)
+```
+
+{% endcode %}
+
+### 🍎 MLX Dynamic Quants
+
+We also uploaded dynamic Qwen3.6 4bit and 8bit quants for MacOS devices! Our MLX quant algorithm is still evolving, and we’re actively refining it wherever improvements can be made.
+
+**Qwen3.6-27B MLX:**
+
+| [3-bit](https://huggingface.co/unsloth/Qwen3.6-27B-UD-MLX-3bit) | [4-bit](https://huggingface.co/unsloth/Qwen3.6-27B-UD-MLX-4bit) | [MXFP4](https://huggingface.co/unsloth/Qwen3.6-27B-UD-MLX-MXFP4) | [NVFP4](https://huggingface.co/unsloth/Qwen3.6-27B-UD-MLX-NVFP4) | [6-bit](https://huggingface.co/unsloth/Qwen3.6-27B-UD-MLX-6bit) | [8-bit](https://huggingface.co/unsloth/Qwen3.6-27B-MLX-8bit) |
+| --------------------------------------------------------------- | --------------------------------------------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------ |
+
+**Qwen3.6-35B-A3B MLX:**
+
+| [3-bit](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-UD-MLX-3bit) | [4-bit](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-UD-MLX-4bit) | [8-bit](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-MLX-8bit) |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------- |
+
+To try them out use:
+
+{% code overflow="wrap" %}
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/unslothai/unsloth/refs/heads/main/scripts/install_qwen3_6_mlx.sh | sh
+source ~/.unsloth/unsloth_qwen3_6_mlx/bin/activate
+python -m mlx_vlm.chat --model unsloth/Qwen3.6-27B-UD-MLX-4bit
+```
+
+{% endcode %}
+
+See below for Qwen3.6-27B KL Divergence (KLD) and Perplexity (PPL) scores (lower is better):
+
+| Model                                                            | Mean KLD | Median KLD | PPL   | P90 KLD | P99.9 KLD | Size    |
+| ---------------------------------------------------------------- | -------- | ---------- | ----- | ------- | --------- | ------- |
+| [8-bit](https://huggingface.co/unsloth/Qwen3.6-27B-MLX-8bit)     | 0.0028   | 0.0003     | 4.812 | 0.0019  | 0.192     | 34.7 GB |
+| [6-bit](https://huggingface.co/unsloth/Qwen3.6-27B-UD-MLX-6bit)  | 0.0037   | 0.0007     | 4.809 | 0.0032  | 0.343     | 30.5 GB |
+| [4-bit](https://huggingface.co/unsloth/Qwen3.6-27B-UD-MLX-4bit)  | 0.0227   | 0.0053     | 4.821 | 0.0293  | 2.339     | 26.2 GB |
+| [NVFP4](https://huggingface.co/unsloth/Qwen3.6-27B-UD-MLX-NVFP4) | 0.0325   | 0.0087     | 4.843 | 0.0466  | 3.693     | 26.2 GB |
+| [MXFP4](https://huggingface.co/unsloth/Qwen3.6-27B-UD-MLX-MXFP4) | 0.0479   | 0.0153     | 4.902 | 0.0769  | 4.035     | 25.6 GB |
+| [3-bit](https://huggingface.co/unsloth/Qwen3.6-27B-UD-MLX-3bit)  | 0.0734   | 0.0223     | 4.976 | 0.1261  | 5.529     | 24.1 GB |
+
+### 💡 Thinking: Enable/Disable + Preserve Thinking
+
+Qwen3.6 also has **Preserve Thinking** which leaves the thinking trace from the previous conversation. This increases the number of tokens you use, but could increase accuracy in continued conversations. Unsloth Studio has 'Think' and Preserved Thinking toggles for Qwen3.6:
+
+<div data-with-frame="true"><figure><img src="/files/vTGOOXiSgQ6qXSrMZMMw" alt="" width="563"><figcaption><p>Unsloth Studio has Think toggle by default and a new <a href="#preserved-thinking">Preserved Thinking</a> toggle</p></figcaption></figure></div>
+
+To enable **preserve thinking** in llama.cpp use (change to 'true' or 'false') '`preseve_thinking`' instead of '`enable_thinking`' or '`disable_thinking`'.
+
+{% code expandable="true" %}
+
+```bash
+--chat-template-kwargs '{"preserve_thinking":true}'
+```
+
+{% endcode %}
+
+For normal thinking, you can enable / disable thinking in llama.cpp by following the below commands. Use '`true`' and '`false`' interchangeably.&#x20;
+
+<table data-full-width="false"><thead><tr><th width="197.76666259765625">llama-server OS:</th><th>Enable Thinking</th><th>Disable Thinking</th></tr></thead><tbody><tr><td>Linux, MacOS, WSL:</td><td><pre data-overflow="wrap"><code>--chat-template-kwargs '{"enable_thinking":true}'
+</code></pre></td><td><pre data-overflow="wrap"><code>--chat-template-kwargs '{"enable_thinking":false}'
+</code></pre></td></tr><tr><td>Windows / Powershell:</td><td><pre data-overflow="wrap"><code>--chat-template-kwargs "{\"enable_thinking\":true}"
+</code></pre></td><td><pre data-overflow="wrap"><code>--chat-template-kwargs "{\"enable_thinking\":false}"
+</code></pre></td></tr></tbody></table>
+
+As an example for Qwen3.6-35B-A3B to enable preserve thinking (default is enabled):
+
+```bash
+./llama.cpp/llama-server \
+    --model unsloth/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-BF16.gguf \
+    --alias "unsloth/Qwen3.6-35B-A3B-GGUF" \
+    --temp 0.6 \
+    --top-p 0.95 \
+    --top-k 20 \
+    --min-p 0.00 \
+    --port 8001 \
+    --chat-template-kwargs '{"preserve_thinking":true}'
+```
+
+And then in Python:
+
+```python
+from openai import OpenAI
+import json
+openai_client = OpenAI(
+    base_url = "http://127.0.0.1:8001/v1",
+    api_key = "sk-no-key-required",
+)
+completion = openai_client.chat.completions.create(
+    model = "unsloth/Qwen3.6-35B-A3B-GGUF",
+    messages = [{"role": "user", "content": "What is 2+2?"},],
+)
+print(completion.choices[0].message.content)
+print(completion.choices[0].message.reasoning_content)
+```
+
+### 👨‍💻 OpenAI Codex & Claude Code <a href="#claude-codex" id="claude-codex"></a>
+
+To run the model via local coding agentic workloads, you can [follow our guide](/docs/basics/claude-code.md). Just change the model name to your 'Qwen3.6' variant and ensure you follow the correct Qwen3.6 parameters and usage instructions. Use the `llama-server` we just set up just then.
+
+{% columns %}
+{% column %}
+{% content-ref url="/pages/w020xJgdCTBtTvfHtvye" %}
+[Claude Code](/docs/basics/claude-code.md)
+{% endcontent-ref %}
+{% endcolumn %}
+
+{% column %}
+{% content-ref url="/pages/PCjZ57h5pE0QccKyJMYD" %}
+[OpenAI Codex](/docs/basics/codex.md)
+{% endcontent-ref %}
+{% endcolumn %}
+{% endcolumns %}
+
+After following the instructions for Claude Code for example you will see:
+
+<div data-with-frame="true"><figure><img src="/files/6eoCtTzoTOW0ZVd51nzb" alt="" width="563"><figcaption></figcaption></figure></div>
+
+We can then ask say `Create a Python game for Chess` :
+
+<div><figure><img src="/files/TLpKKAoUMChIHyg0IVGN" alt="" width="563"><figcaption></figcaption></figure> <figure><img src="/files/Tibvh4yrfFNWCsEoMyZA" alt="" width="563"><figcaption></figcaption></figure> <figure><img src="/files/mVqn5oQxc8QnU7peLB3l" alt="" width="563"><figcaption></figcaption></figure></div>
+
+## 📊 Benchmarks
+
+### Unsloth GGUF Benchmarks
+
+We conducted Mean KL Divergence benchmarks for Qwen3.6-35-A3B GGUFs across providers to help you pick the best quant.
+
+* KL Divergence puts nearly all Unsloth GGUFs on the SOTA Pareto frontier
+* KLD shows how well a quantized model matches the original BF16 output distribution, indicating retained accuracy.
+* This makes Unsloth the top-performing in 21 of 22 sizes
+* Only Q6\_K was updated for more Dynamic layers and we introduced a new `UD-IQ4_NL_XL` quant
+
+<div data-with-frame="true"><figure><img src="/files/LJD75l9fRCA8CmMgwEB5" alt=""><figcaption><p>35B-A3B - KLD benchmarks (lower is better)</p></figcaption></figure></div>
+
+### MTP Benchmarks
+
+We benchmarked the new quants we made for 27B and 35B MoE. In general, dense models are much more accelerated with MTP (1.4-2x) vs MoE models (1.15-1.25x).
+
+With this, Qwen3.6 27B can now do 140 tokens / s generation with UD-Q2\_K\_XL and Qwen3.6 35B-A3B 220 tokens / s generation! Some of the throughput numbers are noisy, so don't infer some quants are slower than others.
+
+<figure><img src="/files/HZ5HzeITU51SnTa3wpiN" alt=""><figcaption></figcaption></figure>
+
+In terms of average speedup, we see a 1.4x for dense models at draft tokens = 2 and for the MoE around 1.15 to 1.2x.
+
+<figure><img src="/files/bUurusZwA36SeHijvzOM" alt=""><figcaption></figcaption></figure>
+
+We do not recommend more than 2 draft tokens because the acceptance rate drops precipitously from 83% to 50% with 4 draft tokens, and the forward passes for MTP become less beneficial.
+
+<figure><img src="/files/Ge8vOgu6FMhwfCZAraZW" alt=""><figcaption></figcaption></figure>
+
+### Official Qwen Benchmarks
+
+#### Qwen3.6-27B
+
+<div data-with-frame="true"><figure><img src="/files/8uUSAAlap9KEZXfXXJ71" alt=""><figcaption></figcaption></figure></div>
+
+#### Qwen3.6-35B-A3B
+
+<div data-with-frame="true"><figure><img src="/files/8bSdWhlocJsS2NwSUPMi" alt=""><figcaption></figcaption></figure></div>
+
+
+---
+
+# Agent Instructions: Querying This Documentation
+
+If you need additional information that is not directly available in this page, you can query the documentation dynamically by asking a question.
+
+Perform an HTTP GET request on the current page URL with the `ask` query parameter:
+
+```
+GET https://unsloth.ai/docs/models/qwen3.6.md?ask=<question>
+```
+
+The question should be specific, self-contained, and written in natural language.
+The response will contain a direct answer to the question and relevant excerpts and sources from the documentation.
+
+Use this mechanism when the answer is not explicitly present in the current page, you need clarification or additional context, or you want to retrieve related documentation sections.

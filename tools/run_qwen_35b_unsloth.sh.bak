@@ -1,0 +1,26 @@
+#!/bin/bash
+# Runner script for Unsloth's Qwen3.5-35B-A3B MoE (UD-IQ2_XXS)
+# Optimized for 16GB VRAM environments using Unsloth's recommended settings.
+
+MODEL_PATH="/mnt/TG_2TB/Projects/Apollo/models/Qwen3.5-35B-A3B-UD-IQ2_XXS.gguf"
+MMPROJ_PATH="/mnt/TG_2TB/Projects/Apollo/models/mmproj-F16.gguf"
+
+# Use the system's llama-cli (assuming it's compiled and in path, or adjust path if needed)
+# LLAMA_CLI="llama-cli" 
+
+# If you have a specific llama.cpp build directory, uncomment and adjust the line below:
+LLAMA_CLI="/mnt/TG_2TB/Projects/Apollo/llama.cpp/build/bin/llama-cli"
+
+echo "[*] Launching Qwen 3.5 35B MoE (Unsloth IQ2_XXS)..."
+echo "[*] Mode: Thinking (General)"
+
+$LLAMA_CLI \
+    -m "$MODEL_PATH" \
+    --mmproj "$MMPROJ_PATH" \
+    -c 16384 \
+    --temp 1.0 \
+    --top-p 0.95 \
+    --top-k 20 \
+    --min-p 0.00 \
+    -n -1 \
+    -p "You are a highly capable AI assistant operating locally. Introduce yourself."

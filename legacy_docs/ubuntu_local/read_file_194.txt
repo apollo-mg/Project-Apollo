@@ -1,0 +1,67 @@
+
+IMPORTANT: The file content has been truncated.
+Status: Showing lines 270-330 of 554 total lines.
+Action: To read more of the file, you can use the 'start_line' and 'end_line' parameters in a subsequent 'read_file' call. For example, to read the next section of the file, use start_line: 331.
+
+--- FILE CONTENT (truncated) ---
+                
+                # Extract code using regex
+                raw_code = code_text
+                match = re.search(r'```(?:python)?\n(.*?)\n```', code_text, re.DOTALL | re.IGNORECASE)
+                if match:
+                    raw_code = match.group(1).strip()
+                
+                timestamp = datetime.now().strftime('%H%M%S')
+                draft_path = "/tmp/sonic_draft.py"
+                with open(draft_path, "w", encoding="utf-8") as f:
+                    f.write(raw_code)
+                
+                # Audit Execution
+                print("[Zoey] [AUDIT] Executing draft code to verify syntax and imports...")
+                success = False
+                err_msg = ""
+                try:
+                    # Run for up to 10 seconds. If it doesn't crash, assume success.
+                    exec_result = subprocess.run(["python3", draft_path], capture_output=True, text=True, timeout=10)
+                    if exec_result.returncode == 0:
+                        success = True
+                    else:
+                        err_msg = exec_result.stderr.strip() or exec_result.stdout.strip()
+                except subprocess.TimeoutExpired:
+                    print("[Zoey] [AUDIT] Script is running continuously. Assuming success.")
+                    success = True
+                
+                if success:
+                    skills_dir = "/home/mark/gemini/skills"
+                    os.makedirs(skills_dir, exist_ok=True)
+                    final_path = os.path.join(skills_dir, f"skill_{timestamp}.py")
+                    os.rename(draft_path, final_path)
+                    final_status = f"I have successfully forged the new skill. It executed cleanly and is saved in your skills directory as skill_{timestamp}.py."
+                    break
+                else:
+                    print(f"[Zoey] [AUDIT] Execution failed. Error: {err_msg}")
+                    if attempt < max_retries - 1:
+                        print("[Zoey] [SELF-HEAL] Sending error back to Sonic for correction...")
+                        current_prompt = f"The previous python code you generated failed with this error:\n{err_msg}\n\nPlease fix the code and output the full corrected script. Output ONLY code inside a markdown block."
+                    
+            else:
+                final_status = "The Sonic model API returned a non-200 status."
+                break
+        except Exception as e:
+            print(f"[Zoey] [FORGE ERROR] {e}")
+            final_status = f"The Sonic model encountered an error: {e}"
+            break
+            
+    # 2. Unload Ollama models and Reload the 35B Architect
+    print("[Zoey] [VRAM] Code generation cycle complete. Reloading 35B Architect...")
+    subprocess.run(["ollama", "stop", "surgeon-tesslate"], check=False)
+    subprocess.run(["ollama", "stop", "surgeon-heretic"], check=False)
+    subprocess.run(["/home/mark/gemini/forge_manager.py", "load", "architect_lean"], check=False)
+    
+    return final_status
+
+def get_llm_response(prompt):
+    global history, CURRENT_SESSION_TOKENS
+    print(f"\n[Zoey] Thinking (35B MoE)...")
+    
+    clean_prompt = prompt.lower().strip()

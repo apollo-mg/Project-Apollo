@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  # 1. The Central Nervous System (SQLite Database API)
+  message-bus:
+    build:
+      context: ../
+      dockerfile: deploy/Dockerfile.worker
+    container_name: apollo-message-bus
+    command: ["python3", "-m", "uvicorn", "message_bus_api:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ../profiles.yaml:/app/profiles.yaml:ro
+      - ../LOCAL_AGENT_CONTEXT.md:/app/LOCAL_AGENT_CONTEXT.md:ro
+    restart: unless-stopped
+    networks:
+      - apollo-net
+
+  # 2. The Hands (Execution Node / OS Management)
+  starbuck-daemon:
+    build:
+      context: ../
+      dockerfile: deploy/Dockerfile.worker
+    container_name: apollo-starbuck
+    command: ["python3", "starbuck_daemon.py"]
+    environment:
+      - STARBUCK_YOLO_LEVEL=${STARBUCK_YOLO_LEVEL:-3}
+      - APOLLO_ROOT=/app
+    volumes:
+      - ../:/app # Give Starbuck access to the project root
+      - /var/run/docker.sock:/var/run/docker.sock # Allow Starbuck to manage Docker
+    restart: unless-stopped
+    networks:
+      - apollo-net
+
+  # 3. The Brain (Control Plane & WebUI)
+  apollo-orchestrator:
+    build:
+      context: ../
+      dockerfile: deploy/Dockerfile.worker
+    container_name: apollo-orchestrator
+    command: ["npm", "run", "start"]
+    working_dir: /app/engines/open-multi-agent-upstream
+    environment:
+      - LLM_ENDPOINT=${LLM_ENDPOINT:-http://host.docker.internal:8082/v1}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-sk-local-apollo}
+      - MESSAGE_BUS_API=http://message-bus:8000
+    ports:
+      - "3000:3000" # Glass Cockpit WebUI
+    volumes:
+      - ../:/app # Mount the entire project so the orchestrator can read/write the codebase
+    depends_on:
+      - message-bus
+      - starbuck-daemon
+    restart: unless-stopped
+    networks:
+      - apollo-net
+
+  # 4. The Subagent Worker (Task Queue Execution)
+  worker-daemon:
+    build:
+      context: ../
+      dockerfile: deploy/Dockerfile.worker
+    container_name: apollo-worker-daemon
+    environment:
+      - NODE_NAME=${NODE_NAME:-Apollo-Worker}
+      - NODE_ROLE=${NODE_ROLE:-any}
+      - CONTEXT_WINDOW=${CONTEXT_WINDOW:-32768}
+      - PRECISION_BITS=${PRECISION_BITS:-4.0}
+      - INTERNET_ACCESS=${INTERNET_ACCESS:-true}
+      - MESSAGE_BUS_API=http://message-bus:8000
+      - OPENAI_BASE_URL=${LLM_ENDPOINT:-http://host.docker.internal:8082/v1}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-sk-local-apollo}
+    volumes:
+      - ../:/app
+      - ./data:/app/data
+    depends_on:
+      - message-bus
+    restart: unless-stopped
+    networks:
+      - apollo-net
+
+networks:
+  apollo-net:
+    driver: bridge

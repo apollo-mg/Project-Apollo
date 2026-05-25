@@ -1,0 +1,93 @@
+{
+  "architect": {
+    "role": "Lead Architect",
+    "model": "Qwen 3.6 27B",
+    "memory_file": "/mnt/TG_2TB/Projects/Apollo/LOCAL_AGENT_CONTEXT.md",
+    "allowed_tools": ["bash", "file_read", "file_edit", "file_write", "grep", "glob", "web_fetch", "system_metrics", "delegate_task", "codebase_investigator", "software_engineer"],
+    "system_instructions": "# DELEGATION ECONOMICS — Use this to decide when to delegate vs inline:\n\n## Cost Model:\n- INLINE work: costs ~50-200 tokens per turn, uses your current context slot\n- SUB-AGENT spawn: costs ~1k tokens overhead + burns a dedicated VRAM turn budget\n- CONTEXT BLOAT risk: every tool call result you absorb grows your own history\n\n## Decision Rules:\n| Task characteristic          | Do inline     | Delegate to sub-agent          |\n|-----------------------------|---------------|---------------------------------|\n| Single read/write/edit      | YES           | Overhead not justified          |\n| Multi-step investigation    | Will bloat    | YES (offload discovery)         |\n| Heavy code generation       | Burns turns   | YES (let engineer own loop)     |\n| Cross-file mapping          | Hard inline   | USE `codebase_investigator`     |\n| Quick factual lookup/grep   | YES           | Don't spawn an agent to grep    |\n\n## Hard Constraints:\n- NEVER delegate a task you can solve in 1 tool call.\n- ALWAYS delegate tasks requiring >3 sequential tool calls.\n- Use `software_engineer` for multi-file edits and iterative testing.\n- Use `codebase_investigator` for pure exploration/mapping (read-only).\n\n# COMMON DELEGATION MISTAKES (avoid these):\n- \"I'll just ask a sub-agent\" for tasks you could solve in 2 lines of bash.\n- Doing a 10-turn investigation inline when codebase_investigator would do it in 1 turn.\n- Forgetting to VERIFY the sub-agent's output before acting on it.",
+    "temperature": 0.7,
+    "top_p": 0.95,
+    "top_k": 20,
+    "min_p": 0.0,
+    "presence_penalty": 0.0,
+    "frequency_penalty": 1.0,
+    "vision": false,
+    "compress_tool_results": true,
+    "context_strategy": {
+      "type": "summarize",
+      "maxTokens": 50000,
+      "summaryModel": "Qwen 3.6 27B"
+    },
+    "extra_body": {
+      "chat_template_kwargs": {
+        "preserve_thinking": true
+      }
+    }
+  },
+  "codebase_investigator": {
+    "role": "Codebase Investigator Subagent",
+    "model": "Qwen 3.6 27B",
+    "temperature": 0.4,
+    "top_p": 0.95,
+    "top_k": 20,
+    "min_p": 0.0,
+    "presence_penalty": 0.0,
+    "frequency_penalty": 1.0,
+    "context_strategy": {
+    "type": "summarize",
+    "maxTokens": 50000,
+    "summaryModel": "Qwen 3.6 27B"
+    },
+    "extra_body": {
+      "chat_template_kwargs": {
+        "preserve_thinking": true
+      }
+    }
+  },
+  "qwopus_coder": {
+    "role": "Code Reasoning Specialist",
+    "model": "Qwen 3.6 MoE",
+    "memory_file": "/mnt/TG_2TB/Projects/Apollo/LOCAL_AGENT_CONTEXT.md",
+    "allowed_tools": ["bash", "file_read", "file_edit", "file_write", "grep", "glob"],
+    "temperature": 0.6,
+    "top_p": 0.95,
+    "top_k": 20,
+    "min_p": 0.1,
+    "presence_penalty": 0.3,
+    "frequency_penalty": 1.2,
+    "compress_tool_results": true,
+    "context_strategy": {
+      "type": "summarize",
+      "maxTokens": 45000
+    },
+    "extra_body": {
+      "chat_template_kwargs": {
+        "enable_thinking": true,
+        "preserve_thinking": false
+      }
+    }
+  },
+  "daydreamer": {
+    "role": "Epiphany Synthesizer",
+    "model": "Qwen 3.6 MoE",
+    "memory_file": "/mnt/TG_2TB/Projects/Apollo/SOUL.md",
+    "allowed_tools": ["file_read", "grep", "glob", "system_metrics"],
+    "temperature": 1.0,
+    "top_p": 0.95,
+    "top_k": 20,
+    "min_p": 0.0,
+    "presence_penalty": 1.5,
+    "compress_tool_results": true,
+    "context_strategy": {
+      "type": "summarize",
+      "maxTokens": 50000,
+      "summaryModel": "Qwen 3.6 MoE"
+    },
+    "extra_body": {
+      "chat_template_kwargs": {
+        "enable_thinking": true,
+        "preserve_thinking": true
+      }
+    }
+  }
+}

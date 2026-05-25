@@ -1,0 +1,103 @@
+"""Hardware Abstraction Layer for Apollo Sovereign Entity Architecture.
+
+This module provides hardware-level abstractions including:
+- HIP/C++ kernel synchronization barriers
+- Unified hardware orchestration for physical device management
+- Device initialization and resource management
+"""
+
+from .kernel_synchronization import (
+    HIPKernelSynchronizationBarrier,
+    HIPKernelBarrierContext,
+    HIP_SUCCESS,
+    HIP_DEVICE_MEMORY_ERROR,
+    HIP_DEVICE_GLOBAL_MEMORY_ERROR,
+    HIP_DEVICE_OUT_OF_MEMORY,
+    HIP_DEVICE_NOT_FOUND,
+    HIP_NOT_SUPPORTED,
+    HIP_NOT_READY,
+    HIP_DRIVER_VERSION_MISMATCH,
+    HIP_NOT_INITIALIZED,
+    HIP_INVALID_HANDLE,
+    HIP_ILLEGAL_VALUE,
+    HIP_ILLEGAL_ARGUMENT,
+    HIP_UNKNOWN_ERROR,
+    HIP_INVALID_VALUE,
+    HIP_INVALID_CONFIGURATION,
+    HIP_INVALID_PITCH,
+    HIP_INVALID_DEVICE,
+    HIP_INVALID_MODULE,
+    HIP_INVALID_IMAGE,
+    HIP_INVALID_BINARY,
+    HIP_INVALID_IMAGE_IN_DATA,
+    HIP_INVALID_CONTEXT,
+    HIP_INVALID_STREAM,
+    HIP_INVALID_EVENT,
+    HIP_INVALID_RANGE,
+    HIP_INVALID_STREAM_STATE,
+    HIP_INVALID_STREAM_OBJECT,
+    HIP_INVALID_STREAM_ACCESS,
+    HIP_INVALID_STREAM_SINK,
+    HIP_INVALID_STREAM_SOURCE,
+    HIP_INVALID_STREAM_ACCESSOR,
+)
+
+from .hardware_orchestrator import (
+    HardwareOrchestrator,
+    create_orchestrator,
+    DeviceState,
+    AUDIO_GAIN_MIN,
+    AUDIO_GAIN_MAX,
+    CAMERA_EXPOSURE_MIN,
+    CAMERA_EXPOSURE_MAX,
+    CAMERA_ISO_MIN,
+    CAMERA_ISO_MAX,
+)
+
+__all__ = [
+    # HIP Synchronization
+    'HIPKernelSynchronizationBarrier',
+    'HIPKernelBarrierContext',
+    'HIP_SUCCESS',
+    'HIP_DEVICE_MEMORY_ERROR',
+    'HIP_DEVICE_GLOBAL_MEMORY_ERROR',
+    'HIP_DEVICE_OUT_OF_MEMORY',
+    'HIP_DEVICE_NOT_FOUND',
+    'HIP_NOT_SUPPORTED',
+    'HIP_NOT_READY',
+    'HIP_DRIVER_VERSION_MISMATCH',
+    'HIP_NOT_INITIALIZED',
+    'HIP_INVALID_HANDLE',
+    'HIP_ILLEGAL_VALUE',
+    'HIP_ILLEGAL_ARGUMENT',
+    'HIP_UNKNOWN_ERROR',
+    'HIP_INVALID_VALUE',
+    'HIP_INVALID_CONFIGURATION',
+    'HIP_INVALID_PITCH',
+    'HIP_INVALID_DEVICE',
+    'HIP_INVALID_MODULE',
+    'HIP_INVALID_IMAGE',
+    'HIP_INVALID_BINARY',
+    'HIP_INVALID_IMAGE_IN_DATA',
+    'HIP_INVALID_CONTEXT',
+    'HIP_INVALID_STREAM',
+    'HIP_INVALID_EVENT',
+    'HIP_INVALID_RANGE',
+    'HIP_INVALID_STREAM_STATE',
+    'HIP_INVALID_STREAM_OBJECT',
+    'HIP_INVALID_STREAM_ACCESS',
+    'HIP_INVALID_STREAM_SINK',
+    'HIP_INVALID_STREAM_SOURCE',
+    'HIP_INVALID_STREAM_ACCESSOR',
+    
+    # Hardware Orchestration
+    'HardwareOrchestrator',
+    'create_orchestrator',
+    'DeviceState',
+    'AUDIO_GAIN_MIN',
+    'AUDIO_GAIN_MAX',
+    'CAMERA_EXPOSURE_MIN',
+    'CAMERA_EXPOSURE_MAX',
+    'CAMERA_ISO_MIN',
+    'CAMERA_ISO_MAX',
+]

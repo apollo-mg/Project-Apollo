@@ -1,0 +1,82 @@
+# 🧪 APOLLO MODEL TEST LAB
+**Objective:** Evaluate, benchmark, and archive frontier LLMs released in the "China Wave" (March 2026) to upgrade the Project Apollo Sovereign AI stack.
+
+## 🛠️ Testing Environment
+- **Platform:** Bare-metal Linux (Ubuntu 22.04)
+- **ROCm:** 7.2 (Kernel) / 7.0 (Torch/vLLM stack)
+- **Hardware:** AMD RX 9070 XT (16GB VRAM)
+- **Stack:** Python 3.12, vLLM 0.16.0, PyTorch 2.9.1
+- **VDB:** ChromaDB (Librarian Module)
+
+## 📋 Testing Queue
+
+| Model | Format | Params | Target Role | vLLM Tuned | Findings |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Qwen 3.5-9B-Abliterated** | GGUF | 9B | **Engineer** | ✅ Tested | 8GB VRAM. Fast. Native CoT. Perfect sovereign alignment. |
+| **Qwen 3.5-9B-FP8** | vLLM | 9B | **One-Shot** | ✅ Tested | Eager mode only (13 TPS) due to 12.5GB VRAM weight size blocking Graph Mode on 16GB cards. |
+| **Qwen 3.5-35B-A3B** | GGUF | 35B (3B active) | **Architect** | ⏳ Idle Only | 16GB VRAM (IQ3_M). High-speed (~50 t/s). Deep technical reasoning. |
+| **Qwen 3.5-27B-Dense** | GGUF | 27B | **Engineer** | ⏳ Idle Only | 16GB VRAM (Q4_K_M). High intelligence. Expert troubleshooting. |
+| **DeepSeek-V3-Distill-14B** | GGUF | 14B | **Logic/RAG** | ⏳ Idle Only | 9.5GB. 391W SIMD Saturation. Incredible logic. |
+| **InternLM-3-8B** | GGUF | 8B | **Generalist** | ⏳ Idle Only | 71 TPS. 1M Context king. Efficient (290W). |
+| **Phi-4-Mini-3.8B** | GGUF | 3.8B | **Gatekeeper** | ❌ Skip | 150 TPS. No need for vLLM tuning. |
+| **Stable-Code-Instruct-3B** | vLLM | 3B | **Boilerplate** | ❌ Skip | 163 TPS. Fast enough on Ollama. |
+| **Qwen 3.5-4B-Vision** | GGUF | 4B | **Forensic ID** | ⏳ Pending | Text OK. Vision blocked by arch mismatch. |
+| **Kimi-K2.5-MoE** | vLLM | 1T (Sparse) | **Research** | ⏳ Pending | 1 Trillion params. Requires cluster/System RAM. |
+| **Llama-3.2-8X3B-Dark** | GGUF | 24B (3B active) | **Creative/Code** | ✅ Tested | 110 TPS. Incredible visceral writing and lateral thinking. |
+| **GLM-4.7-Flash-Heretic** | GGUF | 42B (3B active) | **Logic/Long-Ctx** | ✅ Tested | 19GB VRAM (Spills to Sysmem). 16.5 TPS. 214W peak. |
+| **MiniCPM-V-2.6** | GGUF | 8B | **Vision/VLM** | ✅ Ready | Q6_K. Downloaded to AI_Fast. Ready for vision testing. |
+| **MiniMax 2.5** | GGUF | 230B (MoE) | **Architect** | ⏳ In-Progress | IQ1_S shards (120GB+). Downloading to AI_Fast. |
+
+---
+
+## 🛠️ Optimization Strategy
+- **Ollama:** Primary for dynamic role-swapping and low-latency interaction.
+- **vLLM (Bare-Metal):** Primary for high-throughput batching, 3.5-VL vision, and FP8 performance.
+- **Offline TunableOp:** Only run for models targeting the vLLM track. Must be performed during **System Idle** or **Benchmarking Phases** due to 100% GPU saturation.
+
+
+---
+
+## 🔬 Test Results & Hoard Log
+
+### 1. Qwen 3.5-9B-Abliterated
+- **Source:** `filvyb/Qwen3.5-9B-heretic-v2-GGUF` (Q5_K_M)
+- **Date Added:** 2026-03-03
+- **VRAM Footprint:** 8.0 GB (Full Offload)
+- **Speed (t/s):** Blistering (RDNA 4 Optimized)
+- **Sovereign Score (1-10):** 10/10 (Native Chain-of-Thought, Zero refusals, deep understanding of Project Apollo concepts).
+- **Verdict:** Immediate replacement for `qwen3:8b` as the primary **Engineer**.
+
+### 2. Qwen 3.5-35B-A3B (MoE)
+- **Source:** `bartowski/Qwen_Qwen3.5-35B-A3B-GGUF` (IQ3_M)
+- **Date Added:** 2026-03-03
+- **VRAM Footprint:** 16.0 GB (Full Offload - context must be kept small).
+- **Speed (t/s):** ~50 t/s.
+- **Intelligence:** Exceptional. Produced a full distributed RDNA 4 OS proposal including Infinity Cache optimizations.
+- **Verdict:** Potential **Architect** upgrade. Ideal for complex technical vision.
+
+### 3. Qwen 3.5-27B-Dense
+- **Source:** `unsloth/Qwen3.5-27B-GGUF` (Q4_K_M)
+- **Date Added:** 2026-03-03
+- **VRAM Footprint:** 16.0 GB (Full Offload - context limited).
+- **Speed (t/s):** ~15-20 t/s.
+- **Intelligence:** Systematic & Technical. Handled ROCm dynamic library debugging with professional engineer precision.
+- **Verdict:** Higher intelligence density than the 35B MoE for logic-heavy tasks.
+
+### 4. Qwen 3.5-4B-Vision
+- **Source:** `unsloth/Qwen3.5-4B-GGUF` (Q4_K_M)
+- **Date Added:** 2026-03-03
+- **VRAM Footprint:** ~3.5 GB (Text Only).
+- **Findings:** Ollama 0.17.5 supports the `qwen35` text architecture perfectly, but currently fails to load the vision tower (`clip` adapter) due to an architecture mismatch in the unified backbone. 
+- **Verdict:** Hold for vision tasks until Ollama/llama.cpp updates for 3.5 VL. Text-only logic is strong for its size.
+
+### 5. GLM-4.7-Flash-Heretic (Abliterated)
+- **Source:** `DavidAU/GLM-4.7-Flash-Uncensored-Heretic-NEO-CODE-Imatrix-MAX-GGUF` (Q4_K_M)
+- **Date Added:** 2026-03-03
+- **VRAM Footprint:** 19.0 GB (Spills to System RAM. 22% CPU / 78% GPU offload).
+- **Speed (t/s):** ~16.5 TPS (Slowed by PCIe bottleneck due to Sysmem spill).
+- **Power Draw:** 214W peak GPU power on RX 9070 XT.
+- **Verdict:** Functions on 16GB cards but requires system RAM paging. Viable for large-context offline tasks where speed is not critical.
+
+---
+*Created by Gemini CLI for Mark*

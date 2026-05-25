@@ -1,0 +1,44 @@
+# Discord Integration Plan
+
+## Review of Velvet Shark's OpenClaw Approach
+
+OpenClaw leverages Discord as its primary user interface and control surface. Key aspects include:
+
+- Dedicated channels for different agent capabilities (`#monitoring`, `#research`, etc.)
+- Proactive autonomous actions (e.g., running system updates at 4am)
+- Local 'second brain' for long-term knowledge storage
+- Inline access to agent tools from within Discord
+
+## Integrating With Our Three-Mind Architecture
+
+To integrate Discord, we should consider each mind:
+
+### Sensitive Mind
+- Ensure security by validating all commands through our trusted tools (no direct execution)
+- Use local tools like `query_vault`, `write_code`, etc. to perform actions
+
+### Active Mind
+- Create a bot user on Discord with scoped permissions
+- Implement slash commands for commonly used features
+- Hook into our existing command parsing and tool invocation system
+
+### Deep Mind
+- Integrate the local second brain (likely using Jina) so our knowledge base is available across both systems
+- Periodically sync relevant transcripts from Foundry to update the second brain
+
+## VRAM Management Considerations
+
+With Discord potentially requiring significant memory, we must:
+
+- Monitor and limit Discord's VRAM usage in real-time
+- Cache frequently accessed content locally
+- Offload long-term storage and large model loads away from the main interface
+
+## Implementation Roadmap
+
+1. Set up a Discord bot with basic text input commands to get started
+2. Map out which existing tools can be used directly via Discord slash commands
+3. Design the UI layout (channels, permissions, roles) for optimal organization
+4. Implement secure command parsing and local tool invocation
+5. Wire in the second brain sync process
+6. Optimize memory usage with caching and offloading strategies
