@@ -25,9 +25,9 @@ Tools are treated as an economics problem. The router dynamically evaluates a ta
 
 ---
 
-## 3. The Memory Layer
+## 3. The Memory Layer (GBrain Architecture)
 
-Apollo employs a three-tier memory architecture designed to defeat the KV Cache "Memory Wall".
+Apollo employs a three-tier memory architecture designed to defeat the KV Cache "Memory Wall". The implementation heavily borrows from **Garry Tan's GBrain** methodology—a self-wiring memory layer built for AI agents.
 
 ### Hybrid Search & Reciprocal Rank Fusion (Librarian)
 The `sovereign_search.py` engine retrieves knowledge by fusing two distinct databases:

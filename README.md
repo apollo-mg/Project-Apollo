@@ -46,6 +46,7 @@ The next phase introduces the **Daydream Daemon v2**—a dual-pass, asynchronous
 
 ## 🙏 Acknowledgements & Credits
 Project Apollo stands on the shoulders of giants. This Sovereign OS is made possible by the relentless innovation of the open-source AI community:
+* **Garry Tan & GBrain:** For the architectural blueprint of the "Self-Wiring Memory Layer." Apollo's Daydream Regex Cascade (deterministic graph wiring) and Librarian Hybrid Search (Vector + BM25 + RRF) are direct implementations of the GBrain methodology, achieving zero-cost memory mapping without LLM overhead.
 * **[open-multi-agent](https://github.com/huggingface/open-multi-agent):** For the core TypeScript DAG orchestration and baseline agentic loops (MIT License).
 * **@TheTom & AtomicChat:** For the bleeding-edge `llama-cpp-turboquant` and `atomic` forks that achieve extreme KV Cache compression, preventing VRAM meltdowns on consumer hardware.
   * *Academic Citation:* Zandieh et al., "TurboQuant: Extreme KV Cache Quantization" (arXiv:2504.19874, ICLR 2026).
