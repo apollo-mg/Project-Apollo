@@ -55,6 +55,15 @@ class SovereignMessageBus:
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS fleet_status (
+                    node_id TEXT PRIMARY KEY,
+                    status TEXT NOT NULL,
+                    os_version TEXT,
+                    current_load TEXT,
+                    last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
             conn.commit()
 
     def publish_task(self, task_name: str, requirements: Dict, payload: str) -> int:
@@ -217,6 +226,29 @@ class SovereignMessageBus:
             if row:
                 return row[0]
             return None
+
+    def record_heartbeat(self, node_id: str, status: str, os_version: str = "", current_load: str = "") -> None:
+        """Records a heartbeat telemetry ping from a worker node."""
+        with closing(sqlite3.connect(self.db_path, timeout=30.0)) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO fleet_status (node_id, status, os_version, current_load, last_seen)
+                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(node_id) DO UPDATE SET
+                    status=excluded.status,
+                    os_version=excluded.os_version,
+                    current_load=excluded.current_load,
+                    last_seen=CURRENT_TIMESTAMP
+            ''', (node_id, status, os_version, current_load))
+            conn.commit()
+
+    def get_fleet_status(self) -> List[Dict]:
+        """Retrieves the current status of all nodes in the fleet."""
+        with closing(sqlite3.connect(self.db_path, timeout=30.0)) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM fleet_status ORDER BY last_seen DESC")
+            return [dict(row) for row in cursor.fetchall()]
 
 class RemoteMessageBus:
     """

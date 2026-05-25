@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Fleet Status Telemetry:** Implemented a new `fleet_status` table in the SQLite Message Bus to track remote node health.
+- **Heartbeat API:** Added `POST /node/heartbeat` and `GET /node/status` to `message_bus_api.py` allowing remote Worker nodes (like Starbuck) to register their CPU/RAM load, active status (idle/executing_tool), and OS version for the Glass Cockpit UI's "Fleet Map".
+
 ### Changed
 - **Advanced LLM Sampling (PR #163):** Fully plumbed sampling parameters (`temperature`, `top_p`, `frequency_penalty`, `presence_penalty`, `min_p`, `top_k`, and `extraBody`) from `profiles.yaml` through the `open-multi-agent` adapter to `llama-server`. Stripped `parallel_tool_calls: false` override to allow model flexibility.
 - **Subagent Framework Optimizations:** 

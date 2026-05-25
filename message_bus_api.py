@@ -135,6 +135,28 @@ class CompleteRequest(BaseModel):
     result_payload: str
     success: bool = True
 
+class HeartbeatRequest(BaseModel):
+    node_id: str
+    status: str
+    os_version: Optional[str] = ""
+    current_load: Optional[str] = ""
+
+@app.post("/node/heartbeat")
+def node_heartbeat(req: HeartbeatRequest):
+    try:
+        bus.record_heartbeat(req.node_id, req.status, req.os_version, req.current_load)
+        return {"status": "ok"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/node/status")
+def get_node_status():
+    try:
+        fleet = bus.get_fleet_status()
+        return {"fleet": fleet}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/tasks/publish")
 def publish_task(req: PublishRequest):
     task_id = bus.publish_task(req.task_name, req.requirements, req.payload)
