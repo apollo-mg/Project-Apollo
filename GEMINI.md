@@ -29,6 +29,12 @@ The local Apollo OS backend is currently undergoing stabilization. While the ult
 - **Orchestration Framework:** The user is actively running `open-multi-agent` from `/mnt/TG_2TB/Projects/Apollo/engines/open-multi-agent-upstream/`. Edits should target this 'upstream' directory. Detailed architectural decisions and bug fixes for the framework are documented in its local [GEMINI.md](./engines/open-multi-agent-upstream/GEMINI.md).
 - **Advanced LLM Sampling:** Support for Unsloth-tuned parameters (`topP`, `topK`, `minP`, `frequencyPenalty`, `presencePenalty`, `extraBody`) for optimal Gemma 4 and Qwen 3.6 inference.
 
+## 🤝 Multi-Agent State-Sync Protocol (Agent Coordination)
+To prevent autonomous agents (e.g., The Architect, Starbuck, The Scientist) from overwriting each other's work or drifting out of sync:
+1. **The Shared Ledger:** `CHANGELOG.md` and `data/Apollo Docs/WIKI.md` are the single sources of truth. If you are an agent starting a new session, you MUST read the `CHANGELOG.md` to understand what other agents have recently done before making structural changes.
+2. **Mandatory Reporting:** Whenever you successfully implement a new tool, refactor architecture, or update configuration, you MUST append a record of your changes to `CHANGELOG.md` under the `[Unreleased]` section.
+3. **The Scratchpad:** For transient coordination (e.g., sharing a VRAM limit calculation or a path to a generated file), use the `starbuck_write_scratchpad` and `starbuck_read_scratchpad` tools to push/pull state to the central SQLite Message Bus. DO NOT assume other agents have access to your local terminal memory.
+
 ## 🛡️ CRITICAL CLI GUARDRAILS (ANTI-CRASH PROTOCOL)
 You are operating within a live Python/Linux environment (`CachyOS`). You MUST obey these rules to prevent context-window death spirals:
 * **Safe Shell Searching:** When using the `Shell` tool to search the codebase (e.g., `grep`, `find`), you MUST EXPLICITLY ignore binaries and cache directories. 
