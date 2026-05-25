@@ -159,6 +159,30 @@ def main():
         logger.info(f"Connecting to Local Message Bus Database at: {db_path}")
         bus = SovereignMessageBus(db_path)
     
+    import threading
+    import platform
+
+    current_status = "idle"
+
+    def heartbeat_worker():
+        while True:
+            try:
+                os_version = f"{platform.system()} {platform.release()}"
+                try:
+                    load = os.getloadavg()
+                    current_load = f"{load[0]:.2f}, {load[1]:.2f}, {load[2]:.2f}"
+                except AttributeError:
+                    current_load = "N/A"
+                bus.record_heartbeat(NODE_NAME, current_status, os_version, current_load)
+            except Exception as e:
+                pass
+            time.sleep(5)
+
+    if hasattr(bus, 'record_heartbeat'):
+        t_hb = threading.Thread(target=heartbeat_worker, daemon=True)
+        t_hb.start()
+        logger.info("Heartbeat telemetry beacon started.")
+
     logger.info("Listening for tasks on the Sovereign Message Bus...")
     
     while True:
@@ -167,6 +191,7 @@ def main():
             claimed_task = bus.claim_task(NODE_NAME, NODE_CAPABILITIES)
             
             if claimed_task:
+                current_status = "executing_task"
                 task_id = claimed_task["id"]
                 logger.info(f"Claimed Task #{task_id}: {claimed_task['task_name']}")
                 
@@ -181,6 +206,8 @@ def main():
                 except Exception as e:
                     logger.error(f"Task #{task_id} failed during execution: {e}")
                     bus.complete_task(task_id, result_payload=str(e), success=False)
+                finally:
+                    current_status = "idle"
                     
             else:
                 # No matching tasks pending, wait before polling again

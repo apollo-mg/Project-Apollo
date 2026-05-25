@@ -309,6 +309,25 @@ class RemoteMessageBus:
         with urllib.request.urlopen(req) as res:
             pass
 
+    def record_heartbeat(self, node_id: str, status: str, os_version: str = "", current_load: str = "") -> None:
+        import urllib.request
+        import json
+        req = urllib.request.Request(
+            f"{self.api_url}/node/heartbeat",
+            data=json.dumps({
+                "node_id": node_id,
+                "status": status,
+                "os_version": os_version,
+                "current_load": current_load
+            }).encode('utf-8'),
+            headers={'Content-Type': 'application/json'}
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=2) as res:
+                pass
+        except Exception:
+            pass
+
     def check_task_status(self, task_id: int) -> Optional[Dict]:
         import urllib.request
         import json
