@@ -1,3 +1,0 @@
-{
-  "output": "Output: def speak(text):\n    \"\"\"Speaks text in a background thread.\"\"\"\n    def _speak_thread(t):\n        global IS_SPEAKING\n        IS_SPEAKING = True\n        print(f\"[Zoey] Speaking: {t}\")\n        t = re.sub(r'[\\*\\#\\_]', '', t)\n        t = re.sub(r'[^\\x00-\\x7F]+', ' ', t)\n        t = re.sub(r'\\s+', ' ', t).strip()\n        \n        if not t: \n            IS_SPEAKING = False\n            return\n\n        try:\n            voice_name = \"af_sky\"\n            samples, sample_rate = kokoro.create(t, voice=voice_name, speed=1.1, lang=\"en-us\")\n            sd.stop()\n            sd.play(samples, sample_rate)\n            sd.wait()\n        except Exception as e:\nBackground PIDs: 28737"
-}

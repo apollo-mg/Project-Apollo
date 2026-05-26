@@ -37,6 +37,9 @@ $SERVER -m "$MODEL" \
     -ub 512 \
     -ctk q8_0 \
     -ctv turbo4 \
+    --kv-unified \
+    --cache-idle-slots \
+    --cache-ram 2048 \
     -cb \
     -fa on \
     -fit off \

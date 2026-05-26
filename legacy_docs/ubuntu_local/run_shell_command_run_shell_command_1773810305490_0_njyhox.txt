@@ -1,3 +1,0 @@
-{
-  "output": "Output: #!/bin/bash\necho \"Starting ROCm-Accelerated Whisper Server...\"\nMODEL_PATH=\"/home/mark/gemini/lib/whisper.cpp/models/ggml-large-v3-turbo-q5_0.bin\"\nBINARY=\"/home/mark/gemini/lib/whisper.cpp/build/bin/whisper-server\"\n\n# Library Paths\nLIB1=\"/home/mark/gemini/lib/whisper.cpp/build/src/\"\nLIB2=\"/home/mark/gemini/lib/whisper.cpp/build/ggml/src/\"\nLIB3=\"/home/mark/gemini/lib/whisper.cpp/build/ggml/src/ggml-hip/\"\n\nif [ ! -f \"$BINARY\" ]; then\n    echo \"Error: whisper-server binary not found at $BINARY\"\n    exit 1\nfi\n\nexport LD_LIBRARY_PATH=\"$LIB1:$LIB2:$LIB3:$LD_LIBRARY_PATH\"\n\n# Start Server on Port 8080\n$BINARY -m \"$MODEL_PATH\" --host 0.0.0.0 --port 8080 -fa\nBackground PIDs: 21862"
-}

@@ -1,6 +1,6 @@
 # Apollo Sovereign Engine: Architecture Wiki
 
-**Version:** 1.0-STABLE (Distributed Swarm Era)
+**Version:** Pre-Alpha (Distributed Swarm Era)
 **Target Hardware:** Heterogeneous Clusters (e.g., AMD RX 9070 XT + Dual Nvidia Tesla P100)
 
 ---
