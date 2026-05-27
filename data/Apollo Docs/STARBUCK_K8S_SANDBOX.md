@@ -1,30 +1,32 @@
 # Project Starbuck: Kubernetes Agent Sandbox Architecture
 
 ## Overview
-This document serves as the architectural blueprint for upgrading Project Starbuck (the Execution Plane) from generic Docker containers to a secure, dynamically provisioned Kubernetes environment. The strategy is centered around the [`kubernetes-sigs/agent-sandbox`](https://github.com/kubernetes-sigs/agent-sandbox) Custom Resource Definition (CRD).
+This document outlines the strategy for integrating the [`kubernetes-sigs/agent-sandbox`](https://github.com/kubernetes-sigs/agent-sandbox) Custom Resource Definition (CRD) into Project Starbuck.
 
-## The Motivation: Defusing the Docker Time Bomb
-Running raw Python worker daemons (like `worker_daemon.py` on the P100) inside generic Docker containers presents a massive security vulnerability. Standard containers share the host kernel. If an untrusted AI workload hallucinates a destructive command, or falls victim to an indirect prompt injection via a downloaded repository, it could easily break out of the container or compromise the host environment. 
+## The Architecture: Bare-Metal Daemon + Disposable Sandboxes
+The execution plane requires a bifurcated approach to security and capabilities. We cannot trap the primary execution daemon in a micro-VM, as it requires host-level access to manage the system. Instead, the architecture is defined by two distinct layers:
 
-The Apollo Control Plane must be strictly decoupled from this risk.
+### 1. The Bare-Metal Starbuck Daemon (The Supervisor)
+`starbuck_daemon.py` and `worker_daemon.py` will run natively on bare metal (or within a trusted, privileged environment).
+- **Role:** Acts as the system administrator and task orchestrator for the execution node.
+- **Permissions:** Operates under the YOLO 0-3 permission hierarchy, allowing it to manage the host OS, orchestrate Docker/Kubernetes, and interface with the SQLite Message Bus.
+- **Function:** Receives tasks from the Apollo Control Plane and provisions resources.
 
-## The Solution: `agent-sandbox`
-The `agent-sandbox` is a Kubernetes controller specifically designed to manage **isolated, stateful, singleton workloads** for AI agent runtimes. It provides a lightweight, single-container VM experience.
+### 2. The Kubernetes Agent Sandbox (The Disposable Workbench)
+The `agent-sandbox` controller will be deployed to provide secure, ephemeral execution environments. This is specifically utilized as a **tool** for sub-agents (like the `software_engineer`).
+- **Role:** A secure, disposable workbench for executing and testing untrusted, LLM-generated code.
+- **Strong Isolation (gVisor & Kata Containers):** When the `software_engineer` needs to compile a random C++ fork, install unknown pip packages, or run a generated Python script, it executes inside this hardened micro-VM. It physically cannot escape into the host OS, protecting the bare-metal daemon.
+- **The Stateful Singleton Advantage:** Sandboxes provide a stable network identity and persistent storage during a specific task's lifecycle. They can hibernate to save resources and auto-resume without losing state.
+- **Killing the Cold Boot (SandboxWarmPool):** To maintain real-time interaction loops, the controller maintains a pool of pre-warmed sandboxes. When the `software_engineer` requests an execution environment, a sandbox is allocated in milliseconds.
 
-### Key Architectural Pillars for Starbuck
-
-#### 1. Strong Sandbox Isolation (gVisor & Kata Containers)
-The Sandbox API goes beyond standard Docker namespaces. It supports robust, secure runtimes like **gVisor** or **Kata Containers**. This provides true kernel-level and network isolation. When the Sovereign Architect delegates a risky task to a Starbuck subagent, the code executes inside a hardened micro-VM that physically cannot access the host OS. This strictly enforces the YOLO permission hierarchy.
-
-#### 2. The Stateful Singleton Advantage
-Standard Kubernetes deployments are stateless and disposable. However, agentic workloads require long-running execution contexts and persistent memory. The `agent-sandbox` treats pods as **stateful singletons** with stable network identities and persistent storage attached.
-- **Deep Hibernation & Auto-Resume:** The daemon can save its state to disk, hibernate to free up compute resources, and automatically wake back up on network connection with its workspace, files, and IP address perfectly intact.
-
-#### 3. Killing the Cold Boot (SandboxWarmPool)
-When the Apollo Control Plane delegates an immediate tool call to Starbuck, waiting 30 seconds for a fresh container image to pull and boot destroys the real-time interaction loop.
-- **The Warm Pool Extension:** This controller manages a roster of pre-warmed sandboxes that can be instantly allocated to agents, completely eliminating cold-start latency. Tasks are assigned and executed in milliseconds.
+## The Workflow
+1. The **Sovereign Architect** delegates a coding task to the `software_engineer` sub-agent via the Message Bus.
+2. The bare-metal **Worker Daemon** receives the task and spins up the sub-agent.
+3. The `software_engineer` writes code and uses a custom tool (e.g., `execute_in_sandbox`) to run the code.
+4. The tool instantly claims a pre-warmed `agent-sandbox` instance, pushes the code, executes it securely within the gVisor/Kata container, and returns the stdout/stderr.
+5. If the code is destructive, the sandbox is simply destroyed, and the host remains perfectly safe.
 
 ## Next Steps for Integration
-1. **Lightweight Kubernetes Deployment:** Investigate deploying a lightweight Kubernetes distribution (e.g., K3s, K0s, or MicroK8s) on the dedicated P100 worker node to act as the host for the Sandbox controller.
-2. **Daemon Routing Logic:** Finalize the internal daemon routing and Message Bus state-sync protocol to ensure it can gracefully handle dispatching tasks to dynamically allocated IP addresses provided by the `agent-sandbox` service.
-3. **Template Design:** Author the `SandboxTemplate` YAML manifests that define the baseline tools, environment variables, and memory volume mounts for Starbuck subagents.
+1. **Lightweight Kubernetes Deployment:** Deploy a lightweight Kubernetes distribution (e.g., K3s, K0s, or MicroK8s) on the dedicated P100 worker node to host the Sandbox controller.
+2. **Tool Implementation:** Develop the `execute_in_sandbox` MCP tool for the Starbuck daemon, allowing sub-agents to claim and interface with the SandboxWarmPool.
+3. **Template Design:** Author the `SandboxTemplate` YAML manifests defining the baseline runtimes (Node.js, Python, Rust) available in the warm pool.
