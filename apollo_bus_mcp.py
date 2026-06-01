@@ -171,81 +171,50 @@ def assassin_thread():
     
     while True:
         try:
-            req = urllib.request.Request(f"{api_url}/tasks/stream")
-            with urllib.request.urlopen(req) as response:
-                for line in response:
-                    line = line.decode('utf-8').strip()
-                    if line.startswith("data: "):
-                        data_str = line[6:]
-                        if data_str == "keepalive": continue
-                        try:
-                            event = json.loads(data_str)
-                            if event.get("status") == "aborted" and str(event.get("task_id")) == str(ACTIVE_TASK_ID):
-                                # Graceful assassin logic
-                                parent_pid = os.getppid()
-                                if parent_pid != 1:  # Don't kill init
-                                    try:
-                                        os.kill(parent_pid, signal.SIGTERM)
-                                        time.sleep(2.0)
-                                        os.kill(parent_pid, 0) # Check if alive
-                                        os.kill(parent_pid, signal.SIGKILL)
-                                    except ProcessLookupError:
-                                        pass # Process already exited
-                                
-                                ACTIVE_TASK_ID = None
-                        except json.JSONDecodeError:
-                            pass
-        except Exception:
-            time.sleep(5) # Reconnect backoff
-
-threading.Thread(target=assassin_thread, daemon=True).start()
-
-def heartbeat_loop():
-    node_id = platform.node()
-    while True:
-        try:
-            # Query llama-server
-            req_props = urllib.request.Request("http://127.0.0.1:8082/props")
-            req_slots = urllib.request.Request("http://127.0.0.1:8082/slots")
-
-            with urllib.request.urlopen(req_props, timeout=2.0) as res:
-                props = json.loads(res.read().decode())
-            with urllib.request.urlopen(req_slots, timeout=2.0) as res:
-                slots = json.loads(res.read().decode())
-                
-            model_alias = props.get("model_alias", "").lower()
-            max_slot_context = props.get("default_generation_settings", {}).get("n_ctx", 8192)
-            
-            archetype = "dense_coder"
-            if any(x in model_alias for x in ["moe", "darwin", "gemma"]):
-                archetype = "moe_reasoner"
-                
+            archetype = "any"
+            max_slot_context = 8192
             hot_tokens = 0
             warm_tokens = 0
+            kv_precision = "unknown"
             
-            # Mathematical deduction of tiers (simplified physical VRAM budget limit = 32000 tokens for hot)
-            HOT_TOKEN_BUDGET = 32000 
-            
-            for s in slots:
-                try:
-                    toks = s["next_token"][0]["n_decoded"]
-                except (KeyError, IndexError):
-                    toks = 0
+            try:
+                # Query llama-server
+                req_props = urllib.request.Request("http://127.0.0.1:8082/props")
+                req_slots = urllib.request.Request("http://127.0.0.1:8082/slots")
+                with urllib.request.urlopen(req_props, timeout=2.0) as res:
+                    props = json.loads(res.read().decode())
+                with urllib.request.urlopen(req_slots, timeout=2.0) as res:
+                    slots = json.loads(res.read().decode())
                     
-                if s.get("is_processing"):
-                    hot_tokens += toks
-                else:
-                    warm_tokens += toks
-            
-            # If idle slots push us over the hot budget, reallocate mathematically
-            if hot_tokens == 0 and warm_tokens > 0:
-                if warm_tokens <= HOT_TOKEN_BUDGET:
-                    hot_tokens = warm_tokens
-                    warm_tokens = 0
-                else:
-                    hot_tokens = HOT_TOKEN_BUDGET
-                    warm_tokens = warm_tokens - HOT_TOKEN_BUDGET
-            
+                model_alias = props.get("model_alias", "").lower()
+                max_slot_context = props.get("default_generation_settings", {}).get("n_ctx", 8192)
+                
+                archetype = "dense_coder"
+                if any(x in model_alias for x in ["moe", "darwin", "gemma"]):
+                    archetype = "moe_reasoner"
+                    
+                HOT_TOKEN_BUDGET = 32000 
+                for s in slots:
+                    try:
+                        toks = s["next_token"][0]["n_decoded"]
+                    except (KeyError, IndexError):
+                        toks = 0
+                        
+                    if s.get("is_processing"):
+                        hot_tokens += toks
+                    else:
+                        warm_tokens += toks
+                
+                if hot_tokens == 0 and warm_tokens > 0:
+                    if warm_tokens <= HOT_TOKEN_BUDGET:
+                        hot_tokens = warm_tokens
+                        warm_tokens = 0
+                    else:
+                        hot_tokens = HOT_TOKEN_BUDGET
+                        warm_tokens = warm_tokens - HOT_TOKEN_BUDGET
+            except Exception as llama_err:
+                print(f"[Heartbeat] Could not reach local llama-server on 8082: {llama_err}. Assuming busy/down.")
+
             # Get KV Precision from OS level
             kv_precision = "K: fp16, V: fp16" # default
             try:
