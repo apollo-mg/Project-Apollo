@@ -1,0 +1,24 @@
+apiVersion: extensions.agents.x-k8s.io/v1alpha1
+kind: SandboxTemplate
+metadata:
+  name: apollo-worker-template
+  namespace: default
+spec:
+  podTemplate:
+    spec:
+      containers:
+      - name: apollo-worker
+        image: apollo-worker:latest
+        imagePullPolicy: IfNotPresent
+        command: ["python3", "worker_daemon.py"]
+        env:
+        - name: MESSAGE_BUS_API
+          value: "http://10.0.0.5:8000"
+        - name: STARBUCK_YOLO_LEVEL
+          value: "2"
+        volumeMounts:
+        - name: workspace
+          mountPath: /app/workspace
+      volumes:
+      - name: workspace
+        emptyDir: {}

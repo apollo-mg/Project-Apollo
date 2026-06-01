@@ -11,7 +11,7 @@ APOLLO_ROOT = os.environ.get("APOLLO_ROOT", os.path.dirname(os.path.abspath(__fi
 sys.path.append(APOLLO_ROOT)
 
 try:
-    from modules.message_bus import SovereignMessageBus, RemoteMessageBus
+    from modules.message_bus import SovereignMessageBus, MessageBusClient
 except ModuleNotFoundError:
     print(f"CRITICAL ERROR: Could not find 'modules.message_bus'. Ensure APOLLO_ROOT is set correctly. Currently: {APOLLO_ROOT}")
     sys.exit(1)
@@ -152,7 +152,7 @@ def main():
     api_url = os.environ.get("MESSAGE_BUS_API")
     if api_url:
         logger.info(f"Connecting to Sovereign Message Bus API at: {api_url}")
-        bus = RemoteMessageBus(api_url)
+        bus = MessageBusClient(api_url)
     else:
         default_db_path = os.path.join(APOLLO_ROOT, "data", "message_bus.db")
         db_path = os.environ.get("DB_PATH", default_db_path)
