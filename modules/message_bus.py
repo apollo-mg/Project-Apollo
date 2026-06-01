@@ -1,6 +1,7 @@
 import sqlite3
 import json
 import logging
+import uuid
 from contextlib import closing
 from typing import Dict, List, Optional
 from datetime import datetime
@@ -37,7 +38,7 @@ class SovereignMessageBus:
             
             conn.execute('''
                 CREATE TABLE IF NOT EXISTS task_queue (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id TEXT PRIMARY KEY,
                     task_name TEXT NOT NULL,
                     status TEXT NOT NULL DEFAULT 'pending', -- pending, claimed, completed, failed
                     assigned_node TEXT,
@@ -59,24 +60,39 @@ class SovereignMessageBus:
                 CREATE TABLE IF NOT EXISTS fleet_status (
                     node_id TEXT PRIMARY KEY,
                     status TEXT NOT NULL,
-                    os_version TEXT,
-                    current_load TEXT,
+                    active_model_archetype TEXT,
+                    max_slot_context INTEGER,
+                    hot_kv_tokens INTEGER,
+                    warm_kv_tokens INTEGER,
+                    kv_precision TEXT,
                     last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS proposed_skills (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT NOT NULL,
+                    tldr TEXT NOT NULL,
+                    token_impact INTEGER NOT NULL,
+                    raw_payload TEXT NOT NULL,
+                    status TEXT DEFAULT 'pending', -- 'pending', 'approved', 'dismissed'
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
             conn.commit()
 
-    def publish_task(self, task_name: str, requirements: Dict, payload: str) -> int:
+    def publish_task(self, task_name: str, requirements: Dict, payload: str) -> str:
         """The Architect publishes a new task to the queue."""
+        task_id = str(uuid.uuid4())
         with closing(sqlite3.connect(self.db_path, timeout=30.0)) as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO task_queue (task_name, requirements_json, input_payload)
-                VALUES (?, ?, ?)
-            ''', (task_name, json.dumps(requirements), payload))
+                INSERT INTO task_queue (id, task_name, requirements_json, input_payload)
+                VALUES (?, ?, ?, ?)
+            ''', (task_id, task_name, json.dumps(requirements), payload))
             conn.commit()
-            logging.info(f"[MessageBus] Task '{task_name}' published. ID: {cursor.lastrowid}")
-            return cursor.lastrowid
+            logging.info(f"[MessageBus] Task '{task_name}' published. ID: {task_id}")
+            return task_id
 
     def claim_task(self, node_name: str, node_capabilities: Dict) -> Optional[Dict]:
         """
@@ -128,20 +144,32 @@ class SovereignMessageBus:
             conn.commit()
             return None
 
-    def complete_task(self, task_id: int, result_payload: str, success: bool = True):
+    def complete_task(self, task_id: str, result_payload: str, success: bool = True):
         """A worker node submits the final output payload back to the bus."""
         status = 'completed' if success else 'failed'
         with closing(sqlite3.connect(self.db_path, timeout=30.0)) as conn:
             cursor = conn.cursor()
             cursor.execute('''
                 UPDATE task_queue 
-                SET status = ?, output_payload = ?, updated_at = CURRENT_TIMESTAMP 
+                SET status = ?, output_payload = ?, completed_at = CURRENT_TIMESTAMP
                 WHERE id = ?
             ''', (status, result_payload, task_id))
             conn.commit()
             logging.info(f"[MessageBus] Task #{task_id} marked as {status}.")
 
-    def check_task_status(self, task_id: int) -> Optional[Dict]:
+    def abort_task(self, task_id: str):
+        """Allows the Architect to forcefully abort a task, killing remote execution."""
+        with closing(sqlite3.connect(self.db_path, timeout=30.0)) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                UPDATE task_queue 
+                SET status = 'aborted', completed_at = CURRENT_TIMESTAMP
+                WHERE id = ? AND status IN ('pending', 'in_progress')
+            ''', (task_id,))
+            conn.commit()
+            logging.info(f"[MessageBus] Task #{task_id} marked as aborted by Supervisor.")
+
+    def check_task_status(self, task_id: str) -> Optional[Dict]:
         """Allows the Architect to poll the status of a previously dispatched task."""
         with closing(sqlite3.connect(self.db_path, timeout=30.0)) as conn:
             conn.row_factory = sqlite3.Row
@@ -227,19 +255,22 @@ class SovereignMessageBus:
                 return row[0]
             return None
 
-    def record_heartbeat(self, node_id: str, status: str, os_version: str = "", current_load: str = "") -> None:
+    def record_heartbeat(self, node_id: str, status: str, active_model_archetype: str = "any", max_slot_context: int = 8192, hot_kv_tokens: int = 0, warm_kv_tokens: int = 0, kv_precision: str = "fp16") -> None:
         """Records a heartbeat telemetry ping from a worker node."""
         with closing(sqlite3.connect(self.db_path, timeout=30.0)) as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO fleet_status (node_id, status, os_version, current_load, last_seen)
-                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+                INSERT INTO fleet_status (node_id, status, active_model_archetype, max_slot_context, hot_kv_tokens, warm_kv_tokens, kv_precision, last_seen)
+                VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                 ON CONFLICT(node_id) DO UPDATE SET
                     status=excluded.status,
-                    os_version=excluded.os_version,
-                    current_load=excluded.current_load,
+                    active_model_archetype=excluded.active_model_archetype,
+                    max_slot_context=excluded.max_slot_context,
+                    hot_kv_tokens=excluded.hot_kv_tokens,
+                    warm_kv_tokens=excluded.warm_kv_tokens,
+                    kv_precision=excluded.kv_precision,
                     last_seen=CURRENT_TIMESTAMP
-            ''', (node_id, status, os_version, current_load))
+            ''', (node_id, status, active_model_archetype, max_slot_context, hot_kv_tokens, warm_kv_tokens, kv_precision))
             conn.commit()
 
     def get_fleet_status(self) -> List[Dict]:
@@ -250,7 +281,37 @@ class SovereignMessageBus:
             cursor.execute("SELECT * FROM fleet_status ORDER BY last_seen DESC")
             return [dict(row) for row in cursor.fetchall()]
 
-class RemoteMessageBus:
+    def propose_skill(self, title: str, tldr: str, token_impact: int, raw_payload: str) -> int:
+        """Adds a new extracted skill to the proposed_skills staging table."""
+        with closing(sqlite3.connect(self.db_path, timeout=30.0)) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO proposed_skills (title, tldr, token_impact, raw_payload)
+                VALUES (?, ?, ?, ?)
+            ''', (title, tldr, token_impact, raw_payload))
+            conn.commit()
+            return cursor.lastrowid
+
+    def list_proposed_skills(self, status: str = 'pending') -> List[Dict]:
+        """Retrieves a list of proposed skills by status."""
+        with closing(sqlite3.connect(self.db_path, timeout=30.0)) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM proposed_skills WHERE status = ? ORDER BY created_at DESC", (status,))
+            return [dict(row) for row in cursor.fetchall()]
+
+    def update_proposed_skill_status(self, skill_id: int, status: str) -> None:
+        """Updates the status of a proposed skill (e.g. 'approved' or 'dismissed')."""
+        with closing(sqlite3.connect(self.db_path, timeout=30.0)) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                UPDATE proposed_skills
+                SET status = ?
+                WHERE id = ?
+            ''', (status, skill_id))
+            conn.commit()
+
+class MessageBusClient:
     """
     HTTP client wrapper for SovereignMessageBus.
     Used by remote worker nodes to interact with the central SQLite database over the network,
@@ -294,7 +355,7 @@ class RemoteMessageBus:
             # Handle connection refused if server is not reachable
             return None
 
-    def complete_task(self, task_id: int, result_payload: str, success: bool = True):
+    def complete_task(self, task_id: str, result_payload: str, success: bool = True):
         import urllib.request
         import json
         req = urllib.request.Request(
@@ -309,7 +370,7 @@ class RemoteMessageBus:
         with urllib.request.urlopen(req) as res:
             pass
 
-    def record_heartbeat(self, node_id: str, status: str, os_version: str = "", current_load: str = "") -> None:
+    def record_heartbeat(self, node_id: str, status: str, active_model_archetype: str = "any", max_slot_context: int = 8192, hot_kv_tokens: int = 0, warm_kv_tokens: int = 0, kv_precision: str = "fp16") -> None:
         import urllib.request
         import json
         req = urllib.request.Request(
@@ -317,8 +378,11 @@ class RemoteMessageBus:
             data=json.dumps({
                 "node_id": node_id,
                 "status": status,
-                "os_version": os_version,
-                "current_load": current_load
+                "active_model_archetype": active_model_archetype,
+                "max_slot_context": max_slot_context,
+                "hot_kv_tokens": hot_kv_tokens,
+                "warm_kv_tokens": warm_kv_tokens,
+                "kv_precision": kv_precision
             }).encode('utf-8'),
             headers={'Content-Type': 'application/json'}
         )
@@ -328,7 +392,7 @@ class RemoteMessageBus:
         except Exception:
             pass
 
-    def check_task_status(self, task_id: int) -> Optional[Dict]:
+    def check_task_status(self, task_id: str) -> Optional[Dict]:
         import urllib.request
         import json
         req = urllib.request.Request(f"{self.api_url}/tasks/{task_id}")

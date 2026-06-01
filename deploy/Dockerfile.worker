@@ -28,12 +28,13 @@ COPY engines/open-multi-agent-upstream/ ./engines/open-multi-agent-upstream/
 
 # Copy the Python daemon and required modules
 COPY modules/ ./modules/
+COPY requirements.txt .
 COPY worker_daemon.py .
 COPY message_bus_api.py .
-COPY starbuck_daemon.py .
+COPY apollo_bus_mcp.py .
 
-# Install Python requirements for the API and MCP into the virtual environment
-RUN pip3 install --no-cache-dir fastapi uvicorn pydantic mcp
+# Install Python requirements into the virtual environment
+RUN pip3 install --no-cache-dir -r requirements.txt
 
 # Create the data directory (even if connecting to a remote API, good practice)
 RUN mkdir -p data

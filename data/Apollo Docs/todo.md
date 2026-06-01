@@ -78,3 +78,8 @@ ________________________________________________________________________________
   this session, or do you want to keep brainstorming the callback mechanism?
 
 
+
+  3. LLM-Based Privacy & Security Filtering
+  Investigate replacing or augmenting deterministic Regex PII scrubbers with ultra-fast LLM-based privacy filters (e.g., OpenAI's 1.5B MoE Privacy Filter model).
+  - Regex is extremely fast for edge execution nodes (like NullClaw on the P100), but lacks semantic awareness (e.g., redacting code line numbers).
+  - Future iterations should explore spinning up a highly quantized, tiny model on the Control Plane (9070 XT) to act as a "Sanitizer", maintaining edge node efficiency while improving filtering accuracy.

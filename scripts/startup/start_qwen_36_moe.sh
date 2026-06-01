@@ -33,9 +33,9 @@ export TURBO_AUTO_ASYMMETRIC=0
 
 $SERVER -m "$MODEL" \
     -c 55000 \
-    -b 1024 \
+    -b 2048 \
     -ub 512 \
-    -ctk q8_0 \
+    -ctk turbo4 \
     -ctv turbo4 \
     --kv-unified \
     --cache-idle-slots \
@@ -48,7 +48,8 @@ $SERVER -m "$MODEL" \
     --port 8082 \
     --host 0.0.0.0 \
     --jinja \
-    --chat-template-kwargs '{"preserve_thinking":true}' \
+    --chat-template-file "/mnt/TG_2TB/Projects/Apollo/engines/buun-Qwen3.6-chat_template/chat_template.jinja" \
+    --chat-template-kwargs '{"auto_disable_thinking_with_tools": false, "preserve_thinking": true, "max_tool_response_chars": 100000}'
 # For vision uncomment:
 #    --mmproj "/mnt/TG_2TB/AI/Models/Qwen 3.5/27B/Huihui-Qwopus3.5-27B-v3-abliterated.mmproj-Q8_0.gguf" \
 
