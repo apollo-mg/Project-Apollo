@@ -119,14 +119,3 @@ truth-relative.
   greedy tokens, mechanically explained and toggleable with one build flag.
 - VBR/TCQ codec evaluations on Pascal were conducted inside the fog; orderings held (validated
   Jul 10) but absolute numbers should be re-read post-patch.
-
-## 7. Next steps
-
-1. Upstream issue + patch: **Mark-authored** (GGML bans AI-written posts/PRs). Fact pack: this
-   doc + `.194:~/carveout_panel/` receipts + `git diff` on branch `sm60-fp32-carveout`.
-   Open question for upstream: carve-out unconditionally vs env/cmake opt-in
-   (`GGML_CUDA_PASCAL_F32`?) given the measured speed price.
-2. buun mirror panel on 3090 (§5).
-3. Optional replication on .73 (2× P100, now operational) for a second-rig receipt.
-4. Paper: fold Cell 0 + killer test into the fact pack; the story is now complete with mechanism,
-   prediction, confirmation, and price.
