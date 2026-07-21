@@ -1,0 +1,20 @@
+[2026-07-19_16:26:52] === pulling master ===
+ src/models/qwen35moe.cpp                    |  52 +--
+ tools/server/server-context.cpp             |   9 +
+ 20 files changed, 1010 insertions(+), 194 deletions(-)
+[2026-07-19_16:26:54] HEAD now: b88daada9 cuda : GGML_CUDA_FORCE_GRAPHS env to opt into graphs on pre-Ampere
+[2026-07-19_16:26:54] === building ===
+[2026-07-19_16:38:11] build ok
+[2026-07-19_16:38:11] --- leg nographs (GGML_CUDA_FORCE_GRAPHS=0) ---
+  nographs run1: coherent=True t/s=23.24 draft=0.90519
+  nographs run2: coherent=True t/s=23.78 draft=0.90311
+  nographs run3: coherent=True t/s=23.8 draft=0.90311
+  nographs run4: coherent=True t/s=23.79 draft=0.90311
+  nographs RESULT n=4 mean=23.65 sd=0.28 draft=0.9036
+[2026-07-19_16:51:14] --- leg graphs (GGML_CUDA_FORCE_GRAPHS=1) ---
+  graphs run1: coherent=True t/s=23.29 draft=0.90519
+  graphs run2: coherent=True t/s=23.79 draft=0.90311
+  graphs run3: coherent=True t/s=23.79 draft=0.90311
+  graphs run4: coherent=True t/s=23.79 draft=0.90311
+  graphs RESULT n=4 mean=23.66 sd=0.25 draft=0.9036
+[2026-07-19_17:03:03] === done; baseline for reference: dd48dd86b = 23.72 t/s sd 0.03 draft 0.9035 ===

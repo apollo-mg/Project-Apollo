@@ -1,0 +1,31 @@
+[2026-07-20_22:29:23] =========== ARC-Challenge on shipped GGUFs — .194 4xP100, matched Q6_K ===========
+[2026-07-20_22:29:23] card claims: DavidAU 0.711 (mxfp8) / 0.701 (mxfp4) vs base 0.647
+[2026-07-20_22:29:23] scoring: llama.cpp --multiple-choice = raw-logprob argmax (acc, NOT acc_norm)
+[2026-07-20_22:29:23] data: 1172 ARC-Challenge test items, 0 skipped; choice-counts {3:4,4:1165,5:3}, -np 8
+[2026-07-20_22:29:23] binary: build_carveout (no VBR/VMM). split -ts 1,1,1,1 across 4x P100.
+[2026-07-20_22:29:23] --- base ---
+[2026-07-20_22:29:32] base clocks: 0, 405 MHz, 715 MHz, 150.00 W 1, 405 MHz, 715 MHz, 150.00 W|2, 405 MHz, 715 MHz, 150.00 W 3, 405 MHz, 715 MHz, 150.00 W
+[2026-07-20_22:57:29] base OK score=48.72013652 tasks=1172/1172 rc=0 1677s
+[2026-07-20_22:57:29] --- davidau ---
+[2026-07-20_22:57:38] davidau clocks: 0, 405 MHz, 715 MHz, 150.00 W 1, 405 MHz, 715 MHz, 150.00 W|2, 405 MHz, 715 MHz, 150.00 W 3, 405 MHz, 715 MHz, 150.00 W
+[2026-07-20_23:26:04] davidau OK score=49.48805461 tasks=1172/1172 rc=0 1706s
+[2026-07-20_23:26:04] === summary ===
+base 48.72013652 1172
+davidau 49.48805461 1172
+
+--- results (acc, unnormalized; llama.cpp prints percent) ---
+  base     48.72013652
+  davidau  49.48805461
+
+--- P-ARC1 (0.75): DavidAU below claimed 0.711 ---
+  0.4949 vs 0.711 -> CONFIRMED
+
+--- P-ARC2 (0.60): DavidAU exceeds base, matched Q6_K ---
+  davidau 0.4949 vs base 0.4872  delta +0.0077 -> CONFIRMED
+
+--- P-ARC3 (0.65): gap smaller than claimed 6.4 pts ---
+  measured 0.8 pts vs claimed 6.4 -> CONFIRMED
+
+  reminder: absolute values are acc, not acc_norm — do not compare directly
+  to leaderboard figures. The matched delta is the load-bearing number.
+[2026-07-20_23:26:04] === ARC complete ===

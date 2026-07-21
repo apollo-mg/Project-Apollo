@@ -1,0 +1,48 @@
+Date: Sun Jul 12 02:42:26 PM EDT 2026
+Model: /home/mark/AI/Models/Qwen 3.6/27B/Qwen3.6-27B-Q6_K.gguf
+Base: /home/mark/qwen-base-logits-kld/base_q6_f32kv_faoff_ctx2048_32ch_PATCHED.kld
+Config: f16 KV, FA off, layer split, SM60 carve-out patched, batch 2048
+--------------------------------------------------
+VMEAN tap: graph add armed, 16 live layers (pdim 6144)
+9.15.233.045 I 
+9.15.282.372 I system_info: n_threads = 16 (n_threads_batch = 16) / 12 | CUDA : ARCHS = 600 | USE_GRAPHS = 1 | CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | AVX2 = 1 | F16C = 1 | FMA = 1 | BMI2 = 1 | LLAMAFILE = 1 | OPENMP = 1 | REPACK = 1 | 
+9.15.712.580 I kl_divergence: computing over 32 chunks, n_ctx=2048, batch_size=2048, n_seq=1
+/home/mark/buun_vbr/ggml/src/ggml-cuda/ggml-cuda.cu:106: CUDA error
+9.31.459.939 E CUDA error: out of memory
+9.31.459.988 E   current device: 1, in function alloc at /home/mark/buun_vbr/ggml/src/ggml-cuda/ggml-cuda.cu:531
+9.31.459.990 E   cuMemCreate(&handle, reserve_size, &prop, 0)
+⚠️ warning: The current terminal doesn't support styling.  Styled output might not appear as expected.
+[New LWP 43397]
+[New LWP 43396]
+[New LWP 43391]
+[New LWP 43390]
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/usr/lib/x86_64-linux-gnu/libthread_db.so.1".
+__syscall_cancel_arch () at ../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S:56
+⚠️ warning: 56	../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S: No such file or directory
+#0  __syscall_cancel_arch () at ../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S:56
+56	in ../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S
+#1  0x00007fd8bbca067c in __internal_syscall_cancel (a1=<optimized out>, a2=<optimized out>, a3=<optimized out>, a4=<optimized out>, a5=0, a6=0, nr=61) at ./nptl/cancellation.c:49
+⚠️ warning: 49	./nptl/cancellation.c: No such file or directory
+#2  __syscall_cancel (a1=<optimized out>, a2=<optimized out>, a3=<optimized out>, a4=<optimized out>, a5=a5@entry=0, a6=a6@entry=0, nr=61) at ./nptl/cancellation.c:75
+75	in ./nptl/cancellation.c
+#3  0x00007fd8bbd1cdcf in __GI___wait4 (pid=<optimized out>, stat_loc=<optimized out>, options=<optimized out>, usage=<optimized out>) at ../sysdeps/unix/sysv/linux/wait4.c:30
+⚠️ warning: 30	../sysdeps/unix/sysv/linux/wait4.c: No such file or directory
+#4  0x00007fd8bb0ba733 in ggml_print_backtrace () from /home/mark/buun_vbr/build/bin/libggml-base.so.0
+#5  0x00007fd8bb0ba8e6 in ggml_abort () from /home/mark/buun_vbr/build/bin/libggml-base.so.0
+#6  0x00007fd8aa5035c7 in ggml_cuda_error(char const*, char const*, char const*, int, char const*) () from /home/mark/buun_vbr/build/bin/libggml-cuda.so.0
+#7  0x00007fd8aa519e64 in ggml_cuda_pool_vmm::alloc(unsigned long, unsigned long*) () from /home/mark/buun_vbr/build/bin/libggml-cuda.so.0
+#8  0x00007fd8aa510463 in ggml_cuda_mul_mat_cublas(ggml_backend_cuda_context&, ggml_tensor const*, ggml_tensor const*, ggml_tensor*) () from /home/mark/buun_vbr/build/bin/libggml-cuda.so.0
+#9  0x00007fd8aa5157c4 in ggml_backend_cuda_graph_compute(ggml_backend*, ggml_cgraph*) () from /home/mark/buun_vbr/build/bin/libggml-cuda.so.0
+#10 0x00007fd8bb0d8993 in ggml_backend_sched_graph_compute_async () from /home/mark/buun_vbr/build/bin/libggml-base.so.0
+#11 0x00007fd8bb2f4290 in llama_context::graph_compute(ggml_cgraph*, bool) () from /home/mark/buun_vbr/build/bin/libllama.so.0
+#12 0x00007fd8bb2f9019 in llama_context::process_ubatch(llama_ubatch const&, llm_graph_type, llama_memory_context_i*, ggml_status&) () from /home/mark/buun_vbr/build/bin/libllama.so.0
+#13 0x00007fd8bb30445c in llama_context::decode(llama_batch const&) () from /home/mark/buun_vbr/build/bin/libllama.so.0
+#14 0x00007fd8bb306852 in llama_decode () from /home/mark/buun_vbr/build/bin/libllama.so.0
+#15 0x00007fd8bbed44b3 in llama_perplexity(int, char**) () from /home/mark/buun_vbr/build/bin/libllama-perplexity-impl.so
+#16 0x00007fd8bbc2a601 in __libc_start_call_main (main=main@entry=0x626e075e5060 <main>, argc=argc@entry=24, argv=argv@entry=0x7ffd12315b38) at ../sysdeps/nptl/libc_start_call_main.h:59
+⚠️ warning: 59	../sysdeps/nptl/libc_start_call_main.h: No such file or directory
+#17 0x00007fd8bbc2a718 in __libc_start_main_impl (main=0x626e075e5060 <main>, argc=24, argv=0x7ffd12315b38, init=<optimized out>, fini=<optimized out>, rtld_fini=<optimized out>, stack_end=0x7ffd12315b28) at ../csu/libc-start.c:360
+⚠️ warning: 360	../csu/libc-start.c: No such file or directory
+#18 0x0000626e075e5095 in _start ()
+[Inferior 1 (process 43388) detached]

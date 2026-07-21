@@ -1,0 +1,101 @@
+================================================================================
+ARC-Challenge matched eval — DavidAU Fable-Fusion-711 vs stock Qwen3.6-27B (Q6_K)
+================================================================================
+Harvested:   2026-07-20 (run completed 23:26 local)
+Node:        10.0.0.194  (quad Tesla P100-SXM2-16GB, 64 GB total)
+Purpose:     Test the DavidAU model-card claim that the Fable-Fusion-711 merge
+             "exceeds the base Qwen 3.6 27B" on ARC. Matched Q6_K vs Q6_K, same
+             1172 items, same scoring, same binary, on hardware with enough VRAM
+             to hold the 248,320-token logits buffer (the .73 2x16 GB attempt
+             OOM'd six times on that buffer; see run_arc_194.sh header).
+
+--------------------------------------------------------------------------------
+RESULT (acc, raw-logprob argmax; NOT acc_norm)
+--------------------------------------------------------------------------------
+  stock Qwen3.6-27B  Q6_K   base      571 / 1172   48.72%
+  DavidAU Fable-Fus  Q6_K   davidau   580 / 1172   49.49%
+  matched delta                       +9 items     +0.77 pts
+
+PAIRED SIGNIFICANCE (exact two-sided McNemar, per-item, same 1172 items)
+  discordant 69:  davidau-right/base-wrong = 39   base-right/davidau-wrong = 30
+  concordant   :  both-right = 541   both-wrong = 562
+  net +9 of 69  ->  p = 0.3356
+  95% CI on the paired difference: [-0.62, +2.16] pts  (straddles zero)
+
+  VERDICT: base and DavidAU are STATISTICALLY INDISTINGUISHABLE on ARC-Challenge
+  acc. The card's directional claim ("exceeds the base") is not contradicted
+  (point estimate +0.77 pts) but is not supported either — the lead is within
+  noise. The card's implied ~6.4-pt margin (0.711 vs 0.647) is NOT reproduced;
+  the real matched lead is 0.8 pts. The Fable-Fusion merge + Heretic abliteration
+  neither measurably damaged nor improved ARC reasoning vs base: the 69 discordant
+  items split almost symmetrically (39/30), the signature of a small random
+  perturbation of the same underlying capability, not a smarter model.
+
+--------------------------------------------------------------------------------
+PREDICTIONS (logged in run_arc_194.sh before any data; all CONFIRMED)
+--------------------------------------------------------------------------------
+  P-ARC1 (0.75): DavidAU below the card's 0.711 here   -> 0.4949   CONFIRMED
+  P-ARC2 (0.60): DavidAU exceeds base, matched Q6_K     -> +0.77p  CONFIRMED (directional;
+                 within noise, p=0.34 — 0.60 was the correct hedge on a coin-flip)
+  P-ARC3 (0.65): gap smaller than the card's 6.4 pts    -> 0.8 vs 6.4  CONFIRMED
+
+--------------------------------------------------------------------------------
+SCORING CAVEAT (load-bearing — read before quoting any number)
+--------------------------------------------------------------------------------
+  llama.cpp --multiple-choice = raw-logprob argmax = lm-eval `acc`, NOT `acc_norm`.
+  Published ARC figures (incl. the card's 0.711) are frequently acc_norm and run
+  higher. => the absolute 48-49% is NOT comparable to the card's 0.711 or to any
+  leaderboard. ONLY the matched base-vs-DavidAU delta is trustworthy, and that
+  delta is ~0. This code path prints no "Final result:" summary line at all; the
+  score is the last per-task running-accuracy line on stdout (verified by the
+  belt-and-suspenders re-extract and by mcnemar.py's independent reconstruction).
+
+--------------------------------------------------------------------------------
+PROVENANCE
+--------------------------------------------------------------------------------
+  Binary:   /home/mark/llama_stock/build_carveout/bin/llama-perplexity
+            commit 73a55486c (2026-07-12) "cuda: update #endif comment for sm_60
+            carve-out". Upstream + sm_60 carve-out. NOT buun's VBR fork, so the
+            VMM-pool reserve that killed the .73 runs is not present. Same binary
+            that ran today's IMAT ladder cleanly.
+  Flags:    --multiple-choice -c 2048 -np 8 -b 512 -ub 512 -ngl 999 -ts 1,1,1,1
+            -fa off --no-warmup   (GGML_CUDA_NO_VMM=1 set, belt-and-suspenders)
+            -np 8: ARC choice-counts {3:4, 4:1165, 5:3}; multiple_choice evaluates
+            a task's N answers as N parallel seqs and ABORTS (exit 0) when np<N.
+            First run died silently at task 836 (first 5-choice item) with np too
+            low; -np 8 covers the measured max of 5. -np divides shared KV, does
+            not multiply memory.
+  Models:   base    Qwen3.6-27B-Q6_K.gguf                22,523,238,624 B  (mtime 2026-07-13 18:54)
+            davidau DavidAU-Fable-Fusion-711-MTP-Q6_K    24,033,705,440 B  (mtime 2026-07-17 18:57)
+            (DavidAU byte-exactness + intact Q8_0 MTP block verified separately,
+            2026-07-18; not re-hashed here — 22-24 GB files, size+mtime recorded.
+            The MTP block is irrelevant to a --multiple-choice forward pass.)
+  Data:     arc_challenge_test.mc.bin — allenai/ai2_arc "ARC-Challenge" test split,
+            1172 items, 0 skipped, converted by make_arc_mc.py (self-verifying).
+
+--------------------------------------------------------------------------------
+GPU STATE (per campaign clock discipline)
+--------------------------------------------------------------------------------
+  Power cap: 150.00 W on all 4 GPUs (fleet set state since 2026-07-17).
+  Mem clock: 715 MHz.
+  SM clock in arc.log reads 405 MHz — this is a LOAD-TIME snapshot (captured right
+  after free_gpus, at/just-before model load = idle). Steady-state under the batch
+  ramps higher; the load-time value is what the harness recorded. Timing: base
+  1677 s, davidau 1706 s (wall, incl. load).
+
+--------------------------------------------------------------------------------
+FILES (sha256)
+--------------------------------------------------------------------------------
+8a261854770648f076070e4b24861125a2254d478ae3ce9adff5cff3c6288742  arc.log                    run log: params, clocks, per-arm status lines
+80d2963ac9c4c674864c8bf00641ca84e445660f51172ec9ea426bfefa9523cc  arc_challenge_test.mc.bin  eval data, 1172 ARC-Challenge test items (llama.cpp mc binary format)
+fc7e0fffc29c35892a6ab387afaa3c5eb398d237b572f7df767ea1a9d48a8113  base.err                   base stderr: system_info, task count, "calculating" (no summary line — expected)
+d430ca64f936f06f987f4126e098d2c893f9f05098b9565d4713b49f867ed13b  base.out                   base stdout: 1172 per-task running-accuracy lines (last = final score)
+411c9ab70dc5a8db668b6683c636714d3a3154eafe43ab92e9b22f7e138d1b2f  davidau.err                davidau stderr (same shape as base.err)
+3c078a67d815f73e084cf939354b70ff5ebcba6230875e2d82753291db4e05ad  davidau.out                davidau stdout: 1172 per-task running-accuracy lines
+f195ca65df28186b03283eff7a2c9dc9fe4218a05a75adc39a01ba0fd3779a1f  launch.log                 detached-launch console capture
+dc0a270f764b59dc1ce8ed1c35812dd676c27b88b1b32ca0bc9753d454f7236e  summary.txt                two-line machine summary (base/davidau score + n_task)
+a3fc744c3b658907cf68f6d489304141a42cd463210c623420d2ecf2c0291113  run_arc_194.sh             the exact runner (predictions, flags, flock guard, hardened scoring)
+4ab078a675a6373592cd81b13b46f72786a5ece07560a50dc37f6a2dd5cc7027  make_arc_mc.py             ARC -> mc-binary converter (format spec + self-verify)
+2109590ef73cbdd20095f2e7745e293b875373d1733c591f9d1f8ba6cd6c2572  mcnemar.py                 reproduces the paired test from base.out/davidau.out
+928dcd98d891babe5fb110393440681685dfe022106239688ee019b5afa8b295  mcnemar_result.txt         captured output of mcnemar.py (verified reproduces)
+================================================================================

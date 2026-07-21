@@ -1,0 +1,85 @@
+# .73 receipt harvest
+host: ai-p100-sli  ip: 10.0.0.73
+harvested: 2026-07-19T22:42:00-04:00
+kernel: 7.0.0-27-generic
+
+## hardware at harvest time
+00:02.0 VGA compatible controller: Intel Corporation CoffeeLake-S GT2 [UHD Graphics 630]
+01:00.0 3D controller: NVIDIA Corporation GP100GL [Tesla P100 PCIe 16GB] (rev a1)
+02:00.0 3D controller: NVIDIA Corporation GP100GL [Tesla P100 PCIe 16GB] (rev a1)
+
+index, name, pci.bus_id, memory.total [MiB], clocks.current.sm [MHz], clocks.current.memory [MHz], power.limit [W]
+0, Tesla P100-PCIE-16GB, 00000000:01:00.0, 16384 MiB, 1063 MHz, 715 MHz, 150.00 W
+1, Tesla P100-PCIE-16GB, 00000000:02:00.0, 16384 MiB, 1063 MHz, 715 MHz, 150.00 W
+
+## storage at harvest time
+NAME          SIZE TYPE MOUNTPOINT                   MODEL
+loop0          74M loop /snap/core22/2411            
+loop1        66.8M loop /snap/core24/1643            
+loop2       184.9M loop /snap/element-desktop/203    
+loop3        62.2M loop /snap/ffmpeg-2204/150        
+loop4           4K loop /snap/bare/5                 
+loop5        66.8M loop /snap/core24/1587            
+loop6       273.7M loop /snap/firefox/8107           
+loop7       252.4M loop /snap/firefox/8633           
+loop8       606.1M loop /snap/gnome-46-2404/153      
+loop9        91.7M loop /snap/gtk-common-themes/1535 
+loop10        264K loop /snap/gtk-theme-breeze/8     
+loop11       13.2M loop /snap/icon-theme-breeze/5    
+loop12        1.5G loop /snap/kf5-core22/3           
+loop13        395M loop /snap/mesa-2404/1165         
+loop14      371.5M loop /snap/krita/109              
+loop15        402M loop /snap/mesa-2404/1839         
+loop16       49.3M loop /snap/snapd/26865            
+loop17       50.1M loop /snap/snapd/27406            
+loop18      227.6M loop /snap/thunderbird/1057       
+loop19      210.8M loop /snap/thunderbird/1170       
+sda         465.8G disk                              ST9500325AS
+└─sda1      465.8G part /mnt/HDD                     
+sdb         596.2G disk                              SAMSUNG HM640JJ
+├─sdb1        300M part /boot/efi                    
+└─sdb2      595.9G part /                            
+nvme0n1      27.3G disk                              INTEL MEMPEK1W032GA
+└─nvme0n1p1  27.2G part /mnt/optane                  
+nvme1n1     476.9G disk                              INTEL HBRPEKNX0202AH
+└─nvme1n1p1 476.9G part /mnt/models                  
+
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sdb2       586G   63G  494G  12% /
+/dev/nvme1n1p1  469G   23G  447G   5% /mnt/models
+/dev/sda1       458G  140G  295G  33% /mnt/HDD
+/dev/nvme0n1p1   27G   17G  9.3G  64% /mnt/optane
+
+NAME                 TYPE SIZE USED PRIO
+/swapfile            file 512M   0B   -1
+/mnt/optane/swapfile file  16G   0B  100
+
+## buun fork git state (so the source can be re-cloned exactly)
+commit b88daada9e338d5c033bf4e7c2fa7d72139b3e36
+author spiritbuun
+date   2026-07-19 15:40:39 -0400
+subject cuda : GGML_CUDA_FORCE_GRAPHS env to opt into graphs on pre-Ampere
+remote: origin	https://github.com/spiritbuun/buun-llama-cpp.git (fetch)
+dirty files:
+?? argv_backup.json
+?? argv_nvme.json
+?? confirm.done
+?? confirm_graphs.sh
+?? graphs.done
+?? graphs_ab.sh
+?? matched_ab.sh
+?? nospec.done
+?? nospec_graphs.sh
+?? nvme_setup.done
+?? nvme_setup.sh
+?? probe2.done
+?? probe2.py
+?? rebench.done
+?? rebench.py
+?? repeat.done
+?? repeat.py
+
+## bulk data left in place (NOT in this bundle)
+16G	/home/mark/qwen-base-logits-kld
+21G	/home/mark/AI
+1.5G	/home/mark/buun_vbr/build

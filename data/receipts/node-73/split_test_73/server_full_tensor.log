@@ -1,0 +1,83 @@
+0.00.073.664 I VBR dynamic runtime controller: KV budget auto (remaining VRAM, resolved by fit), entry tier f16, floor 6.25 bits/value, price-ordered decode-time degrades
+0.00.098.854 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.273.080 I srv    load_model: loading model '/mnt/HDD/Models/Qwen 3.6/Qwen3.6-27B-Fable-Fus-711-UnHeretic-NM-DAU-NEO-MAX-NEO-MTP-Q6_K.gguf'
+10.18.644.572 W NCCL not compiled in; falling back to internal AllReduce.  Recompile with -DGGML_CUDA_NCCL=ON for best multi-GPU performance.
+10.18.702.605 W internal AllReduce init failed (n_devices != 2?); falling back to meta-backend butterfly
+TCQ1 decode: K/V codebooks (K=baked-in V=baked-in) hotswap=0
+TCQ decode: context-adaptive V alpha enabled
+TCQ1 decode: K/V codebooks (K=baked-in V=baked-in) hotswap=0
+10.21.106.958 I srv    load_model: creating MTP draft context against the target model '/mnt/HDD/Models/Qwen 3.6/Qwen3.6-27B-Fable-Fus-711-UnHeretic-NM-DAU-NEO-MAX-NEO-MTP-Q6_K.gguf'
+10.21.107.033 W NCCL not compiled in; falling back to internal AllReduce.  Recompile with -DGGML_CUDA_NCCL=ON for best multi-GPU performance.
+10.21.107.035 W internal AllReduce init failed (n_devices != 2?); falling back to meta-backend butterfly
+10.21.116.486 W vbr_load_degrade_order: no measured VBR degrade order for this arch/n_layer — using the generic cross-model order (a measured per-model order is better; set VBR_DEGRADE_ORDER=<file> to supply one)
+10.21.576.487 I srv    load_model: initializing, n_slots = 2, n_ctx_slot = 260096, kv_unified = 'true'
+10.21.576.577 W set_sampler: backend sampling not supported with SPLIT_MODE_TENSOR; using CPU
+10.21.576.581 W spec common_specu: backend offload failed for seq_id=0; using CPU sampler
+10.21.576.583 W spec common_specu: backend offload failed for seq_id=1; using CPU sampler
+10.21.587.227 W no implementations specified for speculative decoding
+10.21.587.231 I slot   load_model: id  0 | task -1 | speculative decoding context initialized
+10.21.587.235 W no implementations specified for speculative decoding
+10.21.587.235 I slot   load_model: id  1 | task -1 | speculative decoding context initialized
+10.21.587.277 W srv    load_model: prompt cache state storage is not supported by dynamic VBR (KV tiers change at runtime), it will be disabled
+10.21.587.603 W srv          init: --cache-idle-slots requires --cache-ram, disabling
+10.21.612.231 I srv          init: chat template supports preserving reasoning, consider enabling it via --reasoning-preserve
+10.22.023.274 I srv          init: shrunk recurrent state to 2 cells for prefill (deferred 2 backup cells)
+10.22.023.376 I srv  llama_server: model loaded
+10.22.023.397 I srv  llama_server: listening on http://0.0.0.0:8082
+10.25.981.919 I slot get_availabl: id  0 | task -1 | selected slot by LRU, t_last = -1 (best rejected sim = 0.000)
+10.25.982.130 I slot launch_slot_: id  0 | task 0 | processing task, is_child = 0
+10.26.235.303 W slot   operator(): id  0 | task 0 | created context checkpoint 1 of 32 (pos_min = 0, pos_max = 0, n_tokens = 1, size = 149.626 MiB)
+10.29.129.081 I slot print_timing: id  0 | task 0 | prompt eval time =     798.33 ms /     5 tokens (  159.67 ms per token,     6.26 tokens per second)
+10.29.129.085 I slot print_timing: id  0 | task 0 |        eval time =    2348.30 ms /    28 tokens (   83.87 ms per token,    11.92 tokens per second)
+10.29.129.101 I slot print_timing: id  0 | task 0 |       total time =    3146.64 ms /    33 tokens
+10.29.129.104 I slot print_timing: id  0 | task 0 |    graphs reused =         12
+10.29.129.107 I slot print_timing: id  0 | task 0 | draft acceptance = 0.62500 (   15 accepted /    24 generated), mean len =  2.25
+10.29.129.131 I slot      release: id  0 | task 0 | stop processing: n_tokens = 32, truncated = 0
+10.29.168.233 I slot get_availabl: id  1 | task -1 | selected slot by LRU, t_last = -1 (best rejected sim = 0.000)
+10.29.168.602 I slot launch_slot_: id  1 | task 15 | processing task, is_child = 0
+10.31.273.220 W slot   operator(): id  1 | task 15 | created context checkpoint 1 of 32 (pos_min = 16, pos_max = 16, n_tokens = 17, size = 149.626 MiB)
+10.45.202.839 I slot print_timing: id  1 | task 15 | n_decoded =    100, tg =   7.40 t/s, tg_3s =   7.40 t/s
+10.48.245.728 I slot print_timing: id  1 | task 15 | n_decoded =    127, tg =   7.67 t/s, tg_3s =   8.87 t/s
+10.51.271.647 I slot print_timing: id  1 | task 15 | n_decoded =    154, tg =   7.86 t/s, tg_3s =   8.92 t/s
+10.54.271.887 I slot print_timing: id  1 | task 15 | n_decoded =    181, tg =   8.02 t/s, tg_3s =   9.00 t/s
+10.57.362.514 I slot print_timing: id  1 | task 15 | n_decoded =    209, tg =   8.14 t/s, tg_3s =   9.06 t/s
+11.00.384.741 I slot print_timing: id  1 | task 15 | n_decoded =    235, tg =   8.19 t/s, tg_3s =   8.60 t/s
+11.03.387.909 I slot print_timing: id  1 | task 15 | n_decoded =    262, tg =   8.27 t/s, tg_3s =   8.99 t/s
+11.06.388.550 I slot print_timing: id  1 | task 15 | n_decoded =    290, tg =   8.36 t/s, tg_3s =   9.33 t/s
+11.09.395.633 I slot print_timing: id  1 | task 15 | n_decoded =    319, tg =   8.46 t/s, tg_3s =   9.64 t/s
+11.12.505.068 I slot print_timing: id  1 | task 15 | n_decoded =    348, tg =   8.53 t/s, tg_3s =   9.33 t/s
+11.15.505.356 I slot print_timing: id  1 | task 15 | n_decoded =    376, tg =   8.58 t/s, tg_3s =   9.33 t/s
+11.17.944.614 I slot print_timing: id  1 | task 15 | prompt eval time =    2520.89 ms /    21 tokens (  120.04 ms per token,     8.33 tokens per second)
+11.17.944.618 I slot print_timing: id  1 | task 15 |        eval time =   46255.09 ms /   400 tokens (  115.64 ms per token,     8.65 tokens per second)
+11.17.944.619 I slot print_timing: id  1 | task 15 |       total time =   48775.98 ms /   421 tokens
+11.17.944.624 I slot print_timing: id  1 | task 15 |    graphs reused =        392
+11.17.944.627 I slot print_timing: id  1 | task 15 | draft acceptance = 0.02094 (   16 accepted /   764 generated), mean len =  1.04
+11.17.944.758 I slot      release: id  1 | task 15 | stop processing: n_tokens = 420, truncated = 0
+12.06.307.426 I slot get_availabl: id  1 | task -1 | selected slot by LCP similarity, sim_best = 1.000 (> 0.100 thold), f_keep = 0.050
+12.06.307.626 I slot launch_slot_: id  1 | task 401 | processing task, is_child = 0
+12.06.354.729 W slot   operator(): id  1 | task 401 | restored context checkpoint (pos_min = 16, pos_max = 16, n_tokens = 17, n_past = 17, size = 149.626 MiB)
+12.17.072.532 I slot print_timing: id  1 | task 401 | n_decoded =    100, tg =   9.46 t/s, tg_3s =   9.46 t/s
+12.20.077.150 I slot print_timing: id  1 | task 401 | n_decoded =    127, tg =   9.35 t/s, tg_3s =   8.99 t/s
+12.23.186.962 I slot print_timing: id  1 | task 401 | n_decoded =    157, tg =   9.41 t/s, tg_3s =   9.65 t/s
+12.26.188.294 I slot print_timing: id  1 | task 401 | n_decoded =    184, tg =   9.35 t/s, tg_3s =   9.00 t/s
+12.29.207.029 I slot print_timing: id  1 | task 401 | n_decoded =    213, tg =   9.38 t/s, tg_3s =   9.61 t/s
+12.32.210.050 I slot print_timing: id  1 | task 401 | n_decoded =    241, tg =   9.37 t/s, tg_3s =   9.32 t/s
+12.35.322.501 I slot print_timing: id  1 | task 401 | n_decoded =    269, tg =   9.33 t/s, tg_3s =   9.00 t/s
+12.38.431.880 I slot print_timing: id  1 | task 401 | n_decoded =    299, tg =   9.36 t/s, tg_3s =   9.65 t/s
+12.41.535.344 I slot print_timing: id  1 | task 401 | n_decoded =    329, tg =   9.39 t/s, tg_3s =   9.67 t/s
+12.44.644.547 I slot print_timing: id  1 | task 401 | n_decoded =    357, tg =   9.36 t/s, tg_3s =   9.01 t/s
+12.47.749.048 I slot print_timing: id  1 | task 401 | n_decoded =    387, tg =   9.38 t/s, tg_3s =   9.66 t/s
+12.50.749.658 I slot print_timing: id  1 | task 401 | n_decoded =    415, tg =   9.38 t/s, tg_3s =   9.33 t/s
+12.53.856.141 I slot print_timing: id  1 | task 401 | n_decoded =    443, tg =   9.35 t/s, tg_3s =   9.01 t/s
+12.56.876.470 I slot print_timing: id  1 | task 401 | n_decoded =    471, tg =   9.35 t/s, tg_3s =   9.27 t/s
+12.59.878.475 I slot print_timing: id  1 | task 401 | n_decoded =    498, tg =   9.33 t/s, tg_3s =   8.99 t/s
+13.02.879.875 I slot print_timing: id  1 | task 401 | n_decoded =    525, tg =   9.31 t/s, tg_3s =   9.00 t/s
+13.05.950.881 I slot print_timing: id  1 | task 401 | n_decoded =    551, tg =   9.27 t/s, tg_3s =   8.47 t/s
+13.09.062.507 I slot print_timing: id  1 | task 401 | prompt eval time =     193.03 ms /     4 tokens (   48.26 ms per token,    20.72 tokens per second)
+13.09.062.512 I slot print_timing: id  1 | task 401 |        eval time =   62561.56 ms /   579 tokens (  108.05 ms per token,     9.25 tokens per second)
+13.09.062.513 I slot print_timing: id  1 | task 401 |       total time =   62754.59 ms /   583 tokens
+13.09.062.528 I slot print_timing: id  1 | task 401 |    graphs reused =        948
+13.09.062.531 I slot print_timing: id  1 | task 401 | draft acceptance = 0.01878 (   21 accepted /  1118 generated), mean len =  1.04
+13.09.062.545 I slot      release: id  1 | task 401 | stop processing: n_tokens = 601, truncated = 0
+13.09.062.569 I slot print_timing: id  1 | task -1 | n_decoded =    579, tg =   9.25 t/s, tg_3s =   9.00 t/s
+37.23.020.499 I srv    operator(): operator(): cleaning up before exit...
