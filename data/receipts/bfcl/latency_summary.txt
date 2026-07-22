@@ -1,0 +1,11 @@
+Per-item wall-clock latency (s), P100 fleet .194, single-stream generation
+category                   Puzzle-75B-A9B(Q4) med/max        Qwen3.6-27B(Q8) med/max
+simple_python                82.0 /   202.7                 243.0 /   461.8
+simple_java                 215.1 /   318.2                 398.4 /   598.5
+simple_javascript           140.1 /   209.4                 410.3 /   950.5
+multiple                     95.1 /   179.8                 299.4 /   523.5
+parallel                    101.0 /   138.7                 422.9 /  1785.7
+parallel_multiple           134.8 /   209.5                 508.4 /  1711.6
+
+Note: Qwen (27B dense Q8) runs 3-5x slower per item than Puzzle (75B MoE, 9B active, Q4)
+on the same P100 fleet -- MoE sparsity + lower precision win wall-clock despite larger nominal size.

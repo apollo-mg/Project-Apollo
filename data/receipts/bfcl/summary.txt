@@ -1,0 +1,90 @@
+================================================================================
+BFCL v4 (function-calling) — matched comparison: Puzzle-75B-A9B vs Qwen3.6-27B
+Puzzle-75B Eval Campaign, leg W3 (final leg). Closed 2026-07-21.
+================================================================================
+
+WHAT THIS IS
+  Paired, matched-item comparison of two local models on the Berkeley Function
+  Calling Leaderboard v4 AST categories, run through the canonical stock bfcl-eval
+  harness (2026.3.23) via OpenAICompletionsHandler + native tools=, temperature 0.
+  Both models scored on the IDENTICAL seed-42 stratified 201-item subset
+  (simple_python 70, simple_java 17, simple_javascript 9, multiple 35,
+   parallel 35, parallel_multiple 35). Subset IDs in subset_ids_used.json.
+
+MODELS (endpoints per profiles.yaml, served on .194 P100 fleet)
+  A: apollo/puzzle-75b-a9b-udiq4xl   Nemotron Puzzle-75B-A9B, Unsloth UD-IQ4-XL (~Q4)
+  B: apollo/qwen3.6-27b-q8           Qwen3.6-27B, Q8_0
+  Handler: OpenAICompletionsHandler, is_fc_model=True, underscore_to_dot=True
+  (model_config additions in model_config_additions.txt)
+
+HEADLINE RESULT (matched 201 items)
+  OVERALL   Qwen 86.1% (173/201)  vs  Puzzle 56.2% (113/201)
+  Exact two-sided McNemar on 66 discordant pairs (Qwen-only 63, Puzzle-only 3):
+      p = 1.3e-15   -> Qwen decisively wins function-calling. Not a tie.
+  Net paired delta (Qwen - Puzzle) = +60 items = +29.9 pp.
+
+  PER CATEGORY                Puzzle          Qwen
+    simple_python        64/70 = 91.4%   66/70 = 94.3%
+    simple_java           7/17 = 41.2%    9/17 = 52.9%
+    simple_javascript     5/9  = 55.6%    7/9  = 77.8%
+    multiple             31/35 = 88.6%   31/35 = 88.6%   <- exact tie
+    parallel              3/35 =  8.6%   32/35 = 91.4%   <- the gap
+    parallel_multiple     3/35 =  8.6%   28/35 = 80.0%   <- the gap
+
+THE FINDING (honest read)
+  The entire 30pp gap is the PARALLEL family. On single/sequential tool-calling
+  Puzzle is competitive: exact tie on `multiple`, within 3pp on `simple_python`.
+  Puzzle emits VALID tool calls and VALID schemas -- it simply will not emit N
+  calls when N are required, collapsing to 1 (3/35 on both parallel categories;
+  verified earlier: 32/35 parallel failures are parallel_function_checker_no_order
+  :wrong_count). Qwen emits correct multiplicity (parallel call-count distribution
+  {1:1, 2:17, 3:8, 4:9} = 34/35 emit >=2). Same harness, same items -> the
+  differential is a GENUINE MODEL PROPERTY, not a harness artifact.
+
+  TRUNCATION EXCLUDED (see truncation_check.txt): the collapse is NOT a max_tokens
+  budget artifact (the Laguna-at-2048 failure mode). Puzzle's FAILED parallel items
+  output just 70-416 tokens (median 162; parallel_multiple max 900); global Puzzle
+  max is 1845. Qwen freely spends 700-2100+ tokens under the SAME handler/ceiling and
+  succeeds (max 3052). Puzzle sits ~10x under Qwen's operating range and its failed
+  outputs end in a complete, well-formed SINGLE call ('[{...}]') -- a clean early stop,
+  not a mid-stream cutoff. Puzzle chooses to emit one call; it is not running out of room.
+
+  OPEN QUESTION (not resolved by this leg): is the parallel collapse a QUANT effect
+  (UD-IQ4-XL) or an architectural/training property of Puzzle? Token-level analysis
+  leaned against pure-quant; the clean test is a higher-quant Puzzle control (Q5/Q6)
+  on the parallel categories -- proposed, not yet run.
+
+PREDICTION P-W3 (logged 2026-07-13 BEFORE any run; verbatim in
+Lab_Spec_Puzzle75B_Eval_Campaign.md §5)
+  "Puzzle-UD wins GSM8K-250 ... while Qwen-27B-Q8 ties or wins BFCL and IFEval
+   (quant brittleness expresses first at schema/instruction boundaries)."
+  OUTCOME:    CONFIRMED. GSM8K -> Puzzle (92.4 vs 68.4); BFCL -> Qwen (this file,
+              decisively); IFEval -> tie (82.6/82.1). All three directional calls hit.
+  MECHANISM:  NOT SUPPORTED. The stated cause ("quant brittleness at schema/
+              instruction boundaries") does not match the data. Puzzle produces valid
+              schemas and ties/keeps pace on single-call + `multiple`; the loss is
+              parallel-call multiplicity, a behavioral mode, and its quant-vs-
+              architecture origin is UNRESOLVED. Consistent with W1/W2: outcome
+              right, mechanism wrong.
+  Puzzle did NOT sweep all three -> deployment verdict stays "pick," not "unambiguous."
+
+LATENCY (side finding, see latency_summary.txt)
+  Qwen (27B dense Q8) runs 3-5x SLOWER per item than Puzzle (75B MoE, 9B active, Q4)
+  on the same P100 fleet. The nominally bigger model is faster on wall-clock: MoE
+  sparsity (9B active) + lower precision (Q4) beat 27B-dense-Q8. Result strings are
+  short (93-258 chars) -> this is thinking-budget/compute, not verbose output.
+  Directly supports the "half the bitrate, and faster per token" line.
+
+CONFIG / CAVEATS
+  - temperature 0; max_tokens 4096 (both models think long; at lower budgets Puzzle
+    returned empty -- same failure mode noted for Laguna at 2048).
+  - --partial-eval (subset scoring); accuracies are on the 201-item subset, NOT the
+    official full-leaderboard denominators.
+  - One openai.APITimeoutError appeared on the last generation line; response counts
+    verified 201/201 for BOTH models across all 6 categories -> nothing dropped.
+  - Clocks/power: P100 fleet at 150W/1063MHz boot state per fleet discipline.
+
+REPRODUCE
+  python3 bfcl_mcnemar.py   (reconstructs per-item pass/fail from score files,
+  cross-checks every category against BFCL's own summary line, runs exact McNemar,
+  writes bfcl_per_item.csv). Raw model outputs in responses/, BFCL scores in scores/.

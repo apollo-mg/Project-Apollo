@@ -1,0 +1,27 @@
+TRUNCATION-CONFOUND CHECK — is Puzzle's parallel collapse a max_tokens artifact?
+==============================================================================
+Rules out: 'Puzzle emits 1 call because it ran out of token budget mid-generation'
+(the failure mode we flagged for Laguna at 2048 -> empty; would be wrong_count here).
+
+Puzzle-75B-A9B(Q4): global output_token_count  max=1845  median=157
+   parallel           FAILED: n=32 min=70 med=162 max=416
+   parallel           PASSED: n=3 min=149 med=280 max=395
+   parallel_multiple  FAILED: n=32 min=83 med=210 max=900
+   parallel_multiple  PASSED: n=3 min=201 med=358 max=438
+
+Qwen3.6-27B(Q8): global output_token_count  max=3052  median=702
+   parallel           FAILED: n=2 min=1307 med=1399 max=1399
+   parallel           PASSED: n=32 min=287 med=847 max=2123
+   parallel_multiple  FAILED: n=3 min=1277 med=1325 max=1751
+   parallel_multiple  PASSED: n=28 min=219 med=974 max=1783
+
+VERDICT: Puzzle's failed parallel items output 70-416 tokens (max 900 in parallel_multiple),
+global Puzzle max 1845 -- while Qwen freely spends 700-2100+ tokens under the SAME handler
+and succeeds (max 3052). Puzzle sits ~10x under the ceiling Qwen operates at => NOT truncation.
+Puzzle voluntarily emits ONE complete call and stops early.
+
+Raw clean-stop confirmation (Puzzle parallel failures, last chars of model_result_raw):
+  parallel_8: ...[{'database_us_census_get_population': '{"area":"New York City","type":"city"}'}]   [ends clean: True]
+  parallel_10: ...[{'math_pythagoras': '{"a":3,"b":4}'}]   [ends clean: True]
+
+Both end in a complete, well-formed SINGLE call ('[{...}]') -- no mid-stream cutoff.
