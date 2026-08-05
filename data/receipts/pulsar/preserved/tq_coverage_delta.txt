@@ -1,0 +1,29 @@
+>         if (type_dst == GGML_TYPE_TQ4_1S) {
+>             // Reduction order matters; TQ4_1S has 32-element WHT inside the
+> // GGML_OP_TURBO_WHT
+> // GGML_OP_TURBO_WHT round-trip: forward then inverse should recover the original
+>         return "SET_ROWS_TURBO3";
+>         ggml_tensor * dst = ggml_new_tensor_2d(ctx, GGML_TYPE_TURBO3_0, ne0, ne1);
+>         return "SET_ROWS_TURBO4";
+>         ggml_tensor * dst = ggml_new_tensor_2d(ctx, GGML_TYPE_TURBO4_0, ne0, ne1);
+> // Test SET_ROWS with TQ4_1S destination (weight quantization), then dequantize and compare.
+>         return "SET_ROWS_TQ4_1S";
+>         // dst: the TQ4_1S weight buffer
+>         ggml_tensor * dst = ggml_new_tensor_2d(ctx, GGML_TYPE_TQ4_1S, ne0, ne1);
+>         // Write f32 data into TQ4_1S dst via SET_ROWS (includes WHT + quantize)
+>             } else if (t->type == GGML_TYPE_TQ4_1S) {
+>                 // Zero-fill TQ4_1S dst to avoid fp16 NaN in unwritten rows' d0/d1
+>         // GPU and CPU TQ4_1S quantization diverge due to subgroupAdd reduction
+>     // TQ3_1S: large-batch MUL_MAT, mirrors the TQ4_1S block above. This is the shape
+>             test_cases.emplace_back(new test_mul_mat(GGML_TYPE_TQ3_1S, GGML_TYPE_F32, m, 256, k, {1, 1}, {1, 1}));
+>     // TQ3_1S: DeepSeek-V4 MLA head_dim=512 batched-prefill shape.
+>     test_cases.emplace_back(new test_mul_mat(GGML_TYPE_TQ3_1S, GGML_TYPE_F32, 128, 512, 512, {1, 1}, {1, 1}));
+>     // TQ3_1S / TQ4_1S: non-contiguous src1 (k_v > k view) with batched n, to exercise
+>     test_cases.emplace_back(new test_mul_mat(GGML_TYPE_TQ3_1S, GGML_TYPE_F32, 256, 256, 1536, {1, 1}, {1, 1}, {0, 1, 2, 3}, 1600));
+>     test_cases.emplace_back(new test_mul_mat(GGML_TYPE_TQ4_1S, GGML_TYPE_F32, 256, 256, 1536, {1, 1}, {1, 1}, {0, 1, 2, 3}, 1600));
+>     // TQ3_1S: small-batch (n<=8) FUSED multi-token kernel path (mul_mat_tq3_1s_multi /
+>         test_cases.emplace_back(new test_mul_mat(GGML_TYPE_TQ3_1S, GGML_TYPE_F32, 1024, nb, 4096, {1, 1}, {1, 1}));
+>         test_cases.emplace_back(new test_mul_mat(GGML_TYPE_TQ3_1S, GGML_TYPE_F32, 24, nb, 16384, {1, 1}, {1, 1}));
+>     // TURBO_WHT tests
+>     // TURBO_WHT round-trip tests (forward then inverse = identity)
+>     // SET_ROWS with TQ4_1S destination: quantize then dequant round-trip

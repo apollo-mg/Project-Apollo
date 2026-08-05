@@ -1,0 +1,31 @@
+diff --git a/tests/test-backend-ops.cpp b/tests/test-backend-ops.cpp
+index edde62e68..ec2dee74c 100644
+--- a/tests/test-backend-ops.cpp
++++ b/tests/test-backend-ops.cpp
+@@ -9228,6 +9228,26 @@ static std::vector<std::unique_ptr<test_case>> make_test_cases_eval() {
+         }
+     }
+ 
++    // TQ3_1S: DeepSeek-V4 MLA head_dim=512 batched-prefill shape.
++    test_cases.emplace_back(new test_mul_mat(GGML_TYPE_TQ3_1S, GGML_TYPE_F32, 128, 512, 512, {1, 1}, {1, 1}));
++
++    // TQ3_1S / TQ4_1S: non-contiguous src1 (k_v > k view) with batched n, to exercise
++    // the rotate-act contiguity fallback. rotate-act walks src1 as a flat array so it
++    // requires contiguous src1; non-contiguous must fall back to the standard mul_mm
++    // path (inverse-RHT dequant), which handles strides via nb1x.
++    test_cases.emplace_back(new test_mul_mat(GGML_TYPE_TQ3_1S, GGML_TYPE_F32, 256, 256, 1536, {1, 1}, {1, 1}, {0, 1, 2, 3}, 1600));
++    test_cases.emplace_back(new test_mul_mat(GGML_TYPE_TQ4_1S, GGML_TYPE_F32, 256, 256, 1536, {1, 1}, {1, 1}, {0, 1, 2, 3}, 1600));
++
++    // TQ3_1S: small-batch (n<=8) FUSED multi-token kernel path. This is DeepSeek-V4-Flash's
++    // real attn_q_a shape (n_embd=4096 -> q_lora_rank=1024) at an 8-token prefill batch,
++    // contiguous src1 -- the case found to diverge (~2% on real weights) via eval-callback
++    // node diffing against the CPU reference. The k=16384/m=24 pair mirrors hc_attn_fn's
++    // shape as a control that was observed numerically fine.
++    for (int nb : { 1, 2, 4, 8 }) {
++        test_cases.emplace_back(new test_mul_mat(GGML_TYPE_TQ3_1S, GGML_TYPE_F32, 1024, nb, 4096, {1, 1}, {1, 1}));
++        test_cases.emplace_back(new test_mul_mat(GGML_TYPE_TQ3_1S, GGML_TYPE_F32, 24, nb, 16384, {1, 1}, {1, 1}));
++    }
++
+     // m == 1, with n on both sides of MMVF_MAX_BATCH_SIZE (8): mmvf below, operand swap above
+     for (int64_t n : {1, 7, 8, 9, 16, 128, 512}) {
+         test_cases.emplace_back(new test_mul_mat(GGML_TYPE_F32, GGML_TYPE_F32, 1, n, 2048, {1, 1}, {1, 1}));
