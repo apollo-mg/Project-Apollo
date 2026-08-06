@@ -1,0 +1,106 @@
+GGML Issue
+
+Title Eval bug: SM_60 Fast-Path uses noisy fast-path, merged options (maybe)
+sm_60/P100, FAST_FP16_AVAILABLE, FP32 math silently done in FP16, measurable quality loss with zero speed benefit, fix merged in two forks
+
+
+Create new issue in ggml-org/llama.cpp: Bug (model use)
+Add a title
+*
+Eval bug: SM_60 Quality Loss, FP32 math silently done in FP16, fix merged in two forks.
+
+Thanks for taking the time to fill out this bug report! This issue template is intended for bug reports where the model evaluation results (i.e. the generated text) are incorrect or llama.cpp crashes during model evaluation. If you encountered the issue while using an external UI (e.g. ollama), please reproduce your issue using one of the examples/binaries in this repository. The llama-completion binary can be used for simple and reproducible model inference.
+Please fill out this template yourself, copypasting language model outputs is strictly prohibited.
+
+Name and Version
+*
+Which version of our software are you running? (use --version to get a version string)
+
+Markdown Editor
+Markdown input: edit mode selected.
+Write
+Preview
+SM_60 currently gets put into a hardware accelerated fast-path by default, which uses a noisy hardware accelerator, thus destroying KLD for KV quantized cache that hits the affected kernel.
+
+## How to Fix
+
+TheTom (Tom Turney) has merged: https://github.com/TheTom/llama-cpp-turboquant/pull/212
+https://github.com/TheTom/llama-cpp-turboquant/pull/212
+
+spiritbuun has merged: https://github.com/spiritbuun/buun-llama-cpp/pull/80
+
+Tested on Ubuntu Server 26.04.
+Operating systems
+*
+Which operating systems do you know to be affected?
+
+GGML backends
+*
+Which GGML backends do you know to be affected?
+
+Hardware
+*
+Which CPUs/GPUs are you using?
+
+Markdown Editor
+Markdown input: edit mode selected.
+Write
+Preview
+Dual Xeon, 4x nvidia P100 16GB
+Models
+Which model(s) at which quantization were you using when encountering the bug? If you downloaded a GGUF file off of Huggingface, please provide a link.
+
+Markdown Editor
+Markdown input: edit mode selected.
+Write
+Preview
+e.g. Meta LLaMA 3.1 Instruct 8b q4_K_M
+
+Problem description & steps to reproduce
+*
+Please give us a summary of the problem and tell us how to reproduce it. If you can narrow down the bug to specific hardware, compile flags, or command line arguments, that information would be very much appreciated by us. If possible, please try to reproduce the issue using llama-completion with -fit off. If you can only reproduce the issue with -fit on, please provide logs both with and without --verbose.
+
+Markdown Editor
+Markdown input: edit mode selected.
+Write
+Preview
+## Steps to Reproduce:
+
+1. Build stock llama.cpp using  '-DCMAKE_CUDA_ARCHITECTURES=60`.
+2. Generate the truth base, run `llama-perplexity --kl-divergence-base out.kld` with fp32 KV, FA off,
+   on a patched build (fp32 arithmetic) — *this is the step everyone skips.
+3. Compare the stock vs patched runs against that base with `--kl-divergence`, 2048 ctx, 32 chunks.
+4. Speed: `llama-bench` pp8192/tg32 @ d8192, patched vs unpatched, same host, nothing else
+   on the GPUs.
+
+Diff:
+
+261- #if defined(FP16_AVAILABLE) && __CUDA_ARCH__ != 610
+261+ #if defined(FP16_AVAILABLE) && __CUDA_ARCH__ != 610 && __CUDA_ARCH__ != 600
+305-        (GGML_CUDA_CC_IS_NVIDIA(cc) && fp16_available(cc) && ggml_cuda_highest_compiled_arch(cc) != 610) ||
+305+        (GGML_CUDA_CC_IS_NVIDIA(cc) && fp16_available(cc) && ggml_cuda_highest_compiled_arch(cc) != 610 && ggml_cuda_highest_compiled_arch(cc) != 600) ||
+311-    return (GGML_CUDA_CC_IS_NVIDIA(cc) && cc >= GGML_CUDA_CC_PASCAL && cc != 610) || GGML_CUDA_CC_IS_AMD(cc) ||
+311+    return (GGML_CUDA_CC_IS_NVIDIA(cc) && cc >= GGML_CUDA_CC_PASCAL && cc != 610 && cc != 600) || GGML_CUDA_CC_IS_AMD(cc) ||
+
+
+
+First Bad Commit
+If the bug was not present on an earlier version: when did it start appearing? If possible, please do a git bisect and identify the exact commit that introduced the bug.
+
+Markdown Editor
+Markdown input: edit mode selected.
+Write
+Preview
+Leave a comment
+
+Relevant log output
+*
+Please copy and paste any relevant log output, including the command that you entered and any generated text. For very long logs (thousands of lines), please upload them as files instead; the --log-file CLI argument can be used for this purpose. On Linux you can alternatively redirect the console output of any command into a file by appending  > llama.log 2>&1 to your command.
+
+Markdown Editor
+Markdown input: edit mode selected.
+Write
+Preview
+Leave a comment
+
+Please follow this repository's contributing guidelines and security policy.

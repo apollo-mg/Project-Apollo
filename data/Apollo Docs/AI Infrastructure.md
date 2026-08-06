@@ -1,0 +1,8 @@
+AI Infrastructure
+
+2 Tower PC's, One 1U server.
+
+PC 1: AMD 5700X3D, 32GB DDR4-3600, AMD RX9070XT DDR (16GB)
+PC 2: Intel 8700K, 16GB DDR4-2600, 2x nVidia P100 16GB HMB2 (32GB)
+1U S: Dual Xeon SuperMicro SYS-1028GQ-TRT Server | Super X10DGQ | 2x Xeon E5-2650v3, 64GB DDR4 2133 ECC, 4x nVidia P100's (64GB)
+
