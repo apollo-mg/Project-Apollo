@@ -91,10 +91,67 @@ saying what it means. On a fork whose deepseek2 branch lacks that shim — or on
 it — the REAP arm silently becomes **softmax** while the base stays sigmoid, with no error and no
 warning. Different routing on the arm whose routing we are measuring.
 
-**Required before any measurement (§1 — positive verification, do not infer which path ran):**
-load *both* arms on the *actual runtime binary* and read the gating function back out of the load
-log. Both must report `sigmoid`. Reasoning from mainline source is not sufficient; the binary is
-the authority.
+### G-1a — runtime verification: PASS
+
+Per §1 the source is not evidence about which path ran, so both arms were loaded on the binary that
+will do the measuring (`~/tom_default/build/bin/llama-cli`, `b100-0967f4997`) with `-v -c 4096
+-ngl 99 -sm layer`, and the gating function read back out of `print_info`:
+
+| | base | REAP |
+|---|---|---|
+| `expert_gating_func` KV in file | `= 2` | **absent** |
+| `print_info: expert_gating_func` | **sigmoid** | **sigmoid** |
+| `print_info: arch` | deepseek2 | deepseek2 |
+| `n_layer` / `n_vocab` | 47 / 154880 | 47 / 154880 |
+| `n_expert_used` / `n_expert_shared` | 4 / 1 | 4 / 1 |
+| `model params` | **29.94 B** | **23.00 B** |
+
+Both resolve to sigmoid. **The arms are comparable on this build.**
+
+**Correction to an earlier note in this receipt's first revision.** It recorded that none of the
+builds on `.73` carried the compatibility shim. That was a grep-location error: this fork moved
+per-architecture hparam loading into `src/models/*.cpp`, so the shim is not in `llama-model.cpp` at
+all. It is `src/models/deepseek2.cpp:23-31`, and **all five build trees on `.73` carry it**
+(`llama_stock_ref`, `buun_vbr`, `tom_default`, `tom_port`, `oscar-turboquant` — 1 hit each):
+
+```c
+ml.get_key(LLM_KV_EXPERT_GATING_FUNC, hparams.expert_gating_func, false);
+if (hparams.expert_gating_func == LLAMA_EXPERT_GATING_FUNC_TYPE_NONE) {
+    if ((hparams.n_layer() == 47 || hparams.n_layer() == 48) && n_vocab == 154880) {
+        hparams.expert_gating_func = LLAMA_EXPERT_GATING_FUNC_TYPE_SIGMOID;   // GLM 4.7 Lite
+    } else {
+        hparams.expert_gating_func = LLAMA_EXPERT_GATING_FUNC_TYPE_SOFTMAX;
+    }
+}
+```
+
+The fragility assessment stands unchanged: the pruned arm is correct only because a hardcoded
+heuristic recognises it, not because the file says what it means. **Re-run G-1a on any other binary
+before measuring with it** — a build without this shim gives softmax on the pruned arm and sigmoid on
+the base, silently.
+
+### `-sm tensor` — refused for this architecture
+
+`llm_arch_supports_sm_tensor()` (`src/llama-arch.cpp:1050`) is an **exclusion** list and
+`LLM_ARCH_DEEPSEEK2` is on it, so `-sm tensor` throws at load:
+
+```
+LLAMA_SPLIT_MODE_TENSOR not implemented for architecture 'deepseek2'
+```
+
+It fails loudly rather than falling back, so there is no risk of silently comparing different split
+modes. `-sm layer` is the only option. Partial DS split machinery exists in the tree
+(`llama_meta_device_get_split_state` carries `blk.\d*.attn_(q_a|kv).weight` patterns) but the arch
+gate still refuses.
+
+### Two operational notes from the load
+
+- **Set `-c` explicitly.** At default context the REAP arm allocated **30.3 GB across both cards**
+  (15199 + 15159 MiB) for an 18.99 GB model — ~11 GB of KV — leaving both P100s at 15.2/16 GB. At
+  `-c 4096` there is ample headroom and it loads faster. Record the value per §9.
+- **Thinking is ON by default.** A two-token prompt emitted `[Start thinking]`. Confirms the mode
+  axis is live and that IKP must explicitly disable it (see Modes in the spec) or the run cost is
+  dominated by reasoning chains across 800 questions × 2 arms.
 
 Also note the pruned file carries no `general.sampling.*` defaults. Irrelevant here because sampling
 is set explicitly (spec: temp 0 both arms), but a client that reads defaults from the file would
@@ -114,9 +171,12 @@ Disk: `/mnt/models` 236 G, 61 G free after both downloads.
 ## Status
 
 - G-1 packaging parity — **PASS**
-- G-4 prune ratio — **PASS** (25%, card and measurement agree)
-- G-1a gating-function runtime check — **OPEN**, blocking
+- G-1a gating-function runtime check — **PASS** (both arms sigmoid on `b100-0967f4997`)
+- G-4 prune ratio — **PASS** (25% of experts; 29.94 B → 23.00 B params, card and measurement agree)
 - G-2 instrument discrimination (IKP on base) — not started
 - G-3 positive-verification harness (scored-count grep) — not started
 - G-5 `no_answer` three-bucket accounting — not started
 - K (repetition count) — still pending the determinism answer
+
+Both arms load and generate on `.73`'s 2×P100 at `-c 4096 -ngl 99 -sm layer`, clocks 1063 MHz /
+150 W. Nothing blocks Phase 1 except K and the G-2/G-3/G-5 harness work.
