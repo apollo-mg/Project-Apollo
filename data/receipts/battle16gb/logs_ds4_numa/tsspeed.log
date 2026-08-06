@@ -1,0 +1,20 @@
+[2026-08-02 15:30:58] ===== DS4 TENSOR-SPLIT SPEED TEST @ 331981025 (has ce3dce77b) =====
+[2026-08-02 15:30:58] reference: -sm layer -ncmoe 40 measured 4.71 t/s (spread 0.2%) earlier today
+[2026-08-02 15:30:58] goal: does -sm tensor allow -ncmoe < 40, and does that raise decode + GPU util?
+[2026-08-02 15:30:58] ########## ARM layer_n40 : -sm layer -ncmoe 40 ##########
+[2026-08-02 15:33:54]   loaded. vram=[3491 2641 4507 4529 ]
+    layer_n40      decode=4.74 t/s  spread=0.4% OK  GPUutil mean=6.5% max=8%  gzip=[0.4743]
+[2026-08-02 15:41:55] ########## ARM tensor_n40 : -sm tensor -ncmoe 40 ##########
+[2026-08-02 15:44:30]   FAILED TO LOAD
+    GGML_ASSERT(split_state.ne[j] % div == 0) failed
+[2026-08-02 15:44:42]   -> tensor-split still cannot run at the known-good offload
+[2026-08-02 15:44:42] ########## ARM tensor_n30 : -sm tensor -ncmoe 30 ##########
+[2026-08-02 15:48:07]   FAILED TO LOAD
+    GGML_ASSERT(split_state.ne[j] % div == 0) failed
+[2026-08-02 15:48:19]   -> tensor/30 failed
+[2026-08-02 15:48:19] ########## ARM tensor_n20 : -sm tensor -ncmoe 20 ##########
+[2026-08-02 15:51:11]   FAILED TO LOAD
+    GGML_ASSERT(meta_buf_ctx->bufs[i]) failed
+    allocating 16552.36 MiB on device 2
+[2026-08-02 15:51:23]   -> tensor/20 failed (capacity, or a new assert)
+[2026-08-02 15:51:23] ===== TENSOR-SPLIT SPEED TEST DONE =====

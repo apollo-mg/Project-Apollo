@@ -1,0 +1,30 @@
+[2026-07-29 03:58:24] === MULTI-TASK CODE: base vs MTP, 6 tasks x 2x2 ===
+[2026-07-29 03:58:56]   base inst1 done  
+[2026-07-29 03:59:28]   mtp inst1 done  draft acceptance = 0.89189
+[2026-07-29 04:00:07]   base inst2 done  
+[2026-07-29 04:00:39]   mtp inst2 done  draft acceptance = 0.89189
+[2026-07-29 04:00:46] === ANALYSIS ===
+task      arm   distinct  correct   verdicts
+iso       base  1/4       4/4       ['correct']
+iso       mtp   1/4       0/4       ['raises']
+semver    base  1/4       4/4       ['correct']
+semver    mtp   1/4       4/4       ['correct']
+csvq      base  1/4       4/4       ['correct']
+csvq      mtp   1/4       4/4       ['correct']
+ipv4      base  1/4       4/4       ['correct']
+ipv4      mtp   1/4       4/4       ['correct']
+roman     base  1/4       4/4       ['correct']
+roman     mtp   1/4       4/4       ['correct']
+pathnorm  base  1/4       4/4       ['correct']
+pathnorm  mtp   1/4       4/4       ['correct']
+
+TOTAL correct: base 24/24   mtp 20/24
+
+tasks where the arms produced DIFFERENT code:
+  iso       base 100% vs mtp 0%   -> base better
+  ipv4      base 100% vs mtp 100%   -> same correctness
+  pathnorm  base 100% vs mtp 100%   -> same correctness
+
+direction: base better on 1, mtp better on 0, equal on 2 (of 3 differing tasks)
+=> suggests MTP degrades code quality, not merely alters it.
+[2026-07-29 04:00:46] === DONE ===

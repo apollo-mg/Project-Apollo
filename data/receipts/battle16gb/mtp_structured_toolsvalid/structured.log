@@ -1,0 +1,78 @@
+[2026-07-29 03:15:15] === STRUCTURED-OUTPUT STABILITY: base vs MTP, 2x3 draws per class ===
+[2026-07-29 03:17:10]   base inst1 done  
+[2026-07-29 03:18:43]   mtp inst2 done  draft acceptance = 0.85691
+[2026-07-29 03:20:45]   base inst2 done  
+[2026-07-29 03:22:18]   mtp inst2 done  draft acceptance = 0.85691
+[2026-07-29 03:22:25] === ANALYSIS ===
+class       arm   distinct detail
+prose       base  1/6      STABLE
+prose       mtp   1/3      STABLE
+toolsimple  base  1/6      STABLE
+toolsimple  mtp   1/3      STABLE
+code        base  1/6      STABLE
+code        mtp   1/3      STABLE
+toolcalc    base  1/6      STABLE
+toolcalc    mtp   1/3      STABLE
+
+--- tool call argument values (the part that must not drift) ---
+  toolsimple  base  [{"a": "{\"city\":\"Tokyo\"}", "n": "get_weather"}]
+  toolsimple  mtp   [{"a": "{\"city\":\"Tokyo\"}", "n": "get_weather"}]
+  toolcalc    base  <NO TOOL CALL>
+  toolcalc    mtp   [{"a": "{\"total_incidents\":7,\"total_severity\":35,\"top_owner\":\"carol\"}", "n": "submit_summary"}]
+
+--- correctness of computed arguments (ground truth: 7 incidents, severity 35, carol) ---
+  base  correct 0 / 6 draws
+  mtp   correct 3 / 3 draws
+[2026-07-29 03:22:25] === DONE ===
+[2026-07-29 03:23:38] === STRUCTURED-OUTPUT STABILITY: base vs MTP, 2x3 draws per class ===
+[2026-07-29 03:26:44]   base inst1 done  
+[2026-07-29 03:29:00]   mtp inst1 done  draft acceptance = 0.85691
+[2026-07-29 03:32:13]   base inst2 done  
+[2026-07-29 03:34:29]   mtp inst2 done  draft acceptance = 0.85691
+[2026-07-29 03:34:36] === ANALYSIS ===
+class       arm   distinct detail
+prose       base  1/6      STABLE
+prose       mtp   2/6      *** 2 VARIANTS ***
+toolsimple  base  1/6      STABLE
+toolsimple  mtp   1/6      STABLE
+code        base  1/6      STABLE
+code        mtp   1/6      STABLE
+toolcalc    base  1/6      STABLE
+toolcalc    mtp   1/6      STABLE
+
+*** TRUNCATED (finish_reason=length) -- these draws are budget artifacts, not content differences:
+       base_i1_prose_1
+       base_i1_prose_2
+       base_i1_prose_3
+       base_i2_prose_1
+       base_i2_prose_2
+       base_i2_prose_3
+       mtp_i1_prose_1
+       mtp_i1_prose_2
+       mtp_i1_prose_3
+       mtp_i2_prose_1
+       mtp_i2_prose_2
+       mtp_i2_prose_3
+       base_i1_code_1
+       base_i1_code_2
+       base_i1_code_3
+       base_i2_code_1
+       base_i2_code_2
+       base_i2_code_3
+       mtp_i1_code_1
+       mtp_i1_code_2
+       mtp_i1_code_3
+       mtp_i2_code_1
+       mtp_i2_code_2
+       mtp_i2_code_3
+
+--- tool call argument values (the part that must not drift) ---
+  toolsimple  base  [{"a": "{\"city\":\"Tokyo\"}", "n": "get_weather"}]
+  toolsimple  mtp   [{"a": "{\"city\":\"Tokyo\"}", "n": "get_weather"}]
+  toolcalc    base  [{"a": "{\"total_incidents\":7,\"total_severity\":35,\"top_owner\":\"carol\"}", "n": "submit_summary"}]
+  toolcalc    mtp   [{"a": "{\"total_incidents\":7,\"total_severity\":35,\"top_owner\":\"carol\"}", "n": "submit_summary"}]
+
+--- correctness of computed arguments (ground truth: 7 incidents, severity 35, carol) ---
+  base  correct 6 / 6 draws
+  mtp   correct 6 / 6 draws
+[2026-07-29 03:34:36] === DONE ===

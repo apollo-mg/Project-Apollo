@@ -1,0 +1,39 @@
+[2026-08-02 21:28:51] ===== DS4 RE-BASELINE @ corrected config (--numa distribute) =====
+[2026-08-02 21:28:51] prior published: 2.16 t/s (cold, bad NUMA) / 4.71-4.75 warm (bad NUMA) / 5.62 (distribute, K=1)
+[2026-08-02 21:28:51] arms: distribute -> none -> distribute. Middle arm is the control; A vs A' is the drift check.
+[2026-08-02 21:28:51] ########## ARM dist_a  [--numa distribute] ##########
+[2026-08-02 21:28:51]   dropping page cache
+[2026-08-02 21:31:35]   loaded in 155s  vram=[3491 2641 4507 4529 ]
+[2026-08-02 21:31:36]   clocks=[1063 MHz 1063 MHz 1063 MHz 1063 MHz ] power=[30.97 W 32.40 W 28.77 W 29.24 W ]
+[2026-08-02 21:41:40]   200-tok draws done; power under load=[31.19 W 32.64 W 29.25 W 29.97 W ]
+    dist_a       COLD(draw1) = 1.13 t/s
+    dist_a       warming     = [5.3, 5.29, 5.31, 5.33]
+    dist_a       WARM        = [5.31, 5.31, 5.34, 5.3]  mean=5.31 t/s  spread=0.8% OK
+    dist_a       400-tok warm= [] t/s  (length-independence check)
+    dist_a       PREFILL     = 7.6 tok/s (132.2 ms/tok) on 3989 tokens
+    dist_a       gzip        = [0.4743]
+[2026-08-02 21:51:50] ########## ARM nonuma  [no numa flag] ##########
+[2026-08-02 21:51:50]   dropping page cache
+[2026-08-02 21:55:10]   loaded in 186s  vram=[3491 2641 4507 4529 ]
+[2026-08-02 21:55:10]   clocks=[1063 MHz 1063 MHz 1063 MHz 1063 MHz ] power=[30.97 W 32.40 W 28.77 W 29.24 W ]
+[2026-08-02 22:03:21]   200-tok draws done; power under load=[31.19 W 33.10 W 29.01 W 29.72 W ]
+    nonuma       COLD(draw1) = 2.3 t/s
+    nonuma       warming     = [4.64, 4.62, 4.6, 4.64]
+    nonuma       WARM        = [4.63, 4.61, 4.64, 4.57]  mean=4.61 t/s  spread=1.5% OK
+    nonuma       400-tok warm= [] t/s  (length-independence check)
+    nonuma       PREFILL     = 14.7 tok/s (68.1 ms/tok) on 3989 tokens
+    nonuma       gzip        = [0.4743]
+[2026-08-02 22:09:14] ########## ARM dist_b  [--numa distribute] ##########
+[2026-08-02 22:09:14]   dropping page cache
+[2026-08-02 22:11:41]   loaded in 138s  vram=[3491 2641 4507 4529 ]
+[2026-08-02 22:11:41]   clocks=[1063 MHz 1063 MHz 1063 MHz 1063 MHz ] power=[31.19 W 32.38 W 28.77 W 29.48 W ]
+[2026-08-02 22:21:57]   200-tok draws done; power under load=[31.19 W 32.62 W 29.25 W 29.72 W ]
+    dist_b       COLD(draw1) = 1.13 t/s
+    dist_b       warming     = [5.18, 5.19, 5.17, 5.16]
+    dist_b       WARM        = [5.15, 5.19, 5.14, 5.16]  mean=5.16 t/s  spread=1.0% OK
+    dist_b       400-tok warm= [] t/s  (length-independence check)
+    dist_b       PREFILL     = 12.5 tok/s (79.8 ms/tok) on 3989 tokens
+    dist_b       gzip        = [0.4743]
+[2026-08-02 22:28:32] ===== DONE =====
+[2026-08-02 22:28:32] READ: (1) |dist_a - dist_b| must be < |nonuma - dist_*| or the instrument can't resolve it.
+[2026-08-02 22:28:32]       (2) any arm UNSTABLE (>8% spread) -> do not average that arm.

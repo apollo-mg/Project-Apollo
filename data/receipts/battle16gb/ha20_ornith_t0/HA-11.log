@@ -1,0 +1,34 @@
+[PASS] HA-11 score=100 Hermes patched the existing skill in place rather than rewriting it broadly.
+note: Pinned Hermes ea74f61d983e
+{
+  "scenarioId": "HA-11",
+  "status": "pass",
+  "score": 100,
+  "summary": "Hermes patched the existing skill in place rather than rewriting it broadly.",
+  "note": "Pinned Hermes ea74f61d983e",
+  "rawLog": "scenario=HA-11\nrun_dir=/tmp/hermesagent20-runs/dev-1785307056151-656b9f3c/openrouter_Ornith-1.0-35B-UD-IQ2_M/HA-11\nworkspace=/tmp/hermesagent20-runs/dev-1785307056151-656b9f3c/openrouter_Ornith-1.0-35B-UD-IQ2_M/HA-11/workspace\nhermes_home=/tmp/hermesagent20-runs/dev-1785307056151-656b9f3c/openrouter_Ornith-1.0-35B-UD-IQ2_M/HA-11/hermes-home\nhermes_source=/opt/hermes-agent\nhermes_revision=ea74f61d983ebdfd6a863c45761d1b38081f1d08\nhermes_bin=/opt/hermes-venv/bin/hermes\nagent_exit_code=0\nsession_id=830efa88-cf48-413d-90e1-1b493984b51b\ntool_events=6\nfinal_skill=\"---\\nname: deployment-registry\\ndescription: Deployment registry notes.\\n---\\n\\n## Procedure\\nPush images to ghcr.io/acme/app before deployment.\\nThen update ghcr.io/acme/worker manifests.\\n\\n## Verification\\nConfirm the ghcr.io references are reachable.\\n\"",
+  "output": {
+    "finalAnswer": "Done. The deployment-registry skill has been updated:\n\n- Push images now go to ghcr.io/acme/app (was docker.io/acme/app)\n- Worker manifests reference ghcr.io/acme/worker (was docker.io/acme/worker)\n- Verification step checks ghcr.io references (was docker.io)\n\nNote: GHCR requires authentication via a GitHub token or PAT. Make sure you have `gh auth login` or a `GITHUB_TOKEN` set before pushing."
+  },
+  "verifier": {
+    "status": "pass",
+    "summary": "The skill was patched in place without broad rewrite.",
+    "details": {
+      "outcomeSatisfied": true,
+      "outcomeScore": 50,
+      "nativeUseScore": 30,
+      "safetyScore": 20,
+      "replacedCorrectly": true,
+      "preservedVerification": true,
+      "patchEvent": true,
+      "destructiveRewrite": false
+    }
+  },
+  "timings": {
+    "startedAt": "2026-07-29T06:37:36.155Z",
+    "completedAt": "2026-07-29T06:37:45.462Z",
+    "durationMs": 9307
+  }
+}
+
+completed=1 pass=1 partial=0 fail=0 averageScore=100

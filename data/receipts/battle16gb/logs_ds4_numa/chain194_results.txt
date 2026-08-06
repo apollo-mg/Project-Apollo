@@ -1,0 +1,41 @@
+[2026-08-02 15:30:58] ===== DS4 TENSOR-SPLIT SPEED TEST @ 331981025 (has ce3dce77b) =====
+[2026-08-02 15:30:58] reference: -sm layer -ncmoe 40 measured 4.71 t/s (spread 0.2%) earlier today
+[2026-08-02 15:30:58] goal: does -sm tensor allow -ncmoe < 40, and does that raise decode + GPU util?
+[2026-08-02 15:30:58] ########## ARM layer_n40 : -sm layer -ncmoe 40 ##########
+[2026-08-02 15:33:54]   loaded. vram=[3491 2641 4507 4529 ]
+    layer_n40      decode=4.74 t/s  spread=0.4% OK  GPUutil mean=6.5% max=8%  gzip=[0.4743]
+[2026-08-02 15:41:55] ########## ARM tensor_n40 : -sm tensor -ncmoe 40 ##########
+[2026-08-02 15:44:30]   FAILED TO LOAD
+    GGML_ASSERT(split_state.ne[j] % div == 0) failed
+[2026-08-02 15:44:42]   -> tensor-split still cannot run at the known-good offload
+[2026-08-02 15:44:42] ########## ARM tensor_n30 : -sm tensor -ncmoe 30 ##########
+[2026-08-02 15:48:07]   FAILED TO LOAD
+    GGML_ASSERT(split_state.ne[j] % div == 0) failed
+[2026-08-02 15:48:19]   -> tensor/30 failed
+[2026-08-02 15:48:19] ########## ARM tensor_n20 : -sm tensor -ncmoe 20 ##########
+[2026-08-02 15:51:11]   FAILED TO LOAD
+    GGML_ASSERT(meta_buf_ctx->bufs[i]) failed
+    allocating 16552.36 MiB on device 2
+[2026-08-02 15:51:23]   -> tensor/20 failed (capacity, or a new assert)
+[2026-08-02 15:51:23] ===== TENSOR-SPLIT SPEED TEST DONE =====
+===== NUMA =====
+[2026-08-02 15:51:53] ===== DS4 NUMA POLICY TEST (config held at -sm layer -ncmoe 40) =====
+[2026-08-02 15:51:53] reference: 4.71 t/s (spread 0.2%) with NO numa policy and a WARM cache.
+[2026-08-02 15:51:53] NOTE: caches are dropped before every arm, so even 'baseline' may differ from 4.71.
+[2026-08-02 15:51:53] ########## ARM baseline  [llama: 'none'] [numactl: 'none'] ##########
+[2026-08-02 15:51:53]   dropping page cache (equalises starting state across arms)
+[2026-08-02 15:52:01]   free after drop: node 0 free: 30832 MB node 1 free: 29356 MB 
+[2026-08-02 15:55:11]   loaded.
+    baseline     decode=4.58 t/s  draws=[4.57, 4.56, 4.58, 4.59]  spread=0.7% OK  gzip=[0.4743]
+[2026-08-02 16:02:56] ########## ARM distribute  [llama: '--numa distribute'] [numactl: 'none'] ##########
+[2026-08-02 16:02:56]   dropping page cache (equalises starting state across arms)
+[2026-08-02 16:03:04]   free after drop: node 0 free: 30872 MB node 1 free: 29342 MB 
+[2026-08-02 16:05:22]   loaded.
+    distribute   decode=5.62 t/s  draws=[5.61, 5.62, 5.64, 5.61]  spread=0.5% OK  gzip=[0.4743]
+[2026-08-02 16:14:50] ########## ARM interleave  [llama: '--numa numactl'] [numactl: 'numactl --interleave=all'] ##########
+[2026-08-02 16:14:50]   dropping page cache (equalises starting state across arms)
+[2026-08-02 16:15:02]   free after drop: node 0 free: 30833 MB node 1 free: 29337 MB 
+[2026-08-02 16:17:21]   loaded.
+    interleave   decode=4.89 t/s  draws=[4.85, 4.9, 4.89, 4.91]  spread=1.2% OK  gzip=[0.4743]
+[2026-08-02 16:27:33] ===== NUMA TEST DONE =====
+[2026-08-02 16:27:33] READ: baseline is the control. distribute/interleave beat it only if outside ~2% spread.

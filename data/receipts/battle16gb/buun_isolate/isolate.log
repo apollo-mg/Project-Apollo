@@ -1,0 +1,34 @@
+[2026-07-29 12:56:18] === RDNA4 isolation: buun switches vs Tom reference (2 chunks, ctx 2048) ===
+[2026-07-29 12:56:18] --- rep 1 ---
+[2026-07-29 12:56:54]   tom/f16/stock r1  36s  PPL=7.4964
+[2026-07-29 12:57:04]   tom/turbo4/stock r1  10s  PPL=7.4880
+[2026-07-29 12:58:04]   buun/f16/stock r1  60s  PPL=7.4948
+[2026-07-29 12:59:04]   buun/turbo4/stock r1  60s  PPL=8.1188
+[2026-07-29 13:00:04]   buun/f16/meansub_off r1  60s  PPL=7.4948
+[2026-07-29 13:01:05]   buun/turbo4/meansub_off r1  61s  PPL=8.4805
+[2026-07-29 13:02:06]   buun/turbo4/fused_prefill r1  61s  PPL=8.1231
+[2026-07-29 13:03:06]   buun/turbo4/both r1  60s  PPL=8.4611
+[2026-07-29 13:03:06] --- rep 2 ---
+[2026-07-29 13:03:16]   tom/f16/stock r2  10s  PPL=7.4964
+[2026-07-29 13:03:26]   tom/turbo4/stock r2  10s  PPL=7.4880
+[2026-07-29 13:04:27]   buun/f16/stock r2  61s  PPL=7.4948
+[2026-07-29 13:05:28]   buun/turbo4/stock r2  61s  PPL=8.1097
+[2026-07-29 13:06:30]   buun/f16/meansub_off r2  62s  PPL=7.4948
+[2026-07-29 13:07:32]   buun/turbo4/meansub_off r2  62s  PPL=8.4299
+[2026-07-29 13:08:34]   buun/turbo4/fused_prefill r2  62s  PPL=8.0955
+[2026-07-29 13:09:35]   buun/turbo4/both r2  61s  PPL=8.4560
+[2026-07-29 13:09:35] === SUMMARY (median of reps) ===
+fork   kv      switches            secs        ppl vs tom
+buun   f16     meansub_off           62     7.4948 -
+buun   f16     stock                 61     7.4948 -
+buun   turbo4  both                  61     8.4611 -
+buun   turbo4  fused_prefill         62     8.1231 -
+buun   turbo4  meansub_off           62     8.4805 -
+buun   turbo4  stock                 61     8.1188 -
+tom    f16     stock                 36     7.4964 1.00x
+tom    turbo4  stock                 10     7.4880 1.00x
+
+f16 VMEAN tap A/B: stock 61s -> meansub_off 62s  (+1.6%)
+  => the tap is NOT the main f16 cost; look elsewhere (kernel selection).
+turbo4 fused-prefill A/B: stock 61s -> TURBO_FUSED_PREFILL=1 62s  (+1.6%)
+[2026-07-29 13:09:35] === DONE ===

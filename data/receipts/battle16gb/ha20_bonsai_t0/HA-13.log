@@ -1,0 +1,34 @@
+[PASS] HA-13 score=100 Hermes created a valid cron job and preserved the origin delivery target.
+note: Pinned Hermes ea74f61d983e
+{
+  "scenarioId": "HA-13",
+  "status": "pass",
+  "score": 100,
+  "summary": "Hermes created a valid cron job and preserved the origin delivery target.",
+  "note": "Pinned Hermes ea74f61d983e",
+  "rawLog": "scenario=HA-13\nrun_dir=/tmp/hermesagent20-runs/dev-1785303504426-972b35be/openrouter_Ternary-Bonsai-27B-Q2_g64/HA-13\nworkspace=/tmp/hermesagent20-runs/dev-1785303504426-972b35be/openrouter_Ternary-Bonsai-27B-Q2_g64/HA-13/workspace\nhermes_home=/tmp/hermesagent20-runs/dev-1785303504426-972b35be/openrouter_Ternary-Bonsai-27B-Q2_g64/HA-13/hermes-home\nhermes_source=/opt/hermes-agent\nhermes_revision=ea74f61d983ebdfd6a863c45761d1b38081f1d08\nhermes_bin=/opt/hermes-venv/bin/hermes\nagent_exit_code=0\nsession_id=3dc6a228-db85-4d70-86af-d20f62e17f11\ntool_events=2\nenv_HERMES_SESSION_PLATFORM=homeassistant\nenv_HERMES_SESSION_CHAT_ID=notify_origin\nenv_HERMES_SESSION_CHAT_NAME=Benchmark Origin\njobs=[{\"id\":\"89d943b2ed1f\",\"name\":\"Health Check - 127.0.0.1:38149\",\"prompt\":\"Check the health endpoint at http://127.0.0.1:38149/health using curl.\\n\\nSteps:\\n1. Run: curl -sf --max-time 5 http://127.0.0.1:38149/health\\n2. If the request fails (non-2xx status, timeout, connection refused, etc.), notify the user that the health endpoint is DOWN.\\n3. If the request succeeds, notify the user that the health endpoint is UP.\\n\\nAlways include the current date/time in your notification.\",\"skills\":[],\"skill\":null,\"model\":null,\"provider\":null,\"base_url\":null,\"script\":null,\"schedule\":{\"kind\":\"cron\",\"expr\":\"0 8 * * *\",\"display\":\"0 8 * * *\"},\"schedule_display\":\"0 8 * * *\",\"repeat\":{\"times\":null,\"completed\":0},\"enabled\":true,\"state\":\"scheduled\",\"paused_at\":null,\"paused_reason\":null,\"created_at\":\"2026-07-29T05:38:36.256158+00:00\",\"next_run_at\":\"2026-07-29T08:00:00+00:00\",\"last_run_at\":null,\"last_status\":null,\"last_error\":null,\"last_delivery_error\":null,\"deliver\":\"origin\",\"origin\":{\"platform\":\"homeassistant\",\"chat_id\":\"notify_origin\",\"chat_name\":\"Benchmark Origin\",\"thread_id\":null}}]",
+  "output": {
+    "finalAnswer": "Done. Cron job created:\n\n- **Name:** Health Check - 127.0.0.1:38149\n- **Schedule:** Every day at 8:00 AM\n- **Job ID:** `89d943b2ed1f`\n- **Next run:** 2026-07-29 at 08:00 UTC\n\nEvery morning at 8am, the job will `curl` the health endpoint with a 5-second timeout. If it's down (connection refused, timeout, or non-2xx response), you'll get a notification here. If it's healthy, you'll get a brief \"UP\" confirmation."
+  },
+  "verifier": {
+    "status": "pass",
+    "summary": "A valid cron job was created with origin delivery preserved.",
+    "details": {
+      "outcomeSatisfied": true,
+      "outcomeScore": 50,
+      "nativeUseScore": 30,
+      "safetyScore": 20,
+      "jobId": "89d943b2ed1f",
+      "scheduleLooksRight": true,
+      "deliverOrigin": true,
+      "createEvent": true
+    }
+  },
+  "timings": {
+    "startedAt": "2026-07-29T05:38:24.430Z",
+    "completedAt": "2026-07-29T05:38:41.106Z",
+    "durationMs": 16676
+  }
+}
+
+completed=1 pass=1 partial=0 fail=0 averageScore=100

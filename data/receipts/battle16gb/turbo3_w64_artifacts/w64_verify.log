@@ -1,0 +1,33 @@
+[2026-07-31 16:50:31] ===== turbo3 #241 WAVE64 BALLOT FIX VERIFICATION =====
+[2026-07-31 16:50:31] build: version: 9981 (11a8377bd)
+[2026-07-31 16:50:31] gpu:     Vulkan0: AMD Radeon RX 580 Series (RADV POLARIS10) (8192 MiB, 7868 MiB free)
+[2026-07-31 16:50:31] --- test-backend-ops FLASH_ATTN_EXT (expect: still passes; read path was never broken) ---
+[2026-07-31 17:00:36]     rc=0
+        FLASH_ATTN_EXT(hsk=128,hsv=128,nh=4,nr23=[1,1],kv=113,nb=1,mask=1,sinks=1,max_bias=0.000000,logit_softcap=0.000000,prec=f32,type_K=turbo3,type_V=turbo3,permute=[0,1,2,3]): [1;32mOK[0m
+        FLASH_ATTN_EXT(hsk=128,hsv=128,nh=4,nr23=[1,1],kv=113,nb=1,mask=1,sinks=1,max_bias=0.000000,logit_softcap=0.000000,prec=def,type_K=turbo3,type_V=turbo3,permute=[0,1,2,3]): [1;32mOK[0m
+        FLASH_ATTN_EXT(hsk=128,hsv=128,nh=4,nr23=[1,1],kv=113,nb=3,mask=1,sinks=1,max_bias=0.000000,logit_softcap=0.000000,prec=f32,type_K=turbo3,type_V=turbo3,permute=[0,1,2,3]): [1;32mOK[0m
+        FLASH_ATTN_EXT(hsk=128,hsv=128,nh=4,nr23=[1,1],kv=113,nb=3,mask=1,sinks=1,max_bias=0.000000,logit_softcap=0.000000,prec=def,type_K=turbo3,type_V=turbo3,permute=[0,1,2,3]): [1;32mOK[0m
+        FLASH_ATTN_EXT(hsk=128,hsv=128,nh=4,nr23=[1,1],kv=113,nb=32,mask=1,sinks=1,max_bias=0.000000,logit_softcap=0.000000,prec=f32,type_K=turbo3,type_V=turbo3,permute=[0,1,2,3]): [1;32mOK[0m
+        FLASH_ATTN_EXT(hsk=128,hsv=128,nh=4,nr23=[1,1],kv=113,nb=32,mask=1,sinks=1,max_bias=0.000000,logit_softcap=0.000000,prec=def,type_K=turbo3,type_V=turbo3,permute=[0,1,2,3]): [1;32mOK[0m
+[2026-07-31 17:00:36] --- test-backend-ops SET_ROWS (expect: still skipped 0/0, prints OK -- the trap) ---
+[2026-07-31 17:00:37]     rc=0
+      Backend 2/2: CPU
+        Skipping CPU backend
+      2/2 backends passed
+      [1;32mOK[0m
+[2026-07-31 17:00:37] ########## MATRIX: 11a8377bd (wave64 ballot fix) ##########
+    kturbo4_vturbo3  gzip=0.4866 (ref 0.2736) chars=2012  sha=b031d9c337e8 (ref 173da68272cc) CHANGED
+                     '1.  **Analyze the Request:**\n    *   **Topic:** Linux.\n    *   **Format:** Essay.\n    *   **Length:*'
+    kf16_vf16        gzip=0.5097 (ref 0.5097) chars=1903  sha=ad9dd4fa776f (ref ad9dd4fa776f) SAME-AS-UNPATCHED
+                     '1.  **Analyze the Request:**\n    *   **Topic:** Linux.\n    *   **Format:** Essay.\n    *   **Length:*'
+    kturbo4_vturbo4  gzip=0.5024 (ref 0.5024) chars=1871  sha=9e33a09474a1 (ref 9e33a09474a1) SAME-AS-UNPATCHED
+                     '1.  **Analyze the Request:**\n    *   **Topic:** Linux.\n    *   **Format:** Essay.\n    *   **Length:*'
+    kturbo4_vturbo2  gzip=0.5021 (ref 0.5021) chars=1944  sha=0b3b5c4235d5 (ref 0b3b5c4235d5) SAME-AS-UNPATCHED
+                     '1.  **Analyze the Request:**\n    *   **Topic:** Linux.\n    *   **Format:** Essay.\n    *   **Length:*'
+    kturbo3_vturbo3  gzip=0.5152 (ref 0.3474) chars=1877  sha=4cb388a93d6d (ref 65e01d083c83) CHANGED
+                     '1.  **Analyze the Request:**\n    *   **Topic:** Linux.\n    *   **Format:** Essay.\n    *   **Length:*'
+    kf16_vturbo3     gzip=0.5251 (ref 0.1753) chars=1872  sha=169b27a7251c (ref b539962f600d) CHANGED
+                     '1.  **Analyze the Request:**\n    *   **Topic:** Linux.\n    *   **Format:** Essay.\n    *   **Length:*'
+    kturbo3_vf16     gzip=0.5199 (ref 0.4299) chars=1862  sha=e89131fbe39d (ref 4dfeae533123) CHANGED
+                     '1.  **Analyze the Request:**\n    *   **Topic:** Linux.\n    *   **Format:** Essay.\n    *   **Length:*'
+[2026-07-31 17:24:59] ===== ALL DONE =====
