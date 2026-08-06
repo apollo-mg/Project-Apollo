@@ -62,6 +62,51 @@ if _only:
     problems = [p for p in problems if p["task_id"] in _keep]
 N = len(problems)
 
+
+def preflight():
+    """Prove the grader can pass a KNOWN-GOOD solution before spending any inference.
+
+    Why this exists (2026-08-06): PREAMBLE ends with `import numpy as np`. On a host without numpy
+    that import raises at the top of EVERY generated program, before a single test runs, so every
+    problem scores WRONG and the run reports 0% pass@1.
+
+    It fails SYMMETRICALLY, which is the dangerous part. A base-vs-variant comparison would have come
+    back 0% vs 0% -- a clean null that would have CONFIRMED a pre-registered "the two arms differ by
+    <=3pp" prediction. A missing dependency would have been reported as a scientific finding.
+
+    Standard §1: an exit code is not evidence a measurement ran; find the measurement's own artifact.
+    Guards abort, they do not warn.
+    """
+    probe = problems[0]
+    canon = probe.get("canonical_solution")
+    if not canon:
+        print("[preflight] SKIP: no canonical_solution in dataset", file=sys.stderr)
+        return
+    program = (PREAMBLE + "\n" + probe["prompt"] + "\n" + canon + "\n\n"
+               + probe["test"] + f"\n\ncheck({probe['entry_point']})\n")
+    with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False) as f:
+        f.write(program); path = f.name
+    try:
+        r = subprocess.run([sys.executable, path], capture_output=True, timeout=EXEC_TO, text=True)
+    finally:
+        os.unlink(path)
+    if r.returncode != 0:
+        tail = (r.stderr.strip().splitlines() or ["<no stderr>"])[-1]
+        sys.exit(
+            f"[preflight] FATAL: the grader cannot pass {probe['task_id']}'s own canonical solution.\n"
+            f"  interpreter : {sys.executable}\n"
+            f"  error       : {tail}\n"
+            f"  Every problem would score WRONG and the run would report 0% pass@1 for any model.\n"
+            f"  Fix the execution environment (PREAMBLE imports: typing, math, re, collections,\n"
+            f"  itertools, functools, heapq, bisect, string, numpy) before measuring anything."
+        )
+    print(f"[preflight] OK: grader passes {probe['task_id']} canonical solution "
+          f"({sys.executable})", file=sys.stderr)
+
+
+preflight()
+
+
 def query(text):
     _msgs = ([{"role":"system","content":SYSTEM}] if SYSTEM else []) + [{"role":"user","content":text}]
     payload = {"messages":_msgs, "temperature":TEMP, "max_tokens":MAXTOK}
