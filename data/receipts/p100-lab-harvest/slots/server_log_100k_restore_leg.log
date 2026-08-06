@@ -1,0 +1,50 @@
+0.00.101.137 I log_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.101.142 I device_info:
+0.00.435.421 I   - CUDA0   : Tesla P100-PCIE-16GB (16269 MiB, 16011 MiB free)
+0.00.753.415 I   - CUDA1   : Tesla P100-PCIE-16GB (16269 MiB, 16011 MiB free)
+0.00.753.431 I   - CPU     : Intel(R) Xeon(R) CPU E5-2650 v3 @ 2.30GHz (61970 MiB, 61970 MiB free)
+0.00.753.578 I system_info: n_threads = 20 (n_threads_batch = 20) / 40 | CUDA : ARCHS = 600 | USE_GRAPHS = 1 | PEER_MAX_BATCH_SIZE = 128 | CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | AVX2 = 1 | F16C = 1 | FMA = 1 | BMI2 = 1 | LLAMAFILE = 1 | OPENMP = 1 | REPACK = 1 | 
+0.00.753.644 I srv          init: running without SSL
+0.00.753.725 I srv          init: using 39 threads for HTTP server
+0.00.754.218 I srv         start: binding port with default address family
+0.00.755.453 I srv  llama_server: loading model
+0.00.755.461 I srv    load_model: loading model '/home/mark/AI/Models/Qwen 3.6/27B/Qwopus/Qwopus/Coder/Qwopus3.6-27B-Coder-heretic-Q6_K.gguf'
+0.08.939.021 W llama_context: n_ctx_seq (104192) < n_ctx_train (262144) -- the full capacity of the model will not be utilized
+0.08.944.468 W llama_kv_cache: auto-asymmetric: GQA ratio 6:1 (n_head=24, n_head_kv=4) — upgrading K from turbo4 to q8_0 to prevent quality degradation. Disable with TURBO_AUTO_ASYMMETRIC=0
+0.09.354.444 I common_init_from_params: warming up the model with an empty run - please wait ... (--no-warmup to disable)
+0.09.533.134 I srv    load_model: initializing slots, n_slots = 1
+0.09.657.730 W srv    load_model: speculative decoding will use checkpoints
+0.09.657.740 W common_speculative_init: no implementations specified for speculative decoding
+0.09.657.742 I slot   load_model: id  0 | task -1 | new slot, n_ctx = 104192
+0.09.657.827 I srv    load_model: prompt cache is enabled, size limit: 4096 MiB
+0.09.657.831 I srv    load_model: use `--cache-ram 0` to disable the prompt cache
+0.09.657.831 I srv    load_model: for more info see https://github.com/ggml-org/llama.cpp/pull/16391
+0.09.657.832 I srv    load_model: context checkpoints enabled, max = 32, min spacing = 256
+0.09.657.873 I srv          init: idle slots will be saved to prompt cache and cleared upon starting a new task
+0.09.696.882 I init: chat template, example_format: '<|im_start|>system
+You are a helpful assistant<|im_end|>
+<|im_start|>user
+Hello<|im_end|>
+<|im_start|>assistant
+Hi there<|im_end|>
+<|im_start|>user
+How are you?<|im_end|>
+<|im_start|>assistant
+<think>
+'
+0.09.725.402 I srv          init: init: chat template, thinking = 1
+0.09.725.447 I srv  llama_server: model loaded
+0.09.725.453 I srv  llama_server: server is listening on http://0.0.0.0:8082
+0.09.725.460 I srv  update_slots: all slots are idle
+0.10.928.946 W srv    operator(): got exception: {"error":{"code":500,"message":"[json.exception.out_of_range.403] key 'filename' not found","type":"server_error"}}
+0.12.523.016 I slot process_sing: id  0 | task -1 | restored 2 context checkpoints from sidecar
+0.12.523.045 I srv  update_slots: all slots are idle
+0.12.859.327 I slot launch_slot_: id  0 | task 1 | processing task, is_child = 0
+0.12.859.458 I slot update_slots: id  0 | task 1 | Checking checkpoint with [100029, 100029] against 100034...
+0.12.887.859 W slot update_slots: id  0 | task 1 | restored context checkpoint (pos_min = 100029, pos_max = 100029, n_tokens = 100030, n_past = 100030, size = 149.626 MiB)
+0.15.226.921 I slot print_timing: id  0 | task 1 | prompt eval time =    1000.03 ms /    15 tokens (   66.67 ms per token,    15.00 tokens per second)
+0.15.226.929 I slot print_timing: id  0 | task 1 |        eval time =    1367.53 ms /     7 tokens (  195.36 ms per token,     5.12 tokens per second)
+0.15.226.931 I slot print_timing: id  0 | task 1 |       total time =    2367.56 ms /    22 tokens
+0.15.226.935 I slot print_timing: id  0 | task 1 |    graphs reused =          6
+0.15.231.049 I slot      release: id  0 | task 1 | stop processing: n_tokens = 100051, truncated = 0
+0.15.231.057 I srv  update_slots: all slots are idle

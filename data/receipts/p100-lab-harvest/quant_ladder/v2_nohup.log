@@ -1,0 +1,64 @@
+[2026-07-20_17:45:22] ================= IMAT vs NOIMAT v2 =================
+[2026-07-20_17:45:22] v1 (untrusted harness) gave: A_imat_wiki 6.5840 | C_noimat_wiki 6.2846 | B_imat_notes 9.7693 | D_noimat_notes 9.8811
+[2026-07-20_17:45:22] binary: /home/mark/llama_stock/build_carveout/bin/llama-perplexity
+[2026-07-20_17:45:22] flags: -c 2048 -ngl 99 -ts 1,1,1,1 -fa off -ctk f32 -ctv f32 -ub 128 --no-warmup
+[2026-07-20_17:45:22] --- q3imat_wiki  (chunks=64) ---
+[2026-07-20_17:45:22] q3imat_wiki clocks: 0, 405 MHz, 715 MHz, 150.00 W 1, 405 MHz, 715 MHz, 150.00 W|2, 405 MHz, 715 MHz, 150.00 W 3, 405 MHz, 715 MHz, 150.00 W
+[2026-07-20_18:11:09] q3imat_wiki OK  PPL=6.4692  +/-0.06485  chunks_parsed=64  rc=0  1547s
+[2026-07-20_18:11:09] --- q3noimat_wiki  (chunks=64) ---
+[2026-07-20_18:11:09] q3noimat_wiki clocks: 0, 1063 MHz, 715 MHz, 150.00 W 1, 1063 MHz, 715 MHz, 150.00 W|2, 1063 MHz, 715 MHz, 150.00 W 3, 1063 MHz, 715 MHz, 150.00 W
+[2026-07-20_18:37:01] q3noimat_wiki OK  PPL=6.1871  +/-0.05958  chunks_parsed=64  rc=0  1552s
+[2026-07-20_18:37:01] --- q3imat_notes  (chunks=40) ---
+[2026-07-20_18:37:01] q3imat_notes clocks: 0, 1063 MHz, 715 MHz, 150.00 W 1, 1063 MHz, 715 MHz, 150.00 W|2, 1063 MHz, 715 MHz, 150.00 W 3, 1063 MHz, 715 MHz, 150.00 W
+[2026-07-20_18:53:13] q3imat_notes OK  PPL=10.3905  +/-0.16751  chunks_parsed=40  rc=0  972s
+[2026-07-20_18:53:13] --- q3noimat_notes  (chunks=40) ---
+[2026-07-20_18:53:14] q3noimat_notes clocks: 0, 1063 MHz, 715 MHz, 150.00 W 1, 1063 MHz, 715 MHz, 150.00 W|2, 1063 MHz, 715 MHz, 150.00 W 3, 1063 MHz, 715 MHz, 150.00 W
+[2026-07-20_19:09:23] q3noimat_notes OK  PPL=10.5692  +/-0.17090  chunks_parsed=40  rc=0  969s
+[2026-07-20_19:09:23] --- q3plain_wiki  (chunks=64) ---
+[2026-07-20_19:09:23] q3plain_wiki clocks: 0, 1063 MHz, 715 MHz, 150.00 W 1, 1063 MHz, 715 MHz, 150.00 W|2, 1063 MHz, 715 MHz, 150.00 W 3, 1063 MHz, 715 MHz, 150.00 W
+[2026-07-20_19:35:31] q3plain_wiki OK  PPL=6.3536  +/-0.06307  chunks_parsed=64  rc=0  1568s
+[2026-07-20_19:35:31] --- q8_wiki  (chunks=64) ---
+[2026-07-20_19:35:31] q8_wiki clocks: 0, 1063 MHz, 715 MHz, 150.00 W 1, 1063 MHz, 715 MHz, 150.00 W|2, 1063 MHz, 715 MHz, 150.00 W 3, 1063 MHz, 715 MHz, 150.00 W
+[2026-07-20_20:00:34] q8_wiki OK  PPL=6.3963  +/-0.06430  chunks_parsed=64  rc=0  1502s
+[2026-07-20_20:00:34] --- bf16_wiki  (chunks=64) ---
+[2026-07-20_20:00:34] bf16_wiki clocks: 0, 1063 MHz, 715 MHz, 150.00 W 1, 1063 MHz, 715 MHz, 150.00 W|2, 1063 MHz, 715 MHz, 150.00 W 3, 1063 MHz, 715 MHz, 150.00 W
+[2026-07-20_20:21:49] bf16_wiki OK  PPL=6.4064  +/-0.06452  chunks_parsed=64  rc=0  1275s
+[2026-07-20_20:21:49] --- bf16_notes  (chunks=40) ---
+[2026-07-20_20:21:49] bf16_notes clocks: 0, 1063 MHz, 715 MHz, 150.00 W 1, 1063 MHz, 715 MHz, 150.00 W|2, 1063 MHz, 715 MHz, 150.00 W 3, 1063 MHz, 715 MHz, 150.00 W
+[2026-07-20_20:34:03] bf16_notes OK  PPL=10.2756  +/-0.16565  chunks_parsed=40  rc=0  734s
+[2026-07-20_20:34:03] === raw summary ===
+q3imat_wiki OK 6.4692 0.06485 64
+q3noimat_wiki OK 6.1871 0.05958 64
+q3imat_notes OK 10.3905 0.16751 40
+q3noimat_notes OK 10.5692 0.17090 40
+q3plain_wiki OK 6.3536 0.06307 64
+q8_wiki OK 6.3963 0.06430 64
+bf16_wiki OK 6.4064 0.06452 64
+bf16_notes OK 10.2756 0.16565 40
+[2026-07-20_20:34:03] === analysis (paired where possible) ===
+
+--- measured, all under identical flags/corpus/chunks ---
+  bf16_wiki            6.4064 [OK]
+  q8_wiki              6.3963 [OK]
+  q3imat_wiki          6.4692 [OK]
+  q3noimat_wiki        6.1871 [OK]
+  q3plain_wiki         6.3536 [OK]
+  q3imat_notes        10.3905 [OK]
+  q3noimat_notes      10.5692 [OK]
+  bf16_notes          10.2756 [OK]
+
+--- P-IMAT3 (0.70): Q3_NOIMAT wikitext BELOW same-run BF16 ---
+  Q3_NOIMAT 6.1871 vs BF16 6.4064 (same run) -> CONFIRMED
+  the inversion is REAL and not a harness artifact
+
+--- P-IMAT4 (0.60): Q3_NOIMAT beats Q3_IMAT on wikitext, paired ---
+  unpaired: NOIMAT 6.1871 vs IMAT 6.4692  diff -0.2821
+  paired:   mean diff -0.2978 +/- 0.0105 (n=64 chunks), t=-28.24
+  -> CONFIRMED
+
+--- P-IMAT5 (0.50): own-notes gap smaller in magnitude than wikitext gap ---
+  |wiki gap| 0.2821  vs  |notes gap| 0.1787 -> CONFIRMED
+
+--- P-IMAT6 (0.65): plain Q3_K_M does NOT reproduce the ladder's 6.4370 here ---
+  q3plain_wiki 6.3536 vs ladder 6.4370 -> CONFIRMED (discrepancy is flags/chunks, not the file)
+[2026-07-20_20:34:03] === v2 complete ===
