@@ -1,0 +1,32 @@
+### HumanEval/0 k=0 finish=stop out_tok=313 gzip_ratio=0.6862068965517242
+### REASONING:
+Let me implement this function. I need to check if any two numbers in the list are closer to each other than the given threshold.
+
+The approach: sort the list, then check adjacent elements. If any adjacent pair has a difference less than the threshold, return True. Otherwise return False.
+
+### CONTENT:
+```python
+from typing import List
+
+
+def has_close_elements(numbers: List[float], threshold: float) -> bool:
+    """ Check if in given list of numbers, are any two numbers closer to each other than
+    given threshold.
+    """
+    sorted_nums = sorted(numbers)
+    for i in range(len(sorted_nums) - 1):
+        if sorted_nums[i + 1] - sorted_nums[i] < threshold:
+            return True
+    return False
+```
+
+**Explanation:**
+
+1. **Sort** the list of numbers — this ensures that the closest pair (if any) must be adjacent in the sorted order.
+2. **Iterate** through adjacent pairs and check if their difference is less than the threshold.
+3. Return `True` as soon as a close pair is found; otherwise return `False`.
+
+This works because if two non-adjacent elements in a sorted list are closer than the threshold, the elements between them would also form pairs that are even closer (or equally close), so checking only adjacent pairs is sufficient.
+
+- **Time complexity:** O(n log n) due to sorting
+- **Space complexity:** O(n) for the sorted copy

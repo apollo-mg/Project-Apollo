@@ -1,0 +1,14 @@
+### HumanEval/50 k=0 finish=stop out_tok=209 gzip_ratio=0.6394557823129252
+### REASONING:
+The user wants me to complete the `decode_shift` function that reverses the `encode_shift` function. The encode function shifts each character by 5 forward in the alphabet. So the decode function should shift each character by 5 backward (or equivalently, by 21 forward, since -5 mod 26 = 21).
+
+### CONTENT:
+```python
+def decode_shift(s: str):
+    """
+    takes as input string encoded with encode_shift function. Returns decoded string.
+    """
+    return "".join([chr(((ord(ch) - 5 - ord("a")) % 26) + ord("a")) for ch in s])
+```
+
+The decode function shifts each character **back by 5** (equivalent to shifting forward by 21, since `-5 ≡ 21 (mod 26)`), reversing the encoding. The modulo operation ensures the result wraps around the alphabet correctly even when subtracting 5 goes below `'a'`.

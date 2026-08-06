@@ -1,0 +1,50 @@
+### HumanEval/91 k=0 finish=stop out_tok=476 gzip_ratio=0.636568848758465
+### REASONING:
+Let me analyze this problem:
+
+1. Sentences are delimited by '.', '?', or '!'
+2. A "boredom" is a sentence that starts with the word "I"
+3. I need to count the number of such sentences
+
+Let me think about the approach:
+- Split the string into sentences using '.', '?', '!' as delimiters
+- For each sentence, strip whitespace and check if it starts with "I"
+- Need to be careful about edge cases like empty sentences
+
+Let me write the solution:
+
+### CONTENT:
+```python
+def is_bored(S):
+    """
+    You'll be given a string of words, and your task is to count the number
+    of boredoms. A boredom is a sentence that starts with the word "I".
+    Sentences are delimited by '.', '?' or '!'.
+   
+    For example:
+    >>> is_bored("Hello world")
+    0
+    >>> is_bored("The sky is blue. The sun is shining. I love this weather")
+    1
+    """
+    count = 0
+    # Split by sentence delimiters
+    import re
+    sentences = re.split(r'[.?!]', S)
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if sentence.startswith("I ") or sentence == "I":
+            count += 1
+    return count
+```
+
+**How it works:**
+
+1. **Split** the input string into sentences using `re.split(r'[.?!]', S)` — this breaks on `.`, `?`, or `!`.
+2. **Strip** whitespace from each resulting sentence.
+3. **Check** if the sentence starts with `"I "` (followed by a space) or is exactly `"I"` — this ensures we match the word "I" and not something like "It".
+4. **Count** and return the number of matching sentences.
+
+**Example walkthrough:**
+- `"The sky is blue. The sun is shining. I love this weather"` splits into `["The sky is blue", " The sun is shining", " I love this weather"]`
+- After stripping, only `"I love this weather"` starts with `"I "` → returns `1`

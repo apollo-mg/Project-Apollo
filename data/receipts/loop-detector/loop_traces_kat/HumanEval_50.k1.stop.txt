@@ -1,0 +1,12 @@
+### HumanEval/50 k=1 finish=stop out_tok=119 gzip_ratio=None
+### REASONING:
+The function `encode_shift` shifts every character by 5 in the alphabet (circularly, lowercase a-z). To decode, we need to shift by -5 (or equivalently +21) modulo 26.
+
+### CONTENT:
+```python
+def decode_shift(s: str):
+    """
+    takes as input string encoded with encode_shift function. Returns decoded string.
+    """
+    return "".join([chr(((ord(ch) - 5 - ord("a")) % 26) + ord("a")) for ch in s])
+```

@@ -1,0 +1,57 @@
+### HumanEval/91 k=1 finish=stop out_tok=507 gzip_ratio=0.5779927448609432
+### REASONING:
+Let me analyze this problem:
+
+1. Split the string into sentences using '.', '?', '!' as delimiters
+2. Count sentences that start with "I"
+3. Need to handle whitespace properly
+
+Let me write the solution:
+
+```python
+def is_bored(S):
+    import re
+    sentences = re.split(r'[.!?]', S)
+    count = 0
+    for sentence in sentences:
+        stripped = sentence.strip()
+        if stripped.startswith('I '):
+            count += 1
+    return count
+```
+
+Wait, should I also check for just "I." or "I?" - a single word "I"? Let me think... "I love this weather" starts with "I " so that works. But what about just "I"? The problem says "starts with the word I", so "I" alone should count too.
+
+
+I need to refine my approach to handle both "I " and standalone "I" cases, and make sure I'm not counting empty sentences after stripping.
+
+### CONTENT:
+```python
+def is_bored(S):
+    """
+    You'll be given a string of words, and your task is to count the number
+    of boredoms. A boredom is a sentence that starts with the word "I".
+    Sentences are delimited by '.', '?' or '!'.
+   
+    For example:
+    >>> is_bored("Hello world")
+    0
+    >>> is_bored("The sky is blue. The sun is shining. I love this weather")
+    1
+    """
+    import re
+    sentences = re.split(r'[.!?]', S)
+    count = 0
+    for sentence in sentences:
+        stripped = sentence.strip()
+        if stripped == 'I' or stripped.startswith('I '):
+            count += 1
+    return count
+```
+
+**Explanation:**
+
+1. **Split into sentences** — Use `re.split` to break the string on `.`, `?`, or `!` delimiters.
+2. **Strip whitespace** — Remove leading/trailing spaces from each sentence segment.
+3. **Check if it starts with "I"** — A valid boredom either is exactly `"I"` or starts with `"I "` (to avoid matching something like `"Ice cream is nice"`).
+4. **Count and return** — Increment the counter for each matching sentence.
