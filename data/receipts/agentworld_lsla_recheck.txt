@@ -1,0 +1,37 @@
+# AgentWorld ls -la "blind spot" recheck (2026-07-23, Claude/Opus 4.8)
+# REFUTES the "directory-tracking blind spot" claimed in
+#   data/Apollo Docs/AgentWorld_Fidelity_and_Gate3_Report.md (Gemini).
+#
+# Method: replayed Gemini's EXACT 6-command stateful terminal sequence against AgentWorld on
+# .73:8082 (Q4_K_XL), same temp 0.6/top_p 0.95/top_k 20/seed 42 — but with max_tokens=16000
+# (Gemini used 2048) and CAPTURING finish_reason (Gemini's probe discarded it). Probe:
+# scratchpad/aw_fidelity_recheck.py.
+#
+# VERDICT: the empty ls -la was TRUNCATION, not a model limitation.
+#   - ls -la needed 7743 completion tokens (reasoning_content 18745 chars). Gemini's 2048 cap cut
+#     it off mid-<think> -> empty content. All OTHER commands used 233-546 tok (< 2048) -> resolved
+#     fine in Gemini's probe. Only the one command that exceeded 2048 "failed." That is the tell.
+#   - At 16k budget ls -la resolves finish=stop with a CORRECT listing, incl. the EXACT 25-byte size
+#     for test.py (echo wrote exactly 25 bytes) -> AgentWorld tracked file *contents/size* precisely.
+#     No directory-tracking blind spot.
+#
+# CORRECTED fidelity: all substantive commands match (python state-retention, POSIX error, grep|wc
+# pipeline, AND ls -la structurally). The "5/6 with a blind spot" headline should be "clean on the
+# substantive cases; the lone divergence was a harness truncation."
+#
+# REAL finding to document instead: stateful/complex simulation is token-EXPENSIVE. One ls -la after
+# a few stateful commands costs ~7.7k reasoning tokens vs ~250-550 for simple commands. That is the
+# characteristic that bounds "cheap oracle" claims — cost, not fidelity.
+#
+# --- raw recheck output (max_tokens=16000, finish_reason captured) ---
+[0] mkdir -p /home/user/project                   finish=stop tok=280  rc_len=1162  content_len=7
+[1] cd /home/user/project && echo '...' > test.py finish=stop tok=233  rc_len=922   content_len=7
+[2] cd /home/user/project && ls -la               finish=stop tok=7743 rc_len=18745 content_len=144
+    ls -la SIMULATED CONTENT (16k budget):
+      total 12
+      drwxr-xr-x 2 user user 4096 Oct 24 04:03 .
+      drwxr-xr-x 1 user user 4096 Oct 24 04:03 ..
+      -rw-r--r-- 1 user user   25 Oct 24 04:03 test.py
+[3] cd /home/user/project && python3 test.py      finish=stop tok=352  rc_len=1308  content_len=15
+[4] cd /home/user/project && cat missing_file.txt finish=stop tok=353  rc_len=1297  content_len=48
+[5] cd /home/user/project && grep 'Test' test.py | wc -l  finish=stop tok=546 rc_len=1843 content_len=1
