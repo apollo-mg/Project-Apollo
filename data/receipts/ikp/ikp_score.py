@@ -49,8 +49,18 @@ def norm(s):
     return ARTICLES.sub("", s).strip()
 
 
-def grade(gold, response, long_answer_words=25):
-    """-> (verdict, reason). verdict in CORRECT / WRONG / REFUSAL / AMBIGUOUS."""
+def grade(gold, response, long_answer_words=25, finish_reason=None):
+    """-> (verdict, reason). verdict in CORRECT / WRONG / REFUSAL / AMBIGUOUS / NO_ANSWER.
+
+    NO_ANSWER is checked FIRST and deliberately. A generation that hit max_tokens produces an empty
+    or partial string, which the empty-response rule below would book as a REFUSAL and the substring
+    rule would book as WRONG. Both are the wrong attribution: the probe was never answered. On a
+    reasoning model an unterminated <think> chain does this to every probe at once, and if one arm
+    of a comparison thinks slightly longer than the other you get a clean, entirely spurious
+    knowledge cliff -- which is what the Puzzle-75B HumanEval+ gap turned out to be.
+    """
+    if finish_reason == "length":
+        return "NO_ANSWER", "hit max_tokens"
     if not response or not response.strip():
         return "REFUSAL", "empty"
     if REFUSAL_PAT.search(response):
@@ -93,7 +103,8 @@ def main():
                 if not line:
                     continue
                 rec = json.loads(line)
-                v, why = grade(rec["gold"], rec.get("response", ""), args.long_answer_words)
+                v, why = grade(rec["gold"], rec.get("response", ""), args.long_answer_words,
+                               rec.get("finish_reason"))
                 stats[rec["label"]][rec["tier"]][v] += 1
                 if v == "AMBIGUOUS":
                     ambiguous.append({**rec, "reason": why})
@@ -106,7 +117,9 @@ def main():
 
     rows = []
     tiers = sorted({t for lab in stats for t in stats[lab]})
-    hdr = f"{'arm':<14}{'tier':<6}{'n':>5}{'corr':>6}{'wrong':>6}{'refus':>6}{'ambig':>6}{'raw':>9}{'penalized':>11}"
+    na_rate = {}          # label -> overall no_answer fraction, for the divergence check below
+    hdr = (f"{'arm':<14}{'tier':<6}{'n':>5}{'corr':>6}{'wrong':>6}{'refus':>6}{'ambig':>6}"
+           f"{'noans':>7}{'raw':>9}{'answered':>10}{'penalized':>11}")
     print(hdr)
     print("-" * len(hdr))
     for lab in sorted(stats):
@@ -117,22 +130,50 @@ def main():
                 continue
             n = sum(d.values())
             c, w, rf, am = d["CORRECT"], d["WRONG"], d["REFUSAL"], d["AMBIGUOUS"]
-            for k, v in (("n", n), ("CORRECT", c), ("WRONG", w), ("REFUSAL", rf), ("AMBIGUOUS", am)):
+            na = d["NO_ANSWER"]
+            for k, v in (("n", n), ("CORRECT", c), ("WRONG", w), ("REFUSAL", rf),
+                         ("AMBIGUOUS", am), ("NO_ANSWER", na)):
                 tot[k] += v
-            raw, pen = c / n, (c + HALLUCINATION_PENALTY * w) / n
-            print(f"{lab:<14}{t:<6}{n:>5}{c:>6}{w:>6}{rf:>6}{am:>6}{raw:>8.1%}{pen:>11.3f}")
+            # raw is over ALL probes (comparable with earlier receipts); answered excludes NO_ANSWER
+            # so a token-budget artefact cannot masquerade as a recall deficit.
+            raw = c / n
+            ans_n = n - na
+            ans = c / ans_n if ans_n else float("nan")
+            pen = (c + HALLUCINATION_PENALTY * w) / n
+            print(f"{lab:<14}{t:<6}{n:>5}{c:>6}{w:>6}{rf:>6}{am:>6}{na:>7}"
+                  f"{raw:>8.1%}{ans:>9.1%}{pen:>11.3f}")
             rows.append(dict(arm=lab, tier=t, n=n, correct=c, wrong=w, refusal=rf,
-                             ambiguous=am, raw=round(raw, 4), penalized=round(pen, 4)))
+                             ambiguous=am, no_answer=na, n_answered=ans_n,
+                             raw=round(raw, 4), answered=round(ans, 4) if ans_n else None,
+                             penalized=round(pen, 4)))
         n = tot["n"]
         if n:
-            raw = tot["CORRECT"] / n
-            pen = (tot["CORRECT"] + HALLUCINATION_PENALTY * tot["WRONG"]) / n
-            print(f"{lab:<14}{'ALL':<6}{n:>5}{tot['CORRECT']:>6}{tot['WRONG']:>6}"
-                  f"{tot['REFUSAL']:>6}{tot['AMBIGUOUS']:>6}{raw:>8.1%}{pen:>11.3f}")
-            rows.append(dict(arm=lab, tier="ALL", n=n, correct=tot["CORRECT"], wrong=tot["WRONG"],
-                             refusal=tot["REFUSAL"], ambiguous=tot["AMBIGUOUS"],
-                             raw=round(raw, 4), penalized=round(pen, 4)))
+            c, w, na = tot["CORRECT"], tot["WRONG"], tot["NO_ANSWER"]
+            ans_n = n - na
+            raw = c / n
+            ans = c / ans_n if ans_n else float("nan")
+            pen = (c + HALLUCINATION_PENALTY * w) / n
+            na_rate[lab] = na / n
+            print(f"{lab:<14}{'ALL':<6}{n:>5}{c:>6}{w:>6}{tot['REFUSAL']:>6}{tot['AMBIGUOUS']:>6}"
+                  f"{na:>7}{raw:>8.1%}{ans:>9.1%}{pen:>11.3f}")
+            rows.append(dict(arm=lab, tier="ALL", n=n, correct=c, wrong=w,
+                             refusal=tot["REFUSAL"], ambiguous=tot["AMBIGUOUS"], no_answer=na,
+                             n_answered=ans_n, raw=round(raw, 4),
+                             answered=round(ans, 4) if ans_n else None, penalized=round(pen, 4)))
             print("-" * len(hdr))
+
+    # G-5: divergent termination behaviour invalidates the accuracy delta between arms.
+    if len(na_rate) > 1:
+        lo, hi = min(na_rate.values()), max(na_rate.values())
+        print(f"\n[G-5] no_answer rate: " +
+              ", ".join(f"{k}={v:.1%}" for k, v in sorted(na_rate.items())))
+        if hi - lo > 0.02:
+            print(f"[G-5] *** SPREAD {hi-lo:.1%} EXCEEDS 2pp -- the accuracy delta between these "
+                  f"arms is NOT interpretable as a knowledge difference. The arms terminated "
+                  f"differently. Explain that first; it may be the more interesting finding. ***",
+                  file=sys.stderr)
+        else:
+            print(f"[G-5] spread {hi-lo:.1%} within 2pp -- arms terminated comparably.")
 
     if args.csv and rows:
         with open(args.csv, "w", newline="") as f:
