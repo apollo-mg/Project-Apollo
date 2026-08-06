@@ -92,7 +92,15 @@ def main():
     ap.add_argument("--judge-queue", help="write AMBIGUOUS records here for an adjudication pass")
     ap.add_argument("--csv", help="write the per-arm summary as CSV")
     ap.add_argument("--long-answer-words", type=int, default=25)
+    ap.add_argument("--exclude-source", default="",
+                    help="comma list of source_type values to drop before scoring, e.g. "
+                         "'researcher'. Applied identically to every input file. Because raw "
+                         "responses are kept, this can be decided once and re-applied without "
+                         "re-running inference -- but it must be decided BEFORE the arms being "
+                         "compared are seen, or it is filter selection on known results")
     args = ap.parse_args()
+    drop = {s.strip() for s in args.exclude_source.split(",") if s.strip()}
+    dropped = defaultdict(int)
 
     stats = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))  # label -> tier -> verdict
     ambiguous = []
@@ -103,6 +111,9 @@ def main():
                 if not line:
                     continue
                 rec = json.loads(line)
+                if drop and rec.get("source_type") in drop:
+                    dropped[rec["label"]] += 1
+                    continue
                 v, why = grade(rec["gold"], rec.get("response", ""), args.long_answer_words,
                                rec.get("finish_reason"))
                 stats[rec["label"]][rec["tier"]][v] += 1
@@ -114,6 +125,14 @@ def main():
             for r in ambiguous:
                 f.write(json.dumps(r, ensure_ascii=False) + "\n")
         print(f"[ikp] {len(ambiguous)} ambiguous -> {args.judge_queue}", file=sys.stderr)
+
+    # No silent caps: a filter that quietly shrinks the denominator reads as full coverage.
+    if drop:
+        print(f"[ikp] excluded source_type {sorted(drop)}: " +
+              ", ".join(f"{k}={v} probes" for k, v in sorted(dropped.items())))
+        if len(set(dropped.values())) > 1:
+            print("[ikp] *** WARNING: unequal exclusion across arms. The arms no longer answer the "
+                  "same question set and their accuracies are not comparable. ***", file=sys.stderr)
 
     rows = []
     tiers = sorted({t for lab in stats for t in stats[lab]})

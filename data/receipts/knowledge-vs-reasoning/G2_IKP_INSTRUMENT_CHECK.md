@@ -82,6 +82,41 @@ that removed T5–T7.
 Choosing after seeing the pruned arm's numbers would be selecting the filter that produces the
 preferred answer.
 
+### DECISION (locked 2026-08-06, before any pruned-arm inference)
+
+**Exclude `source_type == "researcher"`.** Applied via `--exclude-source researcher` on both the
+runner and the scorer, identically to every arm. Because raw responses are retained, the base arm was
+re-scored rather than re-run.
+
+The re-score validates the decision more strongly than the argument for it did:
+
+```
+arm           tier      n  corr wrong refus ambig  noans      raw  answered  penalized
+glm-base      T1      200   184    10     6     0      0   92.0%    92.0%      0.870
+glm-base      T2      200   176    15     8     1      0   88.0%    88.0%      0.805
+glm-base      T3      165    94    39    31     1      0   57.0%    57.0%      0.333
+glm-base      T4      149    36    66    47     0      0   24.2%    24.2%     -0.201
+glm-base      ALL     714   490   130    92     2      0   68.6%    68.6%      0.504
+```
+
+| | all 800 | researcher excluded (714) |
+|---|---|---|
+| NO_ANSWER | 32 | **0** |
+| AMBIGUOUS | 41 | **2** |
+| T3 | 47.0 % raw / 51.6 % answered | **57.0 %** |
+| T4 | 18.5 % / 19.9 % | **24.2 %** |
+
+Those 86 probes produced **100% of the truncations and 39 of the 41 ambiguous verdicts**, while
+contributing **one** correct answer between them — T3's correct count is unchanged at 94 and T4's
+moves 37 → 36. They were not signal being discarded; they were probes that mostly never received a
+verdict at all, on the source the upstream audit rates 24.9% ambiguous or incorrect.
+
+`raw` now equals `answered` on every tier, and all four tiers retain headroom. T1/T2 are untouched —
+the researcher source appears only in T3/T4.
+
+The scorer reports the excluded count per arm and **warns loudly if the counts differ between arms**,
+since unequal exclusion would mean the arms are no longer answering the same question set.
+
 ## Refusal base rates — needed before the comparison, not after
 
 | tier | refusal rate |

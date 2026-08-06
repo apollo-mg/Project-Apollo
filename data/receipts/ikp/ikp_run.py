@@ -93,6 +93,10 @@ def main():
                     help="match llama-server -np; >1 only valid if the server has slots. "
                          "NOTE: >1 changes batch composition and can break run-to-run determinism")
     ap.add_argument("--limit", type=int, default=0, help="debug: stop after N probes")
+    ap.add_argument("--exclude-source", default="",
+                    help="comma list of source_type values to drop, e.g. 'researcher'. Must be "
+                         "identical across every arm of a comparison and fixed BEFORE any arm "
+                         "beyond the first is run")
     ap.add_argument("--no-think", action="store_true",
                     help="disable the model's reasoning mode via chat_template_kwargs "
                          "{'enable_thinking': false}. Recall is not a reasoning task, and a <think> "
@@ -121,6 +125,12 @@ def main():
 
     tiers = {t.strip() for t in args.tiers.split(",") if t.strip()}
     probes = [p for p in json.load(open(args.probes)) if p["tier"] in tiers]
+    drop = {s.strip() for s in args.exclude_source.split(",") if s.strip()}
+    if drop:
+        before = len(probes)
+        probes = [p for p in probes if p.get("source_type") not in drop]
+        print(f"[ikp] excluding source_type {sorted(drop)}: {before} -> {len(probes)} probes",
+              file=sys.stderr)
     if args.limit:
         probes = probes[: args.limit]
 
