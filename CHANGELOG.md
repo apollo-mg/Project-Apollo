@@ -8,6 +8,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Lab spec: knowledge vs reasoning under compression (Opus 5+Mark, 2026-08-06):**
+  `data/Apollo Docs/Lab_Spec_Knowledge_vs_Reasoning_Under_Compression.md`. Tests whether knowledge
+  recall degrades under compression faster than reasoning does, and whether the field's standard
+  panels are structurally blind to it. Motivated by four independent signals converging on the same
+  unmeasured axis — Maple's all-reasoning vendor panel, Qwen3.6-35B-A3B beating Qwen3.5-122B-A10B
+  everywhere *except* MMLU-Pro, REAP's own "near-lossless on **code generation**" framing, and field
+  reports of factual fabrication under aggressive quantization.
+  Separates **two compression mechanisms** that are usually conflated: precision reduction
+  (quantization) and capacity deletion (REAP expert pruning). The mechanistic claim (P-X1, 0.65) is
+  that deletion costs more knowledge than precision reduction, because REAP ranks experts by
+  router-gate × activation-norm over a calibration set — so experts firing on rare inputs are cut
+  first, making the criterion a near-proxy for deleting the tail of the knowledge distribution.
+  Instruments: IKP T1–T4 (800 questions; T5–T7 excluded as audit-flagged and at the noise floor) and
+  HumanEval+, run on every arm so both curves land on one pair of axes. IKP is exact-match so it
+  needs no reference logits, which keeps it on the 16 GB control plane.
+  **The falsifier is stated before any run:** the thesis needs *differential* degradation, so both
+  curves flat, both falling together, or reasoning falling faster all kill it. Contamination is
+  handled by design — every comparison is a delta between arms of one base model, so shared exposure
+  cancels; absolute IKP scores are explicitly not reportable as capability claims.
+  Phase 1 uses `zai-org/GLM-4.7-Flash` vs `cerebras/GLM-4.7-Flash-REAP-23B-A3B` rather than the
+  widely-used Qwen3.6-28B REAP, which stacks a LoRA fine-tune on top of the pruning and can attribute
+  nothing. **K is left as the one open parameter**, pending whether buun's determinism fix holds on
+  our hardware against the HA-04 reproducer.
 - **Maple-Preview ships ternary weights in BF16 containers (Opus 5+Mark, 2026-08-05):**
   `data/receipts/maple/MAPLE_TERNARY_STRUCTURE.md`, with the shard-9 safetensors header preserved
   alongside. `deepgrove/maple-preview` (rev `ac1ddd79d`) publishes **40.45 GB of BF16 safetensors**
