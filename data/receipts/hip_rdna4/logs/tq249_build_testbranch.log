@@ -1,0 +1,493 @@
+make: Entering directory '/mnt/TG_2TB/tmp_pr244/build_hip'
+CMAKE_BUILD_TYPE=Release
+-- Warning: ccache not found - consider installing it for faster compilation or disable this warning with GGML_CCACHE=OFF
+-- CMAKE_SYSTEM_PROCESSOR: x86_64
+-- GGML_SYSTEM_ARCH: x86
+-- Including CPU backend
+-- x86 detected
+-- Adding CPU backend variant ggml-cpu: -march=native 
+-- HIP and hipBLAS found
+-- Including HIP backend
+-- ggml version: 0.18.0
+-- ggml commit:  418b1759c
+-- OpenSSL found: 3.6.3
+-- Generating embedded license file for target: llama-app
+-- Configuring done (0.2s)
+-- Generating done (0.2s)
+-- Build files have been written to: /mnt/TG_2TB/tmp_pr244/build_hip
+[  0%] Building CXX object common/CMakeFiles/llama-common-base.dir/build-info.cpp.o
+[  0%] Built target cpp-httplib
+[  0%] Building C object ggml/src/CMakeFiles/ggml-base.dir/ggml.c.o
+[  0%] Building C object ggml/src/CMakeFiles/ggml-base.dir/ggml-alloc.c.o
+[  0%] Building CXX object ggml/src/CMakeFiles/ggml-base.dir/ggml-backend.cpp.o
+[  0%] Building CXX object ggml/src/CMakeFiles/ggml-base.dir/ggml-backend-meta.cpp.o
+[  1%] Building CXX object ggml/src/CMakeFiles/ggml-base.dir/ggml.cpp.o
+[  1%] Building C object ggml/src/CMakeFiles/ggml-base.dir/ggml-quants.c.o
+[  1%] Building CXX object ggml/src/CMakeFiles/ggml-base.dir/ggml-opt.cpp.o
+[  1%] Building CXX object ggml/src/CMakeFiles/ggml-base.dir/ggml-threading.cpp.o
+[  3%] Building C object ggml/src/CMakeFiles/ggml-base.dir/ggml-turbo-quant.c.o
+[  3%] Building CXX object ggml/src/CMakeFiles/ggml-base.dir/gguf.cpp.o
+[  3%] Linking CXX static library libllama-common-base.a
+[  3%] Built target llama-common-base
+[  3%] Linking CXX shared library ../../bin/libggml-base.so
+[  3%] Built target ggml-base
+[  3%] Linking CXX shared library ../../bin/libggml-cpu.so
+[  5%] Building HIP object ggml/src/ggml-hip/CMakeFiles/ggml-hip.dir/__/ggml-cuda/fattn.cu.o
+[  8%] Built target ggml-cpu
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1409:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1409 |                 cudaStreamSynchronize(stream);
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:139:31: note: expanded from macro 'cudaStreamSynchronize'
+  139 | #define cudaStreamSynchronize hipStreamSynchronize
+      |                               ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1410:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1410 |                 cudaFree(ptr);
+      |                 ^~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:89:18: note: expanded from macro 'cudaFree'
+   89 | #define cudaFree hipFree
+      |                  ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1409:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1409 |                 cudaStreamSynchronize(stream);
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:139:31: note: expanded from macro 'cudaStreamSynchronize'
+  139 | #define cudaStreamSynchronize hipStreamSynchronize
+      |                               ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1401:12: note: in instantiation of member function 'launch_fattn(ggml_backend_cuda_context &, ggml_tensor *, fattn_kernel_t, const int, const size_t, const int, const bool, const bool, const bool, const int)::hip_f16_alloc::~hip_f16_alloc' requested here
+ 1401 |     struct hip_f16_alloc {
+      |            ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-mma-f16.cuh:2187:5: note: in instantiation of function template specialization 'launch_fattn<128, 1, 16>' requested here
+ 2187 |     launch_fattn<DV, ncols1, ncols2>
+      |     ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:23:13: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_case<192, 128, 1, 16>' requested here
+   23 |             ggml_cuda_flash_attn_ext_mma_f16_case<DKQ, DV, 16/ncols2, ncols2>(ctx, dst);
+      |             ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:237:17: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<192, 128, 16>' requested here
+  237 |                 ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<192, 128, 16>(ctx, dst);
+      |                 ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1410:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1410 |                 cudaFree(ptr);
+      |                 ^~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:89:18: note: expanded from macro 'cudaFree'
+   89 | #define cudaFree hipFree
+      |                  ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1409:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1409 |                 cudaStreamSynchronize(stream);
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:139:31: note: expanded from macro 'cudaStreamSynchronize'
+  139 | #define cudaStreamSynchronize hipStreamSynchronize
+      |                               ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1401:12: note: in instantiation of member function 'launch_fattn(ggml_backend_cuda_context &, ggml_tensor *, fattn_kernel_t, const int, const size_t, const int, const bool, const bool, const bool, const int)::hip_f16_alloc::~hip_f16_alloc' requested here
+ 1401 |     struct hip_f16_alloc {
+      |            ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-mma-f16.cuh:2187:5: note: in instantiation of function template specialization 'launch_fattn<128, 2, 16>' requested here
+ 2187 |     launch_fattn<DV, ncols1, ncols2>
+      |     ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:30:9: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_case<192, 128, 2, 16>' requested here
+   30 |         ggml_cuda_flash_attn_ext_mma_f16_case<DKQ, DV, 32/ncols2, ncols2>(ctx, dst);
+      |         ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:237:17: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<192, 128, 16>' requested here
+  237 |                 ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<192, 128, 16>(ctx, dst);
+      |                 ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1410:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1410 |                 cudaFree(ptr);
+      |                 ^~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:89:18: note: expanded from macro 'cudaFree'
+   89 | #define cudaFree hipFree
+      |                  ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1409:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1409 |                 cudaStreamSynchronize(stream);
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:139:31: note: expanded from macro 'cudaStreamSynchronize'
+  139 | #define cudaStreamSynchronize hipStreamSynchronize
+      |                               ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1401:12: note: in instantiation of member function 'launch_fattn(ggml_backend_cuda_context &, ggml_tensor *, fattn_kernel_t, const int, const size_t, const int, const bool, const bool, const bool, const int)::hip_f16_alloc::~hip_f16_alloc' requested here
+ 1401 |     struct hip_f16_alloc {
+      |            ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-mma-f16.cuh:2187:5: note: in instantiation of function template specialization 'launch_fattn<128, 4, 16>' requested here
+ 2187 |     launch_fattn<DV, ncols1, ncols2>
+      |     ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:34:5: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_case<192, 128, 4, 16>' requested here
+   34 |     ggml_cuda_flash_attn_ext_mma_f16_case<DKQ, DV, 64/ncols2, ncols2>(ctx, dst);
+      |     ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:237:17: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<192, 128, 16>' requested here
+  237 |                 ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<192, 128, 16>(ctx, dst);
+      |                 ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1410:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1410 |                 cudaFree(ptr);
+      |                 ^~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:89:18: note: expanded from macro 'cudaFree'
+   89 | #define cudaFree hipFree
+      |                  ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1409:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1409 |                 cudaStreamSynchronize(stream);
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:139:31: note: expanded from macro 'cudaStreamSynchronize'
+  139 | #define cudaStreamSynchronize hipStreamSynchronize
+      |                               ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1401:12: note: in instantiation of member function 'launch_fattn(ggml_backend_cuda_context &, ggml_tensor *, fattn_kernel_t, const int, const size_t, const int, const bool, const bool, const bool, const int)::hip_f16_alloc::~hip_f16_alloc' requested here
+ 1401 |     struct hip_f16_alloc {
+      |            ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-mma-f16.cuh:2187:5: note: in instantiation of function template specialization 'launch_fattn<128, 1, 8>' requested here
+ 2187 |     launch_fattn<DV, ncols1, ncols2>
+      |     ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:16:13: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_case<192, 128, 1, 8>' requested here
+   16 |             ggml_cuda_flash_attn_ext_mma_f16_case<DKQ, DV, 8/ncols2, ncols2>(ctx, dst);
+      |             ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:240:17: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<192, 128, 8>' requested here
+  240 |                 ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<192, 128,  8>(ctx, dst);
+      |                 ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1410:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1410 |                 cudaFree(ptr);
+      |                 ^~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:89:18: note: expanded from macro 'cudaFree'
+   89 | #define cudaFree hipFree
+      |                  ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1409:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1409 |                 cudaStreamSynchronize(stream);
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:139:31: note: expanded from macro 'cudaStreamSynchronize'
+  139 | #define cudaStreamSynchronize hipStreamSynchronize
+      |                               ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1401:12: note: in instantiation of member function 'launch_fattn(ggml_backend_cuda_context &, ggml_tensor *, fattn_kernel_t, const int, const size_t, const int, const bool, const bool, const bool, const int)::hip_f16_alloc::~hip_f16_alloc' requested here
+ 1401 |     struct hip_f16_alloc {
+      |            ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-mma-f16.cuh:2187:5: note: in instantiation of function template specialization 'launch_fattn<128, 2, 8>' requested here
+ 2187 |     launch_fattn<DV, ncols1, ncols2>
+      |     ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:23:13: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_case<192, 128, 2, 8>' requested here
+   23 |             ggml_cuda_flash_attn_ext_mma_f16_case<DKQ, DV, 16/ncols2, ncols2>(ctx, dst);
+      |             ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:240:17: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<192, 128, 8>' requested here
+  240 |                 ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<192, 128,  8>(ctx, dst);
+      |                 ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1410:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1410 |                 cudaFree(ptr);
+      |                 ^~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:89:18: note: expanded from macro 'cudaFree'
+   89 | #define cudaFree hipFree
+      |                  ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1409:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1409 |                 cudaStreamSynchronize(stream);
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:139:31: note: expanded from macro 'cudaStreamSynchronize'
+  139 | #define cudaStreamSynchronize hipStreamSynchronize
+      |                               ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1401:12: note: in instantiation of member function 'launch_fattn(ggml_backend_cuda_context &, ggml_tensor *, fattn_kernel_t, const int, const size_t, const int, const bool, const bool, const bool, const int)::hip_f16_alloc::~hip_f16_alloc' requested here
+ 1401 |     struct hip_f16_alloc {
+      |            ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-mma-f16.cuh:2187:5: note: in instantiation of function template specialization 'launch_fattn<128, 4, 8>' requested here
+ 2187 |     launch_fattn<DV, ncols1, ncols2>
+      |     ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:30:9: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_case<192, 128, 4, 8>' requested here
+   30 |         ggml_cuda_flash_attn_ext_mma_f16_case<DKQ, DV, 32/ncols2, ncols2>(ctx, dst);
+      |         ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:240:17: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<192, 128, 8>' requested here
+  240 |                 ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<192, 128,  8>(ctx, dst);
+      |                 ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1410:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1410 |                 cudaFree(ptr);
+      |                 ^~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:89:18: note: expanded from macro 'cudaFree'
+   89 | #define cudaFree hipFree
+      |                  ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1409:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1409 |                 cudaStreamSynchronize(stream);
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:139:31: note: expanded from macro 'cudaStreamSynchronize'
+  139 | #define cudaStreamSynchronize hipStreamSynchronize
+      |                               ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1401:12: note: in instantiation of member function 'launch_fattn(ggml_backend_cuda_context &, ggml_tensor *, fattn_kernel_t, const int, const size_t, const int, const bool, const bool, const bool, const int)::hip_f16_alloc::~hip_f16_alloc' requested here
+ 1401 |     struct hip_f16_alloc {
+      |            ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-mma-f16.cuh:2187:5: note: in instantiation of function template specialization 'launch_fattn<128, 8, 8>' requested here
+ 2187 |     launch_fattn<DV, ncols1, ncols2>
+      |     ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:34:5: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_case<192, 128, 8, 8>' requested here
+   34 |     ggml_cuda_flash_attn_ext_mma_f16_case<DKQ, DV, 64/ncols2, ncols2>(ctx, dst);
+      |     ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:240:17: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<192, 128, 8>' requested here
+  240 |                 ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<192, 128,  8>(ctx, dst);
+      |                 ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1410:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1410 |                 cudaFree(ptr);
+      |                 ^~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:89:18: note: expanded from macro 'cudaFree'
+   89 | #define cudaFree hipFree
+      |                  ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1409:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1409 |                 cudaStreamSynchronize(stream);
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:139:31: note: expanded from macro 'cudaStreamSynchronize'
+  139 | #define cudaStreamSynchronize hipStreamSynchronize
+      |                               ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1401:12: note: in instantiation of member function 'launch_fattn(ggml_backend_cuda_context &, ggml_tensor *, fattn_kernel_t, const int, const size_t, const int, const bool, const bool, const bool, const int)::hip_f16_alloc::~hip_f16_alloc' requested here
+ 1401 |     struct hip_f16_alloc {
+      |            ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-mma-f16.cuh:2187:5: note: in instantiation of function template specialization 'launch_fattn<512, 2, 4>' requested here
+ 2187 |     launch_fattn<DV, ncols1, ncols2>
+      |     ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:16:13: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_case<576, 512, 2, 4>' requested here
+   16 |             ggml_cuda_flash_attn_ext_mma_f16_case<DKQ, DV, 8/ncols2, ncols2>(ctx, dst);
+      |             ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:284:21: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<576, 512, 4>' requested here
+  284 |                     ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<576, 512, 4>(ctx, dst);
+      |                     ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1410:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1410 |                 cudaFree(ptr);
+      |                 ^~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:89:18: note: expanded from macro 'cudaFree'
+   89 | #define cudaFree hipFree
+      |                  ^
+18 warnings generated when compiling for gfx1201.
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1409:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1409 |                 cudaStreamSynchronize(stream);
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:139:31: note: expanded from macro 'cudaStreamSynchronize'
+  139 | #define cudaStreamSynchronize hipStreamSynchronize
+      |                               ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1410:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1410 |                 cudaFree(ptr);
+      |                 ^~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:89:18: note: expanded from macro 'cudaFree'
+   89 | #define cudaFree hipFree
+      |                  ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1409:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1409 |                 cudaStreamSynchronize(stream);
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:139:31: note: expanded from macro 'cudaStreamSynchronize'
+  139 | #define cudaStreamSynchronize hipStreamSynchronize
+      |                               ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1401:12: note: in instantiation of member function 'launch_fattn(ggml_backend_cuda_context &, ggml_tensor *, fattn_kernel_t, const int, const size_t, const int, const bool, const bool, const bool, const int)::hip_f16_alloc::~hip_f16_alloc' requested here
+ 1401 |     struct hip_f16_alloc {
+      |            ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-mma-f16.cuh:2187:5: note: in instantiation of function template specialization 'launch_fattn<128, 1, 16>' requested here
+ 2187 |     launch_fattn<DV, ncols1, ncols2>
+      |     ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:23:13: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_case<192, 128, 1, 16>' requested here
+   23 |             ggml_cuda_flash_attn_ext_mma_f16_case<DKQ, DV, 16/ncols2, ncols2>(ctx, dst);
+      |             ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:237:17: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<192, 128, 16>' requested here
+  237 |                 ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<192, 128, 16>(ctx, dst);
+      |                 ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1410:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1410 |                 cudaFree(ptr);
+      |                 ^~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:89:18: note: expanded from macro 'cudaFree'
+   89 | #define cudaFree hipFree
+      |                  ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1409:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1409 |                 cudaStreamSynchronize(stream);
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:139:31: note: expanded from macro 'cudaStreamSynchronize'
+  139 | #define cudaStreamSynchronize hipStreamSynchronize
+      |                               ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1401:12: note: in instantiation of member function 'launch_fattn(ggml_backend_cuda_context &, ggml_tensor *, fattn_kernel_t, const int, const size_t, const int, const bool, const bool, const bool, const int)::hip_f16_alloc::~hip_f16_alloc' requested here
+ 1401 |     struct hip_f16_alloc {
+      |            ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-mma-f16.cuh:2187:5: note: in instantiation of function template specialization 'launch_fattn<128, 2, 16>' requested here
+ 2187 |     launch_fattn<DV, ncols1, ncols2>
+      |     ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:30:9: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_case<192, 128, 2, 16>' requested here
+   30 |         ggml_cuda_flash_attn_ext_mma_f16_case<DKQ, DV, 32/ncols2, ncols2>(ctx, dst);
+      |         ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:237:17: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<192, 128, 16>' requested here
+  237 |                 ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<192, 128, 16>(ctx, dst);
+      |                 ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1410:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1410 |                 cudaFree(ptr);
+      |                 ^~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:89:18: note: expanded from macro 'cudaFree'
+   89 | #define cudaFree hipFree
+      |                  ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1409:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1409 |                 cudaStreamSynchronize(stream);
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:139:31: note: expanded from macro 'cudaStreamSynchronize'
+  139 | #define cudaStreamSynchronize hipStreamSynchronize
+      |                               ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1401:12: note: in instantiation of member function 'launch_fattn(ggml_backend_cuda_context &, ggml_tensor *, fattn_kernel_t, const int, const size_t, const int, const bool, const bool, const bool, const int)::hip_f16_alloc::~hip_f16_alloc' requested here
+ 1401 |     struct hip_f16_alloc {
+      |            ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-mma-f16.cuh:2187:5: note: in instantiation of function template specialization 'launch_fattn<128, 4, 16>' requested here
+ 2187 |     launch_fattn<DV, ncols1, ncols2>
+      |     ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:34:5: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_case<192, 128, 4, 16>' requested here
+   34 |     ggml_cuda_flash_attn_ext_mma_f16_case<DKQ, DV, 64/ncols2, ncols2>(ctx, dst);
+      |     ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:237:17: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<192, 128, 16>' requested here
+  237 |                 ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<192, 128, 16>(ctx, dst);
+      |                 ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1410:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1410 |                 cudaFree(ptr);
+      |                 ^~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:89:18: note: expanded from macro 'cudaFree'
+   89 | #define cudaFree hipFree
+      |                  ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1409:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1409 |                 cudaStreamSynchronize(stream);
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:139:31: note: expanded from macro 'cudaStreamSynchronize'
+  139 | #define cudaStreamSynchronize hipStreamSynchronize
+      |                               ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1401:12: note: in instantiation of member function 'launch_fattn(ggml_backend_cuda_context &, ggml_tensor *, fattn_kernel_t, const int, const size_t, const int, const bool, const bool, const bool, const int)::hip_f16_alloc::~hip_f16_alloc' requested here
+ 1401 |     struct hip_f16_alloc {
+      |            ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-mma-f16.cuh:2187:5: note: in instantiation of function template specialization 'launch_fattn<128, 1, 8>' requested here
+ 2187 |     launch_fattn<DV, ncols1, ncols2>
+      |     ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:16:13: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_case<192, 128, 1, 8>' requested here
+   16 |             ggml_cuda_flash_attn_ext_mma_f16_case<DKQ, DV, 8/ncols2, ncols2>(ctx, dst);
+      |             ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:240:17: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<192, 128, 8>' requested here
+  240 |                 ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<192, 128,  8>(ctx, dst);
+      |                 ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1410:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1410 |                 cudaFree(ptr);
+      |                 ^~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:89:18: note: expanded from macro 'cudaFree'
+   89 | #define cudaFree hipFree
+      |                  ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1409:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1409 |                 cudaStreamSynchronize(stream);
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:139:31: note: expanded from macro 'cudaStreamSynchronize'
+  139 | #define cudaStreamSynchronize hipStreamSynchronize
+      |                               ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1401:12: note: in instantiation of member function 'launch_fattn(ggml_backend_cuda_context &, ggml_tensor *, fattn_kernel_t, const int, const size_t, const int, const bool, const bool, const bool, const int)::hip_f16_alloc::~hip_f16_alloc' requested here
+ 1401 |     struct hip_f16_alloc {
+      |            ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-mma-f16.cuh:2187:5: note: in instantiation of function template specialization 'launch_fattn<128, 2, 8>' requested here
+ 2187 |     launch_fattn<DV, ncols1, ncols2>
+      |     ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:23:13: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_case<192, 128, 2, 8>' requested here
+   23 |             ggml_cuda_flash_attn_ext_mma_f16_case<DKQ, DV, 16/ncols2, ncols2>(ctx, dst);
+      |             ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:240:17: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<192, 128, 8>' requested here
+  240 |                 ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<192, 128,  8>(ctx, dst);
+      |                 ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1410:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1410 |                 cudaFree(ptr);
+      |                 ^~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:89:18: note: expanded from macro 'cudaFree'
+   89 | #define cudaFree hipFree
+      |                  ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1409:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1409 |                 cudaStreamSynchronize(stream);
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:139:31: note: expanded from macro 'cudaStreamSynchronize'
+  139 | #define cudaStreamSynchronize hipStreamSynchronize
+      |                               ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1401:12: note: in instantiation of member function 'launch_fattn(ggml_backend_cuda_context &, ggml_tensor *, fattn_kernel_t, const int, const size_t, const int, const bool, const bool, const bool, const int)::hip_f16_alloc::~hip_f16_alloc' requested here
+ 1401 |     struct hip_f16_alloc {
+      |            ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-mma-f16.cuh:2187:5: note: in instantiation of function template specialization 'launch_fattn<128, 4, 8>' requested here
+ 2187 |     launch_fattn<DV, ncols1, ncols2>
+      |     ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:30:9: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_case<192, 128, 4, 8>' requested here
+   30 |         ggml_cuda_flash_attn_ext_mma_f16_case<DKQ, DV, 32/ncols2, ncols2>(ctx, dst);
+      |         ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:240:17: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<192, 128, 8>' requested here
+  240 |                 ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<192, 128,  8>(ctx, dst);
+      |                 ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1410:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1410 |                 cudaFree(ptr);
+      |                 ^~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:89:18: note: expanded from macro 'cudaFree'
+   89 | #define cudaFree hipFree
+      |                  ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1409:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1409 |                 cudaStreamSynchronize(stream);
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:139:31: note: expanded from macro 'cudaStreamSynchronize'
+  139 | #define cudaStreamSynchronize hipStreamSynchronize
+      |                               ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1401:12: note: in instantiation of member function 'launch_fattn(ggml_backend_cuda_context &, ggml_tensor *, fattn_kernel_t, const int, const size_t, const int, const bool, const bool, const bool, const int)::hip_f16_alloc::~hip_f16_alloc' requested here
+ 1401 |     struct hip_f16_alloc {
+      |            ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-mma-f16.cuh:2187:5: note: in instantiation of function template specialization 'launch_fattn<128, 8, 8>' requested here
+ 2187 |     launch_fattn<DV, ncols1, ncols2>
+      |     ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:34:5: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_case<192, 128, 8, 8>' requested here
+   34 |     ggml_cuda_flash_attn_ext_mma_f16_case<DKQ, DV, 64/ncols2, ncols2>(ctx, dst);
+      |     ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:240:17: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<192, 128, 8>' requested here
+  240 |                 ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<192, 128,  8>(ctx, dst);
+      |                 ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1410:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1410 |                 cudaFree(ptr);
+      |                 ^~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:89:18: note: expanded from macro 'cudaFree'
+   89 | #define cudaFree hipFree
+      |                  ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1409:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1409 |                 cudaStreamSynchronize(stream);
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:139:31: note: expanded from macro 'cudaStreamSynchronize'
+  139 | #define cudaStreamSynchronize hipStreamSynchronize
+      |                               ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1401:12: note: in instantiation of member function 'launch_fattn(ggml_backend_cuda_context &, ggml_tensor *, fattn_kernel_t, const int, const size_t, const int, const bool, const bool, const bool, const int)::hip_f16_alloc::~hip_f16_alloc' requested here
+ 1401 |     struct hip_f16_alloc {
+      |            ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-mma-f16.cuh:2187:5: note: in instantiation of function template specialization 'launch_fattn<512, 2, 4>' requested here
+ 2187 |     launch_fattn<DV, ncols1, ncols2>
+      |     ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:16:13: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_case<576, 512, 2, 4>' requested here
+   16 |             ggml_cuda_flash_attn_ext_mma_f16_case<DKQ, DV, 8/ncols2, ncols2>(ctx, dst);
+      |             ^
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:284:21: note: in instantiation of function template specialization 'ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<576, 512, 4>' requested here
+  284 |                     ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1<576, 512, 4>(ctx, dst);
+      |                     ^
+In file included from /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn.cu:2:
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/fattn-common.cuh:1410:17: warning: ignoring return value of type 'hipError_t' declared with 'nodiscard' attribute [-Wunused-value]
+ 1410 |                 cudaFree(ptr);
+      |                 ^~~~~~~~~~~~~
+/mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/vendors/hip.h:89:18: note: expanded from macro 'cudaFree'
+   89 | #define cudaFree hipFree
+      |                  ^
+18 warnings generated when compiling for host.
+[  8%] Linking HIP shared library ../../../bin/libggml-hip.so
+[ 50%] Built target ggml-hip
+[ 50%] Linking CXX shared library ../../bin/libggml.so
+[ 50%] Built target ggml
+[ 50%] Linking CXX shared library ../bin/libllama.so
+[ 91%] Built target llama
+[ 93%] Linking CXX shared library ../bin/libllama-common.so
+[100%] Built target llama-common
+[100%] Linking CXX executable ../bin/test-backend-ops
+[100%] Built target test-backend-ops
+make: Leaving directory '/mnt/TG_2TB/tmp_pr244/build_hip'

@@ -1,0 +1,23 @@
+[2026-08-02 11:14:10] ===== GQA ncols2 A/B on gfx1201 (RX 9070 XT) =====
+[2026-08-02 11:14:10] head   = 55580fe0c as built (modulo)   -> /tmp/claude-1000/-mnt-TG-2TB-Projects-Apollo/9457b3f4-5754-4ef0-902f-d30c8f5f3912/scratchpad/bin_head
+[2026-08-02 11:14:10] revert = 55580fe0c minus f924ee29f's fattn.cu hunk (comparison)
+[2026-08-02 11:14:10] gpu: GPU[0]		: Card Series: 		AMD Radeon RX 9070 XT
+[2026-08-02 11:14:10] building revert arm (incremental; only fattn.cu should recompile)...
+[2026-08-02 11:14:20] build ok. binary mtime: 2026-08-02 11:14:20
+[2026-08-02 11:14:20] ########## ARM revert  (/mnt/TG_2TB/tmp_pr244/build_hip/bin) ##########
+[2026-08-02 11:17:05]   rc=134  no-device-code=0  OK-lines=0  FAIL-lines=0
+[2026-08-02 11:17:05]   tail:
+    | #11 0x0000561cbae0f764 in main ()
+    | [Inferior 1 (process 998769) detached]
+    | timeout: the monitored command dumped core
+[2026-08-02 11:17:05] ########## ARM head  (/tmp/claude-1000/-mnt-TG-2TB-Projects-Apollo/9457b3f4-5754-4ef0-902f-d30c8f5f3912/scratchpad/bin_head) ##########
+[2026-08-02 11:17:50]   rc=141  no-device-code=47  OK-lines=0  FAIL-lines=0
+[2026-08-02 11:17:50]   distinct failing shapes:
+      nh=4,nr23=[9,1]
+[2026-08-02 11:17:50]   tail:
+    | /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/template-instances/../fattn-mma-f16.cuh:1983: ERROR: HIP kernel flash_attn_ext_f16 has no device code compatible with HIP arch 1300.
+    | /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/template-instances/../fattn-mma-f16.cuh:1983: ERROR: HIP kernel flash_attn_ext_f16 has no device code compatible with HIP arch 1300.
+    | /mnt/TG_2TB/tmp_pr244/ggml/src/ggml-cuda/template-instances/../fattn-mma-f16.cuh:1983: ERROR: HIP kernel flash_attn_ext_f16 has no device code compatible with HIP arch 1300.
+[2026-08-02 11:17:50] ===== DONE =====
+[2026-08-02 11:17:50] READ: attribution confirmed only if revert=0 AND head>0. Any other pattern means the
+[2026-08-02 11:17:50]       3-line hunk is not the cause and the report must not be sent.
