@@ -225,9 +225,14 @@ def main():
     if total == 0:
         sys.exit("[ikp] FATAL: 0 records written. The run did not happen.")
     if trunc / total > 0.02:
-        print(f"[ikp] WARNING: {trunc/total:.1%} of probes hit max_tokens={args.max_tokens}. "
-              f"With reasoning mode on this is the expected failure -- pass --no-think, or raise "
-              f"--max-tokens. Accuracy from this run is not interpretable as recall.",
+        print(f"[ikp] WARNING: {trunc/total:.1%} of probes hit max_tokens={args.max_tokens}; "
+              f"those probes were never answered and are bucketed NO_ANSWER, not WRONG.",
+              file=sys.stderr)
+        print(f"[ikp]   Diagnose before trusting accuracy. If 'reasoning_chars' is set on them, "
+              f"reasoning mode is still on -- pass --no-think. If not, some probe family is "
+              f"eliciting long-form answers; group the truncated records by source_type before "
+              f"deciding between raising --max-tokens and excluding that family. Whatever you "
+              f"choose must be fixed BEFORE the comparison arm runs and applied to both.",
               file=sys.stderr)
 
 
