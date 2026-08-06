@@ -80,6 +80,55 @@ output and require it to equal the expected 800. A run that scores 0 questions e
 metadata rather than from the model card's claimed ratio (§5 — measure the property, don't read the
 label).
 
+**G-5 — separate "wrong" from "never answered." This campaign's most likely false positive.**
+
+GLM-4.7-Flash is a reasoning model. If an arm's `<think>` chain fails to terminate inside the token
+budget there is no answer to extract, and a naive scorer books it as **wrong**. That reads as
+knowledge loss and is not — it is a stopping-rule failure. A pruned reasoning model is, if anything,
+*more* likely to produce one.
+
+**This has already happened in this lab.** The Puzzle-75B HumanEval+ gap
+(`data/receipts/humaneval-plus/`) was a stopping-rule failure, not an answering failure. Same shape,
+different campaign.
+
+Required, therefore:
+
+- Set `n_predict` / token cap **in advance** and record it (§9). Never leave it at a default.
+- Score every response into **three** buckets, never two: `correct`, `incorrect`, `no_answer`
+  (truncated, looped, or unparseable).
+- Report `no_answer` **per arm and per tier**, alongside the accuracy figures and never folded into
+  them.
+- **If `no_answer` rates differ between arms by more than 2 pp, the knowledge delta is not
+  interpretable** until that difference is explained. Divergent termination behaviour is its own
+  finding and possibly a more interesting one — report it as such rather than as a knowledge result.
+- Accuracy is reported over *answered* items with `n_answered / n_total` stated, so a reader can see
+  the denominator.
+
+Running IKP with thinking disabled (see Modes below) is the primary mitigation, not a substitute for
+the accounting.
+
+## Modes (§6)
+
+Each instrument runs in the mode appropriate to it; both arms always identical, both recorded.
+
+| instrument | mode | rationale |
+|---|---|---|
+| IKP T1–T4 | **thinking OFF** | recall is not a reasoning task. A `<think>` chain adds nothing to a 1.5-word factual answer while multiplying token cost and loop risk |
+| HumanEval+ | **thinking ON** | the mode the model is designed and tuned for |
+
+Enumerate the available modes from the model's own chat template rather than assuming a `/nothink`
+toggle exists; if it does not, say so and run both arms with thinking on, with G-5 doing the work.
+
+## Sampling
+
+Unsloth's recommended parameters for this model are **temp 1.0 / top_p 0.95 / min_p 0.01 / no repeat
+penalty**. We deviate deliberately: **temp 0 on both arms** for the primary measurement, because this
+is a paired delta, both arms are equally off-recipe, and a ~5 pp effect cannot survive temp-1.0
+variance at any K we can afford.
+
+Record the deviation per §9. If the effect appears, confirm it on a subset at the recommended
+parameters before publishing — a result that exists only at temp 0 is a result about temp 0.
+
 ## Phase 1 — capacity deletion (REAP)
 
 | arm | source |
