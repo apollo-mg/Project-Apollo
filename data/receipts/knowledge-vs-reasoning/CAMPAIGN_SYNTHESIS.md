@@ -211,7 +211,21 @@ further down a curve every model is already on.
   a stratified re-run.
 - **Retrieval rescue of uncontested facts is the one thing that has replicated cleanly** — 100 % on
   both arms of both model pairs (`RESULT_RAG_ARM.md`, `RESULT_QWEN_CONTEXT.md` C1, 199/199 each).
-- **One pair, one ratio, one pruner.** No dose-response. The Akicou GLM ladder (09/19/39/50) is the
+- **Dose-response now exists, and there is NO free band.** `RESULT_REAP_DOSE_RESPONSE.md`
+  (2026-08-07) ran GLM-4.7-Flash at 64/58/52/39/32 experts with prune ratio as the only variable.
+  Raw accuracy falls **68.9 → 52.5 → 32.6 → 11.1 → 1.8 %** and refusal rises **11.2 → 22.1 → 39.4 →
+  71.3 → 96.9 %**, both perfectly monotone. Removing just 6 of 64 experts costs 16.4 pp of factual
+  output. Damage per unit pruning is **flat-to-declining**, so the early rungs are the expensive
+  ones — inverting the saliency intuition REAP is built on.
+- **Committed accuracy — this campaign's headline metric — breaks under heavy withdrawal.** It is
+  immune to divergent *termination* but not to divergent *refusal*, since refusals leave the
+  denominator. At 96.9 % refusal, REAP-50's committed accuracy rests on **22 of 714 probes** and
+  *rises* (44.6 → 59.1 %) while the model collapses. **Always report committed accuracy with its
+  denominator; treat committed n < 100 as indicative only; above ~50 % refusal use raw accuracy.**
+  No earlier leg reached the regime that exposes this.
+- **One pruner per ratio point.** Dose is isolated within the Akicou ladder, but pruner and ratio
+  remain confounded against the Cerebras-25 % observation, so the GLM-uniform vs Qwen-graded tier
+  contradiction is **still open**. The Akicou GLM ladder (09/19/39/50) is the
   designed experiment for that and has not run.
 - **K=1 throughout**, and temp-0 is not reproducible on this fleet (`DETERMINISM_TEMP0_GLM_P100.md`).
   Every result is an existence proof, not a rate.
@@ -231,6 +245,7 @@ This campaign's results are only worth what its error-catching is worth, so:
 | **Grader-artifact symmetry** | The pruned arm clips to surnames (`"Kepler."`), which the grader books WRONG. If asymmetric, part of the −36.8 pp would be style. Checked per arm: ~5 true artifacts each, 0.8 pp differential. **Headline survived.** |
 | **Ceiling with no sensitivity** | C2 scored 100 % on *both* arms, so it never demonstrated power to discriminate — recorded as such rather than presented as a clean pass, and C3 was built to have teeth. |
 | **Instrument gate** | G-1a: a GGUF omitting `expert_gating_func` is resolved by a hardcoded heuristic, so two arms can silently run different gating. Asserted from the runtime's own `print_info` before every run. |
+| **Chat-template gate (G-1b)** | Added 2026-08-07 after a VOID ladder run. All four Akicou GGUFs ship **no `tokenizer.chat_template` KV**, so `--jinja` silently substituted ChatML — a format GLM was never trained on — and the arms emitted `<\|im_start\|>` as text and looped to the token cap (93 pp G-5 trip). G-1 checked the *weights* and never the *tokenizer*. Now asserted from the load log on every arm. |
 
 **Falsifications, kept:**
 
@@ -266,4 +281,5 @@ This campaign's results are only worth what its error-catching is worth, so:
 | Provenance + foreign contradiction | `PREREG_C4_C5.md`, `RESULT_C4_C5.md` |
 | Calibration contrast | `PREREG_QWEN_CALIBRATION_CONTRAST.md`, `RESULT_QWEN_CALIBRATION_CONTRAST.md` |
 | Qwen context arms (C1 + C3) | `PREREG_QWEN_CONTEXT.md`, `RESULT_QWEN_CONTEXT.md` |
+| **REAP dose-response ladder** | `PREREG_REAP_DOSE_RESPONSE.md`, `RESULT_REAP_DOSE_RESPONSE.md` |
 | DS4-Flash K160 (deferred, 4 confounds) | `PREREG_DS4_K160.md` |
