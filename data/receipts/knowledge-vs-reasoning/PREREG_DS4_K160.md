@@ -31,6 +31,53 @@ code/agentic calibration recipe, community re-prunes typically take author defau
 public work on DS4-Flash is coding-oriented (OpenCode, tool-calling). The prediction is about what
 is *conventional*, not a judgement about the model.
 
+---
+
+## RESOLUTION (2026-08-07, same day) — provenance corrected, P-J1 scored
+
+**The prediction was mis-targeted and that is on me.** jabba did the **quantization**, not the
+pruning. The prune is `0xSero/DeepSeek-V4-Flash-0731-REAP`; jabba's card credits it as source model
+with "quantization inspiration: antirez/deepseek-v4-gguf". "jabba's calibration set" presupposed
+something false, and he had no reason to have that answer.
+
+**P-J1: HELD**, scored against 0xSero's card. Calibration was `partial-v2-21289` — 21,289 rows of
+*"coding, math, science, tool calling, and agentic tool trajectories."* Broader than the
+"code/agentic" wording implied (math and science are present), but **containing no factual or
+knowledge component**, which is the load-bearing part. Scoring it HELD rather than partial because
+the prediction's operative clause was "rather than general-purpose or knowledge-inclusive," and it
+is neither.
+
+### Two facts from the card that were not anticipated
+
+**1. The expert rankings were not computed on these weights.** 0xSero states the rankings were
+transferred from a prior checkpoint snapshot (`partial-v2-21289`) and that this is explicitly
+*"not a fresh observation of the `0731` weights."*
+
+This is a **second, independent failure mode** stacked on calibration composition: even granting
+that the calibration set determines *which capabilities* survive, transferred rankings assume
+expert importance is stable across checkpoints. If it is not, the pruner may have removed experts
+that were low-salience in the old checkpoint but load-bearing in `0731` — damage uncorrelated with
+any calibration set. **This is a hypothesis raised by reading the card, not a pre-registered
+prediction, and is marked as such.** It is not scoreable here and would need a fresh-calibrated
+control to test.
+
+**2. The author already says this needs measuring.** From the card: *"Structural and smoke
+validation do not establish benchmark parity with the unpruned model"* and coding preservation is
+*"plausible because coding and agentic data were included, but must be measured rather than
+assumed."*
+
+That is this campaign's thesis stated by the pruner himself, unprompted. It also changes the
+posture entirely: measuring this is **responsive to a stated request**, not an audit of someone who
+claimed something we intend to disprove. 0xSero has claimed nothing and flagged the gap honestly.
+
+### What this does to P-J2 / P-J3
+
+Both stand as written and remain unrun. But note the confound they now carry: K160 combines
+**37.5 % pruning + ~2-bit quantization + rankings transferred from a different checkpoint.** A
+knowledge deficit could come from any of the three. The unpruned DS4-Flash `UD-IQ1_S` control
+isolates quantization; nothing available to us isolates transferred-vs-fresh rankings, so that must
+be stated as an open confound in any result rather than resolved.
+
 **P-J2/P-J3 are conditional and currently unrunnable** — see the blocker below. They are logged now
 so they cannot be tuned after seeing either jabba's answer or any data.
 
