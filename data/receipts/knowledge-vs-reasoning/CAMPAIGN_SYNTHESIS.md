@@ -123,7 +123,7 @@ contradicts what it knows, the base model declines. The pruned model complies. *
 conflict is itself a capability, and pruning cost it.*
 → `RESULT_C4_C5.md`
 
-### 8. The failure is specific to its own prior
+### 8. Whose wrong answer competes also matters (GLM)
 
 Identical layout, gold second, only the competing entry differs:
 
@@ -132,9 +132,9 @@ competing entry = its OWN confabulation      ->  33.9 %
 competing entry = another probe's gold       ->  83.9 %
 ```
 
-50 pp from swapping the distractor; base untouched either way. It is **not** general contradiction
-failure — it fails when the competing entry is what it would have said itself, i.e. **exactly when
-retrieval is correcting it.** The worst possible selectivity.
+50 pp from swapping the distractor; base untouched either way. On GLM the collapse is worst when the
+competing entry is what the model would have said itself — **exactly when retrieval is correcting
+it.** Untested on Qwen.
 → `RESULT_C4_C5.md`
 
 ### The effect, bounded
@@ -146,20 +146,44 @@ retrieval is correcting it.** The worst possible selectivity.
 | gold vs **its own confabulation** (C3) | 93.0 / **33.9 %** — collapse |
 | same, provenance-tagged (C4) | 87.9 / **44.6 %** — follows the tag |
 
-Not primacy bias. Not general contradiction failure. **A specific inability to prefer a retrieved
-fact over its own damaged prior, which a source label redirects rather than repairs.**
+Not primacy bias — C2 shows position is irrelevant when nothing contradicts.
+
+### Reconciling §6 §7 §8 — two mechanisms, not one
+
+§6's correction displaced the single-mechanism story, so the three sections must be read together:
+
+| governs | mechanism | evidence | status |
+|---|---|---|---|
+| **how hard the model fights** for the retrieved fact | **prior strength** — strong prior overrules a contradictory entry, weak prior follows position | Qwen tier gradient 85.7 / 83.8 / 22.0 / 23.7 %; GLM confirms at T1/T2 only (T3 n=7, T4 n=1) | replaces the pruning-specific framing |
+| **whether the competing entry is a contender at all** | **own-vs-foreign** — a foreign wrong answer is rejectable on *relevance* grounds the model's own confabulation is not | GLM C3 33.9 % vs C5 83.9 %, base unmoved either way | GLM only, **open** |
+| **what the model substitutes when it stops adjudicating** | position, or a **source label** if one is offered — and it prefers the label | GLM C4b 44.6 %, below its own position-following rate | GLM only, **open** |
+
+Prior strength does **not** explain C4b or C5; those need the second and third rows. Pruning enters
+only through the first — it weakens the prior. Nothing in the campaign yet shows pruning creating a
+failure mode that stock models lack, and §6 shows a stock model exhibiting the position failure on
+its own weakly-known facts.
+
+The C4/C5 rows are **single-model results on GLM** and were never repeated on Qwen. Until they are,
+"pruned models follow source labels" is a GLM observation, not a campaign claim.
 
 ---
 
 ## What the campaign is entitled to claim
 
-> 25 % expert pruning calibrated on code leaves code intact, collapses closed-book factual recall
-> by 36.8 pp, and leaves retrieval-grounded answering unimpaired **so long as the retrieved context
-> is uncontested.** Where retrieval surfaces a fact that contradicts what the pruned model would
-> have said, it stops adjudicating on content and falls back on position or on source labels.
+> Expert pruning leaves code intact and substantially damages closed-book factual recall — 36.8 pp
+> on GLM at 25 %, 31.4 pp on Qwen at 20 % — across two calibration recipes, so a broader calibration
+> set does not prevent it. Retrieval-grounded answering is unimpaired **so long as the retrieved
+> context is uncontested** (100 % on both arms of both pairs). Where retrieval surfaces an entry
+> that contradicts the model, adjudication degrades in proportion to how weakly the model holds the
+> fact — and pruning weakens it. On GLM, at 25 % and damaged uniformly, that degradation is total
+> (93.4 → 33.9 %).
 
-Practically: **not knowledge stores; usable with retrieval; fragile exactly where retrieval is
-correcting them.** Real pipelines return conflicting chunks routinely.
+Practically: **not knowledge stores; usable with retrieval; least reliable exactly where retrieval
+is correcting them.** Real pipelines return conflicting chunks routinely.
+
+**The pruning-specific reading is retired.** Contradiction fragility is not something pruning
+introduces — stock `Qwen3.6-35B-A3B` has it on its own weakly-known facts. Pruning moves a model
+further down a curve every model is already on.
 
 ## What it is not entitled to claim
 
@@ -175,8 +199,12 @@ correcting them.** Real pipelines return conflicting chunks routinely.
   P-X1) and graded by obscurity on Qwen (T1 −16 → T3 −43). Whatever governs that is not the
   calibration set.
 - **The contradiction collapse is not pruning-specific.** `RESULT_QWEN_CONTEXT.md` (2026-08-07)
-  falsified the P-QX1 gate: base Qwen3.6-35B is itself 50.8 pp order-sensitive, and abandons a fact
-  it knows closed-book **53 % of the time** when a contradicting entry is placed first. Pruning's
+  falsified the P-QX1 gate: base Qwen3.6-35B is itself 50.8 pp order-sensitive, and fails to
+  reproduce a fact it answered correctly closed-book in **53 % of these pairs** when a contradicting
+  entry is placed first. **That number is an upper bound, not an estimate** — the two entries are
+  degenerate duplicates (identical stems, differing only in answer value), so position is the only
+  residual signal, which maximizes the effect; and "answered correctly" is K=1 on a fleet with
+  documented temp-0 bistability. Pruning's
   own contribution, tier-matched, is −11.1 pp overall and −20.2 pp at T2. The C3 populations were
   **not tier-matched across models** — a design defect, since the population is "base right, pruned
   wrong" and therefore inherits each model's damage profile. Cross-model contradiction claims need

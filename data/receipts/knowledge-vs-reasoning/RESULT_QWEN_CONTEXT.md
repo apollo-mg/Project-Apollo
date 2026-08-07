@@ -36,9 +36,13 @@ the number I wanted out of an instrument that just failed its control.**
 ORDER SENSITIVITY    base 50.8 pp    pruned 62.7 pp        [GLM was: base 6.6 pp, pruned 59.1 pp]
 ```
 
-**P-QX0 is the clean win.** Both arms answer 199/199 on uncontested single-entry context, zero
-refusals, zero AMBIGUOUS. Retrieval rescue of facts the pruned model can no longer produce
-closed-book is now **2 models / 2 pruners / 2 ratios / 2 opposite failure modes, 100 % every time.**
+**P-QX0 passed its gate.** Both arms answer 199/199 on uncontested single-entry context, zero
+refusals, zero AMBIGUOUS — so retrieval rescue now holds on 2 models / 2 pruners / 2 ratios /
+2 opposite failure modes. **Stated as a gate, not a headline:** 100 % on *both* arms is a ceiling
+with no demonstrated power to discriminate, the same limitation already recorded against C2 in
+`CAMPAIGN_SYNTHESIS.md`. It licenses reading C3; it does not by itself evidence that pruned models
+are good at retrieval, because nothing here could have shown otherwise.
+
 Qwen3.6's verbosity — which cost 2.0/3.4 % to AMBIGUOUS on the closed-book leg — vanishes entirely
 when the answer is supplied; the lenient and strict tallies are identical in every cell.
 
@@ -93,9 +97,14 @@ base difference is this, not a model property.
 100.0, T2 83.8 vs 92.9, T3 22.0 vs 71.4). The T3 comparison is the largest and the weakest — GLM
 contributes **n=7** there and cannot carry that claim. Recorded as a direction, not an attribution.
 
-**The GLM result survives this re-analysis.** GLM base held at *every* tier (100.0 / 92.9 / 71.4) and
-GLM pruned collapsed at *every* tier (38.1 / 31.0 / 33.3). That contrast is not a composition
-artifact, and a T3+T4-only slice of GLM gives base 71.4 % vs pruned 33.3 % in the same direction.
+**The GLM result survives this re-analysis at T1/T2, and is untested at T3/T4.** GLM base held and
+GLM pruned collapsed at every tier GLM actually populates (base 100.0 / 92.9 / 71.4, pruned
+38.1 / 31.0 / 33.3), so the contrast is not a composition artifact in the well-known band.
+
+But the prior-strength mechanism makes its prediction in the **obscure** band, and GLM has almost no
+obscure band — T3 n=7, T4 n=1. GLM therefore confirms the mechanism only where both models already
+agree. **The gradient that carries the mechanism is Qwen's alone.** A GLM C3 set stratified to
+include T3/T4 is the experiment that would test it on a second model; it has not been run.
 
 ## The pruning effect, tier-matched
 
@@ -128,6 +137,18 @@ Each of the 131 stems appears in both orders. Counting per stem:
 set in both arms. A noisy effect would produce flips in both directions; this produces none. The
 position effect is real, ordered, and not a sampling artifact.
 
+**Cross-arm nesting is NOT clean, and the −11.1 pp should be read accordingly.** Asking the same
+question across arms rather than across orders — of the 61 stems base gets right on C3b, are
+pruned's 44 a subset?
+
+| C3b | lost (base ✓, pruned ✗) | gained (pruned ✓, base ✗) | net |
+|---|---|---|---|
+| stems | **20** | **3** | −17 |
+
+Not monotone degradation: 23 stems change state, 87 % of them in the losing direction. The net
+−11.1 pp understates gross movement by about a quarter. (C3a, for contrast, moves 3 lost / 1 gained
+— nearly static, as its 97.7 → 98.4 % marginal implies.)
+
 ## Gates and bounds
 
 - **G-5 termination:** `no_answer` **0.0 % on both arms, all conditions.** Cannot be tripped.
@@ -151,18 +172,35 @@ for GLM and **does not generalize as stated.** The corrected claim:
 > retrieved entry when it knows the fact well, and follows position when it does not. Pruning
 > degrades this **by weakening the prior**, so the tier profile of the contradiction defect follows
 > the tier profile of the closed-book damage in that model. In GLM — damaged uniformly — the
-> collapse is uniform and large (−59.5 pp). In Qwen — damaged by obscurity — it is −20.2 pp at T2
-> and absent where the base had no headroom.
+> collapse is uniform and large (**−59.5 pp arm gap** on the gold-2nd cell, 93.4 → 33.9 % — distinct
+> from GLM's **59.1 pp order sensitivity**, which is a within-arm quantity; the two are adjacent in
+> value and easily conflated). In Qwen — damaged by obscurity — it is −20.2 pp at T2 and absent
+> where the base had no headroom.
 
-This is a *better* mechanism than the one it replaces: it explains both models with one variable and
-predicts the tier signature in each. It also removes the appeal of the original framing, which
-implied a pruning-specific defect. There isn't one. There is a prior-strength defect that pruning
-makes worse — and that stock models already have on facts they know poorly.
+This mechanism covers *magnitude* across both models with one variable and predicts the tier
+signature in each. **It does not subsume the other C3-family results, and does not claim to.**
+Prior strength says nothing about why GLM's collapse depends on *whose* wrong answer competes
+(own confabulation 33.9 % vs foreign gold 83.9 %, `RESULT_C4_C5.md`), nor about tag-following
+(C4b 44.6 %). Those need a second variable — plausibly that a foreign wrong answer is rejectable on
+*relevance* grounds the model's own confabulation is not. Two mechanisms, not one: prior strength
+governs how hard the model fights, own-vs-foreign governs whether the competing entry is a
+contender at all. Both are open.
 
-**The incidental finding is the more practically alarming one.** Base `Qwen3.6-35B-A3B`, unpruned,
-un-quantized beyond Q6_K, abandons a fact it answers correctly closed-book **53 % of the time** when
-a contradicting entry is placed first — 78 % of the time on T3/T4. That is the stock model, and RAG
-pipelines return conflicting chunks routinely.
+**The incidental finding is the more practically alarming one — with two caveats it must carry.**
+Base `Qwen3.6-35B-A3B`, unpruned, un-quantized beyond Q6_K, fails to reproduce a fact it answered
+correctly closed-book in **53 % of these pairs** when a contradicting entry is placed first — 78 %
+on T3/T4.
+
+1. **The two entries are degenerate duplicates** — identical question stems differing only in the
+   answer value. No differing phrasing, source, or surrounding context, so position is the *only*
+   residual signal. This structurally **maximizes** the position effect and is not what a real
+   retriever returns. Read it as an upper bound on the phenomenon, not an estimate of it.
+2. **"Answers correctly closed-book" is a single K=1 sample** on a fleet with documented temp-0
+   bistability (`DETERMINISM_TEMP0_GLM_P100.md`). The precise claim is *"abandons a fact it got
+   right once."*
+
+Neither caveat removes the effect — 78 % on T3/T4 is far outside anything K=1 noise produces across
+79 items — but any public statement of this number must carry both.
 
 ## Limits
 
