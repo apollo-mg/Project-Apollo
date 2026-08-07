@@ -92,8 +92,19 @@ Every fact it could no longer produce, it produces correctly when handed. `Falli
 ORDER SENSITIVITY    base 6.6 pp        pruned 59.1 pp
 ```
 
-The base model picks gold wherever it sits. **The pruned model largely picks whatever comes first.**
+On GLM the base model picks gold wherever it sits and the pruned model largely picks whatever comes
+first — at **every tier** (base 100.0/92.9/71.4, pruned 38.1/31.0/33.3), so this contrast is not a
+population artifact.
 → `RESULT_C3_CONTRADICTION.md`
+
+**Corrected 2026-08-07 — this does not generalize as originally stated.** Repeating C3 on Qwen
+failed its own base-arm control: base order sensitivity **50.8 pp**, pruned 62.7 pp, so P-QX2 was
+left **unscored** rather than claimed. The unifying variable is not pruning but **prior strength** —
+a model overrules a contradictory entry where it knows the fact well and follows position where it
+does not (Qwen base: T1 85.7 %, T2 83.8 %, T3 22.0 %, T4 23.7 %). Pruning degrades this *by
+weakening the prior*, so the defect's tier profile follows the closed-book damage profile in each
+model: uniform in GLM, concentrated at T2 (−20.2 pp) in Qwen.
+→ `RESULT_QWEN_CONTEXT.md`
 
 ### 7. Provenance redirects the failure, it doesn't fix it
 
@@ -163,6 +174,15 @@ correcting them.** Real pipelines return conflicting chunks routinely.
 - **Tail-selectivity is open, not settled.** Damage was uniform across tiers on GLM (falsifying
   P-X1) and graded by obscurity on Qwen (T1 −16 → T3 −43). Whatever governs that is not the
   calibration set.
+- **The contradiction collapse is not pruning-specific.** `RESULT_QWEN_CONTEXT.md` (2026-08-07)
+  falsified the P-QX1 gate: base Qwen3.6-35B is itself 50.8 pp order-sensitive, and abandons a fact
+  it knows closed-book **53 % of the time** when a contradicting entry is placed first. Pruning's
+  own contribution, tier-matched, is −11.1 pp overall and −20.2 pp at T2. The C3 populations were
+  **not tier-matched across models** — a design defect, since the population is "base right, pruned
+  wrong" and therefore inherits each model's damage profile. Cross-model contradiction claims need
+  a stratified re-run.
+- **Retrieval rescue of uncontested facts is the one thing that has replicated cleanly** — 100 % on
+  both arms of both model pairs (`RESULT_RAG_ARM.md`, `RESULT_QWEN_CONTEXT.md` C1, 199/199 each).
 - **One pair, one ratio, one pruner.** No dose-response. The Akicou GLM ladder (09/19/39/50) is the
   designed experiment for that and has not run.
 - **K=1 throughout**, and temp-0 is not reproducible on this fleet (`DETERMINISM_TEMP0_GLM_P100.md`).
@@ -216,5 +236,6 @@ This campaign's results are only worth what its error-catching is worth, so:
 | RAG prereg / result | `PREREG_RAG_ARM.md`, `RESULT_RAG_ARM.md` |
 | Contradiction prereg / result | `PREREG_C3_CONTRADICTION.md`, `RESULT_C3_CONTRADICTION.md` |
 | Provenance + foreign contradiction | `PREREG_C4_C5.md`, `RESULT_C4_C5.md` |
-| Calibration contrast (in progress) | `PREREG_QWEN_CALIBRATION_CONTRAST.md` |
+| Calibration contrast | `PREREG_QWEN_CALIBRATION_CONTRAST.md`, `RESULT_QWEN_CALIBRATION_CONTRAST.md` |
+| Qwen context arms (C1 + C3) | `PREREG_QWEN_CONTEXT.md`, `RESULT_QWEN_CONTEXT.md` |
 | DS4-Flash K160 (deferred, 4 confounds) | `PREREG_DS4_K160.md` |
