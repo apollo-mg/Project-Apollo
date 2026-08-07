@@ -96,6 +96,52 @@ points. This ladder is the first instrument that can test it.
 - **P-L1 fails** → stop and check the arms before interpreting anything; a non-monotone ladder is
   either a real inversion or a packaging fault, and the two must be separated first.
 
+## AMENDMENT 1 — 2026-08-07, after a VOID first run. Predictions unchanged.
+
+**The first execution is void and is not scored.** G-5 tripped at a **93 pp** `no_answer` spread
+(BASE 0.0 %, REAP-09 77.7 %, REAP-19 93.0 %, REAP-39 8.5 %, REAP-50 1.8 %), so every pruned arm's
+committed accuracy was computed over a small biased remnant — two tier cells were literally `nan`.
+No number from that run is reported anywhere.
+
+**Cause — a gap in G-1 that this pre-registration did not cover.** G-1 verified the *weights*
+(tensor histogram, expert counts, gating function, imatrix status: all identical). It never checked
+the **tokenizer and chat template**. Read back from each arm's own load log:
+
+| arm | `tokenizer.chat_template` KV |
+|---|---|
+| BASE (mradermacher) | **present** — kv 44, `[gMASK]<sop>\n{%- if tools -%}\n<\|syste…` |
+| REAP-09/19/39/50 (Akicou) | **ABSENT** — no such KV (their KV indices are shifted by one) |
+
+With no template in the GGUF, `--jinja` fell back to **ChatML**, which GLM-4.7-Flash was never
+trained on. The pruned arms emitted `<|im_start|>` / `<|im_end|>` as literal text and looped to the
+token cap, because the ChatML stop token is not an EOG in this vocabulary. Verified by spot test:
+handed the correct template, REAP-09 answers `"The capital of Canada is **Ottawa**."` in 12 tokens
+with `finish_reason=stop`. **The models were fine; the prompting was not.**
+
+**Two instrument fixes, applied to all five arms identically:**
+
+1. `--chat-template-file` with the authoritative template from `zai-org/GLM-4.7-Flash`
+   (`chat_template.jinja`, 3120 bytes; its prefix matches the BASE GGUF's embedded template
+   exactly). Passed to **every** arm including BASE, so parity is enforced rather than inherited.
+2. `--max-tokens` **64 → 160**. Correctly-prompted GLM-4.7-Flash answers run 12–48 tokens here
+   versus the base's 5–7, and a 64-token cap would reintroduce a differential-truncation gate trip.
+
+**Why this is a broken-instrument repair and not a moved goalpost:** P-L0…P-L6 are all statements
+about committed accuracy versus prune ratio. None mentions a token budget, none is made easier to
+satisfy by a larger one, and the direction of every prediction is unchanged. The confidences are
+**not** revised. What changed is that the arms are now prompted the same way — which the
+pre-registration always assumed and failed to verify.
+
+**Cross-leg comparison caveat:** earlier legs (`RESULT_QWEN_CALIBRATION_CONTRAST.md`,
+`PHASE1_RESULT_COMMITTED_ERROR.md`) ran at `--max-tokens 64`. This leg's absolute numbers are
+therefore not directly comparable to theirs; the ladder is internally consistent, which is what the
+dose-response question needs.
+
+**New standing gate for the campaign — G-1b.** Assert `tokenizer.chat_template` presence and
+equality across arms before any inference, exactly as G-1a does for `expert_gating_func`. An absent
+template is silently substituted, and a silent substitution changes both what the model is asked and
+whether it can stop. Applies to `CAMPAIGN_SYNTHESIS.md`'s methodology table.
+
 ## Limits, known in advance
 
 - **K=1, temp 0**, not reproducible on this fleet (`DETERMINISM_TEMP0_GLM_P100.md`). Existence
