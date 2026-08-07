@@ -43,6 +43,26 @@ they calibrated on.**
 | **P-H2** | Both arms land within 5 pp of Cerebras's 89.0, i.e. the number replicates on our harness | 0.55 |
 | **P-H3** | HumanEval+ `no_answer`/truncation spread between arms stays **under** the IKP thinking-ON spread of 23.2 pp | 0.70 |
 
+### AMENDMENT (2026-08-06, before any *valid* HumanEval+ inference)
+
+**P-H2 is promoted from a side prediction to a GATE on P-H1.** If either arm falls outside 5 pp of
+89.0, P-H1 is **not scored at all** — neither held nor falsified.
+
+The first attempt at this leg produced 0% on every problem because `PREAMBLE` imports numpy and `.73`
+had none, so the import raised before any test executed (`hep_eval.py` now aborts on this via
+`preflight()`; see commit `20712d7`). That run is **not data** — the grader could not pass the
+dataset's own canonical solution — so this amendment is made with zero valid observations in hand.
+
+The reason for the change is a design flaw in P-H1, visible now that the failure mode has been seen:
+**a dead harness satisfies it perfectly.** 0% vs 0% is a 0.0 pp difference and would have scored P-H1
+as HELD, confirming the campaign's hinge prediction from two zeros. Unlike the knowledge result —
+where `raw` and `answered` disagreeing forced a second look — P-H1 has no internal contradiction to
+trip on.
+
+A prediction a broken instrument can satisfy is a weak prediction. P-H2 supplies the absolute-value
+sanity check that distinguishes *"the arms match"* from *"the harness is dead"*, and P-H1 is
+uninterpretable without it.
+
 **P-H1 is the campaign's hinge.** Combined with the measured ~7× knowledge damage:
 
 - **P-H1 holds** → code preserved, facts destroyed, on one model pair with one variable changed. The
