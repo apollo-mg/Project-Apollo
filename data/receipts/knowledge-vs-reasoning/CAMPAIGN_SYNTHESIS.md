@@ -152,9 +152,17 @@ correcting them.** Real pipelines return conflicting chunks routinely.
 
 ## What it is not entitled to claim
 
-- **The mechanism is unconfirmed.** "Calibration composition governs the damage profile" rests on
-  one observation. Testing it requires *varying* the calibration set — in progress, see
-  `PREREG_QWEN_CALIBRATION_CONTRAST.md`.
+- **The mechanism claim is FALSIFIED in its strong form** (2026-08-07). Varying the calibration set
+  did not preserve knowledge: `0xSero/Qwen3.6-28B-REAP20`, calibrated on general+coding+reasoning
+  with fresh rankings at a *lower* 20 % ratio, still lost **−16.1 pp on T1 and −31.4 pp overall**.
+  What survives is only that code-only calibration explains why *Cerebras's panel could not see*
+  their damage — not the damage itself. See `RESULT_QWEN_CALIBRATION_CONTRAST.md`.
+- **Failure mode is not consistent across models.** GLM-REAP **withdrew** (refusal 12.7 % → 61.3 %);
+  Qwen-REAP **fabricates** (refusal 1.1 % → 11.9 %, WRONG 15.8 % → 31.8 %). The less aggressively
+  pruned model with the broader calibration set is the more dangerous artifact.
+- **Tail-selectivity is open, not settled.** Damage was uniform across tiers on GLM (falsifying
+  P-X1) and graded by obscurity on Qwen (T1 −16 → T3 −43). Whatever governs that is not the
+  calibration set.
 - **One pair, one ratio, one pruner.** No dose-response. The Akicou GLM ladder (09/19/39/50) is the
   designed experiment for that and has not run.
 - **K=1 throughout**, and temp-0 is not reproducible on this fleet (`DETERMINISM_TEMP0_GLM_P100.md`).
