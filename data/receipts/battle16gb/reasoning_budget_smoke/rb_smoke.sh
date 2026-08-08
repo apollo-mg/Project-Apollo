@@ -83,14 +83,39 @@ do_model() {
   run_cell "$label" "$bin" "$model" "$port" "$ctx" 1024 || return 1
 }
 
-echo "===== reasoning-budget smoke START $(date -Iseconds) ====="
+# Usage: rb_smoke.sh [BONSAI|GEMMA|all] [budget]
+# A single budget can be run alone so one cell fits inside a bounded foreground call.
+# Running a budget cell directly still re-checks G-RB0 first -- the gate is not bypassable.
+WHICH=${1:-all}
+ONLY_BUDGET=${2:-}
+
+echo "===== reasoning-budget smoke START $(date -Iseconds)  [${WHICH}${ONLY_BUDGET:+ budget=$ONLY_BUDGET}] ====="
 rocm-smi --showclocks 2>/dev/null | grep -iE 'sclk|mclk' | head -4 > "$R/cells/clocks.txt"
 
-do_model BONSAI "$BONSAI_BIN" "$MODELS/Bonsai/Ternary-Bonsai-27B-Q2_g64.gguf" 8093 32768
-echo "bonsai_exit=$?" | tee -a "$R/cells/exit_codes.txt"
+dispatch() {
+  local label=$1 bin=$2 model=$3 port=$4 ctx=$5
+  if [ -z "$ONLY_BUDGET" ]; then
+    do_model "$label" "$bin" "$model" "$port" "$ctx"; return $?
+  fi
+  # Single-cell mode: -1 is the gate and may run standalone; any other budget requires
+  # a PASSED -1 cell already on disk, else its output is uninterpretable (G-RB0).
+  if [ "$ONLY_BUDGET" != "-1" ]; then
+    if ! { [ -s "$R/cells/${label}_bm1.jsonl" ] && gate_rb0 "$R/cells/${label}_bm1.jsonl"; }; then
+      echo "!!!!! $label: cannot run budget=$ONLY_BUDGET — G-RB0 not established. Run budget -1 first."
+      return 2
+    fi
+  fi
+  run_cell "$label" "$bin" "$model" "$port" "$ctx" "$ONLY_BUDGET"
+}
 
-do_model GEMMA "$GEMMA_BIN" "$MODELS/Gemma 4/12B/gemma-4-12B-it-qat-UD-Q4_K_XL.gguf" 8094 16384
-echo "gemma_exit=$?" | tee -a "$R/cells/exit_codes.txt"
+if [ "$WHICH" = "all" ] || [ "$WHICH" = "BONSAI" ]; then
+  dispatch BONSAI "$BONSAI_BIN" "$MODELS/Bonsai/Ternary-Bonsai-27B-Q2_g64.gguf" 8093 32768
+  echo "bonsai_exit=$?" | tee -a "$R/cells/exit_codes.txt"
+fi
+if [ "$WHICH" = "all" ] || [ "$WHICH" = "GEMMA" ]; then
+  dispatch GEMMA "$GEMMA_BIN" "$MODELS/Gemma 4/12B/gemma-4-12B-it-qat-UD-Q4_K_XL.gguf" 8094 16384
+  echo "gemma_exit=$?" | tee -a "$R/cells/exit_codes.txt"
+fi
 
 echo "===== reasoning-budget smoke DONE $(date -Iseconds) ====="
 wc -l "$R"/cells/*.jsonl 2>/dev/null
