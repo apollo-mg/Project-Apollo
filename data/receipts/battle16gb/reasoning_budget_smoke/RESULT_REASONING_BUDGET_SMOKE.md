@@ -1,8 +1,8 @@
 # Result — the same flag does opposite things on the two arms; a bounded budget rescues both
 
-**COMPLETE.** 9 cells — the 6 pre-registered, plus 3 added after the fact and labelled as such:
-two Bonsai cells at `max_tokens 4096` (Finding 3, which removes a confound in the original
-design) and one Gemma MTP-on cell (Finding 4). Pre-registered in
+**COMPLETE.** 11 cells — the 6 pre-registered, plus 5 added after the fact and labelled as such:
+four cells at `max_tokens 4096` — two Bonsai (Finding 3, removing a confound in the original
+design) and two Gemma (Finding 5) — plus one Gemma MTP-on cell (Finding 4). Pre-registered in
 `PREREG_REASONING_BUDGET_SMOKE.md`, logged before any inference; the three additions are
 **post-hoc and carry no pre-registered prediction.**
 
@@ -108,6 +108,43 @@ below the panel's receipted 110–143 t/s for MTP-on Gemma** — most likely bec
 responses are dominated by reasoning text, which drafts poorly compared to the panel's mixed
 generation, but that is an untested explanation and the gap is left open rather than papered over.
 
+## Finding 5 — ⚠ the panel's Gemma mechanism does NOT reproduce on this instrument
+
+`Battle16GB_Results.md` states: *"Gemma fails by thinking, then going silent — **zero** budget-cap
+hits in the entire v2 run; she closes reasoning and EOSes without emitting an answer."* The
+matched 2×2 at the panel's own `max_tokens 4096` says otherwise:
+
+| @ 4096 | budget −1: answers | cap-death | **silent closure** | budget 1024: answers |
+|---|---|---|---|---|
+| **Bonsai** | 3/8 | 5/8 | **0/8** | 8/8 |
+| **Gemma** | 3/8 | 5/8 | **0/8** | 8/8 |
+
+**The two arms are indistinguishable.** Both deliver 3/8 unbounded, both cap-die 5/8, both reach
+8/8 under a 1024 bound.
+
+And the silent-closure signature — `finish_reason=stop` with an empty answer — **occurs zero
+times in all 88 responses across all 11 cells.** Not rare: absent.
+
+So on this instrument Gemma's failure is *cap-death, identical to Bonsai's*, and the asymmetry
+the article's mechanism section is built on is not visible.
+
+**This is a discrepancy, not a refutation.** Candidate explanations, none tested:
+
+1. **Prompt subset.** These are the 8 *most-constrained* of the 541. The panel's claim was a rate
+   over all 541. But "zero" admits no exceptions, and these 8 are members of that set — so the
+   claims are in direct tension unless (2) or (3) holds.
+2. **Serving path.** The panel drove Gemma through lm-eval-harness with `--apply_chat_template`
+   and MTP on. This leg posts to `/v1/chat/completions` with `--jinja --reasoning-format deepseek`.
+   A different template-application path can change thinking length.
+3. **What was counted.** The panel graded answer text after the reasoning parser split
+   `reasoning_content`; "empty response" there may not be the same event as `finish_reason` here.
+
+**Why this needs resolving before publication:** the panel's per-prompt receipts were lost to the
+scratchpad wipe (see [[scratchpad-is-volatile]]), so the "zero budget-cap hits" claim **cannot be
+re-checked against its own evidence**. An external reader running the obvious check would land
+where this leg landed. Cheapest resolution: re-run a handful of the panel's Gemma IFEval prompts
+through the *panel's* harness config and compare `finish_reason` against these cells.
+
 ## Prediction scoring
 
 | id | prediction | conf | outcome |
@@ -116,7 +153,13 @@ generation, but that is an untested explanation and the gap is left open rather 
 | **P-RB2** | budget 0 LIVE on Bonsai | 0.50 | **FALSIFIED** — byte-identical to −1 |
 | **P-RB3** | Bonsai tokens drop ≥50 % at budget 0 | 0.70 | **FALSIFIED** — 2048 → 2048, 0.0 % |
 | **P-RB4** | positive budget honoured as a bound | 0.65 | **HELD on both**, to ~1.3 % |
-| P-RB5 | panel-level effect | 0.80 | **UNSCORED — and its premise is now in doubt, see below** |
+| P-RB5 | panel-level effect | 0.80 | **PREMISE FALSIFIED; prediction still unscored — see Finding 5** |
+
+P-RB5 reasoned that a cap would leave Gemma unchanged *because her failure is silent closure, not
+a cap*. On this instrument that premise is false: Gemma cap-dies 5/8 at 4096, never closes
+silently in 88 responses, and a 1024 bound takes her 3/8 → 8/8. The panel-level prediction is
+still not directly scored — that needs all 541 prompts with IFEval grading — but its stated
+mechanism no longer stands, so it should not be carried forward as though it does.
 
 Calibration note: after seeing `reasoning_mode: TAG_BASED` in Bonsai's boot log I said P-RB2's
 0.50 "looks pessimistic in hindsight." That was wrong in the opposite direction — detecting the
@@ -133,6 +176,12 @@ thinking machinery is exactly what makes `N>0` work and says nothing about `0`.
   the ternary win would **widen**. The published headline is understated, not threatened.
 - **Gemma**: the follow-up the results doc named — *"rerun one Gemma leg with
   `enable_thinking:false`"* — **is reachable**, via `--reasoning-budget 0`. That arm can now be run.
+- **⚠ Before publishing the mechanism section, resolve Finding 5.** The headline table
+  (73.0 vs 64.5, 94.0 vs 51.6) is untouched by any of this — it is a scoring result and nothing
+  here contradicts it. What is in question is the *explanation*: "Bonsai over-thinks, Gemma goes
+  silent." This leg finds both models failing the same way and never finds silent closure at all.
+  Publishing a mechanism whose supporting receipts no longer exist, and which the obvious
+  re-check contradicts, is the one avoidable risk in this article.
 
 **Experimental-design consequence:** `--reasoning-budget 0` is *not* a matched treatment across
 these two arms — it gives Gemma no-think and Bonsai nothing at all. Any re-run that sets `0` on
