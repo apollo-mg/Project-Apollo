@@ -146,6 +146,43 @@ re-checked against its own evidence**. An external reader running the obvious ch
 where this leg landed. Cheapest resolution: re-run a handful of the panel's Gemma IFEval prompts
 through the *panel's* harness config and compare `finish_reason` against these cells.
 
+## Finding 6 — RESOLVED: the panel's empty *counts* are right; the *mechanism* is misattributed
+
+Finding 5's discrepancy was tested directly. Gemma was re-run through the **panel's own path** —
+lm-eval-harness, `--apply_chat_template`, MTP on, `max_gen_toks 4096`, `-c 16384`, port 8094 —
+on IFEval `--limit 10`, which overlaps this leg's subset at doc_ids **0, 7, 9**.
+
+| doc | harness path | direct path |
+|---|---|---|
+| 0 | **empty** | **empty** (`finish=length`) |
+| 7 | **empty** | **empty** (`finish=length`) |
+| 9 | **empty** | **empty** (`finish=length`) |
+
+**3/3 empty on both paths. Explanation (2), "serving path", is ruled out.** The harness's overall
+empty rate was **4/10 (40 %)** — consistent with the panel's reported 32.3 % over 541.
+
+So the panel's empty counts reproduce. What does *not* survive is the attribution:
+
+- The panel says Gemma had **zero budget-cap hits** and *"closes reasoning and EOSes without
+  emitting an answer."*
+- On the direct path those same docs show `finish_reason=length` with reasoning consuming the
+  entire budget. **They are cap hits.**
+- **lm-eval-harness records no `finish_reason` field at all** (sample keys: `arguments`, `doc`,
+  `doc_hash`, `doc_id`, `filter`, `filtered_resps`, `metrics`, `prompt_hash`, `resps`, `target`,
+  `target_hash`). The panel's instrument was structurally incapable of observing a cap hit.
+  "Zero budget-cap hits" was not a measurement — it was an inference from an instrument that
+  cannot see them, and the silent-closure story was built on top of it.
+
+**Verdict:** Gemma fails the *same way Bonsai does* — over-thinking past the budget. There is no
+silent-closure failure mode in 88 direct-path responses. The two-mechanism story in
+`Battle16GB_Results.md` should become a one-mechanism story.
+
+**This strengthens the article rather than weakening it.** Its own one-line take already says the
+decisive variable *"is neither bits nor params: it's whether the model reliably exits the think
+block with an answer."* That is now a **single unified mechanism across both arms**, verified at
+the panel's own budget, with a demonstrated fix (`--reasoning-budget N>0`, 3/8 → 8/8 on both).
+The headline scores are untouched throughout.
+
 ## Prediction scoring
 
 | id | prediction | conf | outcome |
@@ -177,12 +214,12 @@ thinking machinery is exactly what makes `N>0` work and says nothing about `0`.
   the ternary win would **widen**. The published headline is understated, not threatened.
 - **Gemma**: the follow-up the results doc named — *"rerun one Gemma leg with
   `enable_thinking:false`"* — **is reachable**, via `--reasoning-budget 0`. That arm can now be run.
-- **⚠ Before publishing the mechanism section, resolve Finding 5.** The headline table
-  (73.0 vs 64.5, 94.0 vs 51.6) is untouched by any of this — it is a scoring result and nothing
-  here contradicts it. What is in question is the *explanation*: "Bonsai over-thinks, Gemma goes
-  silent." This leg finds both models failing the same way and never finds silent closure at all.
-  Publishing a mechanism whose supporting receipts no longer exist, and which the obvious
-  re-check contradicts, is the one avoidable risk in this article.
+- **⚠ The mechanism section needs rewriting before publication (Findings 5 + 6).** The headline
+  table (73.0 vs 64.5, 94.0 vs 51.6) is untouched — those are scoring results and nothing here
+  contradicts them, and the empty *rates* reproduce. What must change is the *explanation*:
+  "Bonsai over-thinks, Gemma goes silent" is two mechanisms where there is one. Gemma's empties
+  are cap-deaths too; the panel's harness simply could not see `finish_reason`. Rewritten, the
+  article's own thesis gets stronger — one mechanism, both arms, one fix.
 
 **Experimental-design consequence:** `--reasoning-budget 0` is *not* a matched treatment across
 these two arms — it gives Gemma no-think and Bonsai nothing at all. Any re-run that sets `0` on
@@ -203,11 +240,9 @@ control the handoff. It was never exercised here. If a re-run uses `N>0`, it is 
   so this leg cannot speak to the silent-closure mechanism at all. P-RB5 assumed a cap would not
   help Gemma because her failure isn't a cap; at *this* budget a cap helps her enormously
   (2/8 → 8/8). That is not evidence against P-RB5 — it is evidence that this instrument doesn't
-  test it. **P-RB5 stays genuinely open**, and **Gemma at `max_tokens 4096` is now the single
-  highest-value unrun cell in this leg.** Reason: Finding 3 verified *Bonsai's* half of the
-  panel's asymmetry at the panel's own budget — cap-deaths persist at 4096. Gemma's half (zero
-  cap hits, silent closure) remains unverified on this instrument. One cell would either confirm
-  the asymmetry the article's mechanism section is built on, or overturn it.
+  test it. **P-RB5's premise is now falsified outright (Findings 5 + 6):** Gemma was taken to
+  4096 and to the panel's own harness, cap-dies either way, and never closes silently. The
+  panel-level prediction remains unscored — that needs all 541 prompts with IFEval grading.
 - **8 prompts, not 541**, chosen as the most-constrained. No IFEval scoring was performed; these
   are delivery counts, not accuracy.
 - Bonsai's cap-death rates here do **not** restate the panel's 20.3 % empty rate — different
