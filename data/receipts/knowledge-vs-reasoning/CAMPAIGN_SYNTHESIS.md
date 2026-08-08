@@ -223,6 +223,19 @@ further down a curve every model is already on.
   *rises* (44.6 → 59.1 %) while the model collapses. **Always report committed accuracy with its
   denominator; treat committed n < 100 as indicative only; above ~50 % refusal use raw accuracy.**
   No earlier leg reached the regime that exposes this.
+- **At a fixed byte budget, pruning is the worst way to spend it.** `RESULT_FIXED_BYTE.md`
+  (2026-08-07) held ~13.2 GB constant and traded prune ratio against quantization depth: raw
+  accuracy runs **39.6 → 33.6 → 19.9 → 9.5 → 1.8 %**, monotone. The unpruned 3-bit model beats the
+  half-pruned 6-bit model by **37.8 pp at the same size**. Measured as a rate from BASE Q6_K,
+  quantization costs **2.53 pp per GB saved** and pruning **5.9–8.5** — pruning is 2.3–3.4× less
+  byte-efficient at every ratio tested.
+- **But pruning is NOT dominated** (P-F4 falsified): 3-bit unpruned at 13.03 GB (39.6 %) loses to
+  9 %-pruned Q6_K at 22.48 GB (52.5 %). Bytes still buy accuracy. The claim is *bad allocation*,
+  not *useless*.
+- **Withdrawal is a compression signature, not a pruning signature.** BASE at **Q3_K_S with every
+  expert present** refuses **53.1 %** against Q6_K's 11.2 % — between REAP-19 and REAP-39 on the
+  pruning ladder with zero experts removed. The campaign was drifting toward treating withdrawal as
+  characteristic of expert pruning; it characterises a damaged GLM-4.7-Flash however it was damaged.
 - **One pruner per ratio point.** Dose is isolated within the Akicou ladder, but pruner and ratio
   remain confounded against the Cerebras-25 % observation, so the GLM-uniform vs Qwen-graded tier
   contradiction is **still open**. The Akicou GLM ladder (09/19/39/50) is the
@@ -282,4 +295,5 @@ This campaign's results are only worth what its error-catching is worth, so:
 | Calibration contrast | `PREREG_QWEN_CALIBRATION_CONTRAST.md`, `RESULT_QWEN_CALIBRATION_CONTRAST.md` |
 | Qwen context arms (C1 + C3) | `PREREG_QWEN_CONTEXT.md`, `RESULT_QWEN_CONTEXT.md` |
 | **REAP dose-response ladder** | `PREREG_REAP_DOSE_RESPONSE.md`, `RESULT_REAP_DOSE_RESPONSE.md` |
+| **Fixed-byte allocation** | `PREREG_FIXED_BYTE.md`, `RESULT_FIXED_BYTE.md` |
 | DS4-Flash K160 (deferred, 4 confounds) | `PREREG_DS4_K160.md` |
