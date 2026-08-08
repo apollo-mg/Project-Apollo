@@ -3,8 +3,9 @@
 **COMPLETE.** 11 cells — the 6 pre-registered, plus 5 added after the fact and labelled as such:
 four cells at `max_tokens 4096` — two Bonsai (Finding 3, removing a confound in the original
 design) and two Gemma (Finding 5) — plus one Gemma MTP-on cell (Finding 4). Pre-registered in
-`PREREG_REASONING_BUDGET_SMOKE.md`, logged before any inference; the three additions are
-**post-hoc and carry no pre-registered prediction.**
+`PREREG_REASONING_BUDGET_SMOKE.md`, logged before any inference; the five additions are
+**post-hoc and carry no pre-registered prediction.** The Headline table below is the
+pre-registered `max_tokens 2048` design; Findings 3 and 5 carry their own 4096 tables.
 
 **Date:** 2026-08-08. RX 9070 XT 16GB (gfx1201), stock clocks. Bonsai-27B Q2_g64 (7.59 GB) on
 `engines/llama_cpp_bonsai/build_hip` `-c 32768`; Gemma-4-12B QAT UD-Q4_K_XL (6.72 GB) on
