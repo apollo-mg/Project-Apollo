@@ -1,7 +1,10 @@
 # Result — the same flag does opposite things on the two arms; a bounded budget rescues both
 
-**COMPLETE.** All 6 cells. Pre-registered in `PREREG_REASONING_BUDGET_SMOKE.md`, logged before
-any inference.
+**COMPLETE.** 9 cells — the 6 pre-registered, plus 3 added after the fact and labelled as such:
+two Bonsai cells at `max_tokens 4096` (Finding 3, which removes a confound in the original
+design) and one Gemma MTP-on cell (Finding 4). Pre-registered in
+`PREREG_REASONING_BUDGET_SMOKE.md`, logged before any inference; the three additions are
+**post-hoc and carry no pre-registered prediction.**
 
 **Date:** 2026-08-08. RX 9070 XT 16GB (gfx1201), stock clocks. Bonsai-27B Q2_g64 (7.59 GB) on
 `engines/llama_cpp_bonsai/build_hip` `-c 32768`; Gemma-4-12B QAT UD-Q4_K_XL (6.72 GB) on
@@ -51,6 +54,50 @@ The agreement is the cross-check: chars ÷ 4 is a crude token estimator, and it 
 coincidentally produce ~1024 twice. Answers recover on both (0/8 → 8/8 and 2/8 → 8/8), and
 Gemma reaches **8/8 `finish=stop`** — no truncation at all.
 
+## Finding 3 — at the panel's own budget, you cannot fix Bonsai by raising `max_gen_toks`
+
+The 2048 cells above have a confound: with all 2048 tokens eaten by reasoning, capping thinking
+at 1024 mechanically frees ~1000 tokens, so 0/8 → 8/8 is partly arithmetic. Two extra Bonsai
+cells at the panel's **`max_tokens 4096`** separate the flag from the arithmetic:
+
+| Bonsai @ 4096 | w/answer | mean reason ch | mean tok | cap | stop |
+|---|---|---|---|---|---|
+| budget **−1** | **3/8** | 13992 | 3618 | 5 | 3 |
+| budget **1024** | **8/8** | 4150 | 2074 | **0** | **8** |
+
+**Doubling the ceiling does not help — Bonsai simply thinks twice as long.** Mean reasoning goes
+8263 chars @2048 → **13992 @4096** (+69 %), and 5 of 8 still die at the cap with zero answer. The
+model expands its deliberation to consume whatever it is given.
+
+Meanwhile the bound is *ceiling-independent*: mean reasoning at budget 1024 is **4150 chars at
+both** `max_tokens` 2048 and 4096 — identical. The cap acts on thinking, not on the ceiling.
+
+**So the rescue is not an artifact of the halved budget.** At the panel's own 4096, unbounded
+Bonsai delivers 3/8 and bounded Bonsai delivers 8/8 with zero truncation. The operational claim
+for the article: **raising `max_gen_toks` will not fix Bonsai's empties; only a reasoning bound
+will.**
+
+## Finding 4 — the bound survives MTP (the panel's Gemma serving config)
+
+Gemma budget 1024, **MTP on** (`--spec-type draft-mtp`, `--spec-draft-n-max 3`), same 8 prompts,
+same `max_tokens 2048`:
+
+| Gemma @ budget 1024 | w/answer | mean reason ch | mean tok | stop | decode |
+|---|---|---|---|---|---|
+| MTP **off** | 8/8 | 4105 | 1321 | 8/8 | 59.4 t/s |
+| MTP **on** | 8/8 | 4451 | 1334 | 8/8 | **86.8 t/s** |
+
+The drafter interacts cleanly with server-side `</think>` injection — bound held, answers held,
+no truncation. The +8 % reasoning-char difference is within MTP's documented
+lossless-in-distribution nondeterminism (panel caveat, receipted 2026-07-17).
+
+**Provenance note, because the log looks alarming:** the MTP boot log emits
+`W [spec] failed to measure draft model memory: failed to create llama_context from model`, and
+there is no draft-acceptance counter to read. The drafter *was* active regardless — decode ran
+**1.46×** faster than the MTP-off cell (86.8 vs 59.4 t/s, wall-clock over identical token
+counts) and 0/8 outputs were text-identical to the greedy baseline. That warning is a non-fatal
+sizing probe. The engagement evidence is throughput-inferred, not an explicit counter.
+
 ## Prediction scoring
 
 | id | prediction | conf | outcome |
@@ -69,32 +116,40 @@ thinking machinery is exactly what makes `N>0` work and says nothing about `0`.
 
 **A re-run would change the results, and the flag is not one lever but two.**
 
-- **Bonsai**: only `N>0` helps. It converts cap-deaths into delivered answers, so Bonsai's IFEval
-  would **rise** and the ternary win would **widen**. The published headline is understated, not
-  threatened.
+- **Bonsai**: only `N>0` helps — and per Finding 3, **raising `max_gen_toks` is not an
+  alternative**, because Bonsai expands its reasoning to fill whatever ceiling it is given
+  (13992 chars at 4096 vs 8263 at 2048, still 5/8 cap-deaths). A bound converts cap-deaths into
+  delivered answers at the panel's own budget (3/8 → 8/8), so Bonsai's IFEval would **rise** and
+  the ternary win would **widen**. The published headline is understated, not threatened.
 - **Gemma**: the follow-up the results doc named — *"rerun one Gemma leg with
   `enable_thinking:false`"* — **is reachable**, via `--reasoning-budget 0`. That arm can now be run.
 
 **Experimental-design consequence:** `--reasoning-budget 0` is *not* a matched treatment across
 these two arms — it gives Gemma no-think and Bonsai nothing at all. Any re-run that sets `0` on
 both and calls it controlled is uncontrolled. **`N>0` is the only setting that acts on both**, and
-it is the one a matched re-run should use.
+it is the one a matched re-run should use. It survives Gemma's MTP config (Finding 4), so the
+panel's serving setup does not have to change.
+
+**Untested and cheap: `--reasoning-budget-message`.** At budget 1024 Bonsai still shows 3/8
+`finish=length` at `max_tokens 2048` while Gemma shows 0/8 — plausibly a difference in *how* each
+exits a truncated think block. That flag injects a message before the forced `</think>` and would
+control the handoff. It was never exercised here. If a re-run uses `N>0`, it is the next knob.
 
 ## Limits — one of which undercuts my own P-RB5
 
-- **`max_tokens` 2048, not the panel's 4096.** This matters more than a normal budget caveat:
-  the panel found Gemma had **zero** cap hits and failed by *silent closure*, whereas at 2048 she
-  cap-dies 6/8. **The halved budget changed Gemma's failure mode**, so this leg cannot speak to
-  the silent-closure mechanism at all. P-RB5 assumed a cap would not help Gemma because her
-  failure isn't a cap; at *this* budget a cap helps her enormously (2/8 → 8/8). That is not
-  evidence against P-RB5 — it is evidence that this instrument doesn't test it. **P-RB5 stays
-  genuinely open.**
+- **Gemma was only measured at `max_tokens` 2048, not the panel's 4096**, and this matters more
+  than a normal budget caveat: the panel found Gemma had **zero** cap hits and failed by *silent
+  closure*, whereas at 2048 she cap-dies 6/8. **The halved budget changed Gemma's failure mode**,
+  so this leg cannot speak to the silent-closure mechanism at all. P-RB5 assumed a cap would not
+  help Gemma because her failure isn't a cap; at *this* budget a cap helps her enormously
+  (2/8 → 8/8). That is not evidence against P-RB5 — it is evidence that this instrument doesn't
+  test it. **P-RB5 stays genuinely open, and the obvious next cell is Gemma at 4096.** Bonsai
+  *was* taken to 4096 (Finding 3); Gemma was not.
 - **8 prompts, not 541**, chosen as the most-constrained. No IFEval scoring was performed; these
   are delivery counts, not accuracy.
-- The 8/8 Bonsai cap-death rate at −1 does **not** restate the panel's 20.3 % empty rate. Different
-  budget, different prompt subset. The two numbers must not be presented side by side.
-- **Gemma ran MTP off**; a panel re-run would carry MTP. Any MTP × reasoning-budget interaction
-  is untested.
+- Bonsai's cap-death rates here do **not** restate the panel's 20.3 % empty rate — different
+  prompt subset (the hardest 8) and, for the 2048 cells, a different budget. The numbers must not
+  be presented side by side.
 - K=1, temp 0, one rig, one build per model.
 - Finding 1's mechanism is a hypothesis consistent with the boot logs, not a traced cause — the
   templates' kwargs were not read.

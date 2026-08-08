@@ -21,6 +21,10 @@ a = ap.parse_args()
 
 prompts = json.load(open(a.prompts))
 rows = []
+# Append each row as it lands: a killed or timed-out cell then keeps the responses it paid
+# for instead of discarding all of them. (Four background kills earlier today lost nothing
+# only because those cells happened to complete.)
+sink = open(a.out, "w", buffering=1)
 
 for i, p in enumerate(prompts):
     body = json.dumps({
@@ -50,13 +54,12 @@ for i, p in enumerate(prompts):
                    n_constraints=p["n_constraints"], error=f"{type(e).__name__}: {e}",
                    has_reasoning=None, has_content=None)
     rows.append(row)
+    sink.write(json.dumps(row) + "\n")
     print(f"  [{i+1}/{len(prompts)}] doc {row['doc_id']:<4} "
           f"reason={row.get('reasoning_chars','ERR')} content={row.get('content_chars','ERR')} "
           f"tok={row.get('completion_tokens')} fin={row.get('finish_reason')}", flush=True)
 
-with open(a.out, "w") as f:
-    for r in rows:
-        f.write(json.dumps(r) + "\n")
+sink.close()
 
 ok = [r for r in rows if "error" not in r]
 nr = sum(1 for r in ok if r["has_reasoning"])

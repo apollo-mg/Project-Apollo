@@ -17,7 +17,9 @@ mkdir -p "$R/cells"
 # label bin model port ctx budget
 run_cell() {
   local label=$1 bin=$2 model=$3 port=$4 ctx=$5 budget=$6
-  local tag="${label}_b${budget/-/m}"
+  # RB_MAXTOK / RB_EXTRA / RB_TAG support the follow-up cells that separate "the cap works"
+  # from "the cap freed room the 2048 ceiling had already taken away", and the MTP-on check.
+  local tag="${label}_b${budget/-/m}${RB_TAG:-}"
   local log="$R/cells/${tag}_load.log"
   # Resumable: a cell with a complete jsonl is not re-run (GPU time is the scarce thing).
   if [ -s "$R/cells/${tag}.jsonl" ] && [ "$(wc -l < "$R/cells/${tag}.jsonl")" -eq 8 ]; then
@@ -27,8 +29,9 @@ run_cell() {
   [ -s "$model" ] || { echo "FATAL: missing $model"; return 1; }
 
   pkill -x llama-server 2>/dev/null; sleep 4
+  # shellcheck disable=SC2086 -- RB_EXTRA is deliberately word-split (extra server args)
   "$bin" -m "$model" -c "$ctx" -ngl 99 -fa on -ctk f16 -ctv f16 --jinja -v \
-         --reasoning-format deepseek --reasoning-budget "$budget" \
+         --reasoning-format deepseek --reasoning-budget "$budget" ${RB_EXTRA:-} \
          --host 127.0.0.1 --port "$port" > "$log" 2>&1 &
 
   for i in $(seq 1 120); do
@@ -41,11 +44,13 @@ run_cell() {
 
   # G-RB2: record exactly what was served.
   { echo "cell=$tag budget=$budget"; echo "bin=$bin"; echo "model=$model";
-    echo "ctx=$ctx port=$port"; grep -am1 "build:" "$log";
+    echo "ctx=$ctx port=$port max_tokens=${RB_MAXTOK:-2048} extra='${RB_EXTRA:-}'";
+    grep -am1 "build:" "$log";
     grep -aiE "chat template|reasoning|think" "$log" | head -8; } > "$R/cells/${tag}_serving.txt"
 
   python3 "$R/rb_probe.py" --endpoint "http://127.0.0.1:$port" --label "$label" \
-      --budget "$budget" --prompts "$PROMPTS" --out "$R/cells/${tag}.jsonl"
+      --budget "$budget" --prompts "$PROMPTS" --out "$R/cells/${tag}.jsonl" \
+      --max-tokens "${RB_MAXTOK:-2048}"
   local rc=$?
   pkill -x llama-server 2>/dev/null; sleep 4
   # -v load logs run ~14 MB/cell and these receipts are committed to a public repo.
