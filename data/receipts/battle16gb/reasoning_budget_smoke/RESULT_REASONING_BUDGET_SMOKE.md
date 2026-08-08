@@ -93,10 +93,20 @@ lossless-in-distribution nondeterminism (panel caveat, receipted 2026-07-17).
 
 **Provenance note, because the log looks alarming:** the MTP boot log emits
 `W [spec] failed to measure draft model memory: failed to create llama_context from model`, and
-there is no draft-acceptance counter to read. The drafter *was* active regardless — decode ran
-**1.46×** faster than the MTP-off cell (86.8 vs 59.4 t/s, wall-clock over identical token
-counts) and 0/8 outputs were text-identical to the greedy baseline. That warning is a non-fatal
-sizing probe. The engagement evidence is throughput-inferred, not an explicit counter.
+this build exposes no draft-acceptance counter. The drafter was active regardless, on two
+independent signals:
+
+1. **Primary — output divergence.** At temp 0 / top_k 1 an undrafted run must reproduce the
+   MTP-off baseline exactly. **0/8 responses were text-identical.** Only the drafter's
+   documented lossless-in-distribution nondeterminism explains that.
+2. **Corroborating — throughput.** 86.8 vs 59.4 t/s ≈ **1.46×**. Weaker evidence than (1): it
+   compares wall-clock across two separately-launched servers with load time estimated from
+   console timestamps, not instrumented.
+
+That warning is therefore a non-fatal sizing probe, not a failed drafter. **The 1.46× is well
+below the panel's receipted 110–143 t/s for MTP-on Gemma** — most likely because these
+responses are dominated by reasoning text, which drafts poorly compared to the panel's mixed
+generation, but that is an untested explanation and the gap is left open rather than papered over.
 
 ## Prediction scoring
 
@@ -143,8 +153,11 @@ control the handoff. It was never exercised here. If a re-run uses `N>0`, it is 
   so this leg cannot speak to the silent-closure mechanism at all. P-RB5 assumed a cap would not
   help Gemma because her failure isn't a cap; at *this* budget a cap helps her enormously
   (2/8 → 8/8). That is not evidence against P-RB5 — it is evidence that this instrument doesn't
-  test it. **P-RB5 stays genuinely open, and the obvious next cell is Gemma at 4096.** Bonsai
-  *was* taken to 4096 (Finding 3); Gemma was not.
+  test it. **P-RB5 stays genuinely open**, and **Gemma at `max_tokens 4096` is now the single
+  highest-value unrun cell in this leg.** Reason: Finding 3 verified *Bonsai's* half of the
+  panel's asymmetry at the panel's own budget — cap-deaths persist at 4096. Gemma's half (zero
+  cap hits, silent closure) remains unverified on this instrument. One cell would either confirm
+  the asymmetry the article's mechanism section is built on, or overturn it.
 - **8 prompts, not 541**, chosen as the most-constrained. No IFEval scoring was performed; these
   are delivery counts, not accuracy.
 - Bonsai's cap-death rates here do **not** restate the panel's 20.3 % empty rate — different
