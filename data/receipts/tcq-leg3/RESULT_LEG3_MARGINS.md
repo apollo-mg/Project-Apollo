@@ -20,9 +20,19 @@ Model: `Qwopus3.6-27B-Coder-heretic-Q6_K.gguf` — the same model legs 1–2 use
 
 Negative mean = buun's margins are larger = further from flipping.
 
-**buun's turbo3_tcq wins at both depths, and the advantage roughly doubles from 2k to 8k** —
-effect size 0.158 → 0.310, t −4.05 → −7.36, win rate 76/120 → 94/120. It wins in the tail too:
-buun's *worst* case sits further from a flip than Tom's at both tiers.
+**buun's turbo3_tcq wins at both depths, and the gap is larger at 8k than at 2k** — win rate
+76/120 → **94/120**, effect size 0.158 → 0.310. It wins in the tail too: buun's *worst* case sits
+further from a flip than Tom's at both tiers.
+
+**Read the win rate and effect size as primary, not `t`.** The paired t treats case-to-case
+variation as the only noise source, so it answers "is the mean difference across these 120
+prompts nonzero" — not "would this hold on another model or another run." With K=1, one model
+and one task family, `t = −7.36` is a paired-test statistic, not a strength-of-evidence claim.
+The direction is unambiguous at 94/120; the magnitude is not transferable.
+
+**Two depths is not a curve.** 2048 → 8192 is a single doubling. The mechanism is plausible —
+more KV under compression means more opportunities to erode a margin — but a trend needs the
+32768 tier, which was not run.
 
 ## Why this leg exists at all: accuracy is blind here
 
@@ -82,7 +92,10 @@ Both of buun's determinism fixes are present in this build and confirmed as ance
 
 ## Limits
 
-- **Tier 32768 not run.** ~36.6k-token prompts at P100 prefill rates is ~13 h for both arms.
+- **Tier 32768 not run**, and this is the gap that would turn two points into a curve. Cost, at
+  the prefill rates measured in leg 2 (Tom turbo3 135.3 t/s, buun turbo3_tcq 281.0 t/s) against
+  ~36.5k-token prompts: ~270 s/case × 120 on Tom's arm ≈ 9 h, ~130 s/case × 120 on buun's ≈ 4.3 h,
+  **≈13 h for the pair**. Deferred on runtime, not on difficulty.
 - **K=1, temp 0.** Byte-determinism was verified, so repeats are exact; this is an existence
   proof at these settings, not a distribution over seeds.
 - **One model, one task family.** Routing cases (`rd_*_c2`), one 27B coder model. The margin
