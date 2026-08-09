@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **venv torch stack migrated to ROCm 7.2 (Claude, 2026-08-09):** `venv_cachyos` moved from
+  `torch 2.10.0.dev20250926+rocm6.3` (a nightly, three ROCm minors behind the system's 7.2.4) to
+  **`torch 2.13.0+rocm7.2` / `torchvision 0.28.0` / `torchaudio 2.11.0`**. Driven by
+  `data/receipts/rdna4-gemm-dtype/`: on the old wheel `torch._scaled_mm` with `float8_e4m3fnuz`
+  returned answers **exactly 4× too large** with no error (`e4m3fn`, the correct OCP dtype for
+  gfx1201, was unreachable — *"only supported for ROCm 6.5 and above"*). On the new wheel
+  `e4m3fn` is bit-exact and `fnuz` raises `HIPBLAS_STATUS_NOT_SUPPORTED` instead of lying.
+  Same silicon also gains **7.4× fp16 / 6.2× fp32 / 2× FP8** GEMM, and fp16 now equals bf16 as it
+  should. **Nothing in Apollo used FP8**, so no past result is invalidated — the migration removes
+  a known-bad variable from the environment receipts are produced in.
+  Verified after: privacy filter loads on GPU and tags correctly, sentence-transformers/chroma
+  embeds `(2,384)` finite. Freezes before/after are in the receipt dir; rollback is possible
+  (the old nightly is still on the index).
+  ⚠ **Do not `pip uninstall pytorch-triton-rocm`** — it lingers as stale metadata, but 508 of its
+  516 `triton/` files are also owned by the live `triton-rocm 3.7.1`; removing it deletes the
+  working triton.
+
 ### Added
 - **Lab spec: knowledge vs reasoning under compression (Opus 5+Mark, 2026-08-06):**
   `data/Apollo Docs/Lab_Spec_Knowledge_vs_Reasoning_Under_Compression.md`. Tests whether knowledge
