@@ -16,7 +16,7 @@ This file is only about **obligations to other people**.
 | A2 | **TheTom** | **#280** HIP `FLASH_ATTN_EXT` aborts instead of skipping | **MEASURED 2026-08-08**, `data/receipts/rdna4-i280/`. Reproduces on gfx1201. Plus a new finding: `supports_op()` **over-claims** on a 48-of-256 slice (`kv=512 AND mask=1 AND nr23!=[1,1]`), and cross-referencing `support` vs `test` ordering **names the aborting case** that #251's print-after-verdict limitation hides. **Not yet posted to the issue** |
 | ~~A3~~ | ~~TheTom~~ | ~~#268 test-line port~~ | **ALREADY DONE — PR #269, merged 2026-08-07.** The email to-do was stale. The PR also corrects the "29 lines" figure with measured generated cases (293 on the deleted branch vs **536** on the default branch — the default has 1.8× *more* TQ coverage). Nothing owed |
 | A4 | **ekryski** | on-demand sm_60 / 4×P100 kernel-correctness receipts for `iron` | Offered 2026-08-08, accepted. No deadline. Pull-based, not a hosted runner |
-| A5 | **Akicou** | ask whether the REAP ladder points are **nested** | Never asked. Affects how much weight the per-rung damage curve carries |
+| ~~A5~~ | ~~Akicou~~ | ~~are the ladder points nested?~~ | **ASKED AND ANSWERED 2026-08-08.** Each variant is pruned from the original unpruned base, so cascading is excluded. Recorded in `RESULT_REAP_DOSE_RESPONSE.md` Limits, with the one residual assumption (identical saliency ranking across runs) named. Closed |
 
 ## B. Owed to others — *their* move, do not re-offer
 

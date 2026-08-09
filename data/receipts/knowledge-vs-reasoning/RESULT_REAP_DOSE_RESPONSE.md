@@ -134,6 +134,21 @@ and it is now shown to be dose-monotone rather than a threshold effect.
 
 ## Limits
 
+- **Ladder construction — answered by the author 2026-08-08.** Asked whether the rungs are
+  nested; Liu (@Akicou) replied that *"each pruned variant is based off the original base
+  GLM-4.7 unpruned model repo."* That **rules out cascading** (rung N+1 pruned from rung N's
+  weights rather than from the base), which was the failure mode that would have made the curve
+  uninterpretable — accumulated damage rather than dose.
+  **One assumption remains, and it is not what he was asked:** nesting of the *expert sets*
+  additionally requires the saliency ranking to be identical across runs. REAP scores experts by
+  router-gate × activation-norm over a calibration set, so if the same calibration data and seed
+  were used at every ratio the ranking is fixed and the sets are nested by construction — the
+  bottom 6 inside the bottom 12 inside the bottom 25. If calibration differed per ratio, each rung
+  is a different *selection* as well as a different *quantity*, and the monotone decline would
+  partly track which experts each run happened to choose. Starting from the same base makes the
+  identical-ranking case very likely but does not establish it.
+  Consequence for this receipt: the dose-response reading — one ranking, cut deeper — is
+  supported, and the cascading-damage alternative is excluded.
 - **K=1, temp 0**, not reproducible on this fleet (`DETERMINISM_TEMP0_GLM_P100.md`). Existence
   proof, not rate; no confidence interval on any single rung.
 - **REAP-39 and REAP-50 tier cells are thin** (committed n = 177 and 22). T4 at REAP-50 is `n/a`.
