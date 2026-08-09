@@ -1,4 +1,4 @@
-# Leg 3 — the margin bench: buun's turbo3_tcq holds more headroom, and the gap widens with depth
+# Leg 3 — the margin bench: buun's turbo3_tcq holds more headroom, at both depths measured
 
 **The third leg buun asked for on 2026-07-07.** Legs 1 (KLD) and 2 (hazard + prefill bench) were
 published; this one had never run. `.194` 4×P100 @ 1063 MHz / 150 W, 2026-08-08.
@@ -49,11 +49,11 @@ never a metric derived from them.* Here even the bytes agree and only the margin
 |---|---|---|
 | 1 | median KLD @ 2k/8k | buun ~1.9× better, 22 % fewer argmax flips |
 | 2 | frontier-hazard mean_KL | buun 1.96× better; wins every hazard statistic |
-| **3** | **distance-to-flip, task-grounded** | **buun, t = −4.05 (2k) and −7.36 (8k)** |
+| **3** | **distance-to-flip, task-grounded** | **buun, 76/120 (2k) and 94/120 (8k) cases** |
 
 Legs 1–2 were **shallow** (`n_prefix=128`, the documented limitation). Leg 3 at tier 8192 is the
-first deep-context measurement in this comparison, and the codec advantage does not merely
-survive depth — it grows.
+first deep-context measurement in this comparison, and the codec advantage survives depth —
+larger at 8k than at 2k, on the two depths measured.
 
 ## Gates
 
