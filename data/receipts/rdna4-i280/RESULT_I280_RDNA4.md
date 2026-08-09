@@ -77,10 +77,33 @@ That is adjacent to #242 (*"reports OK when every case in an op is skipped"*): h
 mode returns a clean **OK** for a shape family that provably aborts the moment `test` mode
 evaluates it. The verdict reflects the probe completing, not the kernel working.
 
+## Independently replicated on current HEAD, third architecture (2026-08-09)
+
+@jasstrong reproduced all of it on **gfx1100 / RX 7900 XTX (RDNA3), ROCm 7.2.3**, and — closing
+this receipt's own stated caveat — on **current `feature/turboquant-kv-cache` HEAD (`2f2f32f5d`)**,
+not the 687-behind build measured here:
+
+| claim made here | independent result |
+|---|---|
+| 256 probed, **208 NOT SUPPORTED / 48 SUPPORTED** | **same split** |
+| first case claiming support (named above) | **byte-identical** |
+| 16 cases print, then SIGABRT (134) | **same** |
+| abort at `fattn-tile.cu:65`, *"moves to 64 on newer trees"* | **line 64** on current HEAD |
+| `support` mode recovers the name `test` mode cannot print | **works there too** |
+
+The build-vintage caveat was the right one to state and it is now discharged: the predicted line
+shift 65 → 64 is exactly what a current-HEAD run reports. **The `supports_op()`-says-yes /
+`fattn-tile` aborts mismatch on the masked GQA-broadcast `kv=512` slice is confirmed on current
+code across RDNA3 and RDNA4.**
+
+Also reported there: on gfx1100 the head-size abort is reachable with graphs *on* as well.
+Disabling them keeps it isolated, which is why this receipt does so, but the abort is not
+graph-dependent.
+
 ## Limits
 
-- **Build is 687 commits behind** the branch head (`c26cbdffc` vs `2f2f32f5d`). Verified
-  representative *for this path*: `fattn-tile.cu`'s abort moved line 65 → 64 with one unrelated
+- **Build is 687 commits behind** the branch head (`c26cbdffc` vs `2f2f32f5d`) — **discharged**
+  by the independent current-HEAD replication above. Verified representative *for this path*: `fattn-tile.cu`'s abort moved line 65 → 64 with one unrelated
   deletion, nothing else. It is **not** a current-code claim about anything else.
 - That same `c26cbdffc` is the sha named in **#252** as where turbo4 V-cache broke. Unrelated to
   FA head-size dispatch, but this build should not be cited for turbo4 behaviour.
