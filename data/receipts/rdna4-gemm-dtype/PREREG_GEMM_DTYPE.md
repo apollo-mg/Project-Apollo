@@ -32,6 +32,28 @@ fp16 and bf16 should be near-identical on RDNA4. They are not. That is the quest
 Falsifying any of these is the point. P3 at 0.50 is a genuine coin-flip: it is
 entirely possible this wheel has no fast fp16 GEMM for gfx1201 at all.
 
+## Addendum — predictions for the newer-wheel re-test (logged 2026-08-09, before results)
+
+The `rocm7.2` channel matches the system ROCm exactly (7.2.4), so it is the re-test
+target. A mechanism became available after the first sweep and sharpens the guess:
+
+**AMD's `fnuz` FP8 variants are a CDNA3-era format** (bias 8, unsigned zero). CDNA4
+moved to OCP `e4m3fn` (bias 7). RDNA4/gfx1201 is neither, but if its kernels implement
+**OCP `e4m3fn` semantics** while the `rocm6.3` wheel only exposes `float8_e4m3fnuz`
+— it does; `e4m3fn` raises *"only supported for ROCm 6.5 and above"* — then users are
+forced onto fnuz data that the kernel reads with the wrong bias. 2× per operand,
+**4× in the product.** That is exactly the observed constant.
+
+| ID | Prediction | Confidence |
+|---|---|---|
+| **P7** | On the `rocm7.2` wheel, `float8_e4m3fn` is **available** (no ROCm-version error) | 0.80 |
+| **P8** | `float8_e4m3fn` on that wheel is **numerically exact** (ratio ≈ 1.0 vs the dequantized reference) | 0.70 |
+| **P9** | `float8_e4m3fnuz` on that wheel **still shows the 4×**, or is rejected outright for gfx1201 | 0.65 |
+| **P10** | The fp16 < bf16 gap **persists** on the newer wheel (it is kernel selection, not a version bug) | 0.55 |
+
+P10 at 0.55 is deliberately near a coin-flip: a year of hipBLASLt gfx1201 tuning is
+exactly the kind of thing that would close it, and I have no evidence either way.
+
 ## Gates
 
 - **G1 — clock discipline.** sclk/mclk/power recorded before and after every arm.

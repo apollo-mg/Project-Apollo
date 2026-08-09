@@ -1,125 +1,126 @@
-# RDNA4 GEMM by dtype — a fast FP8 path that is exactly 4× wrong, and an fp16 cliff
+# RDNA4 GEMM by dtype — both findings were a stale wheel, and that is the finding
+
+**RETRACTION NOTICE.** An earlier version of this file reported two defects on
+gfx1201: an FP8 path returning answers exactly 4× too large, and fp16 running
+1.7–7.2× slower than bf16. **Both are real on the wheel measured, and both
+disappear entirely on a current wheel.** Neither is a claim about RDNA4, ROCm, or
+PyTorch as they stand today. The superseded numbers are kept below in full,
+because the failure mode is the point.
 
 **Hardware:** RX 9070 XT (gfx1201, RDNA4), 15.9 GiB, driving the desktop.
-**Stack:** `torch 2.10.0.dev20250926+rocm6.3` (HIP 6.3.42131) on a **ROCm 7.2.4** system.
-`gfx1201` is in the wheel's compiled arch list — every path below is native, not a fallback.
-**Date:** 2026-08-09. Prereg: `PREREG_GEMM_DTYPE.md`, written before the sweep.
+**Date:** 2026-08-09. Prereg: `PREREG_GEMM_DTYPE.md` (P1–P6 before the first sweep,
+P7–P10 before the re-test).
 
-## Headline
+## The actual result
 
-| shape | fp32 | fp16 | bf16 | fp8_e4m3fnuz | **bf16/fp16** | sclk |
-|---|---|---|---|---|---|---|
-| 1024 | 2.3 | 16.3 | 27.4 | 70.7 | **1.68×** | 2663 MHz, 0% spread |
-| 2048 | 2.5 | 18.7 | 33.2 | 102.9 | **1.78×** | 2501 MHz, 0% spread |
-| 4096 | 2.5 | 16.9 | 38.7 | 121.9 | **2.30×** | 2846 MHz, 0% spread |
-| 8192 | 2.2 | 5.1 | 36.9 | 114.3 | **7.17×** | ⚠ 73% spread — see G1 |
+Same card, same day, same test. Only the wheel changed.
 
-TFLOP/s, median of 5, perf level pinned `high`. Spreads were ±0.0–0.9 except fp8
-(±1.6–4.1). Memory copy bandwidth 585 GB/s ≈ **91% of the ~645 GB/s spec**, so the
-memory system is healthy and none of this is a bandwidth artifact.
+| dtype @ 4096² | `2.10.0.dev20250926+rocm6.3` | `2.13.0+rocm7.2` | change |
+|---|---|---|---|
+| fp32 | 2.5 | 15.6 | **6.2×** |
+| fp16 | 16.9 | **125.7** | **7.4×** |
+| bf16 | 38.7 | 126.2 | **3.3×** |
+| fp8 | 121.9 — **4× WRONG** | **239.8 — exact** | **2.0× and correct** |
 
-## Finding 1 — the FP8 path is fast and its answers are exactly 4× too large
+TFLOP/s. Old wheel: median of 5, perf level pinned high. New wheel: median of 30
+iterations after 10 warmup, clocks on `auto`.
 
-This is the important one. `torch._scaled_mm` with `float8_e4m3fnuz`, `scale_a = scale_b = 1.0`:
+**On the current wheel the card behaves exactly as it should.** fp16 and bf16 are
+equal to within noise at every shape (ratios 0.98 / 0.96 / 1.00 / 1.09), and FP8 is
+~1.9× the 16-bit rate, which is the hardware's designed relationship.
+
+## Why the old wheel was wrong: a dtype trap that fails silently
+
+`e4m3fnuz` is a **CDNA3-era AMD format** — exponent bias **8**, unsigned zero. OCP
+`e4m3fn` uses bias **7**. gfx1201 implements OCP semantics.
+
+On the `rocm6.3` wheel, `float8_e4m3fn` is **unavailable**:
 
 ```
-got / dequant-reference   mean 4.000000   median 4.000000   std 7.7e-08
-                          min  3.999990   max    4.000008
-corr(got, reference) = 1.0
-scale_a = 0.25  ->  relative error 0.000000   (exact)
+RuntimeError: Float8_e4m3fn is only supported for ROCm 6.5 and above
 ```
 
-The control that makes this a kernel claim rather than a precision claim: the same
-fp8-quantized values multiplied in fp32 (`a8.float() @ b8.float()`) sit **0.037**
-from the fp32 reference — that is fp8's own quantization cost, and it is fine. The
-kernel's output sits **3.0** from that same dequantized reference, and the ratio is
-a dead-constant 4.
+So the only FP8 dtype a user can reach is `fnuz` — bias-8 data handed to a bias-7
+kernel. Every value reads 2× high, the product 4× high:
 
-Correlation 1.0 and std 1e-8 mean the matrix math is *perfect*. Only the magnitude
-is wrong, by a constant, everywhere, at every shape and input scale tested.
+```
+got / dequantized-reference   mean 4.000000   std 7.7e-08   corr 1.0
+scale_a = 0.25  ->  relative error 0.000000  (exact)
+```
 
-**Likely mechanism:** `e4m3fnuz` uses exponent bias **8**; IEEE-style `e4m3` uses **7**.
-Read fnuz operands with the wrong bias and every value is 2× off — two operands gives
-exactly 4×. The cast itself is innocent: `[1.0, 2.0, 4.0] -> fnuz -> fp32` round-trips
-exactly, so torch's conversion and the GEMM kernel disagree with each other.
+The control that makes this a kernel claim, not a precision claim: the same fp8
+values multiplied in fp32 sit **0.037** from the fp32 reference — fp8's own
+quantization cost. The kernel sat **3.0** from that same reference. Correlation 1.0
+and std 1e-8: the matrix math was perfect, only the magnitude was wrong.
 
-**Why it matters:** nothing errors. Output is finite, correlated, plausible, and
-arrives at 122 TFLOP/s. Any FP8 workload on this stack silently gets 4×-inflated
-activations. This is the campaign's recurring shape — a green light on an instrument
-that cannot see the failure — and it is the reason G2 exists in the prereg.
+**Nothing errored.** Output was finite, correlated, plausible, and arrived at
+122 TFLOP/s. Any FP8 workload on that stack silently got 4×-inflated activations.
 
-`float8_e4m3fn` (the non-fnuz variant) is unavailable here: *"Float8_e4m3fn is only
-supported for ROCm 6.5 and above."*
+**On the current wheel that trap is closed properly:** `float8_e4m3fn` works and is
+*bit-exact* (ratio 1.0, std 0.0, relative error 0.0), and `float8_e4m3fnuz` no longer
+returns a wrong answer — it raises `HIPBLAS_STATUS_NOT_SUPPORTED`. The silent wrong
+path became a hard error. That is the correct fix and it is already shipped.
 
-I searched and found no existing report matching this signature. Related but distinct:
-pytorch#119135 (`scale_result` ignored), pytorch#143465 (fp8 slow on MI300X),
-ROCm#6019 (e4m3fn NotImplementedError on Navi 48). **Not verified against a current
-wheel — this may already be fixed upstream, and that check is the obvious next step.**
-
-## Finding 2 — fp16 never reaches the matrix path, and falls off a cliff at 8192
-
-fp16 and bf16 should be near-identical on RDNA4. fp16 is **1.7×–2.3× slower** at
-every clock-clean shape, and collapses to **5.1 TFLOP/s at 8192** — a 7.2× gap.
-
-fp16's numerical output is correct (0.00035 relative error vs fp32, better than
-bf16's 0.00283, exactly as the mantissa widths predict). So this is purely a
-kernel-selection problem, not a correctness one.
-
-**Bounding it from our own data rather than a spec sheet:** hardware FP8 should run
-about 2× the fp16 matrix rate. We measured fp8 at 121.9, implying ~61 TFLOP/s is
-reachable for 16-bit matrix work on this card. bf16 gets 38.7 (63% of that) and fp16
-gets 16.9 (28%). So **bf16 is underperforming too** — fp16 is just much worse.
-
-## Finding 3 — the BLAS backend is not the cause
-
-Running the whole sweep under rocBLAS and again with `TORCH_BLAS_PREFER_HIPBLASLT=1`
-(confirmed to take effect: `preferred_blas` moved `Cublas` → `Cublaslt`) produced
-**identical numbers to within noise** at all four shapes and all dtypes. Whatever
-picks the slow fp16 kernel sits below that switch.
-
-`raw_default.json` / `raw_hipblaslt.json`.
-
-## Prediction scoring
+## Prediction scoring — 6/10
 
 | ID | Prediction | Conf | Outcome |
 |---|---|---|---|
-| P1 | gap reproduces across ≥3 shapes | 0.85 | ✅ **CONFIRMED** — all 4 |
-| P2 | BLAS backend switch moves fp16 >1.5× | 0.60 | ❌ **FALSIFIED** — identical |
-| P3 | fp16 within 20% of bf16 in some config | 0.50 | ❌ **FALSIFIED** — best 1.68× |
-| P4 | FP8 numerically correct | 0.75 | ❌ **FALSIFIED** — exactly 4× off |
-| P5 | fp32 below 25% of ~48 TFLOPS vector spec | 0.70 | ✅ **CONFIRMED** — 2.5 = 5.2% |
-| P6 | even bf16 is below reachable matrix peak | 0.65 | ✅ **CONFIRMED** — 63% of what fp8 implies |
+| P1 | fp16<bf16 gap reproduces across ≥3 shapes | 0.85 | ✅ on the old wheel — all 4 |
+| P2 | BLAS backend switch moves fp16 >1.5× | 0.60 | ❌ rocBLAS ≡ hipBLASLt, to within noise |
+| P3 | fp16 within 20% of bf16 in some config | 0.50 | ❌ on the old wheel (best 1.68×) |
+| P4 | FP8 numerically correct | 0.75 | ❌ **exactly 4× off** |
+| P5 | fp32 below 25% of vector spec | 0.70 | ✅ on the old wheel — 5.2% |
+| P6 | even bf16 below reachable matrix peak | 0.65 | ✅ on the old wheel — 63% |
+| P7 | `e4m3fn` available on the rocm7.2 wheel | 0.80 | ✅ |
+| P8 | `e4m3fn` numerically exact there | 0.70 | ✅ **bit-exact, err = 0.0** |
+| P9 | `fnuz` still 4× **or rejected** | 0.65 | ✅ rejected — `HIPBLAS_STATUS_NOT_SUPPORTED` |
+| P10 | fp16 gap **persists** on the newer wheel | 0.55 | ❌ **gone** — ratios 0.96–1.09 |
 
-3/6. The two highest-confidence calls held; **P4 at 0.75 was the most costly miss and
-the most valuable result.** I expected a fast path to be a correct path, which is
-precisely the assumption this campaign keeps finding to be unsafe.
+**P10 was the important miss**, and it was logged at 0.55 precisely because a year of
+gfx1201 tuning was the obvious way for it to break. It broke that way. P4 at 0.75 was
+the other costly one — I assumed a fast path was a correct path.
 
-## Gates
+## What is actually worth carrying forward
 
-- **G1 clock discipline — PASS at 1024/2048/4096, FAIL at 8192.** First pass sampled
-  clocks at arm boundaries and caught idle downclocks (54% and 32% apparent spread);
-  that run is superseded. The pinned re-run samples in a background thread *during*
-  each timed region: 0% spread at three shapes, **73% at 8192**. The 8192 fp16 number
-  (5.1 ± 0.0 across 5 reps) has essentially zero throughput variance, which argues the
-  clock samples are transient artifacts rather than real throttling — but the gate is
-  the gate. **Treat the 7.17× figure as indicative and the 1.68–2.30× range as measured.**
-- **G2 correctness before throughput — enforced.** It is what caught Finding 1.
-- **G3 allocation outside the timed region — enforced.** The exploratory run that
-  started this had `torch.randn` inside the loop and was mostly RNG; discarded.
+1. **A stale ROCm wheel silently returns 4×-wrong FP8.** Not slow — *wrong*, with no
+   error. This matters because that wheel is what ComfyUI-on-RDNA4 guides and the
+   official docker images were pinning; anyone still on it is affected and cannot tell.
+2. **Upgrading the wheel is worth 7.4× on fp16 and 2× on FP8 on identical silicon.**
+   No code change, no kernel work. For anyone benchmarking RDNA4, the wheel is a
+   larger variable than anything they are likely to be measuring.
+3. **"Fast" and "correct" are independent axes.** The old FP8 path was the fastest
+   thing on the card and returned garbage. Throughput without a correctness control
+   is not a measurement.
+4. **Version-bind every negative result before reporting it.** This receipt came
+   within one step of being an upstream bug report about behaviour that was already
+   fixed.
+
+## Method notes
+
+- **G1 clock discipline.** First pass sampled clocks at arm boundaries and caught
+  idle downclocks (54% / 32% apparent spread); superseded. The pinned re-run sampled
+  in a background thread *during* each timed region: 0% spread at 1024/2048/4096,
+  73% at 8192 — so old-wheel 8192 figures were flagged indicative, not measured.
+  Perf level restored to `auto` afterwards.
+- **G2 correctness before throughput.** This is what caught the 4×. It is the only
+  reason this receipt is not a false report.
+- **G3 allocation outside the timed region.** The exploratory run that started all of
+  this had `torch.randn` inside the loop and was mostly RNG; discarded.
 
 ## Limits
 
-- **One wheel, one card.** A `rocm6.3` dev build dated 2025-09-26 on a ROCm 7.2.4
-  system. Every negative result is a claim about this build on gfx1201, not about
-  RDNA4 or ROCm generally.
-- **Not reproduced on a second AMD GPU** — none available.
+- **One card, two wheels.** No second AMD GPU, no intermediate wheel versions, so the
+  exact release that fixed either issue is not identified.
 - The GPU was also driving the desktop; not an idle bench.
-- fp8 throughput is reported for a kernel now known to be 4× wrong. Whether a
-  *corrected* kernel runs at the same speed is untested.
-- No comparison against `hipblaslt-bench` or `rocblas-bench` directly, which would
-  separate "torch picks a bad kernel" from "the library has no good kernel."
+- New-wheel numbers were taken on `auto` clocks, not pinned — they are not directly
+  comparable to the pinned old-wheel run at the precision of a few percent. The
+  effects here are 2–7×, far above that, so the conclusion is unaffected.
+- fp32 at 8192 on the new wheel reads **1.3 TFLOP/s** against 15.6 at 4096. Anomalous,
+  unexplained, not chased.
+- No `hipblaslt-bench` / `rocblas-bench` comparison, which would separate "torch picks
+  a bad kernel" from "the library lacks a good one."
 
 ## Files
 
-`PREREG_GEMM_DTYPE.md`, `gemm_sweep.py`, `gemm_sweep_pinned.py`,
-`raw_default.json`, `raw_hipblaslt.json`, `raw_pinned.json`.
+`PREREG_GEMM_DTYPE.md`, `gemm_sweep.py`, `gemm_sweep_pinned.py`, `verify.py`
+(the newer-wheel re-test), `raw_default.json`, `raw_hipblaslt.json`, `raw_pinned.json`.
