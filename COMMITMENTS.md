@@ -12,8 +12,8 @@ This file is only about **obligations to other people**.
 
 | # | Who | What | State |
 |---|---|---|---|
-| A1 | **buun** | TCQ **leg 3** margin bench — the third leg he asked for 2026-07-07 | **IN PROGRESS.** tier 2048 DONE (buun wins, t=−4.05); tier 8192 running; 32768 not started |
-| A2 | **TheTom** | **#280** HIP `FLASH_ATTN_EXT` aborts instead of skipping (opened 2026-08-08) | **NOT ACKED.** Reported on gfx1100/RDNA3 by jasstrong. My **gfx1201 is the only RDNA4** in the project — a second-architecture datapoint is cheap and directly useful |
+| A1 | **buun** | TCQ **leg 3** margin bench | **DELIVERED 2026-08-08.** Tiers 2048 + 8192, buun wins 76/120 and 94/120. Tier 32768 **back-burnered — buun's call**: *"13 hours is rough… you don't need to prove it"* |
+| A2 | **TheTom** | **#280** HIP `FLASH_ATTN_EXT` aborts instead of skipping | **MEASURED 2026-08-08**, `data/receipts/rdna4-i280/`. Reproduces on gfx1201. Plus a new finding: `support` mode says NOT SUPPORTED for all 256 hsk=576 cases and still reports OK — the support query is right, the **dispatcher** ignores it. **Not yet posted to the issue** |
 | A3 | **TheTom** | **#268** — I offered to port 29 TQ-relevant test lines (DSv4 MLA shapes, large-k) from the deleted branch | **Issue is CLOSED** (resolved by `2293b1da6`). Offer may be moot — *ask him whether the coverage is still wanted* before spending time |
 | A4 | **ekryski** | on-demand sm_60 / 4×P100 kernel-correctness receipts for `iron` | Offered 2026-08-08, accepted. No deadline. Pull-based, not a hosted runner |
 | A5 | **Akicou** | ask whether the REAP ladder points are **nested** | Never asked. Affects how much weight the per-rung damage curve carries |
