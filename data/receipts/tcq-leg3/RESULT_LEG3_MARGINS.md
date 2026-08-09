@@ -102,6 +102,14 @@ Both of buun's determinism fixes are present in this build and confirmed as ance
   advantage is measured on this task, not claimed universally.
 - **Codec-on-build-A vs codec-on-build-B**, not an isolated codec ablation — kernels, compile
   flags and FA implementation all differ between the forks, as in legs 1–2.
+- **⚠ buun's arm ran with the affine tap ACTIVE; this is not a pure codec comparison.** The boot
+  log shows `TURBO meansub: K-mean BAKED table (16 live layers)`, and `K_live=16` matches the
+  `qwen35 n_layer=64` entry in `ggml-turbo-meansub-data.inc` exactly. That table contains **two
+  entries total** — `qwen35` (64L, from `pfhead_27b_long.bin`) and `qwen35moe` (40L) — and
+  `ggml_turbo_meansub_set_model()` requires an exact (arch, n_layer, n_embd) triple match, so any
+  other model gets no tap at all. Qwopus3.6-27B matches; most models do not. **What leg 3
+  measures is therefore `turbo3_tcq + a mean-subtraction calibrated on this model family` versus
+  Tom's `turbo3`.** Separating the two would need a tap-disabled arm, which was not run.
 - The **first 8192/32768 attempt returned HTTP 400 on all 240 cases**: the server was started
   with `-c 4096`, copied from the pre-flight, which only ever used the ~2.3k-token `rd_2048`
   cases. Re-run at `-c 12288`. No partial data from that attempt survives in the results.
