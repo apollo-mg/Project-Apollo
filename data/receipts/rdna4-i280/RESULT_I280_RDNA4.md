@@ -32,26 +32,40 @@ FLASH_ATTN_EXT(hsk=576,hsv=512,nh=1,nr23=[1,1],kv=1024,nb=75,mask=1,sinks=1,
 The aborting case is the **17th** — unprintable, because the descriptor is emitted *after* the
 verdict (the localisation limitation Tom already documented on #251).
 
-## 3. The part that isn't in the issue yet: support and dispatch disagree
+## 3. `supports_op()` over-claims on a 48-case slice, and that names the aborting case
 
-Same binary, same filter, `support` mode instead of `test` mode:
+Same binary, same filter, `support` mode instead of `test` mode: **256 cases probed, 208
+`NOT SUPPORTED`, 48 `SUPPORTED`.** The 48 that claim support share an exact signature:
 
-| mode | hsk=576 cases | outcome |
-|---|---|---|
-| `support` | **256 probed** | **all 256 `NOT SUPPORTED`**, backend verdict **OK**, exit 0 |
-| `test` | 16 run | **SIGABRT** at `fattn-tile.cu:65` |
+```
+kv=512  AND  mask=1  AND  nr23 != [1,1]        (48 of 256)
+  kv=113   0/48      kv=1024  0/48      kv=512  48/160
+  mask=0   0/72      mask=1   48/184
+  nr23=[1,1] 0/160   nr23=[4,..] 32/64   nr23=[20,..] 16/32
+  evenly spread over nb (12 each) and sinks (24/24); all prec=f32, all permute=[0,1,2,3]
+```
 
-**`ggml_backend_supports_op()` is correct.** It declines every one of the 256 DeepSeek-MLA-shaped
-cases. Something in the test/eval dispatch path calls the tile kernel anyway, on shapes the
-backend has already refused.
+**This names the case that `test` mode cannot print.** In support-mode ordering, case **17** is
+the first to claim SUPPORTED. `test` mode printed exactly **16** cases before aborting, and its
+last printed line is byte-identical to case 16 of the support listing. So the aborting case is:
 
-That relocates the fix: **the support predicate does not need changing — the dispatcher needs to
-honour it.** Which also means the abort is reachable from any caller that dispatches without
-consulting `supports_op()`, not just this suite.
+```
+FLASH_ATTN_EXT(hsk=576,hsv=512,nh=1,nr23=[4,1],kv=512,nb=1,mask=1,sinks=1,
+               max_bias=0.000000,logit_softcap=0.000000,prec=f32,
+               type_K=f16,type_V=f16,permute=[0,1,2,3])
+```
+
+`ggml_backend_supports_op()` says yes; `fattn-tile.cu` then aborts with *Unsupported head size*.
+The inconsistency is inside the backend — the support predicate advertises head sizes the tile
+kernel does not implement.
+
+**Method note:** running `support` mode over the same filter recovers the descriptor that `test`
+mode loses to the print-after-verdict ordering (#251). That works for any abort of this shape,
+not just this one.
 
 ## 4. It is also a #242-class false green
 
-In `support` mode the run probes 256 cases, supports **zero**, and prints:
+In `support` mode the run probes 256 cases, and prints:
 
 ```
   Backend ROCm0: OK
@@ -59,10 +73,9 @@ In `support` mode the run probes 256 cases, supports **zero**, and prints:
 OK
 ```
 
-That is #242 (*"test-backend-ops reports OK when every case in an op is skipped"*) with a
-concrete instance attached: a backend can be declared OK for `FLASH_ATTN_EXT` on the strength of
-having supported none of it. Combined with #280's abort, the HIP backend has two independent
-reasons why no meaningful FA coverage exists — one kills the run, the other passes it vacuously.
+That is adjacent to #242 (*"reports OK when every case in an op is skipped"*): here `support`
+mode returns a clean **OK** for a shape family that provably aborts the moment `test` mode
+evaluates it. The verdict reflects the probe completing, not the kernel working.
 
 ## Limits
 
