@@ -311,3 +311,73 @@ An earlier reading of this run as "CPU inference, the GPU was never used" was
 **wrong**. `llama-cli`'s TUI suppresses `GGML_LOG_INFO`, so the absence of device
 lines was a logging artifact. `llama-bench` shows `backend CUDA` and the P100
 banner. The 26.4 t/s figure was GPU.
+
+---
+
+# RESOLVED @ `bb3c3fa` — every null was the same bug in our protocol
+
+Jabba added logging at the silent failure points. It immediately explains three
+independent null results, including two of mine.
+
+## The cache in `auto` mode is selected by the FIT EVALUATOR
+
+With `-fitt` (fit target), RDNA4 finally speaks:
+
+```
+common_params_fit_impl: MoE cache fit selected main-device dense placement with
+  10114 MiB projected cache capacity for 18600 MiB of routed expert weights
+  (up to 54.4% coverage)
+```
+
+Without a fit target — plain `-ncmoe N --moe-cache auto` — **no fit evaluation runs,
+the cache is never selected, and toggling `--moe-cache` changes nothing.**
+
+That is the whole explanation for:
+
+- Defilan's Strix Halo null (he hedged it as a UMA artifact — it was not)
+- My RDNA4 `-ncmoe 41` null (both orderings, BigBang)
+- My earlier `--cpu-moe` result where the cache looked *slower*
+- The Pascal runs showing no log lines at all
+
+**Every one of those A/Bs toggled a flag that did nothing.** Defilan was closest —
+he warned that `common_moe_cache_evaluate_fit()` can set `fit_selected`, and that
+toggling `--moe-cache` with `--fit` may not isolate it. The inverse turned out to
+matter more: toggling it *without* fit isolates nothing because nothing is on.
+
+## Pascal: the CC gate is bypassable, coverage is the real blocker
+
+One P100 (cc 6.0, 16269 MiB) vs a 23.92 GiB Q6_K MoE, `-fitt 1024`:
+
+| arm | fit evaluator says |
+|---|---|
+| default | `no selected device satisfies the cache hardware policy` |
+| `GGML_CUDA_MOE_CACHE_MIN_CC=600` | `some routed expert weights would remain permanently uncached` |
+
+**The reason changes, which proves the override works** — cc 600 clears the hardware
+gate. The cache then still declines, on a different policy: it will not accept
+partial coverage here. RDNA4 accepted 54.4% coverage on a 19.7 GiB model, so the
+threshold is coverage-dependent rather than a flat rule.
+
+So the answer to *"does the MoE cache work on Pascal?"* is: **the hardware gate is
+not the binding constraint — VRAM coverage is.** `.194` cannot demonstrate it either
+way, because 1 card is too little coverage and 4 cards (64 GiB) fit the whole model
+with no CPU-resident experts left to cache.
+
+## The 45x survives reversal
+
+Ordering reversed, `-ngl auto --fit on`, identical settings, RDNA4:
+
+| arm | position | result |
+|---|---|---|
+| `--moe-cache off` | first | did not finish 8 tokens in 280 s |
+| `--moe-cache auto` | second | 4.8 t/s |
+| `--moe-cache auto` | **first** | 5.2 t/s |
+| `--moe-cache off` | **second** | did not finish 8 tokens in 280 s |
+
+**The effect follows the arm, not the position.** `auto` completes in both positions
+within 8% of itself; `off` fails to produce 8 tokens in 280 s in both. The
+usable/unusable split is real and reproduces reversed.
+
+The *magnitude* is not established: at `-n 8` warm-up dominates and `auto` reads
+~5 t/s against the 19.3 t/s measured at `-n 96 -c 2048`. Quote the qualitative
+result, not "45x".
