@@ -259,3 +259,55 @@ result **for that configuration**, with the Vulkan arm as its control. Whether i
 also appears under `-ngl auto --fit on` is **untested**: comparing outputs there
 needs a cache-off arm, and cache-off costs ~70 s per token. Scope the claim
 accordingly — it is not established for the regime users will actually run.
+
+---
+
+# PASCAL (sm_60) — builds, but engagement never confirmed
+
+`.194`, Tesla P100-PCIE-16GB, **compute capability 6.0**, CUDA 12.4, driver 580.173.02,
+`CUDA_VISIBLE_DEVICES=0` (one card, 16269 MiB) vs a 23.92 GiB Q6_K MoE
+(`Hermes3.6-35B-A3B-...-APEX`, experts Q5_K x80 / Q6_K x39 / Q8_0 x1 — all supported
+by the CUDA path, which covers 23 types).
+
+## What is established
+
+**1. `moe-cache.cu` compiles for sm_60 — 0 errors.** `-DCMAKE_CUDA_ARCHITECTURES=60`,
+CUDA 12.4, host gcc 13.4. So the CC floor is a **policy decision at session
+creation**, not a compilation constraint. There is no kernel-level cc gate in the
+file; the only check is the device skip at `moe-cache.cu:1572`.
+
+**2. Forcing the floor changes nothing measurable.** `GGML_CUDA_MOE_CACHE_MIN_CC=600`
+lets cc 600 pass the gate. Default vs forced, r=1:
+
+| arm | `--moe-cache auto` | `--moe-cache 4096` |
+|---|---|---|
+| default (gate active) | pp32 24.46 / tg8 17.36 | pp32 21.66 / tg8 8.47 |
+| forced MIN_CC=600 | pp32 24.82 / tg8 17.44 | pp32 21.64 / tg8 9.15 |
+
+**3. The explicit-mode repacking penalty is real and large.** `llama-bench` grew a
+`repack` column reading **off** for the explicit budget, confirming `arg.cpp:839`.
+In the `-ncmoe` regime that costs **~2x on tg — 17.4 to 8.5 t/s** — because every
+expert is on CPU, so CPU-side weight repacking is doing most of the work. Anyone
+comparing `auto` against an explicit budget in this regime is mostly measuring
+repacking, not caching.
+
+## What is NOT established — gate G4 fails
+
+**No `[moe-cache]` log line appeared in any arm**, forced or not, despite
+`MOE_CACHE_LOG` mapping straight to `GGML_LOG_INFO` and other INFO lines (the
+device banner) printing normally. So **the cache was never confirmed to engage on
+Pascal at all.** This cannot distinguish "forced cache ran and did not help" from
+"forced cache still did not initialise". Per this receipt's own G4, *"it ran and
+nothing crashed" is not evidence the feature was exercised* — so the Pascal
+question remains open, not answered.
+
+Likely explanation worth chasing: `auto` may require a fit target to select the
+cache at all (`common_moe_cache_evaluate_fit()` sets `fit_selected`), which would
+also retroactively explain the `-ncmoe` nulls on RDNA4 and on Defilan's Strix.
+
+## Correction
+
+An earlier reading of this run as "CPU inference, the GPU was never used" was
+**wrong**. `llama-cli`'s TUI suppresses `GGML_LOG_INFO`, so the absence of device
+lines was a logging artifact. `llama-bench` shows `backend CUDA` and the P100
+banner. The 26.4 t/s figure was GPU.
