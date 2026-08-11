@@ -89,6 +89,32 @@ accumulation path is the author's call. Two consequences either way:
 1. It cannot be assumed safe for anyone who needs reproducible output.
 2. **A/B benchmarks across cache modes are not comparing the same computation.**
 
+## Finding 3 — Vulkan works, and it is the control that indicts the HIP path
+
+The Vulkan MoE cache **runs**: exit 0 on every attempt, no crash, no validation
+error, and byte-identical across repeat runs. **P3 confirmed** — the backend the
+author could not test is functional.
+
+More importantly, running Finding 2's exact test on Vulkan inverts the result:
+
+| backend | `off --no-repack` vs `--moe-cache 4096` |
+|---|---|
+| **HIP** (gfx1201, ROCm 7.2.4) | **DIFFERS** — generated text changes |
+| **Vulkan** (RADV gfx1201) | **IDENTICAL** |
+
+Same card, same model, same prompt, same seed, same harness, repacking held
+constant on both sides, both backends individually deterministic.
+
+**This is what turns Finding 2 from an observation into a defect report.** If a
+residency cache were inherently non-neutral — a consequence of a different
+dequant or accumulation path that any implementation would share — both backends
+would diverge. Only the CUDA/HIP one does. The Vulkan implementation demonstrates
+that byte-identical caching on this hardware is achievable, so the HIP path's
+divergence is a property of that implementation, not of the idea.
+
+HIP and Vulkan disagree with **each other** at temp 0, which is expected and not
+a finding: different kernels, different accumulation order.
+
 ## Not established
 
 - **Throughput is unmeasured, and an earlier +36% claim from this session is
@@ -96,9 +122,6 @@ accumulation path is the author's call. Two consequences either way:
   host, first arm cold, second warm. Interleaved reruns gave `off` 19.7 / 18.0
   and `4096` 12.0 / 15.4 t/s — within-arm spread larger than the effect. Any real
   number needs cache-state control and interleaved reps. **P4 and P6 remain open.**
-- **P3 (does the Vulkan cache run without crashing) is untested** — the build
-  exists, the run has not happened. This is the single most valuable remaining
-  item, because it is the thing the author cannot check at all.
 - **P5 (HIP vs Vulkan throughput) untested.**
 - CUDA is not tested here — no NVIDIA card in this box. Finding 2 may or may not
   apply to CUDA; it is a claim about the HIP path only.
@@ -109,11 +132,11 @@ accumulation path is the author's call. Two consequences either way:
 |---|---|---|---|
 | P1 | HIP builds without source edits | 0.75 | ❌ **FALSIFIED** — 5 missing aliases |
 | P2 | Vulkan builds without source edits | 0.80 | ✅ confirmed |
-| P3 | Vulkan cache runs without crashing | 0.50 | — untested |
+| P3 | Vulkan cache runs without crashing | 0.50 | ✅ **CONFIRMED** — exit 0, deterministic |
 | P4 | `N` beats `off` by ≥15% TG | 0.70 | — unmeasured (confounded) |
 | P5 | HIP beats Vulkan by ≥20% TG | 0.65 | — untested |
 | P6 | Jabba's +30–50% doesn't reproduce | 0.60 | — unmeasured |
-| P7 | output byte-identical across cache modes | 0.70 | ❌ **FALSIFIED** |
+| P7 | output byte-identical across cache modes | 0.70 | ❌ **FALSIFIED on HIP**, ✅ holds on Vulkan |
 
 ## Method notes
 
