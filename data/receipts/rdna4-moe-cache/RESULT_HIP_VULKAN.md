@@ -381,3 +381,71 @@ usable/unusable split is real and reproduces reversed.
 The *magnitude* is not established: at `-n 8` warm-up dominates and `auto` reads
 ~5 t/s against the 19.3 t/s measured at `-n 96 -c 2048`. Quote the qualitative
 result, not "45x".
+
+---
+
+# FINAL @ `bb3c3fa`, using the documented recipes — the win is PLACEMENT, not caching
+
+Ran both benchmark recipes from `docs/backend/MOE-CACHE.md`, with the two controls
+that were missing all day: `--n-gen-warmup` (his doc: *"pool creation waits for
+graph-shape discovery, expert admission needs repeated demand"*) and `--repack off`
+pinned on **both** arms.
+
+## Regime A — `-ncmoe` + fixed budget: NO reliable effect
+
+`-ngl 99 -ncmoe 40 --repack off --n-gen-warmup 64 -r 3`, tg128:
+
+| ordering | first arm | second arm |
+|---|---|---|
+| `off,4096` | off **19.07 ± 3.22** | 4096 **33.85 ± 3.71** |
+| `4096,off` | 4096 **16.67 ± 3.17** | off **19.88 ± 5.72** |
+
+**The second arm wins both times.** The `4096` config swings **2.0x on position
+alone** (33.85 vs 16.67); `off` is stable across positions (19.07 vs 19.88, 4%).
+
+A `+77%` reading from the forward ordering is **withdrawn**. With ordering
+controlled there is no measurable cache benefit in this regime — which *confirms*
+rather than contradicts the three earlier nulls (Defilan's Strix, my RDNA4, my
+Pascal). They were right for the wrong reason: the dead `-ncmoe`+`auto` combination
+explained why they saw nothing, but even the *live* fixed-budget path shows nothing
+here.
+
+## Regime B — `-fitt` + `auto`: large effect, and the evaluator says why
+
+`-ngl 99 -fitt 1024 --n-gen-warmup 16 -r 1`, tg48:
+
+```
+MoE cache fit selected main-device dense placement with 9934 MiB projected cache
+  capacity for 18600 MiB of routed expert weights (up to 53.4% coverage)
+
+off   0.98 t/s        auto  5.76 t/s        5.9x
+```
+
+Supported by the earlier reversal at `-n 8`, where the effect followed the **arm**:
+`auto` completed in both positions (5.2 first, 4.8 second) while `off` failed to
+produce 8 tokens in 280 s in both.
+
+## The conclusion these two regimes force
+
+**The benefit comes from cache-aware *placement*, not from caching a
+user-fixed placement.** With `-ncmoe` the user has already decided where experts
+live and the cache is a bolt-on — no reliable gain. With `-fitt` the fit evaluator
+*chooses a different placement* built around the cache, and that is where the large
+win lives. The doc says exactly this — *"cache-aware fit ... choosing between stock
+and cache placement"* — but the distinction is easy to miss, and every tester in the
+channel (me included) defaulted to `-ncmoe`.
+
+**Practical guidance worth putting in the PR, not just the doc:**
+- `-ncmoe` + `--moe-cache auto` is a dead combination — `-ncmoe` is authoritative and
+  blocks fit, `auto` requires fit. It silently measures nothing.
+- Any A/B without `--n-gen-warmup` measures warm-up, not the cache.
+- Any A/B without reversed ordering measures position. Observed swings today:
+  3.9x (pp) and 2.0x (tg) on **identical configs**.
+
+## Still open
+
+The numerical divergence stands and is unaddressed by the doc: on HIP the cached
+path produced different tokens than cache-off at temp 0 with repacking held
+constant, while Vulkan was byte-identical under the same test. The doc describes
+opportunistic residency management, which should be numerically neutral by
+construction. It neither claims bit-exactness nor documents its absence.
