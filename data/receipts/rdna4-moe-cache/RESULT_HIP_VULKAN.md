@@ -147,3 +147,68 @@ a finding: different kernels, different accumulation order.
   a companion to `--cpu-moe`, not a substitute for it.
 - **Do not copy `--no-mmap`** from CUDA testers' command lines onto a 32 GiB host
   with a 20 GiB model.
+
+---
+
+# RETEST @ `1131bbe` — "cuda: fix HIP MoE cache compatibility and q8_1 sums"
+
+Jabba pushed a fix and asked for a re-run. Pulled, reset to clean upstream
+(my local patch discarded), rebuilt **both** backends at the new commit.
+
+## Finding 1 is FIXED
+
+All five aliases are now in `vendors/hip.h`, `#ifndef`-guarded. **HIP builds
+clean with zero source edits** — P1 now passes upstream. Vulkan unchanged.
+
+The commit also carries a real numerics fix in `quantize.cu`:
+
+```c
+- float sum = xi;                            // sum of ORIGINAL float activations
+- sum = warp_reduce_sum<QK8_1>(sum);
++ sum = warp_reduce_sum<QK8_1>((float) q);   // sum of QUANTIZED int8 values
+- y[ib].ds = make_half2(d, sum);
++ y[ib].ds = make_half2(d, d * sum);
+```
+
+`ds.y` carries the activation sum that corrects asymmetric weight quantization
+in the integer dot product. Since the dot product consumes the *quantized*
+activations, the sum must be `d·Σq`; the old `Σx` carried the quantization
+residual as error. Correct fix, and it affects all CUDA/HIP inference, not just
+the cache.
+
+## Finding 2 is NOT fixed — and the evidence is now much sharper
+
+Same test at `1131bbe`. Both HIP arms still individually deterministic. The
+divergence is **unchanged, at the same token**.
+
+Running all four arms at the same commit isolates it completely:
+
+| arm | divergent token |
+|---|---|
+| HIP `--moe-cache off --no-repack` | one **large** dense layer |
+| **HIP `--moe-cache 4096`** | **one big dense layer** |
+| Vulkan `--moe-cache off --no-repack` | one **large** dense layer |
+| Vulkan `--moe-cache 4096` | one **large** dense layer |
+
+**Three of four agree; the HIP cached path is the singleton.** It disagrees with
+its own cache-off arm *and* with both Vulkan arms. Vulkan remains byte-identical
+across cache modes (`IDENTICAL`, control holds at the new commit).
+
+HIP and Vulkan differ from each other elsewhere in the text — expected, different
+kernels — but at this token three arms converge and only HIP-with-cache does not.
+That rules out "backends just differ" as the explanation.
+
+**Conclusion unchanged and strengthened: the CUDA/HIP expert-cache path is not
+numerically neutral, the Vulkan one is, and the q8_1 fix did not close it.**
+
+## Scoring update
+
+| ID | Conf | @ 8db4887 | @ 1131bbe |
+|---|---|---|---|
+| P1 | 0.75 | ❌ needed 5 aliases | ✅ **fixed upstream** |
+| P2 | 0.80 | ✅ | ✅ |
+| P3 | 0.50 | ✅ | ✅ |
+| P7 | 0.70 | ❌ on HIP / ✅ Vulkan | ❌ **still on HIP** / ✅ Vulkan |
+
+P4/P5/P6 remain unmeasured — throughput is still page-cache confounded and no
+number from this box should be quoted.
