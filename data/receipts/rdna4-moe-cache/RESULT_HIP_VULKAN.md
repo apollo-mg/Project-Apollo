@@ -212,3 +212,50 @@ numerically neutral, the Vulkan one is, and the q8_1 fix did not close it.**
 
 P4/P5/P6 remain unmeasured — throughput is still page-cache confounded and no
 number from this box should be quoted.
+
+---
+
+# CORRECTION — the placement regime was wrong, and it changes the headline
+
+Jabba: *"try a model bigger than your VRAM, that's where this lands."* He was
+right, and my configuration was measuring the feature outside its intended regime.
+
+`-ngl 99 --cpu-moe` pins **every** expert to CPU. That leaves VRAM headroom and
+nothing for the cache to relieve. His shape is `-ngl auto --fit on`, which lets
+the fitter place what it can and the cache absorb the overflow.
+
+## Throughput, both regimes, same 19.7 GiB model on a 16 GiB card
+
+| placement | `--moe-cache off` | `--moe-cache auto` |
+|---|---|---|
+| `-ngl 99 --cpu-moe` (mine, wrong regime) | 18.0 t/s | 15.4 t/s (cache slightly *slower*) |
+| **`-ngl auto --fit on`** (his, correct) | **0.4 t/s** | **19.3 / 17.0 t/s** |
+
+**~45×.** Not the +30–50% reported on CUDA — in this regime the alternative is
+thrashing, so the cache is the difference between unusable and usable. A gap that
+size also makes the page-cache confound irrelevant, which is why this is the first
+throughput number from this box worth quoting.
+
+**P4 confirmed** (`N` beats `off` by ≥15%) — overwhelmingly.
+**P6 falsified** — I predicted Jabba's magnitude would *not* reproduce here. It
+didn't: it is far larger, not smaller.
+
+## Two prior characterisations of mine were wrong
+
+1. **"`--moe-cache off` crashes."** It does not. `terminate called without an
+   active exception` with a `std::thread` destructor came from `timeout` sending
+   SIGTERM during teardown — an artifact of my own kill, not the program.
+2. **"It hangs / 0.0 t/s."** Also wrong. With `-n 4` it exits 0 in 278 s at
+   **0.4 t/s**. The zeros were 96 tokens at that rate overrunning my timeout.
+
+The real behaviour is simply catastrophic slowness without the cache, which is
+the feature working as designed.
+
+## What this does to Finding 2
+
+The P7 divergence was measured under `-ngl 99 --cpu-moe` — a configuration this
+feature is not meant to be used in. It remains a real, reproduced, controlled
+result **for that configuration**, with the Vulkan arm as its control. Whether it
+also appears under `-ngl auto --fit on` is **untested**: comparing outputs there
+needs a cache-off arm, and cache-off costs ~70 s per token. Scope the claim
+accordingly — it is not established for the regime users will actually run.
