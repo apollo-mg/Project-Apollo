@@ -696,3 +696,96 @@ tracks model-load time, and a throughput footer that varies by construction —
 either will read as divergence. `hip_4096` looked 4x larger than `hip_off` from
 spinner alone, and the first Pascal comparison reported "DIFFERS" on the t/s line
 while the generated text was identical.
+
+---
+
+# Response to the code review (Buffy / GLM5.2, @ `d0fe73b76`, 2026-08-11)
+
+A code review of this report came back the same day. It is careful work and one
+part of it improves on our own root cause. It also endorses the finding we had
+already retracted, for a reason that is checkable and wrong.
+
+## What verifies, checked against the tree
+
+| review claim | status |
+|---|---|
+| Vulkan/Metal use a scalar CPU-reference quantizer | **confirmed** — `ggml-vulkan-moe-cache.cpp:457-481`, `roundf(v * id)`, commented "scalar, reference quality" |
+| Vulkan caches only `Q8_0/Q4_0/Q4_K/Q6_K` | **confirmed** — the type guard at `:550-551` and `:869-870`; `Q5_K` appears **nowhere** in the file |
+| Metal is the same four types | **confirmed** — zero `Q5_K` mentions in `ggml-metal-moe-cache.mm` |
+| Hermes is `Q5_K`x80 / `Q6_K`x39 / `Q8_0`x1 | **confirmed** — matches our own census exactly |
+| CUDA supports 23 types | **confirmed** — 23 `case` labels in `moe_cache_type_supported` |
+
+**The ULP mechanism is better than ours and we adopt it.** We wrote "the hit path
+uses activation quantization and backend matvec." The review names the actual
+divergences: CUDA computes `roundf(xi / d)` (true division) where the CPU
+reference computes `roundf(xi * (1/d))` (reciprocal multiply) — a 1-ULP
+difference that occasionally shifts a quantized activation by one code — plus
+SIMD/warp-reduced against sequential accumulation, plus the silu form. That is a
+mechanism, not a restatement, and it predicts exactly the near-tie greedy flip
+observed.
+
+**Their untested prediction is now tested.** The review says *"a real NVIDIA CUDA
+run should show the same behavior. It is untested on this box."* Finding 4 above
+tests it: Tesla P100 / sm_60, 59.5% hits, diverges. Their explanation holds.
+
+## What is wrong: the Finding 3 endorsement
+
+> *"Finding 3 (Vulkan control) — valid, with one qualification the report missed.
+> Vulkan and Metal implement the cache matvec as a deliberate CPU-reference
+> mirror, which is why they are byte-identical."*
+
+That is not why they were byte-identical. At **`d0fe73b76` — the reviewed commit
+itself** — the registration is compiled out:
+
+```c
+// ggml-vulkan.cpp:19034 @ d0fe73b76
+#ifdef GGML_USE_VULKAN
+        ggml_vulkan_moe_cache_register(&reg);
+#endif
+```
+
+`GGML_USE_VULKAN` is defined nowhere in the build system; the option is
+`GGML_VULKAN`. The review describes what the Vulkan cache *would* compute without
+establishing that it runs. It does not — see the retraction above, including the
+forced-define rebuild where it still allocates no pool and records no hits.
+
+Finding 3 is not "valid with a qualification." It is void: there was no control.
+The correct disposition is that both the original finding and its endorsement fall.
+
+## The shared reasoning error, stated once
+
+> *"The divergence itself already proves the cache engaged (identical output would
+> otherwise be expected)."*
+
+Sound in one direction. Divergence does imply engagement, so the review's HIP
+conclusions are safe. But Finding 3 leans on the converse, and **identical output
+is equally consistent with an inert cache.** That asymmetry produced our
+retraction and their endorsement of it independently — the same trap approached
+from opposite ends.
+
+Which makes the review's own recommendation the right one, and already executed:
+*"re-run the divergent configuration with `-lv 4` and confirm `[moe-cache]
+enabled` and nonzero hits."* Done — HIP reports 66.2% hits, and running that same
+check on the Vulkan arm is precisely what exposed the non-registration.
+
+## Correction to the circulated coverage audit
+
+A separate "expert quant coverage audit" table credits **Vulkan and Metal with 5
+types including `Q5_K`**. Both are **4 types, and neither includes `Q5_K`** (see
+the verification table above). The CUDA column's 23 is correct. The review's
+narrower claim is the accurate one; the audit table overstates both non-CUDA
+providers by one type and names a type that is absent from both.
+
+## The consequence worth acting on
+
+The review's §Consequences #1 — *"Vulkan/Metal users get byte-identical output by
+design"* — would, if acted on, tell anyone needing reproducible output to select
+Vulkan, believing they have a working cache with reference-quality arithmetic.
+In a standard build they have **no cache at all**, and their throughput
+expectations would be silently wrong in the other direction too. Metal is
+untested here, and the same `#ifdef` question should be asked of it before that
+half of the claim is repeated.
+
+Its §Consequences #3 — "the doc should say this per-backend" — is right, and now
+has a precondition: the per-backend section cannot describe Vulkan behaviour
+until Vulkan runs.
