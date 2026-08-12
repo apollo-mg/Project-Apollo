@@ -569,6 +569,43 @@ GGML_CUDA_MOE_CACHE_MIN_CC=600 GGML_CUDA_MOE_CACHE_MIN_EXPERT_KB=512
 as gfx1201. Note this only clears the *eligibility* gates — whether the sm_60 hit
 path is profitable or numerically sane is a separate question, measured next.
 
+## Finding 4 — the divergence is NOT HIP-specific. It reproduces on real CUDA.
+
+This was the question `.194` existed to answer, and it is the reason the HIP-only
+result could never settle it: HIP compiles the *same* `moe-cache.cu` through the
+hipify vendor header, so "HIP-specific" was an assumption, not a measurement.
+
+Tesla P100 / sm_60, CUDA 12.4, single card (`CUDA_VISIBLE_DEVICES=0`), Darwin-36B
+`Q6_K`, `-ngl 99 --cpu-moe` so the model exceeds the 16 GB card, `--temp 0
+--seed 1234`, repacking pinned off on the cache-off arm, both overrides set,
+build at `bb3c3fa` — the same commit as the HIP and Vulkan builds.
+
+```
+[moe-cache] enabled: first pool allocated on CUDA0
+[moe-cache] CUDA0 pool[0]: type=q6_K expert=840 KiB entries=30720 coverage=partial
+[moe-cache] CUDA0 hits=56569/95056 (59.5%) used=4990/4990 fill-fail=0
+            evictions=1045 dispatch-fail=0 collect-fail=0 bypass=0
+```
+
+Token stream: **DIFFERS**. Prediction logged before the run was 0.6 that CUDA
+would diverge; it does.
+
+Both backends that share the CUDA implementation diverge; the one backend that did
+not diverge turned out never to have run its cache at all. Combined with the
+author's documented mechanism — the hit path uses activation quantization and
+backend matvec instead of the stock CPU path — the picture is consistent and
+unremarkable: **this is what the design does, on every backend that implements it.**
+
+Do not compare the *magnitude* of the HIP and CUDA divergences from these runs.
+They used different models (Qwopus `Q4_K`+`Q6_K` vs Darwin `Q6_K`), and once any
+token differs the remainder of a greedy generation diverges downstream, so a
+divergence that starts earlier looks larger for reasons that have nothing to do
+with the backend.
+
+Throughput on the cached arm looked better (11.5 -> 18.0 t/s) but that is a single
+unreversed ordering and is **not claimable** — reversal is running. Today's own
+blocked-ordering swings on identical configs were 3.9x (pp) and 2.0x (tg).
+
 ## Method failures worth keeping
 
 Four defects in this document trace to two habits, both now fixed:
