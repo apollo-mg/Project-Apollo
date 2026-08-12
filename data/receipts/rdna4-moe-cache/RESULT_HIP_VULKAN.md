@@ -449,3 +449,142 @@ path produced different tokens than cache-off at temp 0 with repacking held
 constant, while Vulkan was byte-identical under the same test. The doc describes
 opportunistic residency management, which should be numerically neutral by
 construction. It neither claims bit-exactness nor documents its absence.
+
+---
+
+# 2026-08-12 — RETRACTION AND ROOT CAUSES
+
+Everything above the line was written before three things were checked: whether
+the caches in each arm ever *engaged*, what the author's updated doc says about
+bit-exactness, and why Pascal produced a null. All three are now settled, and one
+of them retracts the strongest claim in this document.
+
+## Retraction 1 — Finding 3 is FALSIFIED. The Vulkan cache never ran.
+
+`llama-cli` suppressed `GGML_LOG_INFO`, and the Vulkan binary used for the
+original control was built at 12:27, **before** `bb3c3fa` added engagement
+logging. So no arm in this document — HIP or Vulkan — ever printed a single
+engagement or hit counter. The Vulkan control was never verified; it was assumed.
+
+Re-run at `bb3c3fa` with `-lv 4`, stdout (tokens) split from stderr (diagnostics):
+
+```
+vk_4096: llama_model_has_cacheable_moe_weights: MoE cache disabled (no provider registered)
+```
+
+**Root cause, in the source, not the configuration:**
+
+```c
+// ggml/src/ggml-vulkan/ggml-vulkan.cpp:19035, inside ggml_backend_vk_reg()
+#ifdef GGML_USE_VULKAN
+        ggml_vulkan_moe_cache_register(&reg);
+#endif
+```
+
+The CMake option is `GGML_VULKAN`. `GGML_USE_VULKAN` is defined **nowhere** in the
+build system, and the `ggml-vulkan` target's `CXX_DEFINES` does not contain it.
+The registration call is compiled out. `ggml_vulkan_moe_cache_register` is present
+and exported in `libggml-vulkan.so` (`T`), and the Vulkan cache kernels
+`moe_cache_mv_{q4_0,q4_K,q6_K,q8_0}` are compiled in — all of it unreachable.
+
+**The Vulkan MoE cache is dead code in any standard `-DGGML_VULKAN=ON` build.**
+
+Consequences for claims made in this document:
+
+| claim | status |
+|---|---|
+| "Vulkan MoE cache works, exit 0, no validation error" | **vacuous** — it ran ordinary inference with no cache |
+| "Vulkan is byte-identical across cache modes" | **vacuous** — both arms were cache-off |
+| "Vulkan is the control that indicts the HIP path" | **RETRACTED** — there was no control |
+| "UD-Q8_K_XL is 100% MXFP4, Vulkan has no such kernel" | conclusion (it won't cache) accidentally right, **mechanism wrong** — Vulkan has cache kernels; none are reachable |
+
+The doc states *"the CUDA, HIP, Metal, and Vulkan backends register a provider."*
+As built, Vulkan does not.
+
+## Retraction 2 — Finding 2's *interpretation* was wrong. The observation stands.
+
+I argued a residency cache "should be numerically neutral — it decides *where* a
+weight lives, not what it is." The author's `d0fe73b` documents otherwise:
+
+> *"Output can differ slightly from CPU output because the hit path uses
+> activation quantization and matvec arithmetic on the backend. Do not expect
+> bit-identical logits or token streams. In particular, a small rounding
+> difference can change a near-tie greedy token."*
+
+A hit does not relocate a weight, it **moves the computation** from the stock CPU
+path to a backend matvec on quantized activations. Divergence is the mechanism
+working as designed. **Not a defect.** With the Vulkan control gone, nothing
+indicts the HIP path — and there was never anything to indict.
+
+The *observation* is now better supported than when it was a defect claim.
+Re-run at `bb3c3fa`, repacking pinned off both sides, clean exit, engagement and
+hit counters proven on the same run:
+
+```
+[moe-cache] CUDA0 pool[0]: type=q4_K expert=576 KiB entries=25600 coverage=partial
+[moe-cache] enabled: first pool allocated on CUDA0
+[moe-cache] CUDA0 pool[1]: type=q6_K expert=840 KiB entries=5120 coverage=partial
+[moe-cache] CUDA0 hits=62889/95056 (66.2%) used=6742/6742 fill-fail=0
+            evictions=119 dispatch-fail=0 collect-fail=0 bypass=0
+```
+
+Entry counts match the model census exactly (100 `Q4_K` x 256 experts = 25600;
+20 `Q6_K` x 256 = 5120). Divergence reproduces at the same token as before:
+
+```
+- ...instead of one large dense layer
++ ...instead of one big   dense layer
+```
+
+## Root cause 3 — the Pascal null was a size threshold, not the hardware
+
+`b2fd919` recorded that sm_60 "builds, but engagement never confirmed." It is now
+confirmed, and the blocker was never compute capability alone. Two gates in series:
+
+```c
+moe_cache_cc_forced_min               = 700;        // device gate
+moe_cache_expert_bytes_ampere_min     = 512u << 10; // 512 KiB,  cc >= 800
+moe_cache_expert_bytes_pre_ampere_min = 1u << 20;   // 1024 KiB, cc <  800
+```
+
+`GGML_CUDA_MOE_CACHE_MIN_CC=600` clears the first gate. The second then rejects
+every expert tensor: **qwen35moe `Q6_K` experts are 840 KiB, and the pre-Ampere
+default demands 1024 KiB.** The probe reports:
+
+```
+MoE cache disabled (no cacheable expert tensors found)
+```
+
+which is misleading — the tensors are fine; a device-class default excluded them.
+Discriminated by running the same model on gfx1201, where it engages, so the null
+is architectural rather than a property of the model. With both overrides:
+
+```
+GGML_CUDA_MOE_CACHE_MIN_CC=600 GGML_CUDA_MOE_CACHE_MIN_EXPERT_KB=512
+[moe-cache] CUDA0 pool[0]: type=q6_K expert=840 KiB entries=30720 coverage=partial
+[moe-cache] enabled: first pool allocated on CUDA0
+```
+
+**First confirmed MoE cache engagement on Tesla P100 / sm_60**, same pool geometry
+as gfx1201. Note this only clears the *eligibility* gates — whether the sm_60 hit
+path is profitable or numerically sane is a separate question, measured next.
+
+## Method failures worth keeping
+
+Four defects in this document trace to two habits, both now fixed:
+
+1. **`llama-cli` ignores `-no-cnv` and parks at an interactive prompt.** Every arm
+   ran to its `timeout` instead of exiting. Teardown statistics — the hit counters
+   that constitute engagement proof — print only at exit, so no arm ever emitted
+   them. Fix: `< /dev/null`. This also produced two false "crash" reports, since a
+   `timeout` SIGTERM and a task kill both surface as a gdb backtrace.
+2. **Engagement treated as a footnote instead of a gate.** A disabled cache and a
+   numerically-neutral cache are indistinguishable from the token stream alone.
+   Every cache claim now requires `[moe-cache] enabled` **plus nonzero hits** from
+   the same run that produced the tokens.
+
+Also: diff the generated text only. Raw stdout carries a load spinner whose length
+tracks model-load time, and a throughput footer that varies by construction —
+either will read as divergence. `hip_4096` looked 4x larger than `hip_off` from
+spinner alone, and the first Pascal comparison reported "DIFFERS" on the t/s line
+while the generated text was identical.
