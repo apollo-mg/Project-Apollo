@@ -602,9 +602,43 @@ token differs the remainder of a greedy generation diverges downstream, so a
 divergence that starts earlier looks larger for reasons that have nothing to do
 with the backend.
 
-Throughput on the cached arm looked better (11.5 -> 18.0 t/s) but that is a single
-unreversed ordering and is **not claimable** — reversal is running. Today's own
-blocked-ordering swings on identical configs were 3.9x (pp) and 2.0x (tg).
+## Finding 5 — on Pascal the cache is worth ~2x tg, and it survives reversal
+
+The first throughput claim today to survive the control that killed the others.
+`llama-bench`, Darwin-36B `Q6_K` (26.55 GiB, larger than the 16 GB card),
+`-ngl 99 -ncmoe 40 --repack off --n-gen-warmup 64 -r 3`, tg128, single P100,
+both eligibility gates overridden, **both orderings run**:
+
+| ordering | `--moe-cache off` | `--moe-cache 4096` | ratio |
+|---|---|---|---|
+| forward (off first) | 11.23 ± 0.04 | 24.02 ± 0.33 | **2.14x** |
+| reversed (4096 first) | 11.97 ± 0.06 | 23.84 ± 0.36 | **1.99x** |
+
+The cache wins in both directions with non-overlapping error bars, and the
+position effect is small (`off` moves 6.6%, `4096` moves 0.8%) — unlike the
+gfx1201 `-ncmoe` runs earlier in this document, where the same config swung 2.0x
+on position alone and forced a withdrawal. Fleet state: 150 W cap, the standing
+setting since 2026-07-17; the `nvidia-smi` sample was taken at script start, so
+the 405 MHz reading is the idle clock, not the clock under load.
+
+**Read this as a statement about the gates, not about the hardware.** The number
+is measured with `GGML_CUDA_MOE_CACHE_MIN_CC=600` and
+`GGML_CUDA_MOE_CACHE_MIN_EXPERT_KB=512`. Stock, a P100 gets none of this — the
+cache silently declines to engage and reports a reason that names the wrong
+thing. What stands between a Pascal card and a ~2x tg gain on an
+over-VRAM MoE is two default thresholds, both overridable, neither of which is
+about whether sm_60 can execute the hit path. It demonstrably can, at 59.5% hits
+with zero dispatch, fill, or collect failures.
+
+This does not establish that the pre-Ampere floors are wrong. They may encode a
+real profitability finding on other pre-Ampere parts, or a memory-bandwidth
+assumption that P100's HBM2 happens to beat. It establishes that on this part,
+with this model, the conservative default costs a 2x gain and the diagnostic
+does not tell the user which knob to turn.
+
+Earlier in this run the same comparison looked like 11.5 -> 18.0 t/s from a single
+`llama-cli` ordering. That figure is superseded by the table above; single-ordering
+throughput was not claimable then and is not cited now.
 
 ## Method failures worth keeping
 
