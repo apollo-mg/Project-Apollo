@@ -501,6 +501,43 @@ Consequences for claims made in this document:
 The doc states *"the CUDA, HIP, Metal, and Vulkan backends register a provider."*
 As built, Vulkan does not.
 
+### Proven by construction, and a second layer underneath
+
+Rebuilt from the **same commit**, same model, same flags, one difference —
+`-DCMAKE_CXX_FLAGS=-DGGML_USE_VULKAN` so the registration call compiles in:
+
+| build | result |
+|---|---|
+| stock `-DGGML_VULKAN=ON` | `MoE cache disabled (no provider registered)` |
+| `+ -DGGML_USE_VULKAN` | `sched_reserve: MoE cache requested=on resolved=on`<br>`[moe-cache] Vulkan session created (budget=4096 MiB, host-mapped)` |
+
+One preprocessor define separates a registered provider from dead code.
+
+**But the fixed build still does not cache.** With the provider registered and the
+mode resolved on, the run produced:
+
+- no `[moe-cache] enabled` (the doc: printed only after the first pool is
+  allocated; *"if it is absent from a log at `-lv 4`, the cache did not become
+  active"*)
+- no pool lines, and no hit/miss/eviction counters at any point
+- a token stream **byte-identical** to the cache-off arm
+
+Given that a working cache changes the token stream by construction — the hit path
+uses different arithmetic, which is exactly what HIP and CUDA both demonstrate —
+byte-identity here is consistent with an inert cache, not a neutral one.
+
+I have **not** determined why the pool is never allocated; that is inside the
+Vulkan provider and was not investigated. Note also that the Vulkan session
+reports `host-mapped`, against the CUDA/HIP side's device-side pools with slot
+counts, coverage, and eviction. The two implementations may not be numerically
+comparable even when both work — a second, independent reason the original
+"Vulkan indicts HIP" framing was unsound.
+
+**Net: at no point today did a Vulkan MoE cache actually execute.** Every Vulkan
+observation in this document — byte-exactness, "it runs cleanly", the MXFP4
+inference — was made against a cache that was inert, first because it was never
+registered and then, once registered, because it never allocated a pool.
+
 ## Retraction 2 — Finding 2's *interpretation* was wrong. The observation stands.
 
 I argued a residency cache "should be numerically neutral — it decides *where* a
