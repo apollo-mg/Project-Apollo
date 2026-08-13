@@ -174,6 +174,12 @@ def shelf(m, v):
     # dimensions they do not carry. A naive sweep shelves them under "NoneL-Noned".
     if m.get("companion"):
         return os.path.join(arch, "_companions")
+    # A split model must stay in ONE directory or it cannot be loaded. Shards
+    # legitimately differ in expert composition (and shard 1 often holds no
+    # experts at all, so it would file as "dense"), which would scatter them.
+    # The lead shard's shelf is authoritative for the whole set.
+    if m.get("_shelf_override"):
+        return m["_shelf_override"]
 
     def part(label, val):
         return f"{val}{label}" if val is not None else f"?{label}"
@@ -191,6 +197,9 @@ def shelf(m, v):
         shape = f"{part('L', m.get('block_count'))}-{part('d', m.get('n_embd'))}"
         profile = "dense"
     return os.path.join(arch, shape, profile)
+
+
+SHARD = re.compile(r"-(\d{5})-of-(\d{5})\.gguf$")
 
 
 def scan(roots):
@@ -212,7 +221,37 @@ def scan(roots):
                          "error": f"{type(e).__name__}: {e}"}
                 m["companion"] = bool(COMPANION.search(fn))
                 out.append(m)
+    _adopt_shards(out)
     return out
+
+
+def _adopt_shards(models):
+    """Only shard 00001 carries the architecture KVs -- the rest have a bare
+    header. Left alone they shelve under '?/?exp/', scattering one model across
+    four directories. Adopt the lead shard's identity so a split model stays
+    whole, and keep each shard's own expert census (they genuinely differ:
+    Puzzle Q4_K_M shard 1 carries Q5_0, shard 2 does not)."""
+    # Match on the filename stem, NOT the directory -- shards are routinely
+    # filed in different folders than their lead (observed on this NAS).
+    lead = {}
+    for m in models:
+        mo = SHARD.search(os.path.basename(m.get("path", "")))
+        if mo and mo.group(1) == "00001":
+            lead[SHARD.sub("", os.path.basename(m["path"]))] = m
+    for m in models:
+        mo = SHARD.search(os.path.basename(m.get("path", "")))
+        if not mo or mo.group(1) == "00001":
+            continue
+        head = lead.get(SHARD.sub("", os.path.basename(m["path"])))
+        if not head:
+            continue
+        m["shard_of"] = os.path.basename(head["path"])
+        for k in ("arch", "block_count", "n_embd", "n_expert",
+                  "n_expert_used", "expert_ffn"):
+            # read_gguf writes "?" for a missing architecture, not None
+            if m.get(k) in (None, "?"):
+                m[k] = head.get(k)
+                m.setdefault("_inherited", []).append(k)
 
 
 def main():
@@ -267,6 +306,26 @@ def main():
 
     if a.mode in ("plan", "apply"):
         print("\n=== proposed shelf ===")
+        # Resolve split models to a single shelf: union the expert types across
+        # every shard so the directory name describes the whole model, then pin
+        # each shard to it.
+        groups = collections.defaultdict(list)
+        for m in ok:
+            mo = SHARD.search(os.path.basename(m["path"]))
+            if mo:
+                groups[SHARD.sub("", os.path.basename(m["path"]))].append(m)
+        for stem, shards in groups.items():
+            union, ebytes = {}, {}
+            for s in shards:
+                union.update(s.get("expert_types") or {})
+                ebytes.update(s.get("expert_bytes") or {})
+            if not union:
+                continue
+            head = min(shards, key=lambda s: s["path"])
+            merged = dict(head, expert_types=union, expert_bytes=ebytes)
+            target = shelf(merged, verdict(merged))
+            for s in shards:
+                s["_shelf_override"] = target
         tree = collections.defaultdict(list)
         for m in ok:
             tree[shelf(m, m["_v"])].append(m)
