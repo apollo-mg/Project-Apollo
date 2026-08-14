@@ -139,6 +139,42 @@ size varies by prompt, so it should not be presented as a general tuning rule.
 confident, monotonic result pointing the wrong way. Three prompts were enough to destroy
 it. K=1 on one prompt is not a measurement of a sampling parameter.
 
+### Second correction — TheTom's `offlabel/models/qwen3.8-27b.md` has the mechanism
+
+Published independently. It reports the chat template as
+`"reasoning_effort|default('xhigh')"`, and states two things this receipt got wrong:
+
+**"There is no `high`."** Confirmed here: `high` is byte-identical to `xhigh` because it
+**falls through to the default**, not because it is a recognised synonym. This receipt
+argued the opposite — that an invalid value returning HTTP 500 proved `high` was "genuinely
+accepted". That inference was wrong: 500 comes from the template's *validation list*, and
+membership in that list does not imply a branch exists.
+
+**`medium` is a silent no-op** — legal to pass, no branch to handle it, so it emits no
+effort instruction at all. Tom measured `medium` at 60 chars with no effort line against
+`xhigh` at 297.
+
+This explains an anomaly this receipt recorded but could not account for. In the local
+measurements, `medium` (396 chars) and `low` (523) both open with the **identical** string
+*"Let me work through this step by step."*, while `xhigh`/`high` open entirely differently.
+So the "non-monotonic, prompt-dependent" behaviour reported above is not an effort gradient
+at all — it is **branch versus no-branch**:
+
+| setting | branch taken |
+|---|---|
+| default, `xhigh`, `high` | the `xhigh` branch |
+| `medium` | **no effort instruction** |
+| `low` | the `low` branch |
+
+**Corrected statement:** `reasoning_effort` on this model has **two effective behaviours
+plus `low`**, not a four-step ladder. Any A/B that treats `medium` as "half of `xhigh`" is
+comparing an instruction against no instruction.
+
+Also worth carrying into any thinking-arm experiment on this model — Tom's ROI finding:
+*"xhigh produced zero genuine wins in 28 scenarios, at 2.9x the reasoning tokens."* That is
+independent evidence pointing against the substitution hypothesis, logged here because the
+`qwen38-hep` predictions were sealed before it was seen.
+
 ## Limits
 
 - **K=1.** `agent-benchmark-determinism` records temp-0 on this fleet as non-reproducible
