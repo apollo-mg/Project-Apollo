@@ -50,6 +50,11 @@ def ask(prompt, thinking, n_predict=512, timeout=300):
     ch = d["choices"][0]
     return {
         "text": ch["message"]["content"],
+        # llama.cpp splits reasoning into its own field. Capturing only
+        # `content` measures the visible answer and silently drops the entire
+        # think block — which made the first 2x2 blind to whether the thinking
+        # arm was thinking at all.
+        "reasoning": ch["message"].get("reasoning_content") or "",
         # THE point of this harness: why did generation stop?
         "finish_reason": ch.get("finish_reason"),
         "completion_tokens": d.get("usage", {}).get("completion_tokens"),
@@ -83,9 +88,10 @@ def main():
             results.append(r)
             fr = r.get("finish_reason", "ERR")
             n = r.get("completion_tokens", "?")
+            rlen = len(r.get("reasoning") or "")
             flag = " LOOP" if r.get("looped") else ""
             print(f"  {tag:12s} think={str(thinking):5s} {name:9s} "
-                  f"finish={str(fr):10s} tok={n}{flag}", flush=True)
+                  f"finish={str(fr):10s} tok={n} reason_chars={rlen}{flag}", flush=True)
     path = os.path.join(out_dir, f"raw_{tag}.json")
     json.dump(results, open(path, "w"), indent=1)
     # Summary that leads with stop reasons, since that is the finding at risk.

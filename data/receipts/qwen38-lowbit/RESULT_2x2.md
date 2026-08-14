@@ -76,6 +76,56 @@ than pass rate** at these quant levels. Worth a proper test.
 reasons in the visible channel instead of a think block and still lands correct. The
 channel moves, the answer does not.
 
+## Correction and an unexpected result: `reasoning_effort` is inverted
+
+Prompted by @JabbaTheDuck reporting thought loops on Qwen 3.8 27B, fixed with
+`chat-template-kwargs = {"reasoning_effort": "low"}` — a different knob than the one used
+above. Two things came out of checking it.
+
+**Harness defect (does not change the result).** `llama-server` returns reasoning in a
+**separate `reasoning_content` field**, not inline in `content`. The runner captured only
+`content`, so every `<think>` block was silently dropped and the raw JSON shows zero think
+blocks in all 32 responses. That looked at first like the thinking arm never engaged.
+
+Verified directly against the live server, same prompt, `temperature 0`:
+
+| kwargs | `reasoning_content` | completion tokens | answer |
+|---|---|---|---|
+| `{"enable_thinking": true}` | **264 chars** | 106 | 2:29 |
+| `{}` (default) | 264 chars | 106 | 2:29 |
+| `{"enable_thinking": false}` | **0 chars, absent** | 324 | 2:29 |
+
+So the arms were valid — `enable_thinking: false` genuinely suppresses reasoning, `true`
+produces it, and the 2x2 above measured what it claimed to. The token totals it reports are
+`completion_tokens`, which the server counts across both fields, so those are also correct.
+The runner has been patched to record `reasoning_content` length per response.
+
+**`reasoning_effort: low` produces MORE output, not less.** Same prompt, same seed:
+
+| setting | reasoning chars | completion tokens |
+|---|---|---|
+| `reasoning_effort: high` | 264 | **106** |
+| default | 264 | **106** |
+| `reasoning_effort: low` | **523** | **277** |
+
+`low` is **2.6x the tokens of `high`**, and roughly double the reasoning text. `high` and
+the default are byte-identical, so `high` appears to be the default and `low` is the only
+setting that changes anything — in the opposite direction to its name.
+
+Both still answer 2:29 correctly, but they answer differently: `high`/default emit a short
+internal trace and then a bare `2:29`; `low` emits a *longer* internal trace and then a
+fully worked, formatted, multi-step visible answer.
+
+That is consistent with what @JabbaTheDuck observed — `low` got a looping model to "shut up
+and do the work" — but the mechanism is not less thinking. It looks like `low` shifts
+reasoning **out of the compressed internal channel into ordinary prose**, which may be more
+robust against loops precisely because it is normal generation rather than a terse
+scratchpad. Untested here; this fleet saw no loops in any configuration.
+
+**Practical note for anyone tuning this model:** `reasoning_effort` does not behave as a
+throttle, and picking `low` to save tokens will cost 2.6x instead. Measured on
+`UD-IQ3_XXS`, K=1.
+
 ## Limits
 
 - **K=1.** `agent-benchmark-determinism` records temp-0 on this fleet as non-reproducible
