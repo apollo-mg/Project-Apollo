@@ -84,6 +84,49 @@ same trap as the text ladder at smaller scale.
 Cost note: mmproj is a flat ~0.87 GiB on top of any text quant — it is not quantised with
 the ladder. On a 16 GB card that is roughly one quant tier of headroom.
 
+## Every quant ships an MTP draft head — and the build discards it
+
+`llama-server` at `bb3c3fa` (giveen/moe-cache) loading `UD-IQ2_M` prints **15 discard
+warnings**, all for `blk.64.*`:
+
+```
+W model has unused tensor blk.64.nextn.eh_proj.weight (size = 27852800 bytes) -- ignoring
+W model has unused tensor blk.64.nextn.enorm.weight  -- ignoring
+W model has unused tensor blk.64.nextn.hnorm.weight  -- ignoring
+W model has unused tensor blk.64.nextn.shared_head_norm.weight -- ignoring
+   ... plus blk.64 attn_{q,k,v,output,norm,q_norm,k_norm} and ffn_{gate,up,down}
+```
+
+Verified over range requests that this is **not** a packaging accident and **not** specific
+to one quant:
+
+| file | `block_count` | `blk.64.*` tensors | `nextn` tensors | KV |
+|---|---|---|---|---|
+| `UD-IQ2_M` | 65 | 15 | 4 | `qwen35.nextn_predict_layers = 1` |
+| `Q4_K_M` | 65 | 15 | 4 | `qwen35.nextn_predict_layers = 1` |
+| `UD-Q8_K_XL` | 65 | 15 | 4 | `qwen35.nextn_predict_layers = 1` |
+
+The whole ladder carries a complete self-speculation draft layer — a full transformer block
+(attention + FFN) plus the `nextn` projection and norms — as block 64 of 65.
+
+**Why this matters here.** `data/receipts/mtp-sm60/SUMMARY.md` measured **1.70x throughput**
+from MTP on 2x P100, on a model with the *same* `nextn_predict_layers = 1`, via
+`--spec-type draft-mtp --spec-draft-n-max 2`. That is a free ~1.7x on interactive serving
+that this build is currently throwing away at load time.
+
+Two caveats carried forward from that receipt, unchanged:
+
+- MTP is **not bit-exact** — 4 of 5 prompts diverged at temp 0 against a clean 5/5
+  determinism control. It is a serving win, never something to enable on one arm of an A/B.
+- Enabling it on one arm by accident is a documented hazard: the original stage-2 queue did
+  exactly that, pointing ThinkingCap at an MTP GGUF and stock at a non-MTP one.
+
+**Not yet tested:** whether `--spec-type draft-mtp` actually engages on `qwen35` arch in
+this build, or whether — like the Vulkan MoE cache — the tensors load but no code path
+consumes them. The discard warnings say this particular server binary does not wire them
+up; a build that does is a separate question. Engagement gets proven from the log before
+any speedup is claimed.
+
 ## Fleet fit
 
 Dense at 27B, so placement is simple — no `-ncmoe`, no cache-aware fit, none of the
