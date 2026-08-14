@@ -54,6 +54,36 @@ the first thing to check before attributing it to the model.
 reference point, and BF16 is poorly served on Pascal — relevant to any P100 arm using it as
 the high-precision anchor.
 
+## Vision is a separate module, and the two mmproj builds are not equivalent
+
+The text GGUF carries **zero** vision tensors and no multimodal KV keys — vision ships as
+the standard llama.cpp `--mmproj` sidecar, same arrangement as Qwen 3.6.
+
+Both mmproj files are **honestly labelled** (unlike the text ladder): F16 is F16+F32, BF16
+is BF16+F32. Same architecture in both — `qwen3vl_merger`, 27 vision blocks, 1152-dim,
+768 px image / 16 px patch, `has_vision_encoder=True`, **no audio encoder**.
+
+| | `mmproj-F16` | `mmproj-BF16` |
+|---|---|---|
+| tensors | 334 | 334 |
+| F32 | 222 | **224** |
+| low-precision | F16 112 | BF16 110 |
+| projector / patch-embed | F32 3, **F16 4** | **F32 5**, BF16 2 |
+
+The BF16 build keeps **two more projector tensors at F32**. Plausibly deliberate: BF16 has
+F32's exponent range but only 8 mantissa bits against F16's 10, and the projector is where
+vision embeddings enter the text model's space, so its error propagates into every
+downstream token. Not verified with the packager — the tensor counts are measured, the
+motive is inference.
+
+Consequence: **use `mmproj-F16` on Pascal** (sm_60 has no native BF16; it would be emulated
+or upconverted). Either works on RDNA4. And a vision-quality comparison between these two
+files is **not** a clean F16-vs-BF16 test — it compares two different mixed recipes, the
+same trap as the text ladder at smaller scale.
+
+Cost note: mmproj is a flat ~0.87 GiB on top of any text quant — it is not quantised with
+the ladder. On a 16 GB card that is roughly one quant tier of headroom.
+
 ## Fleet fit
 
 Dense at 27B, so placement is simple — no `-ncmoe`, no cache-aware fit, none of the
