@@ -100,31 +100,44 @@ produces it, and the 2x2 above measured what it claimed to. The token totals it 
 `completion_tokens`, which the server counts across both fields, so those are also correct.
 The runner has been patched to record `reasoning_content` length per response.
 
-**`reasoning_effort: low` produces MORE output, not less.** Same prompt, same seed:
+**Corrected: `reasoning_effort` is not simply inverted. It is prompt-dependent.**
 
-| setting | reasoning chars | completion tokens |
-|---|---|---|
-| `reasoning_effort: high` | 264 | **106** |
-| default | 264 | **106** |
-| `reasoning_effort: low` | **523** | **277** |
+An earlier version of this section claimed `low` costs 2.6x more than `high` and that the
+control "does not behave as a throttle". **That generalised from a single prompt and is
+withdrawn.** Testing the documented ladder across three prompts, same seed, `UD-IQ3_XXS`:
 
-`low` is **2.6x the tokens of `high`**, and roughly double the reasoning text. `high` and
-the default are byte-identical, so `high` appears to be the default and `low` is the only
-setting that changes anything — in the opposite direction to its name.
+| prompt | `xhigh` | `medium` | `low` | ordering |
+|---|---|---|---|---|
+| reason (train times) | 106 t / 264 c | 253 t / 396 c | **277 t / 523 c** | inverted, monotonic |
+| code (palindrome) | 165 t / 536 c | **227 t / 744 c** | 109 t / 315 c | **non-monotonic** — medium highest |
+| format (three colors) | 139 t / 527 c | 131 t / 499 c | 122 t / 468 c | as named, but a 12% spread |
 
-Both still answer 2:29 correctly, but they answer differently: `high`/default emit a short
-internal trace and then a bare `2:29`; `low` emits a *longer* internal trace and then a
-fully worked, formatted, multi-step visible answer.
+*(t = completion tokens, c = `reasoning_content` chars.)*
 
-That is consistent with what @JabbaTheDuck observed — `low` got a looping model to "shut up
-and do the work" — but the mechanism is not less thinking. It looks like `low` shifts
-reasoning **out of the compressed internal channel into ordinary prose**, which may be more
-robust against loops precisely because it is normal generation rather than a terse
-scratchpad. Untested here; this fleet saw no loops in any configuration.
+There is no consistent direction. The 2.6x inversion is real **on the reason prompt** and
+does not survive to the other two. On `code`, `low` is the *cheapest*; on `format` the
+ordering matches the naming but the total spread is 17 tokens.
 
-**Practical note for anyone tuning this model:** `reasoning_effort` does not behave as a
-throttle, and picking `low` to save tokens will cost 2.6x instead. Measured on
-`UD-IQ3_XXS`, K=1.
+What does hold across every test:
+
+**`xhigh`, `high`, and the default are byte-identical** — 264 chars / 106 tokens on the
+reason prompt, character-for-character. The Qwen docs list `xhigh` as the default, so
+`high` and `xhigh` evidently resolve to the same template output. This is not a silent
+fallback: an invalid value (`"banana"`) returns **HTTP 500**, so the template validates its
+input and `high` is genuinely accepted.
+
+**So the usable settings are three, not four:** default/`xhigh`/`high` (one behaviour),
+`medium`, and `low`.
+
+On @JabbaTheDuck's loop fix — `low` did change behaviour on the one prompt where the
+difference was large, shifting reasoning into a longer, fully-worked visible answer rather
+than a terse internal trace. That remains a plausible mechanism for why it stopped a loop,
+and it remains untested: no configuration produced a loop on this fleet, and the effect
+size varies by prompt, so it should not be presented as a general tuning rule.
+
+**Method note for anyone repeating this:** a single prompt was enough to produce a clean,
+confident, monotonic result pointing the wrong way. Three prompts were enough to destroy
+it. K=1 on one prompt is not a measurement of a sampling parameter.
 
 ## Limits
 
