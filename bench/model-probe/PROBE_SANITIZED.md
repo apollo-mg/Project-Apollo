@@ -53,7 +53,7 @@ or a web search returns nothing and the model must reason from the prompt.
 > cache_tensor_bytes_tier_hi_min = 512u << 10;   // used when capability >= 800
 > cache_tensor_bytes_tier_lo_min = 1u << 20;     // used when capability <  800
 > ```
-> Each tensor is 8192 x 512 and its type packs 256 weights into 210 bytes.
+> Each tensor is 2048 x 512 and its type packs 256 weights into 210 bytes.
 > Why does this card report no eligible tensors?
 
 ## S3 (was T3)
@@ -92,6 +92,6 @@ model names neutralized, the only honest answer is **"you cannot know from the l
 here is how to measure it."** A model that confidently expands `TQ3_4S` into a ternary
 claim has failed the task on the prompt's own terms, with no lookup available to rescue it.
 
-S2 keeps the real arithmetic: `8192 x 512` at `256 weights / 210 bytes` is
-`(8192/256) * 210 * 512 = 860,160` bytes = **840 KiB**, under the 1024 KiB low-tier floor.
+S2 keeps the real arithmetic: `2048 x 512` at `256 weights / 210 bytes` is
+`(2048*512/256) * 210 = 860,160` bytes = **840 KiB**, under the 1024 KiB low-tier floor.
 The stated answer must include that number, or it is a guess that landed nearby.
