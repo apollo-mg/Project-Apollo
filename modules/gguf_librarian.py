@@ -39,7 +39,7 @@ Usage:
 Companion to `data/receipts/model_manifest.py`, which records provenance
 (fingerprint + source) for cited models. This one describes contents for all of them.
 """
-import argparse, collections, json, os, re, struct, sys
+import argparse, collections, json, os, re, struct, sys, urllib.parse, urllib.request
 
 # (block elements, bytes per block). Exact -- this is what makes per-expert size
 # exact rather than a bits-per-weight estimate.
@@ -87,13 +87,73 @@ def _val(f, vt):
     raise ValueError(f"unknown gguf value type {vt}")
 
 
+class _HTTPFile:
+    """Sequential reader over HTTP range requests, exposing just enough of the
+    file protocol for the parser below (`read`).
+
+    The point: the tensor table sits at the HEAD of a GGUF, so the recipe of a
+    21 GiB quant is knowable from its first few MiB. That turns "what is actually
+    in bartowski's Q6_K vs unsloth's Q6_K" from a 40 GiB download into ~4 MiB of
+    transfer, which is the difference between auditing one packager's ladder and
+    auditing all of them.
+
+    Deliberately not a general file object -- no seek, no context manager. It
+    reads forward once, which is all the parser does.
+    """
+
+    def __init__(self, url, chunk=4 << 20, timeout=60):
+        self.url, self.chunk, self.timeout = url, chunk, timeout
+        self.pos = self.fetched = 0
+        self.buf, self.buf_start = b"", 0
+        self.size = None
+
+    def _fetch(self, start, n):
+        req = urllib.request.Request(self.url, headers={
+            "Range": f"bytes={start}-{start + n - 1}",
+            # HF serves range requests off its CDN; urllib follows the redirect.
+            "User-Agent": "apollo-gguf-librarian",
+        })
+        with urllib.request.urlopen(req, timeout=self.timeout) as r:
+            data = r.read()
+            cr = r.headers.get("Content-Range", "")
+            if "/" in cr:
+                tail = cr.rsplit("/", 1)[1]
+                if tail.isdigit():
+                    self.size = int(tail)
+        self.fetched += len(data)
+        return data
+
+    def read(self, n):
+        out = bytearray()
+        while n > 0:
+            off = self.pos - self.buf_start
+            if 0 <= off < len(self.buf):
+                take = min(n, len(self.buf) - off)
+                out += self.buf[off:off + take]
+                self.pos += take
+                n -= take
+                continue
+            data = self._fetch(self.pos, max(n, self.chunk))
+            if not data:                      # short read: server ran out
+                break
+            self.buf, self.buf_start = data, self.pos
+        return bytes(out)
+
+
 def read_gguf(path):
     """Header + full tensor table. Never touches tensor DATA, so this is a few
-    MiB of read regardless of whether the file is 4 GiB or 400."""
-    out = {"path": path, "bytes": os.path.getsize(path)}
-    with open(path, "rb") as f:
+    MiB of read regardless of whether the file is 4 GiB or 400.
+
+    `path` may be a local path or an http(s) URL; remote reads go through
+    `_HTTPFile` and cost the same few MiB over the wire.
+    """
+    remote = path.startswith(("http://", "https://"))
+    out = {"path": path, "bytes": None if remote else os.path.getsize(path)}
+    f = _HTTPFile(path) if remote else open(path, "rb")
+    try:
         if f.read(4) != b"GGUF":
-            return {**out, "error": "not a GGUF"}
+            out["error"] = "not a GGUF"
+            return out
         out["gguf_version"] = struct.unpack("<I", f.read(4))[0]
         n_tensors, n_kv = struct.unpack("<QQ", f.read(16))
         kv = {}
@@ -135,6 +195,13 @@ def read_gguf(path):
         out["expert_types"] = dict(exp_types)
         out["expert_bytes"] = exp_bytes
         out["other_types"] = dict(other)
+    finally:
+        # `out` is returned by reference, so these land even on the early exit.
+        if remote:
+            out["bytes"] = f.size          # learned from the Content-Range header
+            out["fetched_bytes"] = f.fetched
+        else:
+            f.close()
     return out
 
 
@@ -254,15 +321,95 @@ def _adopt_shards(models):
                 m.setdefault("_inherited", []).append(k)
 
 
+def hf_files(repo, timeout=30):
+    """Every filename in a public HuggingFace repo, via the metadata API."""
+    req = urllib.request.Request(f"https://huggingface.co/api/models/{repo}",
+                                 headers={"User-Agent": "apollo-gguf-librarian"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        meta = json.load(r)
+    return [s["rfilename"] for s in meta.get("siblings", [])]
+
+
+def probe_urls(targets, pattern=None):
+    """Resolve `targets` (http(s) URLs or `owner/repo` ids) to GGUF URLs."""
+    urls = []
+    for t in targets:
+        if t.startswith(("http://", "https://")):
+            urls.append(t)
+            continue
+        for fn in sorted(hf_files(t)):
+            if fn.endswith(".gguf"):
+                urls.append(f"https://huggingface.co/{t}/resolve/main/"
+                            + urllib.parse.quote(fn))
+    if pattern:
+        rx = re.compile(pattern, re.I)
+        urls = [u for u in urls if rx.search(urllib.parse.unquote(u.rsplit("/", 1)[1]))]
+    return urls
+
+
+def _histogram(counter, top=8):
+    """Types by count, biggest first -- the recipe, in the order that matters."""
+    items = sorted(counter.items(), key=lambda kv: (-kv[1], kv[0]))
+    s = " + ".join(f"{t}x{n}" for t, n in items[:top])
+    return s + (f" + {len(items)-top} more" if len(items) > top else "")
+
+
+def probe(targets, pattern=None):
+    """Census remote GGUFs by header alone.
+
+    Answers "does this packager's Q6_K contain what the label says" without
+    downloading weights. A full 26-quant ladder costs a few tens of MiB.
+    """
+    rows = []
+    for url in probe_urls(targets, pattern):
+        fn = urllib.parse.unquote(url.rsplit("/", 1)[1])
+        try:
+            m = read_gguf(url)
+        except Exception as e:
+            print(f"  {fn[:54]:<54} ERROR {type(e).__name__}: {e}")
+            continue
+        lab = LABEL.search(fn)
+        m["label"] = lab.group(0) if lab else None
+        m["file"] = fn
+        rows.append(m)
+        if "error" in m:
+            print(f"  {fn[:54]:<54} {m['error']}")
+            continue
+        size = f"{m['bytes']/2**30:.2f} GiB" if m.get("bytes") else "?"
+        print(f"  {fn[:54]:<54} {size:>10}  says {str(m['label']):<10} "
+              f"[{m['n_tensors']} tensors, {m.get('fetched_bytes',0)/2**20:.1f} MiB read]")
+        print(f"      dense   {_histogram(m['other_types'])}")
+        if m.get("expert_types"):
+            print(f"      experts {_histogram(m['expert_types'])}")
+    return rows
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("mode", choices=["scan", "plan", "apply"], nargs="?", default="scan")
-    ap.add_argument("roots", nargs="*", default=["/mnt/TG_2TB/AI/Models"])
+    ap.add_argument("mode", choices=["scan", "plan", "apply", "probe"], nargs="?",
+                    default="scan")
+    ap.add_argument("roots", nargs="*", default=["/mnt/TG_2TB/AI/Models"],
+                    help="local roots; for `probe`, HF repo ids or GGUF URLs")
     ap.add_argument("--manifest")
     ap.add_argument("--link", metavar="DEST", help="build the shelf as symlinks")
     ap.add_argument("--move", metavar="DEST", help="RELOCATE files (destructive)")
+    ap.add_argument("--only", metavar="REGEX",
+                    help="probe: filter filenames, e.g. --only 'Q6_K|Q4_K_M'")
     a = ap.parse_args()
+
+    if a.mode == "probe":
+        print(f"=== remote header probe: {', '.join(a.roots)} ===")
+        rows = probe(a.roots, a.only)
+        got = sum(r.get("fetched_bytes", 0) for r in rows)
+        adv = sum(r.get("bytes") or 0 for r in rows)
+        print(f"\n{len(rows)} files, {adv/2**30:.1f} GiB on the hub, "
+              f"{got/2**20:.1f} MiB actually transferred")
+        if a.manifest:
+            json.dump({"n": len(rows), "targets": a.roots, "entries": rows},
+                      open(a.manifest, "w"), indent=1, default=str)
+            print(f"manifest -> {a.manifest}")
+        return
 
     models = scan(a.roots)
     ok = [m for m in models if "error" not in m]
