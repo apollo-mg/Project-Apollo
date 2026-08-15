@@ -1,4 +1,4 @@
-# Two packagers, one label, a two-bit gap in the MTP draft head
+# The MTP draft head is quantised blind — no imatrix covers it in either ladder
 
 **Date:** 2026-08-15 · **Method:** GGUF headers read over HTTP range requests
 (`modules/gguf_librarian.py probe`) — no weights downloaded. 8 files totalling
@@ -54,7 +54,51 @@ which makes it a testable hypothesis instead of a contradiction.
 **Unknown and material: which files those reports used.** Nobody has been asked. That is the
 cheapest next step and it should happen before any test is run.
 
+## The deeper finding: the MTP head has no importance data in either ladder
+
+bartowski publishes his imatrix (`Qwen3.8-27B-imatrix.gguf`). Read directly, 4 MiB over the
+wire: **992 entries, covering `blk.0` through `blk.63`. Zero entries for `blk.64`. No
+`nextn` entries anywhere.**
+
+`tensor_requires_imatrix()` — **identical in upstream `llama-quant.cpp` and the `buun_vbr`
+fork** — returns true for `IQ3_XXS`, `IQ2_XXS`, `IQ2_XS`, `IQ2_S`, `IQ1_M`, `IQ1_S`, and for
+`Q2_K` inside a `Q2_K_S` file. Targeting one of those on a tensor with no imatrix entry is a
+hard abort, not a downgrade:
+
+```
+Missing importance matrix for tensor %s in a very low-bit quantization
+The result will be garbage, so bailing out
+```
+
+So for every IQ-tier file, the MTP head **must** be forced to a type outside that set. `Q4_0`
+qualifies. So do `IQ3_S`, `IQ4_XS`, and every K-quant. Both packagers picked from that set:
+
+| | head type | requires imatrix? |
+|---|---|---|
+| bartowski, all tiers except `Q8_0` | `Q4_0` | no |
+| unsloth, IQ tiers | `IQ4_XS` / `IQ3_S` | no |
+| unsloth, K tiers | `Q6_K` / `Q8_0` | no |
+
+unsloth does not publish an imatrix, so their coverage cannot be read. But their
+`UD-IQ3_XXS` **body** uses `IQ3_XXS` x112 and `IQ1_M` x48 — both imatrix-requiring — while
+its **head** uses only non-requiring types. That is the signature of the same gap.
+
+**This weakens the "he has data showing 4-bit is fine" reading, without refuting it.** At the
+IQ tiers `Q4_0` is close to forced. But at `Q6_K` the abort rule forces nothing — K-quants
+never require imatrix, so a `Q6_K` head was freely available and `Q4_0` still shipped. The
+most economical explanation is a single uniform `nextn` override applied across the whole
+ladder, set at the floor the lowest tiers need. That is a pipeline-shape decision rather than
+a per-tier quality judgement — **but it is not established here, and only bartowski can say.**
+
+**The upstream gap this exposes is the more useful result:** imatrix generation does not
+exercise the MTP layer, so in every published ladder examined the draft head is quantised
+*blind*. Whatever the right precision for a draft head is, nobody currently has importance
+data to inform the choice.
+
 ## Sealed predictions
+
+**Sealed before the imatrix coverage above was discovered.** Left unchanged; the mechanism
+turned out to be different from the one assumed when they were written.
 
 If the MTP A/B (`data/receipts/qwen38-splitmode/raw/mtp_ab.py`, `-np 1`, temp 0) is run on
 bartowski `Q6_K` against unsloth `Q6_K` on the same node:
@@ -73,9 +117,16 @@ the cause is elsewhere (build, flags, hardware).
 ## Limits
 
 - **Header evidence only. No throughput was measured for this receipt.** Everything above is
-  what the files contain, not how they behave.
-- `Q4_0` is a legacy type that does not carry imatrix weighting the way the K/IQ types do, so
-  bartowski's head differs from his body in method as well as in bit width. Not quantified.
+  what the files contain, not how they behave. No claim is made that a `Q4_0` head drafts
+  worse than a `Q6_K` one — only that they differ and that neither was informed by imatrix.
+- **unsloth's imatrix coverage is inferred, not read.** They publish no imatrix. The
+  inference rests on their head types being exactly the non-imatrix-requiring ones while
+  their body uses requiring ones; that is suggestive, not proof.
+- **bartowski's intent is not established.** The uniform-override reading is the most
+  economical explanation of the observed types, not evidence about his process. He may well
+  have validated `Q4_0` heads independently.
+- The claim that imatrix generation does not exercise the MTP layer is inferred from the
+  absence of `blk.64` in the published imatrix, not from reading `llama-imatrix`.
 - Two packagers, one model. Nothing here says what stock `llama-quantize` defaults do, which
   is the third recipe under the same label (`gguf-label-is-not-a-spec`).
 - The `blk.64` block was identified as the MTP head by the presence of `.nextn.` tensors in
