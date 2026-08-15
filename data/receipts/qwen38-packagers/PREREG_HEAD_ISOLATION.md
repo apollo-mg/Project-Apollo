@@ -68,6 +68,48 @@ H2 at 0.55 is the honest position. `Q4_0` is 4.5 bpw against `IQ4_XS` at 4.25 �
 ordering by quality are not the same ordering. That is exactly why the `F16` ceiling is in
 the design.
 
+## External reference point, and why it is not directly comparable
+
+@coffeecup2020 published (2026-08-14, RTX 3090, `Qwen3.8-27B-TQ3_4S`):
+
+| model | draft acceptance | tokens/step | warm 4096-out |
+|---|---|---|---|
+| Qwen3.6-27B | 0.796 | ~2.59 | 59.0 tok/s |
+| **Qwen3.8-27B** | **0.849** | **~2.70** | 64.78 tok/s |
+
+Flags: `--spec-type draft-mtp --spec-draft-n-min 1 --spec-draft-n-max 2 --spec-draft-p-min 0.0
+--no-spec-draft-backend-sampling`.
+
+His reading is that Qwen 3.8's MTP head is **better trained** than 3.6's — a claim about the
+base model. This experiment asks a different question on the same component: whether
+*quantising* that head degrades it. The two are complementary, not competing.
+
+**Direct numeric comparison would be invalid**, for a reason worth stating because it will
+bite anyone comparing acceptance figures across posts:
+
+- Acceptance is `accepted / drafted`, and **per-position acceptance falls with draft depth**.
+  He runs `n-max 2`; the arms above run `n-max 3`. Ours should read lower on depth alone.
+- Checked against this build's defaults (`common.h:325-331`): `n_max = 3`, `n_min = 0`,
+  `p_min = 0.0`, `backend_sampling = true`. So **`--spec-draft-p-min 0.0` is a no-op** — it
+  is already the default. The substantive differences are `n-min` 0→1, `n-max` 3→2, and
+  backend sampling on→off. (Defaults differ across forks and versions; this is the
+  `moe-cache-test` HIP build, not his.)
+- Different quant (`TQ3_4S` vs `IQ3_XXS`), different GPU, different fork.
+
+Stage C therefore runs his exact flag set so that **one** cell is matched. Even matched it
+stays a weak comparison across quant/GPU/fork — but a matched weak comparison beats an
+unmatched one, and an unmatched one is what a reader would otherwise do by eye.
+
+| # | prediction | conf |
+|---|---|---|
+| H7 | At `n-max 2` + his flags, acceptance is **higher** than the same variant at `n-max 3` | 0.85 |
+| H8 | Our `F16`-head acceptance at matched flags lands within 0.10 of his 0.849 | 0.55 |
+
+H7 is close to arithmetic. H8 is the one that would say something: if a *hand-built,
+`F16`-headed* IQ3_XXS lands far from a shipped TQ3_4S at matched flags, then quant recipe or
+backend matters more than draft depth does, and acceptance numbers are not portable between
+setups at all.
+
 ## Limits stated in advance
 
 - **bartowski's published imatrix is used as-is** and credited. It is his calibration data,
