@@ -114,6 +114,27 @@ P2 is the one that matters for the reports: if bartowski's `Q6_K` is still faste
 on, then draft-head quantisation is **not** sufficient to explain "MTP made it slower," and
 the cause is elsewhere (build, flags, hardware).
 
+### Second seal — acceptance rate, sealed 2026-08-15 before the run started
+
+P1-P4 were written when throughput was the only planned measurement. The server turns out to
+report **draft acceptance directly** (`timings.draft_n`, `timings.draft_n_accepted`, set at
+`server-context.cpp:581`, serialised at `server-task.cpp:273`), which measures the draft head
+rather than its downstream effect. Throughput is a lagging, much blunter proxy: a head can be
+meaningfully worse and still show no t/s difference if acceptance stays above the point where
+the verify step dominates. These are sealed with the files downloaded but the benchmark not
+yet started:
+
+| # | prediction | conf |
+|---|---|---|
+| P5 | unsloth's aggregate draft acceptance exceeds bartowski's | 0.75 |
+| P6 | the acceptance gap is >= 5 percentage points | 0.55 |
+| P7 | acceptance separates the two files more cleanly than t/s does | 0.70 |
+| P8 | acceptance differs by prompt, with `repeat` (highly predictable) highest in both | 0.80 |
+
+P7 is the methodological claim. If it fails — if throughput separates them and acceptance
+does not — then acceptance is not the mediating variable it is assumed to be here, and the
+mechanism story in this receipt is wrong even if the direction is right.
+
 ## Limits
 
 - **Header evidence only. No throughput was measured for this receipt.** Everything above is
