@@ -46,9 +46,43 @@ which is exactly what happens if someone regenerates the subset with their own s
 | use | tier | rationale |
 |---|---|---|
 | "is this model worth testing" | `screen_v1`, n=50 | gates on parse/truncation/token-spend, not accuracy |
-| quantisation deltas within a model | `subset_v1`, n=200 | paired, adjacent quants -> low discordance -> good power |
+| ~~quantisation deltas within a model~~ | ~~`subset_v1`, n=200~~ | **WITHDRAWN — see below. Use HumanEval+ instead.** |
 | cross-model comparison at ~5 pp | n=500 | 200 is marginal once discordance rises above ~30 % |
+| calibration (RMS calibration error) | `screen_v1` or `subset_v1` | the one metric that stays meaningful when accuracy floors |
 | any absolute number quotable against published HLE scores | full 2500 | nothing smaller is comparable, and this fleet cannot run it |
+
+## CORRECTION (2026-08-15): the quantisation-delta row was wrong
+
+The withdrawn row reasoned "adjacent quants -> low discordance -> good power". That inverts
+the constraint. Low discordance improves *sensitivity per discordant pair*, but McNemar only
+sees discordant pairs at all, and below roughly ten of them the chi2 approximation stops
+working. At a floored base rate there are not enough.
+
+Expected discordant pairs at n=200, where `overlap` is the share of one arm's correct answers
+the other also gets right:
+
+| base accuracy | ov=95 % | ov=90 % | ov=80 % | ov=70 % |
+|---|---:|---:|---:|---:|
+| 3 % | 0.6 | 1.2 | 2.4 | 3.6 |
+| 5 % | 1.0 | 2.0 | 4.0 | 6.0 |
+| 8 % | 1.6 | 3.2 | 6.4 | 9.6 |
+| 12.5 % | 2.5 | 5.0 | **10.0** | 15.0 |
+| 30 % | 6.0 | **12.0** | 24.0 | 36.0 |
+| 40 % | 8.0 | **16.0** | 32.0 | 48.0 |
+
+Minimum base accuracy for `b+c >= 10`: **12.5 %** at 80 % overlap, **25 %** at 90 %, **50 %**
+at 95 %. Adjacent quants of one model are strongly correlated — 90–95 % overlap is the
+realistic band — so quant comparison on this subset needs a model scoring **25–50 % on HLE**.
+That is frontier territory and nothing on this fleet approaches it.
+
+**Use the right base rate for the question.** Quantisation deltas need a benchmark where the
+model scores well enough to generate disagreement — HumanEval+ (models land 60–90 %, and the
+`.194` ladder already runs it) is the correct instrument. HLE is a *ceiling* test: it answers
+"how far behind is local" and "is the model calibrated", not "is IQ3 worse than Q4".
+
+Same class of error as the one this document already records: choosing a statistic before
+naming what the design can produce (`FAILURE_MODES.md` AFM-2). The first version got the test
+right and the sample-size regime wrong.
 
 ## Two things to settle before sharing this with anyone
 
