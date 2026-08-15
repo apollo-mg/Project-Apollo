@@ -1,4 +1,4 @@
-# `-sm tensor` is 1.63x faster than `-sm layer` on 2x P100 — and layer split is worth nothing
+# `-sm tensor` is 1.62x over ONE P100 — and `-sm layer` across two is inert
 
 **Date:** 2026-08-14 · **Node:** `.73`, 2x Tesla P100-PCIE-16GB (sm_60), **150 W / 405 MHz
 idle at sample time** (standing fleet config since 2026-07-17) · **Interconnect: PHB, no
@@ -20,8 +20,9 @@ afterwards:
 | E single GPU, no split | 8.59 | 8.58 |
 | F single GPU (fresh load) | 8.58 | 8.56 |
 
-**Tensor split is 1.63x faster than layer split — and 1.62x faster than a single card,
-which is the comparison that actually matters.**
+**Tensor split is 1.62x faster than a single card** — which is the comparison that matters,
+because layer split is not a baseline. It is 1.63x over layer split, but layer split itself
+is worth 0.995x of one GPU. See the next section: that is the whole finding.
 
 ## The arm that decides what this means: one GPU, no split
 
@@ -174,11 +175,16 @@ For a model that fits on one card, on this hardware:
   occupancy or simultaneity instrument. It is reported as corroboration, not as the proof.
 - The `code` and `list` prompts cap-died inside the think block at 320 tokens, so those two
   contribute throughput but no usable text comparison.
-- **Harness note:** `mtp_ab.py` originally read only `content` and was blind to
+- **Harness note.** `mtp_ab.py` originally read only `content` and was blind to
   `reasoning_content` — the same defect found in `qwen38-lowbit/run_2x2.py`. Throughput was
   never affected (`completion_tokens` counts both fields, so every t/s number here predates
   and survives the fix), but the first text comparison reported `code` as "identical" when
-  both arms had empty visible output. Patched before the single-GPU arm, which is why those
-  logs carry `c=` and `rc=` lengths and the earlier ones do not. **The `qwen38-mtp` receipts
-  were produced with the unpatched harness** — their throughput stands, any text claim in
-  them does not.
+  both arms had empty visible output.
+
+  **The archive pairs post-patch code with partly pre-patch data.** `raw/mtp_ab.py.patched`
+  is the fixed version; the four split-mode arms (`smlayer_*`, `smtensor_*`) were produced by
+  the version *before* it, and only `single_*` carries `c=`/`rc=` lengths. A reproducer
+  running the archived file will get a `reasoning` field the older JSONs do not have.
+
+  **The `qwen38-mtp` receipts were also produced with the unpatched harness** — their
+  throughput stands, any text claim in them does not.
