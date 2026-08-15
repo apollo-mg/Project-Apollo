@@ -56,6 +56,46 @@ ordinary decode it should change nothing for speculative decode either. P6 is th
 it is the draft-step-overhead argument against the verify-batch argument, and 0.55 is honest
 about not knowing.
 
+## Addendum — the same ladder on `UD-IQ2_M`, sealed 2026-08-15 before it ran
+
+Twelve more arms, identical design, on `Qwen3.8-27B-UD-IQ2_M` (9.61 GiB).
+
+**The reason this is not just a second data point.** Header probe of both files:
+
+| file | body | MTP head | head/body |
+|---|---|---|---|
+| `UD-IQ3_XXS` | 11.10 GiB | 194.94 MiB | 1.72 % |
+| `UD-IQ2_M` | 9.61 GiB | **205.61 MiB** | 2.09 % |
+
+unsloth spends **more absolute bits on the draft head at the lower tier** — head up 5.5 %
+while the body drops 13.4 %. So the draft budget is roughly held while the target degrades
+substantially. If acceptance falls at IQ2, the target is the available explanation.
+
+**Correction to an earlier framing.** This was first described as "an identical draft head."
+That was wrong, and it came from trusting an aggregate. The type *histograms* match exactly
+(`IQ4_XS` x5 + `IQ3_S` x3) but the per-tensor *assignment* does not:
+
+| tensor | `UD-IQ3_XXS` | `UD-IQ2_M` |
+|---|---|---|
+| `blk.64.attn_q.weight` | IQ4_XS | **IQ3_S** |
+| `blk.64.ffn_down.weight` | IQ3_S | **IQ4_XS** |
+| `blk.64.ffn_up.weight` | IQ3_S | **IQ4_XS** |
+
+A matching histogram is not a matching recipe — the same lesson as `gguf-label-is-not-a-spec`,
+one level further down. "Draft head held constant" is therefore **not** available as a claim;
+"draft budget roughly held, allocation differs" is.
+
+| # | prediction | conf |
+|---|---|---|
+| Q1 | `UD-IQ2_M` aggregate draft acceptance is **lower** than `UD-IQ3_XXS`'s | 0.65 |
+| Q2 | `UD-IQ2_M`'s MTP multiplier is lower than `UD-IQ3_XXS`'s | 0.55 |
+| Q3 | The tensor/single throughput ratio is **smaller** on `UD-IQ2_M` (smaller tensors, worse compute-per-all-reduce) | 0.65 |
+| Q4 | `UD-IQ2_M` is faster in absolute t/s than `UD-IQ3_XXS` in every matched cell | 0.85 |
+
+Q3 is the one with a mechanism worth testing: if tensor-split gain scales with tensor size,
+it should shrink monotonically down the quant ladder, and that is a rule anyone choosing a
+split mode could use.
+
 ## What would falsify the framing
 
 If P3 fails — acceptance moves >3 pp with split mode — then split mode is changing draft
