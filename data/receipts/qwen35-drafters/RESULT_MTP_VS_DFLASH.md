@@ -1,4 +1,11 @@
-# MTP head vs DFlash block-diffusion drafter: same target, same prompts, seven arms
+# Drafter architecture buys cost, and changes what the drafter is good at
+
+*MTP head vs DFlash block-diffusion drafter: same target, same prompts, seven arms.*
+
+**The portable finding is the content split, not the multiplier.** DFlash wins code, SQL,
+JSON, regex and lists; the MTP head wins prose, story, repetition and translation — replicated
+across three independent depths. That is architectural and should transfer. The 1.34–1.40x
+speed advantage is a fact about this GPU and this model pair and should not.
 
 **2026-08-15, RX 9070 XT (RDNA4, ROCm).** Target `unsloth/Qwen3.5-9B-MTP-GGUF` `Q8_0`
 (9.11 GiB), drafter `AtomicChat/Qwen3.5-9B-DFlash-GGUF` `Q8_0` (1.29 GiB). Build:
@@ -27,30 +34,61 @@ speed and nothing else, exactly like an MTP head.
 
 ## Results
 
-| arm | t/s (median) | x base | acceptance | drafted | accepted |
-|---|---:|---:|---:|---:|---:|
-| `off` | 55.27 | 1.000x | — | — | — |
-| `mtp_n3` | 107.95 | 1.953x | 77.49 % | 6,899 | 5,346 |
-| `mtp_n7` | 104.53 | 1.891x | 53.15 % | 11,319 | 6,016 |
-| `mtp_n15` | 76.35 | 1.381x | 29.03 % | 21,340 | 6,196 |
-| `dfl_n3` | 116.68 | 2.111x | 76.79 % | 6,938 | 5,328 |
-| `dfl_n7` | 140.03 | 2.533x | 52.86 % | 11,378 | 6,014 |
-| `dfl_n15` | **150.66** | **2.726x** | 29.93 % | 20,840 | 6,238 |
+| arm | median t/s | mean t/s | x base (med) | acceptance | drafted | accepted |
+|---|---:|---:|---:|---:|---:|---:|
+| `off` | 55.27 | 55.24 | 1.00x | — | — | — |
+| `mtp_n3` | 107.95 | 106.82 | 1.95x | 77.49 % | 6,899 | 5,346 |
+| `mtp_n7` | 104.53 | 104.57 | 1.89x | 53.15 % | 11,319 | 6,016 |
+| `mtp_n15` | 76.35 | 77.98 | 1.38x | 29.03 % | 21,340 | 6,196 |
+| `dfl_n3` | 116.68 | 113.48 | 2.11x | 76.79 % | 6,938 | 5,328 |
+| `dfl_n7` | 140.03 | 137.21 | 2.53x | 52.86 % | 11,378 | 6,014 |
+| `dfl_n15` | 150.66 | 142.70 | 2.73x | 29.93 % | 20,840 | 6,238 |
 
 **The curves go opposite directions.** MTP peaks at or below the stock default of 3 and loses
-29 % by depth 15. DFlash climbs monotonically and gains 29 % from 3 to 15. They never cross —
-DFlash leads at every depth tested.
+29 % by depth 15. DFlash climbs monotonically. They never cross — DFlash leads at every depth
+tested. That ordering is monotone across three depths and is not sensitive to any of what
+follows.
 
-**Best against best: 150.66 vs 107.95 = 1.40x.** At the stock default both are close
-(116.68 vs 107.95, 1.08x), so the entire advantage is unlocked by a flag most people will
-never change.
+### Which statistic, and why it matters here
+
+`dfl_n15` is the one arm where median and mean disagree materially — 150.66 vs 142.70, a
+5.6 % gap, against ≤2.8 % everywhere else. Its per-prompt throughput ranges **44.35 to
+286.58 t/s** (stdev 55.48, versus 0.74 for `off`). So the headline ratio depends on the
+choice:
+
+| comparison | by median | by mean |
+|---|---:|---:|
+| best DFlash vs best MTP | 1.40x | 1.34x |
+| DFlash n=3 -> n=15 | +29 % | +26 % |
+
+**Quote the range: 1.34–1.40x, and +26–29 % for the flag.** The spread is not instrument
+noise — reps are near-identical — it is genuine content dependence, and it is the same
+architectural effect as the acceptance split below, surfacing in throughput:
+
+| prompt | `dfl_n15` t/s | x off |
+|---|---:|---:|
+| list | 257.19 | **4.64x** |
+| reason | 210.06 | 3.80x |
+| math | 172.53 | 3.12x |
+| regex | 156.53 | 2.83x |
+| table | 154.58 | 2.79x |
+| json | 151.53 | 2.73x |
+| code | 122.14 | 2.28x |
+| repeat | 120.23 | 2.17x |
+| sql | 105.72 | 1.91x |
+| translate | 90.59 | 1.64x |
+| story | 88.28 | 1.59x |
+| prose | 82.99 | **1.50x** |
+
+**A 3.1x range between best and worst content type.** A single "DFlash is 2.7x" number is
+close to meaningless without saying what you are generating.
 
 ### The actionable number
 
 `--spec-draft-n-max` defaults to **3** (`common.h:325`). DFlash was trained at
-`block_size=16` and `speculative.cpp` clamps to 15. **Raising the flag is worth 29 % on this
-hardware — 116.68 to 150.66 t/s — and costs nothing.** Out of the box, DFlash runs at a fifth
-of its trained block.
+`block_size=16` and `speculative.cpp` clamps to 15. **Raising the flag is worth 26–29 % on
+this hardware and costs nothing.** Out of the box, DFlash runs at a fifth of its trained
+block.
 
 The same flag is actively harmful to MTP: 3 -> 15 costs it 29 %. **One default cannot serve
 both drafters**, and llama.cpp currently applies the same default to both.
@@ -121,10 +159,22 @@ Logged before the run at ~0.7 confidence on ordering:
 - One target, one model family, one GPU. The *shape* is architectural; the numbers are not
   portable.
 - 12 prompts x 2 reps. Reps are near-deterministic replays and add no independent information;
-  they are kept only as a bistability detector, and **8 of 36 prompt/arm cells flagged
-  bistable** (rep0 != rep1). Per-prompt figures carry that noise. The content-type split
-  survives it by replicating across three depths in the same direction, but individual cells
-  should not be quoted to 0.1 pp.
+  they are kept only as a bistability detector. **8 of 72** prompt/arm cells flagged
+  (6 spec arms x 12 prompts — an earlier draft said 36, which was wrong).
+  The distribution is itself informative: **all 8 are MTP arms; not one DFlash cell is
+  bistable.** DFlash reproduces bit-identically at temp 0, MTP does not.
+
+  | prompt | bistable in |
+  |---|---|
+  | table | mtp_n3, mtp_n7, mtp_n15 |
+  | code | mtp_n3, mtp_n15 |
+  | prose | mtp_n3, mtp_n7 |
+  | translate | mtp_n3 |
+
+  `code` carries the largest content-split gap, so it was checked directly: `mtp_n3` swings
+  70.1 % -> 71.1 % between reps (**1.0 pp**) while `dfl_n3` is bit-identical (227/275 both
+  reps). A 1.0 pp wobble does not threaten an 11.9 pp gap. This is a different situation from
+  `headlab`, where the within-arm swing was 5.4 pp against a 1.86 pp effect.
 - Only three depths. The MTP peak is at or below 3 and was not bracketed from below; n=1 and
   n=2 were not run, so "peaks at 3" is an upper bound on the peak location.
 - Prompts are 320 tokens. Acceptance may behave differently over long generations where the
