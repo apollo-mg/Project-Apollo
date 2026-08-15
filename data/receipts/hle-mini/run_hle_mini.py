@@ -199,10 +199,36 @@ def main():
     p = os.path.join(HERE, f"results_{a.tag}.json")
     json.dump(out, open(p, "w"), indent=1)
 
+    # readiness metrics -- these are the gate when accuracy floors, which on HLE
+    # it is expected to. Reported for every run, not just screens.
+    toks = [r["completion_tokens"] or 0 for r in ok]
+    med_tok = statistics.median(toks) if toks else 0
+    med_wall = statistics.median([r["wall_s"] for r in ok]) if ok else 0
+    for at in ("multipleChoice", "exactMatch"):
+        g = [r for r in ok if r.get("answer_type") == at]
+        out.setdefault("by_answer_type", {})[at] = {
+            "n": len(g),
+            "acc": round(sum(1 for r in g if r["correct"]) / len(g), 4) if g else None}
+    out["median_completion_tokens"] = med_tok
+    out["median_wall_s"] = round(med_wall, 1)
+    out["parse_rate"] = round((n_ok - noans) / n_ok, 4) if n_ok else 0
+    out["truncation_rate"] = round(trunc / n_ok, 4) if n_ok else 0
+    json.dump(out, open(p, "w"), indent=1)
+
     print(f"\n=== {a.tag} ===")
     print(f"  accuracy            {acc*100:.1f}%   ({sum(1 for r in ok if r['correct'])}/{n_ok})")
+    mc, em = out["by_answer_type"]["multipleChoice"], out["by_answer_type"]["exactMatch"]
+    # pooled accuracy mixes a format with a guessing baseline and one without
+    if mc["n"]:
+        print(f"    multipleChoice    {mc['acc']*100:5.1f}%  (n={mc['n']}) <- carries a guessing baseline")
+    if em["n"]:
+        print(f"    exactMatch        {em['acc']*100:5.1f}%  (n={em['n']}) <- no guessing baseline")
     print(f"  RMS calibration err {ce if ce is None else round(ce,4)}")
     print(f"  truncated (length)  {trunc}     no answer parsed {noans}")
+    print(f"\n  -- readiness (the gate when accuracy floors) --")
+    print(f"  answer-parse rate   {100*out['parse_rate']:.1f}%   truncation {100*out['truncation_rate']:.1f}%")
+    print(f"  median tokens/q     {med_tok}      median wall {med_wall:.0f}s")
+    print(f"  projected full 200q run: {200*med_wall/3600:.1f} h at this rate")
     if out["unresolved_needs_judge"]:
         print(f"  !! {out['unresolved_needs_judge']} items unresolved with no judge configured — "
               f"this accuracy is a LOWER BOUND")
