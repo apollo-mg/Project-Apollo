@@ -135,6 +135,40 @@ P7 is the methodological claim. If it fails — if throughput separates them and
 does not — then acceptance is not the mediating variable it is assumed to be here, and the
 mechanism story in this receipt is wrong even if the direction is right.
 
+## RESULTS — the head barely matters, and t/s went the other way
+
+`.73`, `-sm layer -ts 1,1`, 7 of 8 arms (`bart_off_2` pending):
+
+| file | MTP head | off | on | multiplier | **draft acceptance** |
+|---|---|---|---|---|---|
+| bartowski `Q6_K` | `Q4_0` | 7.87 | 14.48 | 1.840x | **70.70 %** |
+| unsloth `Q6_K` | `Q6_K` x7 + `Q8_0` | 7.69 | 13.96 | 1.817x | **71.50 %** |
+
+| # | prediction | conf | outcome |
+|---|---|---|---|
+| P5 | unsloth acceptance exceeds bartowski's | 0.75 | **CONFIRMED** — 71.50 vs 70.70 |
+| P6 | the gap is >= 5 pp | 0.55 | **FALSIFIED** — it is **0.80 pp** |
+| P7 | acceptance separates them more cleanly than t/s | 0.70 | **FALSIFIED** — see below |
+| P8 | acceptance varies by prompt, `repeat` highest | 0.80 | **CONFIRMED** — repeat 97.6 %, list 91.6 %, reason 80.9 %, code 62.7 %, prose 47.7 % |
+
+**P7 failed in the most useful way available.** Acceptance separates the two files by 1.13 %
+relative; throughput separates them by 3.7 % relative — **three times more** — and in the
+*opposite direction*: bartowski has the **lower** acceptance and the **higher** throughput.
+So acceptance is not the mediating variable between head quality and speed here. Something
+else dominates, and the candidate is kernel cost: bartowski ships `Q8_0` x120 against
+unsloth's x48, and `Q8_0` is cheaper to dequantise than `Q6_K`.
+
+**What this does to the headline.** A two-bit difference in the draft head moved draft
+acceptance by **0.8 percentage points**. Whatever else is true, the `Q4_0` head is not
+costing bartowski's users anything visible — which is evidence *for* Mark's original
+hypothesis (that a 4-bit MTP head is good enough) and against the concern that motivated
+this receipt, even if the imatrix finding stands as the reason the choice was available.
+
+**But this comparison still cannot isolate the head** — the bodies differ too, which is why
+`PREREG_HEAD_ISOLATION.md` builds files that differ in `blk.64` alone. That experiment is now
+the one that matters: if a hand-built `F16` head also lands within ~1 pp of a `Q4_0` head,
+draft-head precision is simply not an important variable and the whole line closes cleanly.
+
 ## Limits
 
 - **Header evidence only. No throughput was measured for this receipt.** Everything above is
