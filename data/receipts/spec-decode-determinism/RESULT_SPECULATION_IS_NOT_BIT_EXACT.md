@@ -84,15 +84,59 @@ The distinction that survives: the losslessness theorem is about the output **di
 under exact arithmetic. It is not a claim of bitwise reproducibility on a real GPU, and at
 greedy decoding those two come apart.
 
+## Magnitude: real, early, and confined to docstring prose
+
+A second run retaining full text (4 reps per condition) reproduced the same three hashes and
+locates the divergences. Both are **early** — around character 155–226 of a 1284-character
+response — which fits an argmax flip at a single position rather than drift accumulating over
+the generation.
+
+**Variant `62b80194` (MTP only) — pure whitespace reflow.** Similarity 0.9930, identical
+length. The entire difference:
+
+```
+ref : '\n    item'
+alt : ' item\n   '
+```
+
+A docstring line wrapping after "used" instead of before "item". Same words, same code.
+
+**Variant `06ad1b1c` (MTP and DFlash) — a shorter docstring.** Similarity 0.9107. It omits two
+sentences from the class docstring:
+
+```
+ref : "The cache maintains a fixed capacity and evicts the least recently used
+       item when the capacity is exceeded."
+alt : (absent)
+```
+
+That is a genuine content difference — the model wrote something different, not merely wrapped
+it differently — but it is explanatory prose, not logic.
+
+**Stripping docstrings and whitespace, `62b80194` is byte-identical to the reference** (751
+chars of code both). `06ad1b1c` is not (724 vs 751), **but that comparison is confounded**: by
+spending ~118 fewer characters on the docstring it reaches further into the class within the
+same 320-token budget, so both responses are truncated at different points in the program. The
+shortfall is a truncation artefact, not different code.
+
+**So the calibrated claim is: speculation changed the output, and in this sample the change is
+confined to docstring prose.** The algorithm was unaffected everywhere it was generated. That
+tempers — but does not remove — the correction below: it establishes that draft configuration
+changes *what the model emits*, and does **not** establish that it changes quality. Asserting
+the latter would need a benchmark and a completion-length budget, neither of which this test
+has.
+
 ## What this does NOT establish
 
 - **One prompt, one model, one build, one GPU.** No claim about generality.
 - **This may be a fork artefact.** The build is `moe-cache-test`, turboquant-derived. Whether
   stock upstream `llama.cpp` reproduces this is unknown and is the obvious next test — if
   stock is bit-exact, this is a bug worth reporting rather than a property of the method.
-- **Magnitude unmeasured at time of writing.** 1284 vs 1279 characters suggests a small
-  divergence, but where it starts and whether it is a semantic change or a formatting one has
-  not been checked. A capture run retaining full text is queued.
+- **Responses are truncated at `n_predict=320`.** No claim that the *complete* programs would
+  be identical; the test cannot see past the budget. A completion-length rerun is the obvious
+  strengthening, and is what a quality claim would require.
+- **One prompt of one kind.** `code` was chosen because it was the cell most likely to
+  separate the arms. Prose or tool-calling might diverge more, less, or differently.
 - **Nothing here says which output is "right".** Non-speculative is the reference by
   convention, not by correctness. All three may be equally good answers.
 - **Not a quality claim.** That speculation changes the output does not mean it degrades it.
