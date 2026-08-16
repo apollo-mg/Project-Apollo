@@ -25,6 +25,8 @@ def main():
     a = ap.parse_args()
 
     samples = collections.defaultdict(list)   # dev -> [(t, w)]
+    temps = collections.defaultdict(list)
+    throttled = collections.Counter()
     marks = []                                 # (t, tag, kind)
     cap = None
     for line in open(a.log):
@@ -44,9 +46,16 @@ def main():
                 marks.append((int(p[1]), p[2], p[3]))
             continue
         p = line.split(",")
-        if len(p) == 3:
+        # epoch,device,watts[,temp_c,clock_mhz,throttle] -- tolerate both the old
+        # 3-column logs and the current 6-column ones rather than silently
+        # skipping every sample when the writer gains fields (AFM-7).
+        if len(p) >= 3:
             try:
                 samples[p[1]].append((int(p[0]), float(p[2])))
+                if len(p) >= 4 and p[3].strip():
+                    temps[p[1]].append(float(p[3]))
+                if len(p) >= 6 and p[5].strip() not in ("", "0x0000000000000000", "Not Active"):
+                    throttled[p[1]] += 1
             except ValueError:
                 pass
 
@@ -90,6 +99,10 @@ def main():
                        "n": len(allw), "seconds": t1 - t0, "at_cap_pct": atcap,
                        "per_device": {d: {"peak": max(v), "mean": statistics.mean(v)}
                                       for d, v in per_dev.items()}}
+    if temps:
+        for dev, v in sorted(temps.items()):
+            print(f"  {dev} temp: peak {max(v):.0f}C mean {statistics.mean(v):.0f}C"
+                  + (f"  *** {throttled[dev]} THROTTLED SAMPLES ***" if throttled[dev] else ""))
     if cap:
         print(f"\npower limit {cap:.0f} W — 'at cap' is the share of samples within 2 % of it")
         if any(d.get("at_cap_pct") and d["at_cap_pct"] > 20 for d in detail.values()):
