@@ -137,3 +137,49 @@ all; the lowest entry is 10.6 %. A 9B is not a candidate.
 newer, so it is the first model on this fleet with a plausible non-zero score — and at ~23 %
 it is also the first that could generate enough discordant pairs for the quant comparison
 withdrawn above, at n=500 if not n=200.
+
+## Round 2 (2026-08-16): sampling is NOT the cause — a clean null, and two falsified predictions
+
+| run | model | sampling | parse | truncation | median wall |
+|---|---|---|---|---:|---:|
+| 1 | Qwen3.5-9B `Q8_0` | deterministic | 20.0 % | 80.0 % | 218 s |
+| 2 | Qwen3.8-27B `Q6_K` | deterministic | 20.0 % | 80.0 % | 612 s |
+| 3 | Qwen3.8-27B `Q6_K` | **recommended** | 20.0 % | 80.0 % | 716 s |
+
+Three runs, two models differing 3x in parameters and one quant tier apart, two sampling
+regimes as opposite as they come (`temp 0 / top_k 1` against `temp 1.0 / top_p 0.95 /
+top_k 20`). **Identical 20 % parse, identical 80 % truncation.** And the same questions closed
+and failed each time — Q2 succeeded in all runs, Q1/Q3/Q4/Q5 failed in all runs.
+
+**Predictions, both falsified:**
+
+| # | prediction | conf | outcome |
+|---|---|---|---|
+| 1 | 27B `Q6_K` parses >= 50 % (undamaged, so no `battle16gb` stopping failure) | 0.60 | **FALSIFIED** — 20 %, exactly the 9B |
+| 2 | `recommended` sampling parses ~60 % (Qwen names repetition, gives the remedy) | 0.55 | **FALSIFIED** — 20 %, unchanged |
+
+Both wrong in the same direction, and that is the useful part: twice a configuration fix was
+proposed for a result the per-question data already said was config-independent. The pattern
+worth recording is reaching for a fixable cause rather than the simpler one.
+
+**What remains.** Model size, quant tier and sampling profile are all eliminated. The only
+variable common to all three runs is the **12288-token budget** — against Qwen's own
+recommendation of 262,144 reasoning tokens for this model, i.e. we run at 4.7 % of it. The
+successes support this: they finish well under budget (3400, 6673, 7316 tokens) while every
+failure hits 12288 exactly. That bimodality is a hard ceiling, not a distribution crowding one.
+
+**Incidental confirmation.** `recommended` was 17 % slower than `deterministic` (716 s vs
+612 s per question) at identical token counts. Expected: greedy output is maximally
+predictable, so it draws the highest draft acceptance, and temp 1.0 / top_k 20 lowers it. Same
+content-predictability mechanism measured in `qwen35-drafters` — speculation pays for
+diversity.
+
+**Qwen's own number is 30.8**, with the complete disclosed methodology being "HLE: Judged by
+GPT-4o" — no budget, no sampling, no tool/search statement, no run count. Not reproducible
+from what is published, which is the same criticism this campaign levelled at a packager chart
+and applies here equally.
+
+**Next test, and it is decisive:** re-run only the questions that failed, at a much larger
+budget. If they close at 32k–64k, the budget is confirmed and HLE-mini is viable on this fleet
+at a known cost per question. If they still truncate, the model genuinely cannot close them
+and no budget will help.
