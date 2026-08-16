@@ -39,6 +39,31 @@ Explanation: {{your explanation for your final answer}}
 Exact Answer: {{your succinct, final answer}}
 Confidence: {{your confidence score between 0% and 100% for your answer}}"""
 
+# Sampling profiles. The choice is recorded in the results file, because a run is
+# not interpretable without it -- same lesson as
+# spec-decode-determinism/RESULT_SPECULATION_IS_NOT_BIT_EXACT.md: the generation
+# configuration is part of the experimental condition, not a detail.
+#
+# `recommended` is the DEFAULT, and is what any viability or baseline question
+# ("can this model do this at all") must use. Running a model outside the settings
+# its maker specifies measures the settings, not the model.
+#
+# `deterministic` exists only for paired A/B work where reproducibility across arms
+# outweighs absolute performance. It is temp 0 / top_k 1 -- the most
+# repetition-prone configuration available. Qwen3.8's own card names "endless
+# repetition" as a known failure and offers presence_penalty as the remedy, so this
+# profile actively courts the failure mode. The first HLE pilot ran under it and
+# produced 100% truncation; that number describes this profile as much as the model.
+SAMPLERS = {
+    # Qwen3.8-27B model card, Thinking Mode
+    "recommended":    {"temperature": 1.0, "top_p": 0.95, "top_k": 20, "min_p": 0.0,
+                       "presence_penalty": 0.0, "repetition_penalty": 1.0},
+    # same, with the card's suggested anti-repetition lever engaged
+    "recommended_pp": {"temperature": 1.0, "top_p": 0.95, "top_k": 20, "min_p": 0.0,
+                       "presence_penalty": 1.5, "repetition_penalty": 1.0},
+    "deterministic":  {"temperature": 0, "top_k": 1, "seed": 1234},
+}
+
 
 def post(host, body, timeout=1800):
     req = urllib.request.Request(f"{host}/v1/chat/completions",
@@ -107,6 +132,9 @@ def main():
     ap.add_argument("--limit", type=int, help="pilot mode: first N questions only")
     ap.add_argument("--max-tokens", type=int, default=8192,
                     help="HLE recommends >=8192; below this, truncation is the result")
+    ap.add_argument("--sampling", choices=sorted(SAMPLERS), default="recommended",
+                    help="'recommended' (model card, DEFAULT — use for viability/baseline) "
+                         "or 'deterministic' (temp 0/top_k 1, paired A/B only)")
     a = ap.parse_args()
 
     man = json.load(open(a.manifest))
@@ -130,8 +158,8 @@ def main():
             print(f"  [{k}/{len(ids)}] {qid} MISSING from dataset"); continue
         body = {"messages": [{"role": "user",
                               "content": PROMPT_TMPL.format(question=q["question"])}],
-                "temperature": 0, "top_k": 1, "seed": 1234,
                 "n_predict": a.max_tokens, "timings_per_token": True}
+        body.update(SAMPLERS[a.sampling])
         t0 = time.time()
         try:
             d = post(a.host, body)
@@ -185,6 +213,8 @@ def main():
     noans = sum(1 for r in ok if not r["answer_parsed"])
     ce = rms_calibration_error(ok)
     out = {"tag": a.tag, "subset": man["name"], "id_set_sha256": man["id_set_sha256"],
+           "sampling": a.sampling, "sampling_params": SAMPLERS[a.sampling],
+           "max_tokens": a.max_tokens,
            "n": n_ok, "accuracy": round(acc, 4),
            "rms_calibration_error": round(ce, 4) if ce is not None else None,
            "truncated": trunc, "no_answer_parsed": noans,
