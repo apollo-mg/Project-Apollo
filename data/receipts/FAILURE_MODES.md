@@ -287,3 +287,28 @@ Six of the fourteen entries are process failures on this side, not model failure
 recurring shape is **AFM-1 and AFM-5: trusting an instrument or a signal without checking what
 it actually measured.** Both recurred *after* being documented, in a new domain, which is the
 argument for a single cross-domain file rather than a note in each receipt.
+
+---
+
+### AFM-15: Detector too sensitive — a false positive that nearly inverted a conclusion
+**Class:** measurement **Mirror of:** AFM-1 (instrument too noisy to see the effect)
+
+AFM-1 is an instrument that cannot see a real effect. This is the opposite: an instrument that
+reports effects which are not there. Both invalidate a run; only the first is usually watched
+for.
+
+**Observed.** 2026-08-16, KV-degradation isolation. A degeneracy detector flagged output as
+`DEGENERATE` when it contained a run of >40 identical characters or fewer than 12 distinct
+characters — thresholds chosen from the real failure, which was `maxrun=2048, uniq=1`
+(the entire response one repeated character).
+
+Arm C then flagged `len=8674 maxrun=52 uniq=76`. Inspecting the actual text showed a normal,
+coherent response — the 52-run was a table rule or ASCII pipeline diagram, which the prompt
+("explain a CPU pipeline") invites. Had the flag been trusted, **arm C would have been reported
+as degenerate and context length wrongly implicated alongside the codec**, breaking the whole
+isolation.
+
+**Corrective.** Set detector thresholds from the *failure* magnitude with a wide margin, not
+from where legitimate output happens to sit — here 2048 vs 52 is a 40x gap and the threshold
+sat at 40. And **never report a detector flag without inspecting the flagged artefact at least
+once.** A detector is a filter for attention, not a verdict.
