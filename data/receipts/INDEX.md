@@ -41,6 +41,8 @@ someone find it, and the claim in a form that is checkable.
 | `reasoning_effort` is a **chat-template variable** defaulting to `xhigh`; `low` took HLE parse 0%->80% at 6.3x fewer tokens | `hle-mini/POWER.md` | 08-16 |
 | Thinking **compensates for quantisation damage** — gap collapses 25.0pp -> 3.3pp from Q2 to IQ4 | `battle16gb/PUZZLE_LADDER_FA_ON.md` | 07-17 |
 | Thinking suppression is an **interaction**: persona x tools, not either alone | `thinking-suppression-2x2/SUMMARY.md` | 07-26 |
+| **The "temp 0.6 for coding" advice is 3.6-era and obsolete on 3.8.** 3.6's template has no `reasoning_effort`, so the card offered a *third* sampling set (thinking/coding, temp 0.6) alongside thinking/general (1.0) and instruct (0.7). 3.8 added the effort dial and dropped the coding set. The knob moved from sampling params (visible everywhere) into the chat template (visible nowhere) | verified from `tokenizer_config.json`, both repos | 08-16 |
+| Temperature 0 vs 1.0 moved HLE parse rate **not at all** (20% both); `reasoning_effort` moved it 0%->80%. On this task the temp knob is close to irrelevant next to the effort knob | `hle-mini/POWER.md` | 08-16 |
 | Unbounded tool-call arguments at Q4 and Q6 alike — a merge defect, not a quant defect | `scrapebench/QWOPUS_RUNAWAY_ROOT.md` | 08-01 |
 
 ## speculative decoding · MTP · drafters
