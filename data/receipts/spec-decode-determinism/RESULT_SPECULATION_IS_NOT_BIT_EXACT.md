@@ -1,5 +1,14 @@
 # Speculative decoding does not reproduce non-speculative output on this stack
 
+> **PROVISIONAL — a control was skipped, and prior work suggests it is the explanation.**
+> `battle16gb/MTP_CACHEPROMPT_FALSIFICATION.md` (2026-07-30) concluded *"MTP is deterministic
+> at temp 0. The instability was MTP x prompt-caching."* This test sent sequential requests
+> with `cache_prompt` at its **default of `true`**, so the two distinct MTP outputs may be that
+> same interaction rather than a property of speculation. `PREFIX_CACHE_CHANGES_OUTPUT.md`
+> (same date) shows prefix reuse changes temp-0 output on genuine upstream.
+> **Re-run required with `cache_prompt:false` before any claim here is quoted.**
+> Recorded 2026-08-16 on discovering the prior receipts.
+
 **2026-08-15, RX 9070 XT (RDNA4, ROCm), `moe-cache-test` HIP build.** Target
 `Qwen3.5-9B` `Q8_0` (unsloth MTP variant), `-ngl 99 -c 8192 --jinja`, temperature 0,
 `top_k 1`, `seed 1234`, one prompt (`code`), `n_predict 320`. Raw: `raw/`.
