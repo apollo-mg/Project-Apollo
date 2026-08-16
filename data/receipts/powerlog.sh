@@ -15,6 +15,14 @@
 # a time reads 100 % while using a fraction of its width. Power does not lie the
 # same way, which is why this samples watts rather than utilisation.
 #
+# Columns: epoch,device,watts,temp_c,clock_mhz,throttle_reasons
+#
+# Temperature is recorded because a throughput decline has at least two mundane
+# causes -- thermal throttling and growing KV context -- and without temps and
+# throttle registers alongside the watts you cannot tell them apart after the
+# fact. Learned when a .73 run showed a 12.8%% decline that turned out not to be
+# thermal (throttle registers all Not Active, clocks pinned at the configured cap).
+#
 # Usage:
 #   powerlog.sh <outfile> [interval_s]     # sample until killed
 #   benches append markers themselves:
@@ -44,11 +52,13 @@ fi
 while true; do
     t=$(date +%s)
     if [ "$VENDOR" = amd ]; then
-        rocm-smi --showpower --csv 2>/dev/null \
-          | awk -F, -v t="$t" 'NR>1 && $2 ~ /[0-9]/ {printf "%s,%s,%s\n", t, $1, $2}' >> "$OUT"
+        pw=$(rocm-smi --showpower --csv 2>/dev/null | awk -F, 'NR>1 && $2 ~ /[0-9]/ {print $1","$2}')
+        tj=$(rocm-smi --showtemp 2>/dev/null | awk '/junction/ {print $NF; exit}')
+        [ -n "$pw" ] && echo "$t,${pw},${tj:-},," >> "$OUT"
     else
-        nvidia-smi --query-gpu=index,power.draw --format=csv,noheader,nounits 2>/dev/null \
-          | awk -F", *" -v t="$t" '{printf "%s,gpu%s,%s\n", t, $1, $2}' >> "$OUT"
+        nvidia-smi --query-gpu=index,power.draw,temperature.gpu,clocks.sm,clocks_throttle_reasons.active \
+                   --format=csv,noheader,nounits 2>/dev/null \
+          | awk -F", *" -v t="$t" '{printf "%s,gpu%s,%s,%s,%s,%s\n", t, $1, $2, $3, $4, $5}' >> "$OUT"
     fi
     sleep "$IV"
 done
