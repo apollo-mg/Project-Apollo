@@ -103,3 +103,37 @@ partial answer key.
 never executed against a live endpoint, so the answer-parsing regex, the normalisation rules
 and the judge fallback are all unexercised. A pilot has to happen before any of this is
 offered to anyone else — an untested harness shared publicly is a bug report generator.
+
+## Pilot outcome (2026-08-15): Qwen3.5-9B fails the gate, and the gate was right
+
+Smoke (5q, 8192 max, no budget): **0 % parse, 100 % truncation**, 8.1 h projected for 200q.
+Budget sweep (10q each, 12288 max): parse 20 % at both 1024 and 2048, median tokens pinned at
+the cap.
+
+**Everything except the model works.** The reasoning budget applies exactly as documented —
+reasoning length scales with it (~1000 tokens at budget 1024, ~1700 at 2048, ~3500 at 4096).
+The prompt format, the `Exact Answer:` parser and the confidence regex all work: runs that
+terminate produce clean `Exact Answer: I / Confidence: 100%`.
+
+The failure is that the model **does not terminate**. Capping `<think>` does not make it
+conclude — it continues reasoning in `content` for 26,000–37,000 characters. Two flavours seen:
+
+- degenerate repetition (`"Maybe **Richard Feynman**?"` x3, `"$E_8$ contains $D_8$?"` x3)
+- coherent but unbounded exploration that never reaches an answer
+
+`dry_multiplier=0.8` changed nothing (8103 tokens with and without, identical to 3 chars), so
+this is not the classic greedy-repetition trap that a repetition penalty fixes. The model
+simply cannot close out these questions.
+
+**This is the gate working.** `screen_v1` was built to answer "is this model worth a full run"
+using parse and truncation rather than accuracy, precisely because accuracy floors. It
+answered on question one. The hour spent afterwards trying to fix the harness was an override
+of a correct verdict — worth recording as its own process failure.
+
+Consistent with external data: Qwen3.5-9B does not appear on Artificial Analysis' HLE board at
+all; the lowest entry is 10.6 %. A 9B is not a candidate.
+
+**Next subject: a 27B.** `Qwen3.6-27B` scores 23.1 % there and `Qwen3.8-27B` is a generation
+newer, so it is the first model on this fleet with a plausible non-zero score — and at ~23 %
+it is also the first that could generate enough discordant pairs for the quant comparison
+withdrawn above, at n=500 if not n=200.
