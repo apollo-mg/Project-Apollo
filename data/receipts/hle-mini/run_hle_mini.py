@@ -171,7 +171,9 @@ def main():
             body["chat_template_kwargs"] = {"reasoning_effort": a.reasoning_effort}
         t0 = time.time()
         try:
-            d = post(a.host, body)
+            # AFM-7: a fixed 1800s timeout turns any large --max-tokens run into an
+            # all-errors run. Scale it off a pessimistic 5 t/s floor plus overhead.
+            d = post(a.host, body, timeout=max(1800, a.max_tokens // 5 + 600))
         except Exception as e:
             rows.append({"id": qid, "category": q["category"], "error": f"{type(e).__name__}"})
             print(f"  [{k}/{len(ids)}] {q['category'][:18]:18s} ERROR {type(e).__name__}", flush=True)
