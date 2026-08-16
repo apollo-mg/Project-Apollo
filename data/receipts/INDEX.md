@@ -45,6 +45,9 @@ someone find it, and the claim in a form that is checkable.
 | Temperature 0 vs 1.0 moved HLE parse rate **not at all** (20% both); `reasoning_effort` moved it 0%->80%. On this task the temp knob is close to irrelevant next to the effort knob | `hle-mini/POWER.md` | 08-16 |
 | Unbounded tool-call arguments at Q4 and Q6 alike — a merge defect, not a quant defect | `scrapebench/QWOPUS_RUNAWAY_ROOT.md` | 08-01 |
 
+| **Qwen3.8 template defaults compound**: `reasoning_effort=xhigh`, `preserve_thinking=on`, `cache_prompt=true` — max exploration + growing reasoning tail + reused prefix | `qwen38-template/RESULT_TEMPLATE_AUDIT.md` | 08-16 |
+| buun's 25 template fixes did **not** survive the 3.6->3.8 rewrite: `| safe`, `loop.previtem`, 9 `raise_exception` sites, and the `developer` role all still unaddressed | `qwen38-template/RESULT_TEMPLATE_AUDIT.md` | 08-16 |
+
 ## speculative decoding · MTP · drafters
 
 | finding | receipt | date |
