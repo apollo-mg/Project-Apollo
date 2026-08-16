@@ -135,6 +135,13 @@ def main():
     ap.add_argument("--sampling", choices=sorted(SAMPLERS), default="recommended",
                     help="'recommended' (model card, DEFAULT — use for viability/baseline) "
                          "or 'deterministic' (temp 0/top_k 1, paired A/B only)")
+    ap.add_argument("--reasoning-effort", choices=["xhigh", "medium", "low"], default=None,
+                    help="Qwen3.8 chat-template variable, passed via chat_template_kwargs. "
+                         "The template DEFAULTS TO xhigh, whose instruction text is 'think "
+                         "carefully... consider plausible alternatives' — maximum exploration, "
+                         "which is why unset runs never terminate on hard questions. 'low' "
+                         "instructs 'moving directly to the conclusion'. Leave unset to get "
+                         "the template default (xhigh) and record that fact.")
     a = ap.parse_args()
 
     man = json.load(open(a.manifest))
@@ -160,6 +167,8 @@ def main():
                               "content": PROMPT_TMPL.format(question=q["question"])}],
                 "n_predict": a.max_tokens, "timings_per_token": True}
         body.update(SAMPLERS[a.sampling])
+        if a.reasoning_effort:
+            body["chat_template_kwargs"] = {"reasoning_effort": a.reasoning_effort}
         t0 = time.time()
         try:
             d = post(a.host, body)
@@ -214,6 +223,7 @@ def main():
     ce = rms_calibration_error(ok)
     out = {"tag": a.tag, "subset": man["name"], "id_set_sha256": man["id_set_sha256"],
            "sampling": a.sampling, "sampling_params": SAMPLERS[a.sampling],
+           "reasoning_effort": a.reasoning_effort or "xhigh (template default, unset)",
            "max_tokens": a.max_tokens,
            "n": n_ok, "accuracy": round(acc, 4),
            "rms_calibration_error": round(ce, 4) if ce is not None else None,
