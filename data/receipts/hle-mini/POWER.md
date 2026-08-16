@@ -250,3 +250,52 @@ isolation run.
 
 Had the degraded instance not been caught, run 4 would have been reported as "low effort
 does not help either" — a false null on the one lever that works.
+
+### Controlled confirmation (2026-08-16)
+
+The `low` result above was run on a server restarted mid-session, so effort was confounded
+with slot configuration. A matched `xhigh` arm was then run on that same clean server:
+
+| arm | effort | parse | trunc | median tok | median wall |
+|---|---|---:|---:|---:|---:|
+| `q38_low_clean` | **low** | **80 %** | 20 % | **1958** | **82 s** |
+| `q38_xhigh_clean` | xhigh | **0 %** | 100 % | 12288 | 721 s |
+
+Identical server, slot config, sampling profile, question set and token budget. Only
+`reasoning_effort` differs. **0/5 against 4/5**, Fisher exact p ~= 0.024 one-tailed;
+6.3x fewer tokens and 8.8x less wall time. The confound is removed and the finding stands.
+
+Note the control scored *worse* than the three earlier `xhigh` runs, which each closed Q2.
+That is expected: `recommended` sampling is `temperature 1.0`, so runs are genuine draws
+rather than replays, and single-run parse rates carry real variance. **The 80 % figure is one
+draw and could be 60 % or 100 % on a repeat** — unlike the deterministic replays in `headlab`,
+repeats here would be independent samples and are worth taking. Any published parse rate needs
+repeats behind it.
+
+### Accuracy is still unmeasured, and it is the live question
+
+Post-hoc judging of saved traces (`rejudge.py`, local judge on the idle 9070 XT):
+
+| trace set | effort | parsed | correct |
+|---|---|---:|---:|
+| `q38_q6k` | xhigh | 4 | 0 |
+| `q38_q6k_rec` | xhigh | 5 | 1 |
+| `q38_low_clean` | **low** | 4 | **0** |
+
+`low` terminates far more often and has not yet been shown to *answer* more often. Mark's
+hypothesis — that `medium` is the sweet spot because `low` buys termination by giving up — is
+live and untested. Q1's self-reported 5 % confidence at `low` is consistent with giving up
+honestly rather than solving. At n=5 none of this is resolvable.
+
+**Judge caveat.** The judge is Qwen3.5-9B with free reasoning and a parsed `VERDICT:` line.
+A one-token grammar-constrained verdict was tried first and is a **YES-machine** — it returned
+YES for `Paris` vs `Berlin`. Forcing an immediate answer from a reasoning-tuned model destroys
+its judgement, and the failure is invisible without a known-negative control. The reasoning
+version validated 5/6, its one miss being strict (`Frits Zernike` vs `Zernike` -> NO), so it
+biases scores **down**. Judged numbers from it are floors.
+
+**Also unresolved:** `run_hle_mini.py` parses `content` only; `rejudge.py` parses
+`content + reasoning` and therefore reports 40-50 % parse where the runner reports 20 %. The
+stricter reading is probably right — a truncated response's reasoning contains *drafts*, not
+conclusions — but two tools disagreeing about the same traces must be reconciled before either
+number is quoted anywhere.
