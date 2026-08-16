@@ -183,3 +183,70 @@ and applies here equally.
 budget. If they close at 32k–64k, the budget is confirmed and HLE-mini is viable on this fleet
 at a known cost per question. If they still truncate, the model genuinely cannot close them
 and no budget will help.
+
+## THE FIX (2026-08-16): reasoning_effort, not budget, sampling, model size or quant
+
+`reasoning_effort` is a **chat-template variable**, not a sampling parameter or a server flag.
+From the GGUF's own template:
+
+```
+raise_exception('Unexpected reasoning effort ... Supported types are xhigh (default),
+                 medium, and low.')
+```
+
+`xhigh` is the **default**, and its injected system text is *"think carefully through the
+task, validate key assumptions, consider plausible alternatives"*. `low` is *"Keep your
+thinking brief and focused, moving directly to the conclusion without unnecessary
+elaboration."* Every run before this one sent no system prompt, so every run was `xhigh`:
+a model instructed to consider alternatives, on questions it cannot solve, against a token
+cap. It did as told until the cap stopped it.
+
+| run | model | effort | sampling | parse | trunc | median tok | median wall |
+|---|---|---|---|---:|---:|---:|---:|
+| 1 | 9B `Q8_0` | xhigh | deterministic | 20 % | 80 % | 12288 | 218 s |
+| 2 | 27B `Q6_K` | xhigh | deterministic | 20 % | 80 % | 12288 | 612 s |
+| 3 | 27B `Q6_K` | xhigh | recommended | 20 % | 80 % | 12288 | 716 s |
+| **4** | 27B `Q6_K` | **low** | recommended | **80 %** | **20 %** | **1958** | **82 s** |
+
+Per question, run 4 against the same questions in runs 2–3:
+
+| q | prior (xhigh) | low | confidence |
+|---|---|---|---:|
+| 1 | truncated x2 | **695 tok, stop** | 5 % |
+| 2 | 3400 / 6673 tok | **799 tok, stop** | 85 % |
+| 3 | truncated x2 | **4426 tok, stop** | 55 % |
+| 4 (MC) | truncated x2 | **1958 tok, stop** | 95 % |
+| 5 | truncated x2 | truncated | — |
+
+**Token spend now tracks difficulty** (695 -> 4426) and **confidence discriminates**
+(5 % / 85 % / 55 % / 95 %). At `xhigh` the model produced 39,777 characters of reasoning on
+Q1 and no answer; at `low` it answered in 695 tokens and correctly flagged 5 % confidence.
+Committing an answer and reporting low confidence is the behaviour that makes RMS calibration
+error measurable at all — you cannot calibrate a model that never answers.
+
+**Practical consequence.** A full 200-question run drops from the 8.1 h projected at `xhigh`
+to roughly **4.6 h**, and the earlier "quantise KV to buy reasoning headroom" plan is
+unnecessary: the headroom was never the constraint.
+
+### Caveat, stated rather than buried
+
+Run 4 used a server restarted with `-np 1 --cache-reuse 0` after the previous instance
+degraded into emitting `/` characters for an entire budget (see below), so slot configuration
+differs from runs 2–3 as well as effort. The effect size (20 % -> 80 %, 6.3x fewer tokens)
+is far larger than any plausible slot-config contribution, but a matched `xhigh` arm on the
+same clean server is queued and this claim is provisional until it lands.
+
+### A separate failure worth its own entry: server state degradation
+
+Mid-session the `.73` server began returning pure `/` repetition for an entire token budget,
+at **both** effort levels, on a prompt that had worked minutes earlier. Restarting fixed it.
+Three variables changed in that restart (f16 KV instead of `q8_0`, `-np 1`, `--cache-reuse 0`)
+so the cause is **not isolated**. The leading suspect is slot reuse: the server logged
+`selected slot by LCP similarity, f_sim_best = 0.136 (> 0.100 thold)`, a very loose bar, and
+Qwen 3.6+ preserves thinking blocks rather than stripping them — so a reused slot can condition
+one question on another's reasoning. If instead the cause is `q8_0` KV on Pascal, that is a
+hardware finding and it kills the KV-quantisation-for-headroom idea. Unresolved; worth one
+isolation run.
+
+Had the degraded instance not been caught, run 4 would have been reported as "low effort
+does not help either" — a false null on the one lever that works.
