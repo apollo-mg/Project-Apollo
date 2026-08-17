@@ -29,7 +29,15 @@ cost tokens only to start and interpret, which is the actual scarce resource.
 |---|---|---|---|
 | C1 | **HLE effort ladder with repeats** — {low, medium, xhigh} x 5q x 3 reps | ~2 h | Answers Mark's "medium is the sweet spot" hypothesis *and* measures run-to-run variance, which we currently have none of. At temp 1.0 repeats are genuine samples, unlike `headlab`'s deterministic replays. The 80 % parse figure is **one draw**. |
 | ~~C2~~ | ~~Does VBR ever leave entry tier?~~ **ANSWERED 08-16** — `/slots` read `kv_bpv: 16.0` throughout a tensor-split run. It does not engage at these fills; VBR results are f16 in disguise. | — | `/slots` exposes `kv_bpv`. Receipts show VBR enters at f16 and degrades only under pressure, and in past tests *never engaged* (`kv_bpv: 16.0` throughout). If his sessions never pressure it, his "VBR is sharper" experience may be "VBR is f16". |
-| **C3** | **Build a true upstream `llama.cpp` reference binary** — **NOW CRITICAL PATH** | ~30 min build | There is **none** on either box — `llama_stock_ref` is `adeff9b82`, a *laguna* commit, despite its `ggml-org` remote; the July `0e4a03622` checkout is gone from `.73`. **Promoted 08-17:** the stock-quantized KV collapse now reproduces **identically on two independently-maintained forks** (`RESULT_XFORK.md`), so the defect is almost certainly inherited. If upstream collapses too this is an upstream sm_60 bug affecting every Pascal user running quantized KV, not a fork report. |
+| ~~C3~~ | ~~Build a true upstream reference~~ **DONE 08-17** — `~/llama_upstream` on `.73`, `ggml-org/llama.cpp` **`34af94c`**, built sm_60. Confirmed genuine: KV type list has **no turbo types**. **Upstream does NOT collapse.** So the defect is *not* inherited from current upstream — it is fork-side, or upstream fixed it after both forks branched. See `RESULT_UPSTREAM.md`. | — | — |
+
+## New from the upstream result — the highest-value thread now
+
+| # | thread | cost | note |
+|---|---|---|---|
+| **U1** | **Find the upstream commit that fixes (or never had) it** | ~1-2 h | The decisive follow-up. Upstream `34af94c` is clean; both forks collapse. Either upstream fixed it after the forks branched, or the forks introduced it. `git bisect` on `~/llama_upstream` between each fork's merge-base and master, using the 4B `q8_0` arm as the test, **names a specific commit** — which turns the report from "your fork is broken" into "cherry-pick this". Best possible shape for both maintainers. |
+| U2 | Are the two forks' copies of `fattn.cu` / `ggml-backend-meta.cpp` identical to each other? | ~15 min | If yes, they share a patchset and the bug came in with it — a much simpler story than two independent regressions. Pure `diff`, no GPU. |
+| U3 | What are the forks' merge-bases with upstream? | ~10 min | Bounds the bisect range for U1 and dates each fork's divergence. Pure git. |
 | C4 | **empero-ai/Qwen3.8-9B: real distillation gain or extraction artifact?** | ~1 h | Card claims MMLU +26 pp strict-match over Qwen3.5-9B, but the *base* scores 0.251 strict — chance for 4-way MC — while GSM8K (extraction-robust) went **down** 0.015. Our harness reports parse rate separately from accuracy, which is exactly the instrument `lm-evaluation-harness` lacks. Base model already on disk. |
 
 ## New from 2026-08-16
