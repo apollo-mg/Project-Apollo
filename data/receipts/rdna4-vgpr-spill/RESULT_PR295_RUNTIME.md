@@ -6,6 +6,19 @@ decode run against `f6124e914` on any RDNA part would settle whether a 20-60 VGP
 worth chasing or worth leaving alone"* — and closes the gap our own
 `RESULT_PR295_GFX1201.md` listed under *"What this does NOT answer: the performance question."*
 
+> **CORRECTED 2026-08-17, same evening — before anything was sent.** The first pass (5 reps)
+> showed turbo2/3/4 all improving monotonically at D=128. **A 12-rep re-run does not
+> replicate that**: turbo2 goes −0.3 %, turbo3 −0.9 %, turbo4 +1.0 %. The signs flip.
+>
+> The deltas are **within run-to-run noise in both directions**, and the noise is not confined
+> to D=256 — the 12-rep pass has ±1.35 and ±1.74 cells at D=128 too. This machine shows
+> intermittent 1–2 % (occasionally 6 %) variance between otherwise identical runs.
+>
+> **The defensible claim is "no measurable regression, and no resolvable difference either
+> way at ±1 %".** That still answers #294's question — a residual that costs nothing
+> detectable is not worth chasing — but it is *not* the monotonic improvement the first pass
+> appeared to show. Corrected table below; both passes retained.
+
 **Paired build, same card, same models, same flags — only the commit differs:**
 
 | build | | gfx1201 spill state |
@@ -31,16 +44,28 @@ silently swap K. Script `bench_rdna4.sh`.
 | **turbo3** | 72.23 ± 0.23 | **72.79 ± 0.18** | **+0.8 %** |
 | **turbo4** | 71.60 ± 0.20 | **72.29 ± 0.19** | **+1.0 %** |
 
-**All three turbo codecs improve, monotonically, on tight variance.** The f16 control moves
-−1.2 % with a 4x wider spread — the fix does not touch the f16 path, so that is noise, not
-signal.
+**12-rep re-run of the same comparison:**
+
+| KV | pre `fca3093c9` | post `f6124e914` | delta |
+|---|---:|---:|---:|
+| f16 *(control)* | 74.39 ± 0.27 | 73.55 ± 1.35 | −1.1 % |
+| turbo2 | 72.95 ± 0.26 | 72.71 ± 0.36 | −0.3 % |
+| turbo3 | 72.67 ± 0.22 | 72.00 ± 1.74 | −0.9 % |
+| turbo4 | 71.81 ± 0.29 | 72.50 ± 0.19 | +1.0 % |
+
+**The two passes disagree in sign on turbo2 and turbo3.** Taken together, six independent
+measurements of the same three comparisons land between −0.9 % and +1.0 % with no consistent
+direction. The effect is not resolvable at this precision on this machine.
 
 ### The answer to the question as asked
 
-**The surviving 23-57 VGPR spill costs no measurable decode throughput on RDNA4.** Post-fix
-is equal-or-better everywhere the fix applies. **TheTom's guess — leave it alone — is
-supported**, and the residual does not justify the larger "teach the LUT paths to stride and
-reduce" change.
+**The surviving 23-57 VGPR spill costs no measurable decode throughput on RDNA4.** Across two
+passes the difference never exceeds ±1 % and does not hold a sign. **TheTom's guess — leave it
+alone — is supported**, and the residual does not justify the larger "teach the LUT paths to
+stride and reduce" change.
+
+Stated precisely: this is a **null result at ±1 % resolution**, not a demonstrated improvement.
+A real 1 % effect would need many more reps on a quieter machine to separate from noise.
 
 Second, on the PR's other open point — whether the fix avoids the reported **12-31 % turbo2
 decode regression on `ncols=1`**: **no such regression appears on gfx1201.** turbo2 is
@@ -58,9 +83,20 @@ decode regression on `ncols=1`**: **no such regression appears on gfx1201.** tur
 | turbo3 | 56.52 ± 0.12 | 56.19 ± 0.25 |
 | turbo4 | 55.76 ± 0.15 | 56.29 ± 0.21 |
 
-**Two of eight D=256 cells show ~±3.3 (≈6 %) while the other six sit at ±0.1-0.3.** The
-effects under test are 1-2 %, so they are invisible under an intermittent 6 % spread. **No
-delta is claimed at D=256.**
+**Two of eight D=256 cells show ~±3.3 (≈6 %) while the other six sit at ±0.1-0.3.**
+
+The 12-rep re-run tightened D=256 considerably and every cell moved the same way:
+
+| KV | pre `fca3093c9` | post `f6124e914` | delta |
+|---|---:|---:|---:|
+| f16 | 56.59 ± 1.19 | 56.98 ± 0.24 | +0.7 % |
+| turbo2 | 56.04 ± 1.37 | 56.59 ± 0.21 | +1.0 % |
+| turbo3 | 56.27 ± 0.16 | 56.42 ± 0.24 | +0.3 % |
+| turbo4 | 55.65 ± 0.19 | 56.43 ± 0.19 | +1.4 % |
+
+All four post-fix, including the **f16 control the fix does not touch** — which is the tell
+that this is a machine-state offset between the two build's runs, not an effect of the commit.
+**No delta is claimed at D=256.**
 
 The first high-variance cell was the first D=256 run after a model swap, which suggested
 warm-up. **That explanation is wrong** — the second (post-fix turbo2) was mid-sequence. The
