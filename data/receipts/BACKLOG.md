@@ -29,7 +29,7 @@ cost tokens only to start and interpret, which is the actual scarce resource.
 |---|---|---|---|
 | C1 | **HLE effort ladder with repeats** — {low, medium, xhigh} x 5q x 3 reps | ~2 h | Answers Mark's "medium is the sweet spot" hypothesis *and* measures run-to-run variance, which we currently have none of. At temp 1.0 repeats are genuine samples, unlike `headlab`'s deterministic replays. The 80 % parse figure is **one draw**. |
 | ~~C2~~ | ~~Does VBR ever leave entry tier?~~ **ANSWERED 08-16** — `/slots` read `kv_bpv: 16.0` throughout a tensor-split run. It does not engage at these fills; VBR results are f16 in disguise. | — | `/slots` exposes `kv_bpv`. Receipts show VBR enters at f16 and degrades only under pressure, and in past tests *never engaged* (`kv_bpv: 16.0` throughout). If his sessions never pressure it, his "VBR is sharper" experience may be "VBR is f16". |
-| C3 | **Build a true upstream `llama.cpp` reference binary** | ~30 min build | There is **none** on either box — `llama_stock_ref` carries laguna patches despite the name. Blocks every "does this reproduce on stock" question. `DETERMINISM_ROOT_CAUSE` tested genuine upstream `0e4a03622` in July; that checkout may still exist. |
+| **C3** | **Build a true upstream `llama.cpp` reference binary** — **NOW CRITICAL PATH** | ~30 min build | There is **none** on either box — `llama_stock_ref` is `adeff9b82`, a *laguna* commit, despite its `ggml-org` remote; the July `0e4a03622` checkout is gone from `.73`. **Promoted 08-17:** the stock-quantized KV collapse now reproduces **identically on two independently-maintained forks** (`RESULT_XFORK.md`), so the defect is almost certainly inherited. If upstream collapses too this is an upstream sm_60 bug affecting every Pascal user running quantized KV, not a fork report. |
 | C4 | **empero-ai/Qwen3.8-9B: real distillation gain or extraction artifact?** | ~1 h | Card claims MMLU +26 pp strict-match over Qwen3.5-9B, but the *base* scores 0.251 strict — chance for 4-way MC — while GSM8K (extraction-robust) went **down** 0.015. Our harness reports parse rate separately from accuracy, which is exactly the instrument `lm-evaluation-harness` lacks. Base model already on disk. |
 
 ## New from 2026-08-16
@@ -38,7 +38,18 @@ cost tokens only to start and interpret, which is the actual scarce resource.
 |---|---|---|---|
 | N1 | **Is the KV collapse `head_dim`-256-specific?** | ~1 h | Decisive test for the mechanism. `fattn.cu:2268-2284` has a D=256-only type-pair table listing no stock quantized types. `.73` holds only D=256 models; needs a D=128 model copied over (Qwen3.5-9B `Q8_0` is on the desktop). |
 | N2 | **Does `.194`'s different `buun_vbr` commit reproduce?** | ~40 min | `1abf2d28c` vs `.73`'s `a8e5b5a38`. Free bisect. Blocked on the HumanEval+ ladder. |
-| N3 | **Does Tom's fork reproduce?** | ~1 h | `.194` has both forks. **Must set `TURBO_AUTO_ASYMMETRIC=0`** or the fork silently upgrades K to `q8_0` at GQA>=6, and this model is exactly 6:1. |
+| ~~N3~~ | ~~Does Tom's fork reproduce?~~ **DONE 08-17** — `RESULT_XFORK.md`. **Yes, identically.** Both bugs are shared; the abort's trigger set is fork-dependent. Also isolated: the collapse needs K *and* V quantized. | — | — |
+
+## New from 2026-08-17
+
+| # | thread | cost | note |
+|---|---|---|---|
+| **N4** | **Is the collapse in the flash-attention path?** `-fa off` vs `-fa on` with `q8_0` K+V | ~15 min | **The single most decisive open arm.** The D=256 table is in `fattn.cu` and the fused path is gated on `turing_mma_available() \|\| amd_wmma_available()`, neither true on sm_60. Clean at `-fa off` turns "quantized KV is broken on Pascal" into a specific FA-dispatch defect. Staged as `kv_xfork2.sh` U1/U2. |
+| N5 | "Both stock" or "both the *same* stock type"? `q8_0` K + `q4_0` V | ~10 min | Untested cell. Narrows the trigger predicate. `kv_xfork2.sh` U4/U5. |
+| N6 | Does the turbo3-symmetric **abort** need `-sm tensor`? | ~5 min | The collapse is split-independent (T9); the abort's split-dependence is untested. `kv_xfork2.sh` U9. |
+| N7 | Does buun's fork emit the same `/` character? | ~5 min | Statistics match exactly (`len=512 maxrun=512 uniq=1`); the character is verified on Tom's fork only because the buun script never saved bodies. Same stats != same failure. `kv_xfork2.sh` U8. |
+| N8 | Stock-grid breadth: `q5_1`, `iq4_nl` symmetric | ~10 min | Two stock codecs collapse; is it the whole grid? `kv_xfork2.sh` U6/U7. |
+| N9 | **Re-check any published turbo3 number on a GQA>=6 model** | — | With the guard at default, `-ctk turbo3 -ctv turbo3` measures `q8_0` K + turbo3 V. Any of our own turbo3 receipts on such a model may be mislabelled. Audit, not an experiment. |
 
 ## Substantial experiments
 
@@ -56,7 +67,8 @@ cost tokens only to start and interpret, which is the actual scarce resource.
 |---|---|---|
 | O1 | AtomicChat discussion #65 — `AD-IQ3_S` head built with no importance data | **posted, awaiting reply** |
 | O2 | bartowski thread — Q8_0 MTP head offer | **posted, awaiting reply** |
-| O3 | **buun: stock quantized KV collapse + mixed-type abort on sm_60** | **UNBLOCKED** — B3 complete, full matrix + 2 controls + a file:line. Pastable not yet drafted. |
+| O3 | **buun + Tom: stock quantized KV collapse, and the split-axis abort** | **UNBLOCKED, and the audience changed 08-17.** Both bugs reproduce on **both** forks (`RESULT_XFORK.md`), so this goes to both maintainers, not buun alone. Hold until **N4** (`-fa off`) — if that localises it to FA dispatch the report is dramatically sharper, and C3 decides whether it is really an upstream report. Pastable not drafted; Mark authors. |
+| O6 | **Tom: the auto-asymmetric guard prevents a crash, not a PPL regression** | New 08-17. His code comment justifies it on fidelity (PPL 2887 vs 7.4); on sm_60 + tensor split, `TURBO_AUTO_ASYMMETRIC=0` **hard-aborts**. Also worth flagging that the guard makes `-ctk turbo3 -ctv turbo3` silently measure `q8_0` K + turbo3 V on GQA>=6 models. Pairs naturally with the #295 pastable already owed him. |
 | O4 | **buun: template v3 for Qwen3.8** | 3.6→3.8 rewrite dropped 4 of his 25 fixes (`\| safe`, `loop.previtem`, 9 `raise_exception` sites, `developer` role). Worth telling him; a v3 would have users immediately. |
 | O5 | GGML sm_60 issue | filed, **open and unconfirmed** |
 

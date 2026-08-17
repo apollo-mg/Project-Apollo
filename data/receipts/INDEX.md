@@ -77,6 +77,10 @@ someone find it, and the claim in a form that is checkable.
 | `-fa on` costs **more fidelity than BF16->Q8_0**, and perplexity cannot see it | `battle16gb/FA_EQUIVALENCE_SM60.md` | 07-30 |
 | TurboQuant weights **lose to k-quants** on fidelity-per-bit | `pulsar/PHASE1_TQ_FIDELITY_RESULTS.md` | 08-04 |
 | The quant label is **not a spec** — three publishers' `Q4_K_M` span 2 GB and ~2x KLD | `qwen38-packagers/RESULT_AD_LADDER_HEAD_AUDIT.md` | 08-15 |
+| Stock quantized KV collapses to 512 `/` on sm_60 — **requires K AND V both quantized**; either alone is clean. Reproduces on **both** forks, split-independent, both `q8_0` and `q4_0` | `kv-tensor-split/RESULT_XFORK.md` | 08-17 |
+| The `SPLIT_AXIS_UNKNOWN` abort is **shared between forks** (Tom :535 / buun :533) with a **fork-dependent trigger** — buun aborts on mixed f16/quantized, Tom on turbo3 symmetric | `kv-tensor-split/RESULT_XFORK.md` | 08-17 |
+| `TURBO_AUTO_ASYMMETRIC` prevents a **crash**, not a quality loss, on sm_60 + tensor split; and at its default `-ctk turbo3 -ctv turbo3` on a GQA>=6 model silently measures **`q8_0` K + turbo3 V** | `kv-tensor-split/RESULT_XFORK.md` | 08-17 |
+| `enable_thinking:false` **is still honored** by the Qwen3.8 template (0/492 vs 492/492 fired) even though the dial moved to `reasoning_effort` | `qwen38-hep-thinking/PREDICTION_Q6K_THINKOFF.md` | 08-17 |
 
 ## hardware-specific
 
@@ -106,8 +110,10 @@ Three forks are in use and they are **not interchangeable**. Every receipt shoul
 
 | node | fork | note |
 |---|---|---|
-| `.73` | `spiritbuun/buun-llama-cpp` | `a8e5b5a38`, **805 commits ahead** of upstream b9637 |
+| `.73` | `spiritbuun/buun-llama-cpp` (`~/buun_vbr`) | `a8e5b5a38`, **805 commits ahead** of upstream b9637 |
+| `.73` | `TheTom/llama-cpp-turboquant` (`~/llama-cpp-turboquant`) | **`f6124e9`** = the #295 merge commit, `version: 205`, built sm_60 08-17 |
 | control plane | `giveen/llama-cpp-turboquant` (`moe-cache-test`) | `bb3c3fa` |
+| `.194` | `giveen/llama-cpp-turboquant` (`~/moe-cache-cuda`) | `bb3c3fa`, detached on `giveen/moe-cache`. Has buun + origin remotes too — check the *branch*, not the remote list |
 | `.73` `llama_stock_ref` | **NOT stock** — carries laguna patches | `adeff9b82` |
 
 There is currently **no true upstream reference binary on either box**, so "does this reproduce

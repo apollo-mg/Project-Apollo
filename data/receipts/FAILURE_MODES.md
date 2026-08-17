@@ -312,3 +312,53 @@ isolation.
 from where legitimate output happens to sit — here 2048 vs 52 is a 40x gap and the threshold
 sat at 40. And **never report a detector flag without inspecting the flagged artefact at least
 once.** A detector is a filter for attention, not a verdict.
+
+---
+
+### AFM-16: Predicting *degradation* when the real outcome is an *abort*
+**Class:** reasoning **Related:** AFM-1 (what the instrument can see)
+
+**Observed three times, across two forks and two sessions.**
+
+| # | prediction | conf | actual |
+|---|---|---|---|
+| V1 | f16 K + `q8_0` V degenerates | 0.75 | hard abort |
+| V2 | `q8_0` K + f16 V is clean | 0.70 | hard abort |
+| X5 | turbo3 symmetric, guard off, shows visible damage | 0.60 | hard abort |
+
+V1/V2 are in `kv-tensor-split/RESULT_TWO_KV_BUGS.md` (2026-08-16); X5 is in
+`RESULT_XFORK.md` (2026-08-17), i.e. **the bias recurred after being visible in the receipt
+one day earlier.**
+
+**Why it happens.** When the instrument in hand is a *quality* detector, the hypothesis space
+silently narrows to *quality* outcomes. Every prediction becomes "how badly will this
+degrade?" — and "it will not run at all" never enters the list, despite being both common and
+much easier to observe. The tool shapes the hypothesis.
+
+**Corrective.** For any config-space arm, enumerate **three** outcomes before predicting —
+*clean* / *degrades* / *does not run* — and assign the third a non-zero prior explicitly. In
+KV-codec work specifically the abort rate is high: 3 of 13 distinct configurations tested
+across both forks aborted rather than degraded.
+
+---
+
+### AFM-17: Source presence read as behavioural prediction
+**Class:** reasoning
+
+**Observed.** 2026-08-17, cross-fork KV ladder. Three predictions (X1, X2, X3) were built on
+reading the two forks' source and were **all wrong**, in both directions:
+
+- Tom's `fattn.cu:406` **has** `FATTN_VEC_CASES_ALL_D(GGML_TYPE_Q8_0, GGML_TYPE_Q8_0)`, the
+  D=256 dispatch entry buun's table lacks. Predicted clean → **collapsed 3/3.**
+- Tom's `ggml-backend-meta.cpp` **has** the `SPLIT_AXIS_UNKNOWN` assert two lines off buun's.
+  Predicted it would fire on the same mixed pairs → **those pairs ran clean**; it fired on a
+  different configuration entirely.
+
+Reading the source correctly established **where the code is**. It did not establish **what
+runs**, because dispatch is gated at runtime (`turing_mma_available()`, split-axis resolution,
+type-pair tables consulted in an order the source does not make obvious).
+
+**Corrective.** Source reading is for *generating* hypotheses and for *explaining* results
+after the fact. It is not evidence about behaviour. When a prediction's entire warrant is "I
+read the code", cap the confidence at ~0.6 and say the warrant out loud so the later scoring
+is interpretable — a grep hit is not an execution trace.
