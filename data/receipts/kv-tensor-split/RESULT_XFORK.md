@@ -1,5 +1,9 @@
 # Cross-fork KV ladder — both bugs are shared, and the collapse needs K *and* V quantized
 
+> **VALIDITY CONFIRMED 2026-08-17.** The T4/T5 single-sided arms were checked for a
+> silent f16 fallback. Quantizing one side saves exactly half of what quantizing both
+> saves (240 vs 480 MiB), symmetric in K and V. See `RESULT_KV_VALIDITY.md`.
+
 **2026-08-17.** `.73`, dual Tesla P100 (sm_60), 150 W / 1063 MHz under load.
 Binary **TheTom/llama-cpp-turboquant `f6124e9`** (`version: 205`, the #295 merge commit),
 built for sm_60 this morning. Same node, same model

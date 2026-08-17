@@ -1,5 +1,10 @@
 # N1 — the silent collapse is head-dim-dependent; the loud abort is not
 
+> **VALIDITY CONFIRMED 2026-08-17.** The clean `q8_0`/`q4_0` arms below were checked
+> for a silent f16 fallback (the failure that voided a VBR campaign, `INDEX.md` C2).
+> VRAM deltas confirm quantization engaged: f16 9390 MiB, `q8_0` 8650, `q4_0` 8202.
+> See `RESULT_KV_VALIDITY.md`.
+
 **2026-08-17**, `.73`, dual P100 (sm_60). Binary **TheTom `f6124e9`**.
 Model **`Llama-3.2-3B-Instruct-BF16`**, **D=128**, 24 heads / 8 KV (GQA 3:1).
 `TURBO_AUTO_ASYMMETRIC=0` throughout (and 3:1 is below the 6:1 gate, so it could not fire
