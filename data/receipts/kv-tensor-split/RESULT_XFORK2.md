@@ -40,6 +40,15 @@ maintained forks. There is no longer a reading in which these are two similar-lo
 separates them by mechanism rather than by how they present, and it retroactively supports
 the original "two distinct bugs" framing in `RESULT_TWO_KV_BUGS.md`.
 
+> **QUALIFIED 2026-08-17, same day.** "The collapse does not [require tensor split]" is true
+> of the **27B** — T9 here and F2 in `RESULT_FA_AND_GRID.md` both collapse 3/3 under layer
+> split. It is **false for Qwen3.5-4B-BF16**, which is clean under layer (`kv_final.sh` M2)
+> and collapses under tensor (`kv_4b.sh` Q2), same fork and node.
+>
+> So split-independence is **model-dependent**, not a property of the collapse. Every
+> cross-binary comparison must therefore match split mode explicitly — one in
+> `RESULT_UPSTREAM.md` did not, and is corrected there.
+
 It also puts the abort where the assert already said it was — the split-axis resolver in
 `ggml-backend-meta.cpp`. Under layer split there is no axis to resolve and the failure
 disappears.
