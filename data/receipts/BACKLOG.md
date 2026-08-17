@@ -36,7 +36,7 @@ cost tokens only to start and interpret, which is the actual scarce resource.
 
 | # | thread | cost | note |
 |---|---|---|---|
-| N1 | **Is the KV collapse `head_dim`-256-specific?** | ~1 h | Decisive test for the mechanism. `fattn.cu:2268-2284` has a D=256-only type-pair table listing no stock quantized types. `.73` holds only D=256 models; needs a D=128 model copied over (Qwen3.5-9B `Q8_0` is on the desktop). |
+| **N1** | **Is the KV collapse `head_dim`-256-specific?** — **UNBLOCKED, no transfer needed** | ~40 min | Decisive test for the mechanism, and now the *only* live route to it since **N4 turned out unanswerable** (a quantized V cache requires flash attention, so "quantized K+V with FA off" is unreachable). **Correction:** this entry previously named Qwen3.5-9B as the D=128 model to copy — it is **D=256** (`key_length=256`, GQA 4:1), as is every other Qwen here (3.5-4B, 3.6-28B-REAP, 3.8-27B). The real candidate was already on `.73`: `~/AI/Models/tqstudy/Llama-3.2-3B-Instruct-BF16.gguf`, **D=128**, 24 heads / 8 KV (GQA 3:1, below the auto-asym threshold). Staged as `kv_d128.sh` with an L0 gate for BF16-on-sm_60. |
 | N2 | **Does `.194`'s different `buun_vbr` commit reproduce?** | ~40 min | `1abf2d28c` vs `.73`'s `a8e5b5a38`. Free bisect. Blocked on the HumanEval+ ladder. |
 | ~~N3~~ | ~~Does Tom's fork reproduce?~~ **DONE 08-17** — `RESULT_XFORK.md`. **Yes, identically.** Both bugs are shared; the abort's trigger set is fork-dependent. Also isolated: the collapse needs K *and* V quantized. | — | — |
 
@@ -44,11 +44,11 @@ cost tokens only to start and interpret, which is the actual scarce resource.
 
 | # | thread | cost | note |
 |---|---|---|---|
-| **N4** | **Is the collapse in the flash-attention path?** `-fa off` vs `-fa on` with `q8_0` K+V | ~15 min | **The single most decisive open arm.** The D=256 table is in `fattn.cu` and the fused path is gated on `turing_mma_available() \|\| amd_wmma_available()`, neither true on sm_60. Clean at `-fa off` turns "quantized KV is broken on Pascal" into a specific FA-dispatch defect. Staged as `kv_xfork2.sh` U1/U2. |
-| N5 | "Both stock" or "both the *same* stock type"? `q8_0` K + `q4_0` V | ~10 min | Untested cell. Narrows the trigger predicate. `kv_xfork2.sh` U4/U5. |
-| N6 | Does the turbo3-symmetric **abort** need `-sm tensor`? | ~5 min | The collapse is split-independent (T9); the abort's split-dependence is untested. `kv_xfork2.sh` U9. |
-| N7 | Does buun's fork emit the same `/` character? | ~5 min | Statistics match exactly (`len=512 maxrun=512 uniq=1`); the character is verified on Tom's fork only because the buun script never saved bodies. Same stats != same failure. `kv_xfork2.sh` U8. |
-| N8 | Stock-grid breadth: `q5_1`, `iq4_nl` symmetric | ~10 min | Two stock codecs collapse; is it the whole grid? `kv_xfork2.sh` U6/U7. |
+| ~~N4~~ | ~~Is the collapse in the flash-attention path?~~ **UNANSWERABLE by flag toggling, 08-17** | — | `-fa off` cannot be combined with the failing config at all: under `-sm tensor` the server refuses (`SPLIT_MODE_TENSOR requires flash_attn`), and under `-sm layer` it refuses again (`quantized V cache requires flash_attn`). **The collapsing configuration only exists with FA enabled**, so toggling FA cannot isolate it. Needs a different instrument — N1, or a build with the fused path forced off. |
+| ~~N5~~ | ~~"Both stock" or "both the same stock type"?~~ **ANSWERED 08-17** — neither. Mixed stock types **abort**, symmetrically. Three outcome classes, see `RESULT_XFORK2.md`. | — | — |
+| ~~N6~~ | ~~Does the turbo3-symmetric abort need `-sm tensor`?~~ **ANSWERED 08-17** — **yes.** Clean under `-sm layer` (U9). The collapse is split-independent; the abort is not. | — | — |
+| ~~N7~~ | ~~Does buun's fork emit the same `/`?~~ **ANSWERED 08-17** — **yes**, 3/3 with bodies captured (U8). Identical failure, not just identical statistics. | — | — |
+| N8 | Stock-grid breadth: `q5_1`, `iq4_nl` symmetric | ~10 min | `iq4_nl` **aborts** (U7, legitimate). `q5_1` is **VOID** — U6 hit a port-bind race behind U5's core dump and measured nothing. Both re-run as `kv_fa.sh` F5/F6. |
 | N9 | **Re-check any published turbo3 number on a GQA>=6 model** | — | With the guard at default, `-ctk turbo3 -ctv turbo3` measures `q8_0` K + turbo3 V. Any of our own turbo3 receipts on such a model may be mislabelled. Audit, not an experiment. |
 
 ## Substantial experiments
