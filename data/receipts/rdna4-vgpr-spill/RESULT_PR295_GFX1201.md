@@ -55,3 +55,57 @@ hsk=128 entirely, and this one clears 80 % of them.
 - **Other targets.** gfx1201 only. The issue's original gfx908 numbers are not re-measured here.
 - **The 41 survivors.** Not investigated — whether they share a template shape, or whether the
   LUT gate simply cannot reach them, is open.
+
+---
+
+## Post-merge analysis: the 41 survivors, mapped onto TheTom's residual buckets
+
+Added after #295 was merged. TheTom's merge comment lists three known residuals and asks
+whether the third is "common rather than a single instance". gfx1201 answers that, and
+qualifies one of the merge's headline claims.
+
+### Against his three buckets
+
+| bucket | on gfx1201 | max VGPR | note |
+|---|---:|---:|---|
+| **#2** K=Q4_0 @ D=256, non-turbo `nthreads_KQ_q`, pre-existing | **4** | **357** | **confirmed**, and byte-unchanged before→after (357→357, 336→336, 226→226, 206→206) exactly as "pre-existing" predicts. His arches: 428/341/385. |
+| **#1** D=256 ncols>=2 turbo-K, V-side accumulator | **18** | 57 | **confirmed present**, but NOT "identical under both gates" here — these fell **698 → 57**, **681 → 57**, **661 → 36**. On his arches they were already <=22/62/23 before the fix; on RDNA4 they were 625–735 and the gate cut them by ~90 %. |
+| **#3** D=128 ncols=1 turbo-K, inside the LUT path | **0** | — | **does not occur on gfx1201.** Evidence that the gfx1100 instance is architecture-specific rather than a common pattern — i.e. against needing the larger "teach the LUT paths to stride and reduce" change. |
+
+### A qualification to the merge justification
+
+> *"All 15 `<128,2,turbo-K,*>` shapes went from 173-421 VGPR spill to zero"*
+
+**On gfx1201 that class does not reach zero.** It improves 80–95 % and survives:
+
+| shape | before | after |
+|---|---:|---:|
+| `<128,2,TURBO3,TURBO3>` | 243 / 244 | **57 / 54** |
+| `<128,2,TURBO2,TURBO3>` | 271 / 272 | **37 / 36** |
+| `<128,2,TURBO4,TURBO3>` | 246 | **37 / 36** |
+| `<128,2,TURBO3,Q8_0>` | 424 / 424 | **23 / 23** |
+
+RDNA4 was not in the three-architecture sweep (gfx1030 = RDNA2, gfx1100/gfx1103 = RDNA3), and
+it differs from all three on precisely the shape class cited as fully cleared.
+
+### A fourth bucket not in his list
+
+19 survivors are **`Q8_0`-K pairs at D=256, ncols=2** — `Q8_0`/TURBO2 (61, 60), `Q8_0`/F16
+(40, 40), `Q8_0`/BF16 (32), `Q8_0`/TURBO4 (28, 25) — plus `BF16`/`BF16` (13) and `F16`/`F16`
+(1). **All byte-unchanged before→after.** Same structural story as his Q4_0 residual: a
+non-turbo K path the gate does not touch, just at a different type. Low magnitude, but it is
+the same mechanism and belongs on the list.
+
+### Scale context
+
+gfx1201 starts far worse than any arch in the sweep and ends far worse:
+
+| arch | spilling before→after | worst before→after |
+|---|---|---|
+| gfx1030 (RDNA2) | 40 → 3 | 294 → 23 |
+| gfx1100 (RDNA3) | 42 → 10 | 421 → 37 |
+| gfx1103 (RDNA3) | 40 → 2 | 298 → 25 |
+| **gfx1201 (RDNA4)** | **98 → 41** | **735 → 357** |
+
+The fix is a larger absolute win on RDNA4 than anywhere else (−57 kernels, −378 worst), and
+RDNA4 still carries 4–20x the residual count of the other three.
