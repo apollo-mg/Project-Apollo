@@ -68,8 +68,10 @@ Stated precisely: this is a **null result at ±1 % resolution**, not a demonstra
 A real 1 % effect would need many more reps on a quieter machine to separate from noise.
 
 Second, on the PR's other open point — whether the fix avoids the reported **12-31 % turbo2
-decode regression on `ncols=1`**: **no such regression appears on gfx1201.** turbo2 is
-*+0.4 %*. Whatever produced 12-31 % elsewhere does not reproduce on this architecture.
+decode regression on `ncols=1`**: **no such regression appears on gfx1201.** turbo2 measured
++0.4 % and −0.3 % across the two passes. Whatever produced 12-31 % elsewhere does not
+reproduce on this architecture — and a 12-31 % effect would be an order of magnitude above
+this machine's noise floor, so it is a real absence rather than a resolution limit.
 
 ## head_dim 256 — measured, but NOT quotable at this rep count
 
