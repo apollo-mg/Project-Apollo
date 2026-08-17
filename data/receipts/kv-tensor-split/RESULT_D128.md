@@ -62,23 +62,43 @@ It also fits the mechanism that has survived: `fattn.cu` carries a **D=256-speci
 type-pair dispatch table, and the fused path it guards is gated on
 `turing_mma_available() || amd_wmma_available()`, **neither true on sm_60**.
 
-## The confound, stated plainly
+## The confound — mostly eliminated by a matched pair
 
-**This is a model swap, not a head-dim swap.** Llama-3.2-3B differs from Qwen3.8-27B in
-architecture, GQA ratio (3:1 vs 6:1), weight format (BF16 vs Q6_K), parameter count, and MTP
-presence. Head dim is the leading explanation because the dispatch table is explicitly
-D=256-gated, but this ladder cannot exclude the alternatives on its own.
+The first version of this receipt compared Qwen3.8-27B-Q6_K against Llama-3.2-3B-BF16 and
+had to concede that architecture, GQA (6:1 vs 3:1), weight format, parameter count and MTP
+all moved together with head dim. It also claimed the clean experiment "is not available on
+this fleet." **That was wrong** — `Qwen3.5-4B-BF16` was already on `.73`, D=256, and makes a
+far tighter pair.
 
-**The clean experiment is not available on this fleet.** It needs either a D=128 Qwen or a
-D=256 Llama, and every Qwen here is D=256 (3.5-9B, 3.5-4B, 3.6-28B-REAP, 3.8-27B) while the
-only D=128 model is this Llama. Closing that gap requires fetching a model, and until then
-the claim is **"clean at D=128 on a different model"**, not **"clean at D=128"**.
+**Matched pair, same binary, same node, same flags, same detector:**
 
-The GQA alternative is the one worth naming specifically: 6:1 vs 3:1 is exactly the axis
-Tom's auto-asymmetric guard keys on, and his own comment reports turbo3 K degrading
-catastrophically at high GQA. A GQA-driven explanation is therefore not far-fetched, though
-it would not explain why `q8_0` — which the guard treats as the *safe* target — is the codec
-that collapses.
+| | Llama-3.2-3B-BF16 | **Qwen3.5-4B-BF16** |
+|---|---|---|
+| head dim | **128** | **256** |
+| heads / KV heads | 24 / 8 (GQA 3:1) | 16 / 4 (GQA 4:1) |
+| weights | BF16 | BF16 |
+| size | 6.4 GB | 8.4 GB |
+| MTP | none | none |
+| f16 KV | clean 3/3 | **clean 3/3** |
+| **`q8_0` K+V** | **clean 3/3** | **COLLAPSE 3/3** (512 `/`) |
+| **`q4_0` K+V** | **clean 3/3** | **COLLAPSE 3/3** |
+
+**Four explanations die at once.** Weight format (both BF16), parameter count (both small),
+MTP (neither has it), and GQA — 4:1 against 3:1, both far below Tom's 6:1 threshold and far
+from the 6:1 of the original 27B. The GQA story was the most plausible alternative and it is
+now dead: the collapsing model has *lower* GQA than the original collapsing model and *higher*
+than the clean one, with no threshold in between that separates collapse from clean.
+
+**What still moves with head dim: Qwen-vs-Llama architecture.** Every D=256 model tested is a
+Qwen and the only D=128 model is a Llama, so "D=256" and "Qwen" remain perfectly confounded
+on this fleet. Separating them needs a non-Qwen D=256 model or a Qwen D=128 model, and
+neither exists here.
+
+Head dim remains the better-supported of the two because the mechanism is explicit in the
+source — `fattn.cu` gates a D=256-specific dispatch table on
+`turing_mma_available() || amd_wmma_available()` — whereas no comparable Qwen-specific path
+exists in the KV cache code. But on the evidence alone, **"D=256" and "Qwen" are not yet
+distinguishable**, and the honest claim is that one of the two is the variable.
 
 ## What this does NOT establish
 
