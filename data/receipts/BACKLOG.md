@@ -21,16 +21,24 @@ cost tokens only to start and interpret, which is the actual scarce resource.
 |---|---|---|---|
 | B1 | **Re-run the speculation losslessness test with `cache_prompt:false`** | ~20 min | `RESULT_SPECULATION_IS_NOT_BIT_EXACT` ran with prompt caching at its default `true`. `MTP_CACHEPROMPT_FALSIFICATION` (07-30) concluded MTP *is* deterministic at temp 0 and the instability was the caching interaction. The receipt is marked PROVISIONAL and is cited by two others. |
 | B2 | **Reconcile the parse-rate disagreement** | minutes | `run_hle_mini.py` parses `content` only (20 %); `rejudge.py` parses `content + reasoning` (40–50 %). Two of our own tools disagree on the same traces. Stricter reading is probably right — truncated reasoning holds *drafts*, not conclusions — but "probably" is not quotable. |
-| B3 | **Finish the KV degradation pin (P1–P5)** | ~40 min | Arm B showed `q8_0` K+V degenerating 5/5 on the first request, but both arms carried `-sm tensor` **and** MTP, so the general claim was overstated. Mark runs K=q8_0/V=turbo4 daily without trouble. P5 (his pair, current build) discriminates codec bug from build regression. Script staged at `~/kv_pin.sh` on `.73`. |
+| ~~B3~~ | ~~Finish the KV degradation pin~~ **DONE 08-16** — see `kv-tensor-split/RESULT_TWO_KV_BUGS.md`. Two bugs found; every stock quantized KV codec collapses, every buun codec works. | — | Arm B showed `q8_0` K+V degenerating 5/5 on the first request, but both arms carried `-sm tensor` **and** MTP, so the general claim was overstated. Mark runs K=q8_0/V=turbo4 daily without trouble. P5 (his pair, current build) discriminates codec bug from build regression. Script staged at `~/kv_pin.sh` on `.73`. |
 
 ## Cheap and high-value
 
 | # | thread | cost | note |
 |---|---|---|---|
 | C1 | **HLE effort ladder with repeats** — {low, medium, xhigh} x 5q x 3 reps | ~2 h | Answers Mark's "medium is the sweet spot" hypothesis *and* measures run-to-run variance, which we currently have none of. At temp 1.0 repeats are genuine samples, unlike `headlab`'s deterministic replays. The 80 % parse figure is **one draw**. |
-| C2 | **Does Mark's daily VBR workload ever leave entry tier?** | minutes | `/slots` exposes `kv_bpv`. Receipts show VBR enters at f16 and degrades only under pressure, and in past tests *never engaged* (`kv_bpv: 16.0` throughout). If his sessions never pressure it, his "VBR is sharper" experience may be "VBR is f16". |
+| ~~C2~~ | ~~Does VBR ever leave entry tier?~~ **ANSWERED 08-16** — `/slots` read `kv_bpv: 16.0` throughout a tensor-split run. It does not engage at these fills; VBR results are f16 in disguise. | — | `/slots` exposes `kv_bpv`. Receipts show VBR enters at f16 and degrades only under pressure, and in past tests *never engaged* (`kv_bpv: 16.0` throughout). If his sessions never pressure it, his "VBR is sharper" experience may be "VBR is f16". |
 | C3 | **Build a true upstream `llama.cpp` reference binary** | ~30 min build | There is **none** on either box — `llama_stock_ref` carries laguna patches despite the name. Blocks every "does this reproduce on stock" question. `DETERMINISM_ROOT_CAUSE` tested genuine upstream `0e4a03622` in July; that checkout may still exist. |
 | C4 | **empero-ai/Qwen3.8-9B: real distillation gain or extraction artifact?** | ~1 h | Card claims MMLU +26 pp strict-match over Qwen3.5-9B, but the *base* scores 0.251 strict — chance for 4-way MC — while GSM8K (extraction-robust) went **down** 0.015. Our harness reports parse rate separately from accuracy, which is exactly the instrument `lm-evaluation-harness` lacks. Base model already on disk. |
+
+## New from 2026-08-16
+
+| # | thread | cost | note |
+|---|---|---|---|
+| N1 | **Is the KV collapse `head_dim`-256-specific?** | ~1 h | Decisive test for the mechanism. `fattn.cu:2268-2284` has a D=256-only type-pair table listing no stock quantized types. `.73` holds only D=256 models; needs a D=128 model copied over (Qwen3.5-9B `Q8_0` is on the desktop). |
+| N2 | **Does `.194`'s different `buun_vbr` commit reproduce?** | ~40 min | `1abf2d28c` vs `.73`'s `a8e5b5a38`. Free bisect. Blocked on the HumanEval+ ladder. |
+| N3 | **Does Tom's fork reproduce?** | ~1 h | `.194` has both forks. **Must set `TURBO_AUTO_ASYMMETRIC=0`** or the fork silently upgrades K to `q8_0` at GQA>=6, and this model is exactly 6:1. |
 
 ## Substantial experiments
 
@@ -48,7 +56,7 @@ cost tokens only to start and interpret, which is the actual scarce resource.
 |---|---|---|
 | O1 | AtomicChat discussion #65 — `AD-IQ3_S` head built with no importance data | **posted, awaiting reply** |
 | O2 | bartowski thread — Q8_0 MTP head offer | **posted, awaiting reply** |
-| O3 | **buun: `q8_0` KV degeneration on Pascal** | pending B3 — needs the pin result before reporting |
+| O3 | **buun: stock quantized KV collapse + mixed-type abort on sm_60** | **UNBLOCKED** — B3 complete, full matrix + 2 controls + a file:line. Pastable not yet drafted. |
 | O4 | **buun: template v3 for Qwen3.8** | 3.6→3.8 rewrite dropped 4 of his 25 fixes (`\| safe`, `loop.previtem`, 9 `raise_exception` sites, `developer` role). Worth telling him; a v3 would have users immediately. |
 | O5 | GGML sm_60 issue | filed, **open and unconfirmed** |
 

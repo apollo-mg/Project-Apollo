@@ -1,0 +1,55 @@
+0.00.024.067 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.152.430 I srv    load_model: loading model '/home/mark/models/unsloth-Qwen3.8-27B-Q6_K.gguf'
+0.57.808.594 W NCCL not compiled in; falling back to internal AllReduce.  Recompile with -DGGML_CUDA_NCCL=ON for best multi-GPU performance.
+0.57.809.294 W internal AllReduce init failed (n_devices != 2?); falling back to meta-backend butterfly
+/home/mark/buun_vbr/ggml/src/ggml-backend-meta.cpp:533: GGML_ASSERT(ret.axis != GGML_BACKEND_SPLIT_AXIS_UNKNOWN) failed
+⚠️ warning: The current terminal doesn't support styling.  Styled output might not appear as expected.
+[New LWP 1002027]
+[New LWP 1002026]
+[New LWP 1002025]
+[New LWP 1002024]
+[New LWP 1002023]
+[New LWP 1002022]
+[New LWP 1002021]
+[New LWP 1002020]
+[New LWP 1002019]
+[New LWP 1002018]
+[New LWP 1002017]
+[New LWP 1002016]
+[New LWP 1002015]
+[New LWP 1002014]
+[New LWP 1002008]
+[New LWP 1002007]
+[New LWP 1002006]
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/usr/lib/x86_64-linux-gnu/libthread_db.so.1".
+__syscall_cancel_arch () at ../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S:56
+⚠️ warning: 56	../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S: No such file or directory
+#0  __syscall_cancel_arch () at ../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S:56
+56	in ../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S
+#1  0x0000765d816a061c in __internal_syscall_cancel (a1=<optimized out>, a2=<optimized out>, a3=<optimized out>, a4=<optimized out>, a5=0, a6=0, nr=61) at ./nptl/cancellation.c:49
+⚠️ warning: 49	./nptl/cancellation.c: No such file or directory
+#2  __syscall_cancel (a1=<optimized out>, a2=<optimized out>, a3=<optimized out>, a4=<optimized out>, a5=a5@entry=0, a6=a6@entry=0, nr=61) at ./nptl/cancellation.c:75
+75	in ./nptl/cancellation.c
+#3  0x0000765d8171cd4f in __GI___wait4 (pid=<optimized out>, stat_loc=<optimized out>, options=<optimized out>, usage=<optimized out>) at ../sysdeps/unix/sysv/linux/wait4.c:30
+⚠️ warning: 30	../sysdeps/unix/sysv/linux/wait4.c: No such file or directory
+#4  0x0000765d818ba973 in ggml_print_backtrace () from /home/mark/buun_vbr/build/bin/libggml-base.so.0
+#5  0x0000765d818bab26 in ggml_abort () from /home/mark/buun_vbr/build/bin/libggml-base.so.0
+#6  0x0000765d818e5dea in ggml_backend_meta_get_split_state(ggml_backend_meta_simple_tensor_container&, ggml_tensor const*, bool)::{lambda()#1}::operator()() const () from /home/mark/buun_vbr/build/bin/libggml-base.so.0
+#7  0x0000765d818dd3e2 in ggml_backend_meta_get_split_state(ggml_backend_meta_simple_tensor_container&, ggml_tensor const*, bool) () from /home/mark/buun_vbr/build/bin/libggml-base.so.0
+#8  0x0000765d818ea46f in ggml_backend_meta_buffer_init_tensor_impl(ggml_backend_meta_simple_tensor_container&, ggml_tensor*) [clone .isra.0] () from /home/mark/buun_vbr/build/bin/libggml-base.so.0
+#9  0x0000765d818eca9a in ggml_backend_meta_buffer_init_tensor(ggml_backend_buffer*, ggml_tensor*) () from /home/mark/buun_vbr/build/bin/libggml-base.so.0
+#10 0x0000765d818d1cd5 in ggml_gallocr_alloc_graph () from /home/mark/buun_vbr/build/bin/libggml-base.so.0
+#11 0x0000765d818d8251 in ggml_backend_sched_alloc_graph () from /home/mark/buun_vbr/build/bin/libggml-base.so.0
+#12 0x0000765d80cfbd2d in llama_context::process_ubatch(llama_ubatch const&, llm_graph_type, llama_memory_context_i*, ggml_status&) () from /home/mark/buun_vbr/build/bin/libllama.so.0
+#13 0x0000765d80d08f97 in llama_context::decode(llama_batch const&) () from /home/mark/buun_vbr/build/bin/libllama.so.0
+#14 0x0000765d80d0b4c2 in llama_decode () from /home/mark/buun_vbr/build/bin/libllama.so.0
+#15 0x0000765d8123e718 in common_init_from_params(common_params&, bool) () from /home/mark/buun_vbr/build/bin/libllama-common.so.0
+#16 0x0000765d81fd38e1 in server_context_impl::load_model(common_params&) () from /home/mark/buun_vbr/build/bin/libllama-server-impl.so
+#17 0x0000765d81eed2ef in llama_server(int, char**) () from /home/mark/buun_vbr/build/bin/libllama-server-impl.so
+#18 0x0000765d8162a601 in __libc_start_call_main (main=main@entry=0x5fa03bdba2f0 <main>, argc=argc@entry=20, argv=argv@entry=0x7ffedade5f28) at ../sysdeps/nptl/libc_start_call_main.h:59
+⚠️ warning: 59	../sysdeps/nptl/libc_start_call_main.h: No such file or directory
+#19 0x0000765d8162a718 in __libc_start_main_impl (main=0x5fa03bdba2f0 <main>, argc=20, argv=0x7ffedade5f28, init=<optimized out>, fini=<optimized out>, rtld_fini=<optimized out>, stack_end=0x7ffedade5f18) at ../csu/libc-start.c:360
+⚠️ warning: 360	../csu/libc-start.c: No such file or directory
+#20 0x00005fa03bdba325 in _start ()
+[Inferior 1 (process 1001843) detached]
