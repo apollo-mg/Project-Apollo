@@ -95,3 +95,17 @@ by the commit that follows.
 U5b's script *discarded* `cvar95_R` before it was ever printed. Those rankings should be
 read as average-case only. Re-running U5b's ladder for tail statistics is cheap
 (~1.5 min/arm at n=16, more at proper power) but is **not** started without a decision.
+
+## Derived prediction for the 4-bit tier — logged before those arms reported
+
+The 8-bit tier passed the rule but **decomposes against the mechanism**: arm B
+(desymmetrized, `q8_0` K) sits *on* the bit-budget line (1.4 % / 2.0 % below `M_geo`),
+while arm C (desymmetrized, **turbo8 on K**) sits far below it (20.5 % / 21.3 %). If
+desymmetrization per se were the cause, **both** mixed arms would dip. Only one does.
+
+**P4 (new): the 4-bit tier will repeat the asymmetry — turbo4/`q4_0` will beat
+`q4_0`/turbo4 at identical total bits (8.625), and the tier's dip will again be carried
+almost entirely by the turbo-on-K arm. Confidence 0.70.**
+
+If instead both 4-bit mixed arms dip roughly equally, the symmetry hypothesis is the better
+explanation after all and the 8-bit decomposition was a fluke. That is the falsifier.
