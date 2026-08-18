@@ -123,7 +123,15 @@ statistic reproduces the cheap mean's ranking exactly. Useful, because it licens
 `mean_R` alone — **at this depth**. Whether shape-invariance survives at real context length
 is untested and is the more interesting form of the question.
 
-### 4. The matched-budget premise is measured-false — U5c's verdict is unsound
+### 4. ~~The matched-budget premise is measured-false~~ — **RETRACTED, see `RESULT_U5E_KVSIZE.md`**
+
+> **This finding is wrong.** A load-only sweep at n_ctx 512/4096/16384 shows the turbo excess
+> is a **constant 128 KiB fixed allocation**, not a per-token cost: stock types match their
+> block layout exactly at every size, and turbo bits/value converge on the layout value
+> (turbo8 8.127 vs 8.125 at 16k). At U5c's 136-token context that fixed buffer was 3-10% of a
+> 1-4 MiB cache, which inverted the apparent ordering. **The matched-budget premise is restored
+> and the "unsound" marking on the 8-bit verdict is lifted.** The caveat stated below turned
+> out to be the correct explanation; the headline did not. Retained unedited for the record.
 
 Per-arm `KV buffer size`, the quantized context (**second** occurrence in each log; the
 first is the f16 reference):
