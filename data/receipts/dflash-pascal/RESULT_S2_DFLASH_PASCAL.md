@@ -159,3 +159,58 @@ reporting into that project.
   rate is not a quality claim.
 - **`dfl_n15` at `-c 8192` is still missing** and the mechanism behind the n=15 collapse is
   still open.
+
+---
+
+## Addendum: acceptance is context-dictated, and that is what makes it useless to #306
+
+**2026-08-18**, prompted by Mark: *"I know for certain that acceptance rate is 100 % dictated
+by the context if the determinism is about right."* Checked against this run's raw per-rep
+data (`~/dflash_s2/dflash_*.json`), comparing **drafted-token counts** rep-to-rep.
+
+| arm | prompts bit-identical across reps |
+|---|---|
+| `off` | 12 / 12 |
+| `dfl_n3`, `dfl_n7` | **12 / 12** |
+| `mtp_n3`, `mtp_n7`, `mtp_n15` | **11 / 12** |
+
+**He is right, and the single exception is one we have already characterised.** The only
+divergence anywhere is MTP on the `code` prompt — **1058 vs 1043** drafted tokens at n=15
+between two identical replays. Every other cell, both drafters, all depths, is exact.
+
+That is a **cross-backend replication of `RESULT_SPECULATION_IS_NOT_BIT_EXACT` finding 3**
+(*"MTP is additionally unstable run-to-run; DFlash is not"*), which was measured on
+**RX 9070 XT / HIP** and now reproduces on **Tesla P100 / CUDA** — different vendor, different
+backend, different build. The explanation offered there and left untested was architectural:
+the MTP head shares the target's KV cache, so rejected drafts must be rolled back out of it,
+while DFlash is an external drafter denoising a constant-size block of 16 — *"constant shape
+in, constant arithmetic out."* **This is the first independent evidence for that account.**
+Note the same receipt showed the MTP instability is an interaction with **prompt caching**
+(it vanishes at `cache_prompt=0`); this sweep ran the default, so the reproduction is of that
+interaction, not of a standalone MTP defect.
+
+### Why this hardens the #306 argument
+
+The earlier form of the point was empirical: *acceptance matched across architectures within
+1 pp while optimal depth did not.* Mark's framing makes it **structural**.
+
+Acceptance is a deterministic function of **(context, target, drafter, caching)**. **Every one
+of those terms is hardware-independent** — which this run demonstrates twice over: exact
+rep-to-rep reproducibility within a machine, and ≤1 pp agreement with a different vendor's
+GPU running a different backend.
+
+So an acceptance-driven controller is not merely *poorly informed* about hardware. **It is
+reading a signal that provably carries no hardware information at all.** It cannot distinguish
+the case where n=15 is the best available configuration (RDNA4, 150.66 t/s, 2.7× unspeculated)
+from the case where n=15 is worse than not speculating (Pascal, 14.65 vs 28.87) — because at
+~29 % acceptance those two situations are, to that controller, the same observation.
+
+**The residual ≤1 pp cross-backend disagreement is itself a measurement**: with the context
+term held fixed, it bounds the numerical divergence between the CUDA and HIP paths in
+acceptance units. Small, but non-zero, and consistent with speculative output not being
+bit-exact.
+
+**Constructive form:** the quantity that separates the two architectures is **measured
+throughput**, which the adaptive loop already has in hand — it is generating tokens and timing
+them regardless. Sampling t/s at the current depth and adjusting on *that* would close the
+blind spot at no extra cost. Offered as a measurement rather than a design prescription.
