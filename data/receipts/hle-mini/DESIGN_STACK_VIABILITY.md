@@ -207,3 +207,63 @@ For `Qwen3.8-27B` on the P100 nodes that resolves to **`VBR_BUDGET_MIB=6144`**: 
 to ~98k tokens, ~6.05 bits/value at 260k, fitting `.73`'s ~7.9 GiB of free VRAM with slack.
 **Still pending before it is doctrine:** compute-buffer growth at 260k is unmeasured (610 MiB
 per device observed at 16k), and it competes for the same headroom.
+
+---
+
+## Tier 4 — deployment shape ("you have XY GB of VRAM; here is what you actually get")
+
+**2026-08-18.** Tiers 1-3 answer *is the stack working* and *how capable is the model*.
+Tier 4 answers the question a reader actually arrives with, stated by Mark as:
+
+> *"You wanna run this model and you have XY gigabytes of VRAM. This is how I'd do it and why
+> it makes sense. This is how I tested it to understand the capabilities. Here is what these
+> capabilities are. This is how it's probably best used."*
+
+Explicitly Gamers-Nexus-shaped: **no averages standing in for distributions, no vendor claim
+repeated without a measurement, and the test bench published in full so anyone can rerun it.**
+The GN translation is direct — average FPS is mean t/s, and **1 % lows are inter-token latency
+percentiles.** A model that averages 30 t/s but stalls for 800 ms every twelfth token is not
+the same product as one that runs flat at 28, and a mean hides exactly that.
+
+### Metrics, and what it takes to measure each
+
+| # | metric | why it matters | status |
+|---|---|---|---|
+| 1 | **TTFT at realistic depth** (2k / 16k / 64k prompt) | first-token latency dominates perceived speed, and it is the number that collapses at depth. Almost everyone benchmarks it at ~0 context, which is the one case nobody runs | **have** — harness already times requests; needs depth arms |
+| 2 | **Inter-token latency p50 / p99** | the "1 % lows". Distribution, not mean | **need** — requires streaming capture of per-token timestamps; small addition to `dflash_ab.py` |
+| 3 | **Sustained throughput over 10+ min** | thermal and power-limit throttling. Every number in this repo so far is a short burst | **have** — power sampler built for `S2` already logs clock and draw over time |
+| 4 | **tokens per joule, measured** | Mark's economic/environmental axis, and the one claim nobody can fake. We already log busy-watts per arm | **have** — `S2` sampler + t/s gives this directly |
+| 5 | **Usable context at a pinned VBR budget** | with `VBR_BUDGET_MIB` fixed, "how deep before quality falls off" becomes a *measurable* number rather than a vendor claim | **have** — pinned-budget protocol + `frontier-hazard` |
+| 6 | **Quality-vs-depth curve at that budget** | the chart nobody publishes | **have** — `frontier-hazard` DEPTH bands, now emitting medians |
+
+### The chart that is ours
+
+Metrics 5 and 6 combine into a surface no one else is positioned to publish:
+
+**VRAM budget → usable context → fidelity at that depth.**
+
+Three axes a buyer actually has: *how much VRAM I own*, *how long a conversation I need*, and
+*how much quality I lose to get there*. Pinning the VBR budget is what makes it measurable —
+without a pinned budget the middle axis is a function of ambient free memory and the whole
+surface is unreproducible. That is the concrete payoff of the "do it our way" decision, and it
+converts an annoying constraint into the deliverable.
+
+**It also fills a real gap.** Vendors publish max context. Nobody publishes *usable* context —
+what the quality actually is when you get there. The gap between those two is exactly where a
+local-first user gets burned.
+
+### Rules of engagement
+
+- **No metric without its distribution.** If a number is a mean, the tail ships beside it. The
+  ~20× `cvar95/mean` invariance measured across `U5c`/`U5d`/`U5f` is itself a finding, and it
+  was only visible because both were reported.
+- **Every claim carries its config**: model + quant + KV type + pinned budget + measured
+  bytes/token + sampling params + system prompt + clock/power state. `S2` needed the clock
+  caveat added after the fact; the standard is that it is in the table from the start.
+- **Report the arms that failed.** `dfl_n15` OOMed and the cell stayed empty rather than being
+  quietly filled with a non-comparable `-c 4096` number. An empty cell with a reason is worth
+  more than a filled one with a footnote.
+- **Vendor numbers are hypotheses, not baselines.** They arrive through a lab harness, a
+  marketing summary, a restatement, often a language boundary. Establish what was actually
+  claimed — which subset, which judge, what budget, how many samples — before treating it as a
+  target to match or refute.
