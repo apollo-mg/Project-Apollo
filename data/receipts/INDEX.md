@@ -29,7 +29,7 @@ someone find it, and the claim in a form that is checkable.
 | MTP nondeterminism lands by content type: **prose drifts, tool calls hold, code breaks** | `battle16gb/MTP_STRUCTURED_OUTPUT.md` | 07-29 |
 | Upstream knows the MTP mechanism; MTP tensors load even when never requested | `battle16gb/MTP_UPSTREAM_ROOT_CAUSE.md` | 07-30 |
 | f16 control is **bistable within one build** on Polaris — byte comparison at K=1 is invalid there | `battle16gb/F16_CONTROL_BISTABLE.md` | 07-31 |
-| Speculative decoding never reproduced non-speculative output (0/12) — **NEEDS RE-RUN with `cache_prompt:false`**, see falsification above | `spec-decode-determinism/RESULT_SPECULATION_IS_NOT_BIT_EXACT.md` | 08-15 |
+| Speculative decoding never reproduces non-speculative output — **CONFIRMED 08-18 with `cache_prompt` swept both ways**. MTP's run-to-run instability *was* the caching interaction and is falsified; the off-vs-speculative deviation survives | `spec-decode-determinism/RESULT_SPECULATION_IS_NOT_BIT_EXACT.md` | 08-18 |
 | Agent benchmarks on `.73` are not reproducible at K=1 (HA-04 bistable 35/100/100/35) | `battle16gb/HA20_BASE_K3_CONTROL.md` | 07-30 |
 
 ## sampling · envelope · reasoning effort

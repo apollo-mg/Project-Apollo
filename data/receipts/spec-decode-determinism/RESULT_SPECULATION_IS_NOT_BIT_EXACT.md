@@ -1,13 +1,30 @@
 # Speculative decoding does not reproduce non-speculative output on this stack
 
-> **PROVISIONAL — a control was skipped, and prior work suggests it is the explanation.**
-> `battle16gb/MTP_CACHEPROMPT_FALSIFICATION.md` (2026-07-30) concluded *"MTP is deterministic
-> at temp 0. The instability was MTP x prompt-caching."* This test sent sequential requests
-> with `cache_prompt` at its **default of `true`**, so the two distinct MTP outputs may be that
-> same interaction rather than a property of speculation. `PREFIX_CACHE_CHANGES_OUTPUT.md`
-> (same date) shows prefix reuse changes temp-0 output on genuine upstream.
-> **Re-run required with `cache_prompt:false` before any claim here is quoted.**
-> Recorded 2026-08-16 on discovering the prior receipts.
+> **RESOLVED 2026-08-18 — control run complete, PROVISIONAL lifted.** The test was re-run
+> with `cache_prompt` swept **both** ways, 6 reps per arm, same build/model/prompt
+> (`raw/lossless_run2.sh`, `raw/b1_run.log`). Result is split:
+>
+> | | `cache_prompt=1` (reproduces this run) | `cache_prompt=0` (control) |
+> |---|---|---|
+> | `off` | `829016f4` | `829016f4` |
+> | `mtp_n3` | **2 distinct outputs** | **1 distinct** — `62b80194` |
+> | `dfl_n3` | `06ad1b1c` | `06ad1b1c` |
+>
+> **Finding 3 below is FALSIFIED.** MTP's run-to-run instability was the MTP x prompt-caching
+> interaction, exactly as `battle16gb/MTP_CACHEPROMPT_FALSIFICATION.md` concluded. With caching
+> off it produces one output. Draft *counts* still vary (308/216 seen), which is benign — a
+> differing draft count with identical text is expected and is not what losslessness claims.
+>
+> **Findings 1 and 2 SURVIVE.** With caching disabled, neither drafter reproduces the
+> non-speculative reference: `off` `829016f4` vs `mtp_n3` `62b80194` vs `dfl_n3` `06ad1b1c`.
+> Still 0/12. The `off` arm is byte-stable across all 12 runs in both conditions, so the
+> reference is sound.
+>
+> **One qualification the original under-stated.** With caching off, MTP lands on `62b80194`
+> — which the magnitude section below shows differs from the reference by *whitespace reflow
+> only*, byte-identical after stripping docstrings and whitespace. So the surviving deviation
+> for MTP is real but smaller than "the model wrote something different"; DFlash's
+> `06ad1b1c`, which drops two docstring sentences, remains the larger one.
 
 **2026-08-15, RX 9070 XT (RDNA4, ROCm), `moe-cache-test` HIP build.** Target
 `Qwen3.5-9B` `Q8_0` (unsloth MTP variant), `-ngl 99 -c 8192 --jinja`, temperature 0,
