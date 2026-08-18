@@ -67,3 +67,49 @@ This is a scope error, not a measurement error: nothing published needs retracti
 every claim in the line needs the qualifier *"at 128-token context"* attached, and the
 receipts above should be read with this file. Logged because the campaign has been quoting
 these R values in cross-codec comparisons for two days without the qualifier.
+
+---
+
+## buun's answer on sweep depth — and what it does to our plan
+
+**2026-08-18.** Mark put the open question from `RESULT_U5F_ALLOCATION.md` to buun directly
+(*"at what context depth did he sweep the layer pricing?"*). His answer, verbatim:
+
+> *"I swept at 16k, 32 chunks. The reason for that is because through spearman correlation,
+> median kld 16k@32c had the highest correlation to margin bench (task accuracy) at any
+> context depth and flip (hazard bench). So I figured this was good enough, or maybe a bit
+> better than good enough… that correlation was checked through different quantization
+> levels, codebooks, etc, there were thousands of rows to go by… **kld numbers themselves
+> lose signal the deeper depth you go.**"*
+
+**The concern is answered and it was unfounded.** His schedule is *not* swept shallow — it is
+swept at **16k**, and the depth was chosen by maximising rank correlation against **task
+accuracy**, across thousands of rows spanning quantization levels and codebooks. That is a
+stronger validation than anything in this repo: we have been optimising a proxy metric, he
+validated *which proxy* to optimise.
+
+### Three consequences for our own work
+
+1. **The comparison runs the other way now.** Our entire U5 line sits at **136 tokens**;
+   buun's validated correlation-with-task-accuracy point is **16k**. So it is *our* numbers
+   that are far from the regime known to predict task outcomes, not his. `RESULT_U5F`'s
+   V-favouring result is measured ~120× shallower than the depth where KLD-family metrics
+   were shown to track accuracy.
+
+2. **"KLD loses signal the deeper you go" contradicts the naive depth ladder.** The plan in
+   this file — raise `--n-prefix` and read the DEPTH bands — assumed discrimination improves
+   with depth. buun's sweep says the correlation with task accuracy peaks around 16k and
+   degrades past it. **The target is 16k@32c, not "as deep as fits."** That is a specific,
+   externally-validated operating point and we should adopt it rather than pick our own.
+
+3. **We report the wrong central statistic.** buun prices on **median** KLD; `frontier-hazard`'s
+   `SUMMARY` emits `mean_KL` only (`s_KL / n_done`, `frontier-hazard.cpp:353`). Given the
+   ~20× tail/mean ratio measured across every arm in U5c/U5d/U5f, a mean is outlier-dominated
+   and is **not** the statistic his correlation work selected. Extracting a median needs the
+   per-prompt values, which the tool prints per-`DEPTH`-band but not per-prompt — a small
+   patch, or a re-parse of the per-arm logs.
+
+**`BACKLOG U7`'s layer-pricing question is closed.** What replaces it is sharper: re-run the
+`U5f` arms at **16k@32c reporting median KLD**, which is simultaneously the depth test, the
+metric fix, and the only version of our K-vs-V result that would be comparable to the
+evidence base buun and TheTom already trust.
