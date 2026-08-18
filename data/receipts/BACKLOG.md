@@ -50,7 +50,7 @@ cost tokens only to start and interpret, which is the actual scarce resource.
 | # | thread | cost | note |
 |---|---|---|---|
 | **N1** | **Is the KV collapse `head_dim`-256-specific?** — **UNBLOCKED, no transfer needed** | ~40 min | Decisive test for the mechanism, and now the *only* live route to it since **N4 turned out unanswerable** (a quantized V cache requires flash attention, so "quantized K+V with FA off" is unreachable). **Correction:** this entry previously named Qwen3.5-9B as the D=128 model to copy — it is **D=256** (`key_length=256`, GQA 4:1), as is every other Qwen here (3.5-4B, 3.6-28B-REAP, 3.8-27B). The real candidate was already on `.73`: `~/AI/Models/tqstudy/Llama-3.2-3B-Instruct-BF16.gguf`, **D=128**, 24 heads / 8 KV (GQA 3:1, below the auto-asym threshold). Staged as `kv_d128.sh` with an L0 gate for BF16-on-sm_60. |
-| N2 | **Does `.194`'s different `buun_vbr` commit reproduce?** | ~40 min | `1abf2d28c` vs `.73`'s `a8e5b5a38`. Free bisect. Blocked on the HumanEval+ ladder. |
+| ~~N2~~ | ~~Does another buun commit reproduce?~~ **DONE 08-18** — three commits, three behaviours. `87c351d28` and `02f8581` ABORT via buun-added guards; only `a8e5b5a38` collapses silently. Ordering unknown (a8e5b5a38 unfetchable). | — | `1abf2d28c` vs `.73`'s `a8e5b5a38`. Free bisect. Blocked on the HumanEval+ ladder. |
 | ~~N3~~ | ~~Does Tom's fork reproduce?~~ **DONE 08-17** — `RESULT_XFORK.md`. **Yes, identically.** Both bugs are shared; the abort's trigger set is fork-dependent. Also isolated: the collapse needs K *and* V quantized. | — | — |
 
 ## New from 2026-08-17
