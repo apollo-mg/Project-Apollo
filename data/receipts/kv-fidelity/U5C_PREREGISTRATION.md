@@ -109,3 +109,51 @@ almost entirely by the turbo-on-K arm. Confidence 0.70.**
 
 If instead both 4-bit mixed arms dip roughly equally, the symmetry hypothesis is the better
 explanation after all and the 8-bit decomposition was a fluke. That is the falsifier.
+
+## U5d — replacement low-bit tier, and P5 logged before it runs
+
+**2026-08-18.** The 4-bit tier's two mixed arms both **aborted**:
+`ggml/src/ggml-cuda/fattn.cu:2658` → `GGML_ABORT` under `BEST_FATTN_KERNEL_NONE`, i.e. no FA
+kernel exists on sm_60 for `q4_0` paired with a turbo type, in either order. The enumeration
+immediately above that line gives the supported mixed set — `K=TURBO2_0` with
+`V ∈ {TURBO3_0, TURBO4_0, Q8_0, F16}`, and `K=TURBO3_0` with `V=TURBO2_0`. **`q4_0` is not in
+the turbo-mixing story at all**; the supported non-turbo partner is `q8_0`/f16. That is a
+**coverage gap, not a bug**, and it is why the 8-bit tier ran while the 4-bit tier could not.
+**P4 is untestable as written and is withdrawn**, not scored.
+
+Rebuilt on turbo2/turbo3, which is a **better** design than the one that failed:
+
+| arm | K | V | total bpv |
+|---|---|---|---:|
+| A | turbo3 | turbo3 | 7.0 |
+| B | turbo3 | turbo2 | **6.0** |
+| C | turbo2 | turbo3 | **6.0** |
+| D | turbo2 | turbo2 | 5.0 |
+
+B and C are an **exact swap of the same two codecs at identical total bits**. The 8-bit tier
+could not do this — turbo8 and `q8_0` differ in *codec* as well as width, which is precisely
+the confound that stopped me claiming a K-vs-V direction there. Here the codec-quality term
+cancels, so the swap is close to a pure bit-allocation test.
+
+The same mechanical decision rule applies unchanged, on both `mean_R` and `cvar95_R`, with
+`R_A` = turbo3/turbo3 (most bits) and `R_D` = turbo2/turbo2 (fewest).
+
+### P5 — the two live hypotheses make opposite predictions
+
+- **P5a — transfer of the 8-bit result.** There, arm C won by putting the *cheaper* codec on
+  K and the richer on V. Transferred, that predicts **turbo2/turbo3 (more bits on V) beats
+  turbo3/turbo2**.
+- **P5b — h4rm0n1c's K > V.** *"You can lose a value and a key might point to something near
+  enough, but if you lose the key, no value at all gets found."* That predicts
+  **turbo3/turbo2 (more bits on K) wins.**
+
+**These are mutually exclusive, so the tier adjudicates rather than accommodates.**
+**Registered call: P5b, confidence 0.60** — against the naive transfer of my own 8-bit
+result, because that result was confounded by codec quality (turbo8's FWHT outlier
+suppression plausibly helps K specifically), while K > V has a stated mechanism and
+community support. buun's refinement stands as a caveat on both: *"K > V is a generalization
+but not true on a layer-by-layer basis."*
+
+A near-tie (within ~5 % on both metrics) is a third outcome and would mean **placement does
+not matter at fixed budget** — which would retroactively make the 8-bit arm-C win a
+codec-quality effect, not an allocation effect.
