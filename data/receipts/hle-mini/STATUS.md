@@ -102,3 +102,89 @@ to finish — a selection effect pointing the same way as the score.
 
 Full HLE is explicitly out of scope on this fleet — `build_subset.py` estimates **150–450
 hours per arm** at the official budget, which is why the subset exists.
+
+---
+
+## Re-grade complete — the number is 0, and it is now a real 0
+
+**2026-08-18.** All 57 stored traces re-graded with `rejudge2.py` (B2 parse fix + outcome
+classes), judge served from `.73` (`Qwen3.5-9B-Q8_0`, a different model from the one under
+test). Judge re-validated before use: **5/5 on the decidable known pairs**, reproducing the
+documented strict `Frits Zernike` → NO. `judged_v2_summary.json`.
+
+| run | n | right | wrong | truncated | format failures |
+|---|---:|---:|---:|---:|---:|
+| budget_1024 | 10 | 0 | 2 | 8 | 0 |
+| budget_2048 | 10 | 0 | 2 | 8 | 0 |
+| budget_4096 | 2 | 0 | 1 | 1 | 0 |
+| q38_low_clean | 5 | 0 | 4 | 1 | 0 |
+| q38_q6k | 10 | 0 | 2 | 8 | 0 |
+| q38_q6k_rec | 10 | 0 | 2 | 8 | 0 |
+| q38_xhigh_clean | 5 | 0 | 0 | 5 | 0 |
+| smoke | 5 | 0 | 0 | 5 | 0 |
+| **TOTAL** | **57** | **0** | **13** | **44 (77 %)** | **0** |
+
+**`judge_failed` = 0.** Every gradeable answer was actually adjudicated. This is the first
+time this project has had a score that means anything, and the score is **0 / 13**.
+
+### The previously-recorded "1 correct" was an artefact
+
+`judged_q38_q6k_rec.json` reported `judge_yes: 1`, accuracy 0.1. It does not survive the B2
+fix. That run had 5 "parsed" answers under the old content+reasoning parse and has **2** under
+the corrected one — the correct answer was among the three that were **drafts scraped out of
+truncated reasoning**, not answers the model ever committed to. **HLE-mini has never produced
+a correct answer.**
+
+### Two things this does and does not establish
+
+**Does:** the pipeline is sound end to end. **Zero format failures** in 57 traces — every
+response that finished emitted a parseable `Exact Answer:` line — and zero judge failures.
+Prompt template, regex extraction, normalisation, and judging all work. **The only broken
+thing was the token budget.**
+
+**Does not:** establish that the model cannot do HLE. n=13 is far too small.
+
+| if true accuracy were | P(0 of 13 correct) |
+|---|---|
+| 40 % | 0.001 |
+| 30 % | 0.010 |
+| 20 % | 0.055 |
+| **10 %** | **0.254** |
+| 5 % | 0.513 |
+
+So 0/13 is strong evidence against a 30-40 % rate on this subset and **weak** evidence
+against 10 %. It cannot distinguish "the model is bad at HLE" from "the rate is ~10 % and 13
+samples missed it". The 13 are also a **biased sample** — they are exactly the questions the
+model finished, which selects for shorter reasoning.
+
+### The effort/budget frontier is the actual finding
+
+| setting | gradeable | truncated | right |
+|---|---|---|---|
+| `low` effort | 4 / 5 | 1 | 0 / 4 |
+| default | 2 / 10 | 8 | 0 / 2 |
+| `xhigh` effort | 0 / 5 | **5** | — |
+
+**The failure mode moves but never lands on "right".** Turn effort down and the model finishes
+and is wrong; turn it up and it never finishes at all. No setting tried has produced a correct
+answer, and the two failure modes have opposite fixes — which is precisely why they must be
+reported separately rather than folded into one accuracy number.
+
+Mark's note that Qwen recommend **~260k reasoning budget** for this benchmark explains the
+whole table: every run here was between 1k and 4k, i.e. **1.5-2 orders of magnitude short**.
+At ~29 t/s, 260k tokens is ~2.5 h *per question*, so matching that recommendation is not
+possible on this fleet at any sample size worth having.
+
+### Consequence for the project
+
+Chasing an absolute HLE score is **out of reach on this hardware** and should be dropped
+explicitly rather than deferred. What remains reachable, and is what the subset was designed
+for anyway:
+
+1. **Completion rate at a fixed budget** as a first-class outcome — *"at 8k with
+   effort=medium, which quant finishes more answers?"* That is measurable today, cheap, and
+   arguably closer to what a local-first user experiences than an untimed accuracy score.
+2. **Quantisation deltas** on that metric, which is the design goal in `build_subset.py`.
+
+Both need the truncation confound handled honestly: truncation is quant-sensitive, so it is
+an **outcome**, never a filter.
