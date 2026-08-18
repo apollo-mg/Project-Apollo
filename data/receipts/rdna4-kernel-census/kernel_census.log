@@ -1,0 +1,22 @@
+### FA KERNEL LAUNCH CENSUS — gfx1201, build f6124e914  2026-08-18T09:04:16-04:00
+### types: 1=F16 2=Q4_0 8=Q8_0 43=TURBO2 44=TURBO3 47=TURBO4
+
+--- D=128 GQA 3:1  decode : -ctk turbo3 -ctv q8_0 -p 0 -n 8 ---
+         84 flash_attn_ext_vec<128, 1, (ggml_type)44, (ggml_type)8, false>
+
+--- D=256 GQA 4:1  decode : -ctk turbo3 -ctv q8_0 -p 0 -n 8 ---
+         40 flash_attn_ext_vec<256, 1, (ggml_type)44, (ggml_type)8, false>
+
+--- D=256 GQA 6:1  decode : -ctk turbo3 -ctv q8_0 -p 0 -n 8 ---
+         80 flash_attn_ext_vec<256, 1, (ggml_type)44, (ggml_type)8, false>
+
+--- D=128 GQA 3:1  decode @4096 : -ctk turbo3 -ctv q8_0 -p 0 -n 8 -d 4096 ---
+        112 flash_attn_ext_vec<128, 1, (ggml_type)44, (ggml_type)8, false>
+
+--- D=128 GQA 3:1  prefill 256 : -ctk turbo3 -ctv q8_0 -p 256 -n 0 ---
+kernel_census.sh: line 25: 2489399 Aborted                    TURBO_AUTO_ASYMMETRIC=0 AMD_LOG_LEVEL=4 timeout 400 "$B" -m "$model" -ngl 99 -fa 1 -ctk "$ctk" -ctv "$ctv" -r 1 "$@" > "$T" 2>&1
+
+--- D=128 GQA 3:1  turbo3 sym : -ctk turbo3 -ctv turbo3 -p 0 -n 8 ---
+         84 flash_attn_ext_vec<128, 1, (ggml_type)44, (ggml_type)44, false>
+
+### CENSUS DONE 2026-08-18T09:05:26-04:00
