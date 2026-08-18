@@ -62,3 +62,36 @@ null) **0.97** — **already CONFIRMED** at 128 prompts.
   denominator and read −5.74 / +2.32 in U5b. `frac_L≥1` is the robust form.
 - n=128 prompts. U5b's n=16 could not resolve the 8-bit pair (1 vs 6 events, p≈0.12); if
   the 8-bit tier is still event-starved at 128, **say so rather than reading the ranking.**
+
+---
+
+## AMENDMENT — `cvar95_R` promoted to co-primary
+
+**Added 2026-08-18 after arm A (`q8_0`/`q8_0`) reported and before any of B, C, or D.**
+
+Prompted by Mark: *"I try and take the Gamers Nexus approach to benchmarking. Focus on the
+stuff that bothers you, not the averages. Like 1% FPS lows and frame-times."*
+
+He is right, and the first arm shows why: `q8_0`/`q8_0` returned **mean_R 0.1654** against
+**cvar95_R 3.3529**. The tail is **~20× the mean.** Ranking codecs on `mean_R` is an
+average-FPS comparison; the damage that changes an outcome lives in the rare
+low-margin token, which is the tail. `cvar95_R` is the better-formed version of the
+analogy — CVaR95 is the *mean of everything past* the 95th percentile (expected shortfall),
+so unlike a 1%-low percentile it does not move around under a few huge spikes.
+
+**Amendment:** the decision rule above is applied **unchanged and mechanically to both
+`mean_R` and `cvar95_R`**, and **both outcomes are reported regardless of which way either
+cuts.** `mean_R` remains the declared primary purely because it was registered first;
+where the two disagree, that disagreement is the finding and is reported as such rather
+than resolved in favour of either.
+
+**Why this is not metric-shopping.** The rule's verdict is a function of
+`X = (R_B + R_C)/2` against `M_geo = sqrt(R_A · R_D)`. At the time of writing **only R_A
+exists** — B, C and D have not run on either metric. The verdict is therefore
+**undetermined for both metrics**, and cannot have influenced this amendment. Timestamped
+by the commit that follows.
+
+**Consequence for the earlier panels.** U5 and U5b ranked codecs on `mean_R` alone and
+U5b's script *discarded* `cvar95_R` before it was ever printed. Those rankings should be
+read as average-case only. Re-running U5b's ladder for tail statistics is cheap
+(~1.5 min/arm at n=16, more at proper power) but is **not** started without a decision.
