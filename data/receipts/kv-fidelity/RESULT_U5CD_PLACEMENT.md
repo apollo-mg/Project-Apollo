@@ -183,3 +183,94 @@ about *mechanism* keep losing to measurement.
 - **n=16 was not a stable estimator.** `q8_0`/`q8_0` mean_R moved 0.0868 → 0.1654 (~2×) and
   `q4_0`/`q4_0` 22.10 → 30.95 (~40 %) going from U5b's 16 prompts to 128. **U5b's rankings
   should not be quoted**; this file supersedes them where they overlap.
+
+---
+
+## AMENDMENT — the symmetry verdict is confounded by a kernel-path split
+
+**2026-08-18, same day, before anything was sent to buun or TheTom.** Prompted by Mark:
+*"Every time I try and measure KV effects, we always hit a point where my agent says 'V
+effects appear to contradict the status quo, giving preference to K', then I show buun some
+data, then he shows me something, then we realize our measurements aren't measuring the
+right thing. Pretty much every time."*
+
+Checked rather than defended. **He is right, and here is the mechanism.**
+
+`ggml/src/ggml-cuda/fattn.cu:2638-2652` decides whether **Q is pre-rotated** before the FA
+kernel, and the condition reads **both K's and V's type**:
+
+```c
+const bool k_uses_rotated_path = do_decode_dequant && (
+    ((K->type == TURBO2_0) && (V->type == TURBO3_0 || TURBO4_0 || Q8_0 || F16)) ||
+    ((K->type == TURBO3_0) && (V->type == TURBO2_0)));
+const bool turbo_k_in_orig_domain = do_decode_dequant && turbo_k_any && !k_uses_rotated_path;
+if (turbo_k_any && !turbo_k_in_orig_domain && Q->ne[0] % 128 == 0) { /* FWHT-rotate Q */ }
+```
+
+Evaluated for the swap tier (`do_decode_dequant` is true — sm_60, turbo KV, D=256):
+
+| arm | K | V | `k_uses_rotated_path` | Q pre-rotated? |
+|---|---|---|---|---|
+| A | turbo3 | turbo3 | false | **no** |
+| B | turbo3 | turbo2 | **true** (2nd clause) | **yes** |
+| C | turbo2 | turbo3 | **true** (1st clause) | **yes** |
+| D | turbo2 | turbo2 | false | **no** |
+
+**The symmetric arms and the mixed arms run different code.** The comment above the block
+calls the rotated branch a *"Bug #31 exception"* — a fallback for when turbo2/turbo3 dequant
+lands in WHT-rotated space instead of original space.
+
+**Consequence: the ANTI-SYM verdict is withdrawn.** `X = (R_B+R_C)/2` vs
+`M_geo = √(R_A·R_D)` compared *the Bug-#31 fallback path against the normal path* and
+attributed the difference to symmetry. Mixed arms averaging worse than the interpolation is
+equally well explained by that fallback simply being worse. **The design never isolated
+symmetry, and the pre-registered rule could not have detected that** — it takes four numbers
+as given and has no way to know two of them come off a different branch.
+
+**What survives.** Arms B and C are **both** on the rotated path, so the 31.7 % swap result
+is *not* affected by this confound and stands as measured. The 8-bit tier is also unaffected
+by *this* particular issue — `turbo_k_any` is false for `q8_0`-K arms and
+`k_uses_rotated_path` is false for turbo8 (it is neither TURBO2_0 nor TURBO3_0), so all four
+8-bit arms run Q unrotated. That tier remains unsound for the separate reason in finding 4.
+
+**Net: after both amendments, this pair of tiers supports exactly one claim** — the B-vs-C
+interaction — **and every symmetry statement in it is retracted.**
+
+## The interaction is not yet an allocation finding either
+
+Even the surviving swap result does not license *"bits belong on V."* It compares
+`quality(turbo3,K)+quality(turbo2,V)` against `quality(turbo2,K)+quality(turbo3,V)`, which is
+a genuine 2×2 interaction contrast — but turbo2 and turbo3 differ in **codec design, rotation
+group handling, and kernel dispatch**, not only in width. So the honest statement is:
+
+> **For the turbo2/turbo3 pair on sm_60 at 136 tokens, turbo3 is worth more on V than on K.**
+
+That is a claim about *those two codecs*, not about bit allocation in general.
+
+### The clean test — `U5f`
+
+Same codec family, pure width difference, **no rotation and no turbo kernel anywhere**:
+
+| arm | K | V | total bpv |
+|---|---|---|---:|
+| A | `q8_0` | `q8_0` | 17.0 |
+| B | `q8_0` | `q4_0` | 13.0 |
+| C | `q4_0` | `q8_0` | 13.0 |
+| D | `q4_0` | `q4_0` | 9.0 |
+
+`q8_0` and `q4_0` are both plain block-scalar quantisation with a per-block `ggml_half`
+scale, differing only in bits — and finding 4 showed **stock types allocate exactly what
+their block layout says**, so B and C are genuinely equal-cost. B vs C is then a pure
+bit-allocation contrast with no codec, rotation, dispatch, or allocation confound left in it.
+
+**Pre-registered before the run: if B vs C shows the same direction (V favoured), the
+allocation claim is real and survives four confounds. If it reverses or ties, the U5d result
+was a turbo-codec property being read as an allocation law — which is precisely the failure
+mode Mark describes as recurring.** Confidence the V direction replicates: **0.55.**
+
+Risk noted in advance: mixed *stock* KV types may abort on this tree, since upstream refuses
+`K != V` without `GGML_CUDA_FA_ALL_QUANTS` and buun inherits that (`RESULT_OWNERSHIP.md`).
+`frontier-hazard` builds a single context and uses no tensor split, so the tensor-split
+aborts do not apply, but the FA type-pair gate may. **If B and C abort, the clean test cannot
+be run on this tree** and the U5d result stays a turbo-pair-specific claim rather than being
+promoted or retracted.
