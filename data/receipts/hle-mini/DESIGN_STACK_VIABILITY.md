@@ -123,3 +123,87 @@ meant to purely through restatement, in both directions.
 Concretely: our fleet cannot reproduce a 260k-token reasoning budget, so any comparison to a
 number produced under one is not a like-for-like disagreement — it is a different experiment.
 Saying so plainly is more useful than either matching the number or disputing it.
+
+---
+
+## Addendum: the KV budget must be MEASURED per (model, backend), never computed
+
+**2026-08-18.** Mark: *"Hardware + model arch. That dictates KV size too."* Correct, and
+stronger than it sounds — the formula given earlier in this session was **wrong by 4×** for
+the model we intend to standardise on.
+
+### The formula fails on hybrid architectures
+
+For `Qwen3.8-27B` (`arch qwen35`), the published parameters say:
+
+```
+n_layer = 64   n_head_kv = 4   n_embd_head_k = 256   n_embd_head_v = 256
+naive:  64 x 4 x (256+256) = 131,072 values/token = 256 KiB/token
+```
+
+**Measured (`RESULT_U5E_KVSIZE.md`, three context sizes, exact agreement): 32,768
+values/token = 64 KiB/token.** A **4× overestimate.**
+
+Cause, from the model's own load log:
+
+```
+layers with a real KV projection : 17 of 64
+architecture markers             : Lightning, ssm, attn_gate
+n_swa = 0, is_swa_any = 0        (so NOT sliding-window)
+```
+
+It is a **hybrid**: most layers run Lightning/linear attention, whose state is O(1) in
+context rather than an O(n) KV cache. Only ~16 layers cache — `16 x 4 x 512 = 32,768`,
+matching the measurement exactly.
+
+**Nothing in `n_layer`, `n_head_kv`, or `n_embd_head_k` reveals this.** The naive formula is
+what CLAUDE.md carried (~256 KB/token) and it was already corrected once in this project's
+memory (*"~68 KiB/token … implies ~17 of 64 layers hold full-context KV"*). It was
+re-derived from scratch here and reached the same place, which is the second independent
+confirmation.
+
+**Direction of the error matters:** over-estimating wastes 4× the VRAM reservation;
+under-estimating OOMs at depth — which is exactly how `dfl_n15` died in `S2`.
+
+### Protocol: two loads, take the slope
+
+Cheap enough that there is no excuse for computing it. No generation, no scoring:
+
+```
+for CTX in 4096 16384; do
+    llama-frontier-hazard -m MODEL -ngl 99 -ctk f16 -ctv f16 \
+        --n-prefix $((CTX-8)) --max-prompts 1 --n-score 1 2>&1 |
+        grep "KV buffer size"        # sum the SECOND half: devices for the quant context
+done
+bytes_per_token = (bytes@16384 - bytes@4096) / (16384 - 4096)
+```
+
+Two points, because a **fixed** per-context overhead exists and would otherwise contaminate a
+single measurement — `U5E` found a constant **128 KiB** on every turbo type, and reading a
+single context size as a rate is precisely the mistake that produced the retracted "finding
+4". Take the **slope**, not the ratio.
+
+Then:
+
+```
+budget_bytes = target_ctx x bytes_per_token(f16) x (target_bpv / 16)
+```
+
+### What the standard actually is
+
+Not a constant. A **rule** plus a recorded measurement:
+
+1. **Fix the target, not the budget** — e.g. *"260k tokens at ≥6 bits/value"*. This is the
+   invariant that makes runs comparable **across models**; a fixed MiB number does not, since
+   the same MiB buys a different depth and quality on every architecture.
+2. **Measure `bytes_per_token(f16)`** for that (model, backend) by the two-load slope above.
+3. **Derive `VBR_BUDGET_MIB`**, and check it against the smallest node that must host the
+   model.
+4. **Record all four** — target ctx, target bpv, measured bytes/token, resulting budget — in
+   every receipt. Those four make a run reproducible on hardware we do not own, which is the
+   whole point of *"do it our way"*.
+
+For `Qwen3.8-27B` on the P100 nodes that resolves to **`VBR_BUDGET_MIB=6144`**: full f16 out
+to ~98k tokens, ~6.05 bits/value at 260k, fitting `.73`'s ~7.9 GiB of free VRAM with slack.
+**Still pending before it is doctrine:** compute-buffer growth at 260k is unmeasured (610 MiB
+per device observed at 16k), and it competes for the same headroom.
