@@ -362,3 +362,23 @@ type-pair tables consulted in an order the source does not make obvious).
 after the fact. It is not evidence about behaviour. When a prediction's entire warrant is "I
 read the code", cap the confidence at ~0.6 and say the warrant out loud so the later scoring
 is interpretable — a grep hit is not an execution trace.
+
+## AFM-18 — a correction is not automatically more reliable than what it corrects
+
+**2026-08-18, `RESULT_U5E_KVSIZE.md`.** U5c produced a result; "finding 4" challenged its
+premise by measuring KV allocation and reporting that turbo types cost ~+0.5 bpv more than
+their block layout; U5e then overturned finding 4 — the excess is a **fixed 128 KiB buffer**,
+constant across a 32× context span, invisible at any realistic length.
+
+The failure is that finding 4 concluded *the source arithmetic is wrong* from **a single
+context size**, where a fixed allocation and a per-token cost are indistinguishable. It even
+stated the correct explanation as a caveat ("fixed padding would vanish at 32k") and
+published the other reading as the headline.
+
+**Rule:** when a measurement disagrees with source arithmetic, **test whether the
+disagreement scales** before concluding the arithmetic is wrong. Two points separate a fixed
+offset from a rate; one point cannot.
+
+**Second-order rule:** a correction carries the same burden of proof as the claim it
+corrects. Marking a published verdict "unsound" is itself a claim, and this one was wrong for
+about forty minutes. Retractions of retractions must be as loud as the original.
