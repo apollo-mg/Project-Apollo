@@ -21,9 +21,9 @@ fleet carrying turbo8, turbo3_tcq and vbr.
 | turbo8/turbo4 | 8.125 / 4.125 | 0.0153 | 0.00147 | 19.3743 | −0.5751 | 0.0143 |
 | **`q4_0`/`q4_0`** | **4.5** | 0.0207 | 0.00205 | **22.1037** | −1.1863 | 0.0202 |
 | **turbo4/turbo4** | **4.125** | 0.0266 | 0.00252 | **32.1966** | −0.9315 | 0.0251 |
-| turbo3_tcq/turbo3_tcq | — | 0.0399 | 0.00567 | 63.2286 | −1.4500 | 0.0379 |
-| turbo3/turbo3 | — | 0.0458 | 0.00889 | 125.2895 | **+2.3165** | 0.0423 |
-| turbo2/turbo2 | — | 0.0866 | 0.03213 | 362.5289 | −5.7431 | 0.0733 |
+| turbo3_tcq/turbo3_tcq | **3.25** | 0.0399 | 0.00567 | 63.2286 | −1.4500 | 0.0379 |
+| turbo3/turbo3 | **3.5** | 0.0458 | 0.00889 | 125.2895 | **+2.3165** | 0.0423 |
+| turbo2/turbo2 | 2.5 | 0.0866 | 0.03213 | 362.5289 | −5.7431 | 0.0733 |
 | vbr/vbr | — | — | — | **not testable** | — | — |
 
 Bits/value are from source, not inference: `block_turbo8_0` is 130 B per `QK_TURBO8`=128
@@ -56,10 +56,16 @@ error, made in the prior session and corrected here.
 
 ## The finding that is actually well-supported
 
-**turbo3_tcq is roughly 2× better than turbo3** — R **63.2** vs **125.3**, flip 0.0399 vs
-0.0458, KL 0.00567 vs 0.00889. Same nominal tier, same run, large margin. Of everything in
-this panel, this is the cleanest signal and it is the one buun is least likely to have
-priced, since TCQ is the newer codec.
+**turbo3_tcq is roughly 2× better than turbo3 while also being cheaper** — R **63.23** vs
+**125.29**, flip 0.0399 vs 0.0458, KL 0.00567 vs 0.00889, at **3.25 bpv vs 3.5**
+(`block_turbo3_tcq` 52 B/128 vs `block_turbo3_0` 14 B/32). Fewer bits *and* half the decision
+danger, so unlike every other pair in this panel there is **no bit-budget confound pointing
+the other way**. Of everything here this is the cleanest signal, and it is the one buun is
+least likely to have priced, since TCQ is the newer codec.
+
+It also carries further than it looks: **`"vbr"` is a CLI alias for `GGML_TYPE_TURBO3_TCQ`**
+(`common/arg.cpp:342`; there is no `GGML_TYPE_VBR`). So this row is the static base of
+buun's *default* KV type — the number under everything his build ships by default.
 
 ## A symmetry pattern, and the test it triggered
 
