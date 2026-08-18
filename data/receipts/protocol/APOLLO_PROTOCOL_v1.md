@@ -150,17 +150,59 @@ and the quality-vs-depth curve.
 
 ---
 
-## Scenarios *(skeleton — needs the dry run before these are quotable)*
+## Step 5 — the real decision is the weights/KV split, not "which model"
 
-The decision procedure, not a lookup table, because Step 1 says the numbers are per-model.
+**Correction to an earlier draft of this document**, which listed scenarios by model and said
+a 27B "does not fit" in 16 GB. That conflated a model with one quantisation of it. A 27B at
+Q6_K is ~21 GiB; the same 27B ternary is ~5. They are different products sharing a name.
 
-| you have | realistic budget after Step 0 | what to reach for |
+At a fixed VRAM budget **weights and KV compete**, and that competition is the actual choice.
+
+*Worked example: 27B-class, 13.4 GiB free (16 GB card driving a display), 0.8 GiB for compute,
+KV priced at the measured 64 KiB/token:*
+
+| weights | size | left for KV | context @6 bpv | context @f16 |
+|---|---:|---:|---:|---:|
+| ternary ~1.6 bpw | 5.0 GiB | 7.6 GiB | **331k** | 124k |
+| IQ2_XXS ~2.1 | 6.6 GiB | 6.0 GiB | **262k** | 98k |
+| Q3_K_M ~3.9 | 12.3 GiB | 0.3 GiB | **15k** | 6k |
+| Q4_K_M ~4.8 | 15.1 GiB | — | **does not fit** | |
+| Q6_K ~6.6 | 20.7 GiB | — | does not fit | |
+
+**There is a cliff, not a gradient.** Between IQ2_XXS and Q3_K_M the usable context falls
+**262k → 15k**. Q3_K_M "fits" in the sense that the weights load, and is close to useless for
+long work because nothing is left for the cache.
+
+**So low-bit weights are not the consolation prize on a 16 GB card — they are the thing that
+buys usable context.** The interesting question is not *"how much quality do I lose going to
+IQ2"* but *"how much quality do I lose going to IQ2, **and how much do I gain back by having
+20× the context and a KV budget that never degrades**"*. That trade has, as far as we know, not
+been measured by anyone, and this fleet can measure both halves.
+
+*Caveat carried from Step 1:* the KV column assumes the **measured** 64 KiB/token of this
+hybrid architecture. A conventional 27B with full attention on every layer costs ~4× that, and
+every context number above would fall by the same factor. **Measure your model.**
+
+### Units, since this trips people constantly
+
+Model files are listed in **GiB** (1024³); GPUs are marketed in **GB** (10⁹). A "16 GB" card
+holding a "15 GB" model sounds comfortable and may not be. Always compare like with like — and
+note that on the card measured here, "16 GB" really is ~16 GiB, so the direction of the error
+is not even consistent between vendors.
+
+---
+
+## Scenarios *(skeleton — needs the dry run, and needs a model list)*
+
+| you have | usable after Step 0 | the decision |
 |---|---|---|
-| 16 GB, **driving a display** | ~13.4 GiB *(measured)* | mid-size model; a 22 GiB model does **not** fit |
-| 16 GB, **headless** | ~15.9 GiB | same class, meaningfully more context |
-| 32 GB (2 × 16) | ~31 GiB | 27B-class + a real KV budget |
-| 64 GB (4 × 16) | ~63 GiB | 27B-class at long context, or larger weights |
+| 16 GB, **driving a display** | ~13.4 GiB *(measured)* | low-bit weights buy context; the cliff sits around 3 bpw for a 27B |
+| 16 GB, **headless** | ~15.9 GiB | +2.5 GiB — one quant tier up, or ~40k more context |
+| 32 GB (2 × 16) | ~31 GiB | 27B at 4-6 bpw with a real KV budget |
+| 64 GB (4 × 16) | ~63 GiB | 27B at 8 bpw long-context, or larger weights |
 
-**Deliberately unfilled.** Populating it needs the dry run: for each class, measure
-bytes/token, derive a budget, run tiers 1-2, then report tier 4. Filling it from arithmetic
-alone would be exactly the spec-sheet advice this protocol exists to replace.
+**Deliberately unfilled with specific models.** Populating it needs (a) the dry run and
+(b) a current list of what is actually good at each bit level — which changes monthly and is
+not something this document should guess at. Candidates raised so far, **unverified here**:
+Bonsai's ternary Qwen 3.6 27B, Gemma 4 12B QAT, IQ2_XXS 27B paired with turboquant KV and a
+compaction layer.
