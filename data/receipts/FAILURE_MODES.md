@@ -382,3 +382,22 @@ offset from a rate; one point cannot.
 **Second-order rule:** a correction carries the same burden of proof as the claim it
 corrects. Marking a published verdict "unsound" is itself a claim, and this one was wrong for
 about forty minutes. Retractions of retractions must be as loud as the original.
+
+## AFM-19 — a null result only counts if the manipulation is verified to have taken effect
+
+**2026-08-18, `RESULT_S2_DFLASH_PASCAL.md`.** To explain MTP's depth-15 collapse on Pascal I
+proposed launch overhead from absent CUDA graphs, and ran `GGML_CUDA_FORCE_GRAPHS=1` to test
+it. Nothing changed — which looked like a clean falsification and was not a test at all:
+
+1. The `"disabling CUDA graphs due to GPU architecture"` line I built the hypothesis on came
+   from **a different machine and a different binary** (`.194`, buun's tree) than the one
+   under test (`.73`, `moe-cache-test`).
+2. `GGML_CUDA_FORCE_GRAPHS` is **read nowhere** in that build. The env var was inert.
+3. `GGML_CUDA_GRAPHS:BOOL=ON` was in the build cache and the compatibility check has **no
+   architecture gate**, so graphs were already active in every arm.
+
+**Rule:** before reading a null, verify the manipulation actually happened — the flag is read,
+the log line changed, the state differs. An inert knob produces a perfect-looking null.
+
+**Corollary:** never carry a log observation between binaries or machines. Architecture is not
+the only thing that differs between two builds of "llama.cpp".
