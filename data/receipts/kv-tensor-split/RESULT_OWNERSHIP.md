@@ -134,3 +134,51 @@ That distinction is now `AFM-17`, and it earned its place.
 - **Reporting is Mark's call.** Bug A goes to Tom and buun. Bug B is upstream — noting that
   Mark has previously declined to file with `ggml-org` over their AI-assistance policy, so
   routing that one is his decision, not mine.
+
+---
+
+## U4 answered on `.194` — buun has no bug, and the report is withdrawn
+
+**2026-08-18**, `.194`, quad Tesla P100 (sm_60), two GPUs selected to match `.73`'s topology.
+Upstream **`ggml-org/llama.cpp` `e8f19cc0`** (`llama_upstream_repro`; verified stock — ggml-org
+remote, upstream PR merge at HEAD, no fork commits, no turbo KV types). Same model as `.73`
+(`Qwen3.8-27B-Q6_K`, byte-identical size). Raw `~/kv194/`, script `kv_194.sh`.
+
+| K | V | upstream `e8f19cc0`, `-sm tensor` |
+|---|---|---|
+| f16 | f16 | **clean 3/3** |
+| `q8_0` | `q8_0` | **clean 3/3** |
+| `q8_0` | f16 | **HARD ABORT** `ggml-backend-meta.cpp:535` |
+| f16 | `q8_0` | **HARD ABORT** `ggml-backend-meta.cpp:535` |
+
+**Upstream aborts on mixed KV types under tensor split, exactly as buun's fork does.**
+
+`RESULT_XFORK.md` recorded buun aborting on `q8_0`+f16 and f16+`q8_0` where Tom's fork ran
+clean, and treated that as a buun-side defect. **It is not.** Upstream refuses `K != V` without
+`GGML_CUDA_FA_ALL_QUANTS`, and buun simply inherits that. **Tom's fork is the outlier** — its
+`is_kv_compat` allow-list (`fattn.cu`) is an *addition* that makes mixed pairs work.
+
+**Consequence: `BACKLOG O3`'s mixed-type half is withdrawn for buun.** He is not shipping a
+regression there; he is matching stock. What remains for him is the silent collapse only.
+
+This is why the arm was worth ten minutes: the alternative was sending a maintainer a bug
+report for behaviour he inherited unchanged from upstream.
+
+### A fleet fact that had been invisible
+
+The first `.194` attempt failed on **every** arm including the f16 control. Cause:
+
+```
+CUDA error: unhandled cuda error
+ggml_backend_cuda_comm_allreduce_nccl at ggml-cuda.cu:1027
+```
+
+`.194`'s builds have **NCCL compiled in**, and on Linux `-sm tensor` defaults to NCCL
+(`ggml-cuda.cu:1222`, `GGML_CUDA_ALLREDUCE` unset). NCCL's AllReduce fails on these P100s.
+`.73`'s builds logged *"NCCL not compiled in; falling back to internal AllReduce"* and used the
+butterfly path.
+
+**So `.73` and `.194` were never running the same AllReduce path**, and nothing surfaced it —
+`.73` printed that as a routine informational line. Every tensor-split arm above pins
+`GGML_CUDA_ALLREDUCE=internal` to match `.73`. **Any future cross-box tensor-split comparison
+must pin it, or it is not comparing what it claims to.**
