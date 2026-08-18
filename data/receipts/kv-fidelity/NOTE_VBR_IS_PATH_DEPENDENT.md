@@ -8,33 +8,48 @@ Prompted by Mark: *"buun is fairly convinced his VBR codec is the best 'in pract
 it only degrades when necessary… it's just the most annoying way to test I can think of. I
 would likely run it just based on the premise, and I think a lot of people will."*
 
-## The trap: `-ctk vbr` does not turn VBR on
+## CORRECTED — `-ctk vbr` **does** turn VBR on. My original claim here was wrong.
 
-Two separate things share the name.
+> **This section originally claimed that `-ctk vbr` only sets the type and that the dynamic
+> controller needs `VBR_VMM=1`. That is false, and the error was mine: I read
+> `llama-kv-cache.cpp` from line 1033 and missed line 1031.**
+>
+> ```c
+> bool vbr_dynamic_wanted = vbr_params_.dynamic;   // <- line 1031, threaded from the CLI
+> if (const char * e = getenv("VBR_VMM"))      { vbr_dynamic_wanted = atoi(e) != 0; }
+> else if (const char * m = getenv("VBR_MODE")) { vbr_dynamic_wanted = strcmp(m,"dynamic")==0; }
+> ```
+> The comment above it is explicit: *"Driven by `cparams.vbr_dynamic` (threaded through
+> `create_memory`); `VBR_VMM` / `VBR_MODE` env remain **developer overrides in BOTH
+> directions**."* The env vars override the flag; they are not required by it.
+>
+> `docs/vbr.md` says the same in the first line of its quickstart — `llama-server -m model.gguf
+> -ctk vbr`, *"That single flag is the complete product."* And `common/arg.cpp:905-930` does
+> real work to make it one flag: it implies vbr on the opposite side when that side was unset
+> (pinning it if explicitly set), force-enables `--kv-unified` under `-np > 1` because
+> per-sequence streams would silently disarm the controller, and warns when developer env is
+> present. **This is careful one-flag design, and I mis-described it.**
+>
+> `AFM-17` again — behaviour inferred from a source fragment. The fragment was real; the
+> conclusion drawn from it was not. Left visible rather than silently rewritten.
 
-1. **The type.** `common/arg.cpp:342` maps the string `"vbr"` to `GGML_TYPE_TURBO3_TCQ`.
-   There is no `GGML_TYPE_VBR`. `-ctk vbr -ctv vbr` gives a **static turbo3_tcq cache.**
-2. **The controller.** `llama-kv-cache.cpp:1037` arms the dynamic degrade controller only if
-   ```
-   vbr_dynamic_wanted && !no_alloc && (vbr_layer_policy.enabled || is_turbo)
-                      && n_stream == 1 && !v_trans
-   ```
-   and `vbr_dynamic_wanted` comes **only** from `VBR_VMM` or `VBR_MODE=dynamic`
-   (`:1032-1036`). **The `-ctk vbr` flag does not set it.**
+## What is actually true: `frontier-hazard` cannot reach VBR at all
 
-**So anyone who benchmarks `-ctk vbr` without `VBR_VMM=1` measures static turbo3_tcq and
-reports it as VBR.** This project already did — the old `kv_bpv: 16.0` run was read as "VBR
-failed to engage"; it was never asked to. The gate line
-(`dynamic=0 … -> wanted=0`, `LLAMA_LOG_DEBUG`) says so explicitly but is debug-level.
+The `dynamic=0 … -> wanted=0` gate line we observed is real, but its cause is the **benchmark
+tool**, not the flag.
 
-Also required: `--kv-unified` (`n_stream == 1`) and **flash attention on** (`!v_trans`).
-To buun's credit the failure is loud when you ask correctly — `:1042` warns *"dynamic VBR
-requested but the controller cannot arm"* and names which condition failed. It is silent only
-when you never ask, which is the common case.
+`frontier-hazard` **bypasses `common/arg.cpp` entirely** — it has a private option parser and
+a private `type_from_str` that walks `ggml_type_name()` (`frontier-hazard.cpp:46-54`). So:
 
-**Silver lining for our own numbers:** `RESULT_U5B_BUUN.md`'s `turbo3_tcq` row (R 63.23,
-3.25 bpv, ~2× better than turbo3 at fewer bits) is a clean, correctly-labelled measurement of
-**VBR's static base tier**. That result is unaffected.
+- `-ctk vbr` is rejected outright (`error: unsupported KV cache type 'vbr'`) because `"vbr"`
+  is an **alias resolved in `arg.cpp:342`**, and `ggml_type_name()` never returns aliases;
+- `cparams.vbr_dynamic` is never set, so even naming `turbo3_tcq` directly gives the static
+  tier with the controller disarmed.
+
+**So buun's own quality-bench tool cannot measure buun's own default KV mode.** That is the
+observation worth sending him, and it is a much smaller, more accurate claim than the one this
+note originally made. `RESULT_U5B_BUUN.md`'s `turbo3_tcq` row remains valid and correctly
+labelled as **VBR's static entry tier**, measured through that limitation.
 
 ## Why the premise is better-founded than "it degrades when needed"
 
@@ -96,8 +111,9 @@ and it is not answerable by any panel in this repo.
    VBR wins iff dynamic allocation beats uniform allocation **at the same cost**. Comparing an
    unbudgeted VBR against a static codec is the unequal-budget error this project already made
    once.
-2. **The controller actually armed** — `VBR_VMM=1`, `--kv-unified`, FA on — and the log line
-   checked, not assumed.
+2. **The controller actually armed** — through `llama-server -ctk vbr` (which handles
+   `--kv-unified` itself), with the `VBR degrade #…` steps under `-v` observed, not assumed.
+   **Not through `frontier-hazard`, which cannot arm it.**
 3. **Depth sufficient for the budget to bind.** No pressure, no VBR.
 4. **Multi-turn, with an f16-vs-f16 control arm.** Baseline nondeterminism on this fleet is
    established (`agent-benchmark-determinism`: HA-04 went 35/100/100/35 at temp 0), so
