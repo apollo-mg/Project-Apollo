@@ -73,6 +73,8 @@ someone find it, and the claim in a form that is checkable.
 
 | finding | receipt | date |
 |---|---|---|
+| **"Clean" spans 55x in decision danger.** First fidelity numbers: `q8_0` R=10.5, turbo4 68.1, `q4_0` 89.5, turbo3 228.4, turbo2 **817.3** (12.4% top-1 flips) — all of which the collapse detector called clean | `kv-fidelity/RESULT_U5_FIDELITY.md` | 08-18 |
+| **turbo4 beats `q4_0`** on fidelity at comparable width (R 68.1 vs 89.5); **`q8_0` beats everything** by 6.5x. Asymmetric `q8_0`/turbo4 (45.2) beats symmetric turbo4 (68.1) | `kv-fidelity/RESULT_U5_FIDELITY.md` | 08-18 |
 | q8_0 KV is the **gentlest codec measured and depth-invariant** (98.7% same-top at every ctx) | `hermesagent20/KV_KLD_PANEL.md` | 07-28 |
 | Perplexity panels **cannot settle generation-path questions** — teacher-forced != decode | `hermesagent20/KV_QUANT_GENERATION_EFFECT.md` | 07-28 |
 | `-fa on` costs **more fidelity than BF16->Q8_0**, and perplexity cannot see it | `battle16gb/FA_EQUIVALENCE_SM60.md` | 07-30 |
