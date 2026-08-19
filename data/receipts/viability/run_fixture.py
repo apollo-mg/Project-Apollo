@@ -28,6 +28,64 @@ def ask(host, q, n_predict=512, timeout=300):
     fin = d["choices"][0].get("finish_reason", "")
     return (m.get("content") or ""), (m.get("reasoning_content") or ""), fin
 
+def extract_json(text):
+    """Pull the first JSON value out of a reply. Tolerates ``` fences and leading prose,
+    because those are formatting noise, not the syntax failure we are testing for."""
+    t = re.sub(r"```(?:json)?", "", text).strip()
+    for opener, closer in (("{", "}"), ("[", "]")):
+        i = t.find(opener)
+        if i < 0: continue
+        depth = 0
+        for j in range(i, len(t)):
+            if t[j] == opener: depth += 1
+            elif t[j] == closer:
+                depth -= 1
+                if depth == 0:
+                    try: return json.loads(t[i:j+1])
+                    except Exception: break
+    return None
+
+def check_struct(obj, chk):
+    """Structural grading: parse + schema. Never string match."""
+    if obj is None: return False, "unparseable"
+    if chk.get("type") == "array":
+        if not isinstance(obj, list): return False, f"not an array ({type(obj).__name__})"
+        if "len" in chk and len(obj) != chk["len"]: return False, f"len {len(obj)} != {chk['len']}"
+        if "exact" in chk and obj != chk["exact"]: return False, "contents differ"
+        for el in obj:
+            for k in chk.get("each_keys", []):
+                if not isinstance(el, dict) or k not in el: return False, f"missing key {k}"
+        return True, "ok"
+    if not isinstance(obj, dict): return False, f"not an object ({type(obj).__name__})"
+    for k, v in chk.get("keys", {}).items():
+        if k not in obj: return False, f"missing key {k!r}"
+        if obj[k] != v: return False, f"{k}={obj[k]!r} want {v!r}"
+    for parent, sub in chk.get("nested", {}).items():
+        if parent not in obj or not isinstance(obj[parent], dict):
+            return False, f"missing/!object {parent!r}"
+        for k, v in sub.items():
+            if k not in obj[parent]: return False, f"missing {parent}.{k}"
+            if obj[parent][k] != v: return False, f"{parent}.{k}={obj[parent][k]!r} want {v!r}"
+    if "nested_empty" in chk:
+        k = chk["nested_empty"]
+        if obj.get(k) != []: return False, f"{k}={obj.get(k)!r} want []"
+    return True, "ok"
+
+def run_struct(host, tier, label):
+    print(f"\n=== {label}")
+    print(f"    gate: {tier['gate']}")
+    ok = 0
+    for it in tier["items"]:
+        content, reasoning, fin = ask(host, it["q"])
+        obj = extract_json(content) or (extract_json(reasoning) if fin != "length" else None)
+        good, why = check_struct(obj, it["check"])
+        ok += good
+        status = "PASS" if good else "FAIL"
+        if fin == "length": status += " (truncated)"
+        print(f"    {it['id']}  {status:<18} {why}")
+    print(f"    -> {ok}/{len(tier['items'])}")
+    return ok, len(tier["items"])
+
 def run_tier(host, tier, label):
     print(f"\n=== {label}: {tier['purpose'][:70]}...")
     print(f"    gate: {tier['gate']}")
@@ -56,15 +114,24 @@ if __name__ == "__main__":
     ap.add_argument("--host", default="http://127.0.0.1:8080")
     ap.add_argument("--fixture", default=os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                                       "fixture_v0_beta.json"))
-    ap.add_argument("--tier", choices=["1", "2", "both"], default="both")
+    ap.add_argument("--tier", choices=["1", "2", "struct", "both", "all"], default="both")
     a = ap.parse_args()
     fx = json.load(open(a.fixture))
     res = {}
-    if a.tier in ("1", "both"): res["t1"] = run_tier(a.host, fx["tier1"], "TIER 1 (plumbing)")
-    if a.tier in ("2", "both"): res["t2"] = run_tier(a.host, fx["tier2"], "TIER 2 (model sanity)")
+    if a.tier in ("1", "both", "all"): res["t1"] = run_tier(a.host, fx["tier1"], "TIER 1 (plumbing)")
+    if a.tier in ("2", "both", "all"): res["t2"] = run_tier(a.host, fx["tier2"], "TIER 2 (model sanity)")
+    if a.tier in ("struct", "all") and "tier_struct" in fx:
+        res["ts"] = run_struct(a.host, fx["tier_struct"], "TIER STRUCT (tool calling / JSON)")
     print("\n" + "="*70)
     if "t1" in res:
         o, n = res["t1"]; print(f"TIER 1 {'PASS' if o == n else 'FAIL'}  ({o}/{n}, gate {n}/{n})"
                                 + ("" if o == n else "   <-- STACK IS BROKEN, stop here"))
     if "t2" in res:
         o, n = res["t2"]; print(f"TIER 2 {'PASS' if o >= 6 else 'FAIL'}  ({o}/{n}, gate >=6/{n})")
+    if "ts" in res:
+        o, n = res["ts"]
+        print(f"TIER STRUCT {'PASS' if o >= 5 else 'FAIL'}  ({o}/{n}, gate >=5/{n})")
+        if "t2" in res and res["t2"][0] >= 6 and o < 5:
+            print("  NOTE: tiers 1-2 pass but structured output fails — this quant is usable"
+                  "\n        for chat and NOT usable for tool calling. That is a real result,"
+                  "\n        not a fixture bug.")

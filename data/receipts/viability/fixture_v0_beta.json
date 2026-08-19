@@ -113,8 +113,108 @@
       "A known-good stack fails tier 1 -> the item is broken, not the stack.",
       "Tier 2 lands outside roughly 60-95% on a known-good stack -> recalibrate difficulty.",
       "Any item where the judge and exact match disagree repeatedly -> the gold answer is underspecified.",
-      "Any item passed by a stack we KNOW is broken -> it is not discriminative, replace it."
+      "Any item passed by a stack we KNOW is broken -> it is not discriminative, replace it.",
+      "tier_struct failing while tiers 1-2 pass is NOT a fixture bug \u2014 it is the expected signature of a quant that is fine for chat and unusable for agentic work. Report it, do not 'fix' it."
     ],
     "negative_control_rationale": "T1-05 exists because rejudge.py's docstring records a measured failure: a one-token YES/NO verdict turned a reasoning model into a yes-machine that scored 'Paris' equivalent to 'Berlin'. A fixture with no item whose correct answer is a refusal cannot detect that class of failure at all."
+  },
+  "tier_struct": {
+    "purpose": "STRUCTURED OUTPUT / TOOL CALLING. Quantisation damages syntax-exact output before it damages prose, because code and JSON have zero margin for error \u2014 one missing brace or a hallucinated key name is a total failure where a slightly-worse sentence is not. CLAUDE.md already records this as the '2-Bit Drunk' failure mode. This tier is graded STRUCTURALLY (parse + schema check), never by string match.",
+    "gate": ">= 5 of 6",
+    "grading": "json_parse_and_check \u2014 see run_fixture.py check_struct()",
+    "why_early": "A model can pass tiers 1-2 on arithmetic and prose while being unusable for agentic work. Anyone deploying a quant for tool use needs this signal before they build on it, not after.",
+    "items": [
+      {
+        "id": "TS-01",
+        "q": "Reply with ONLY a JSON object, no prose, with exactly these keys: name (string), count (integer), active (boolean). Use name=\"widget\", count=7, active=true.",
+        "check": {
+          "type": "object",
+          "keys": {
+            "name": "widget",
+            "count": 7,
+            "active": true
+          }
+        }
+      },
+      {
+        "id": "TS-02",
+        "q": "Reply with ONLY a JSON array containing exactly three objects. Each object must have keys id (integer) and label (string). Use ids 1,2,3 and labels \"a\",\"b\",\"c\".",
+        "check": {
+          "type": "array",
+          "len": 3,
+          "each_keys": [
+            "id",
+            "label"
+          ],
+          "exact": [
+            {
+              "id": 1,
+              "label": "a"
+            },
+            {
+              "id": 2,
+              "label": "b"
+            },
+            {
+              "id": 3,
+              "label": "c"
+            }
+          ]
+        }
+      },
+      {
+        "id": "TS-03",
+        "q": "Reply with ONLY a JSON object with a nested object under the key config, where config has keys retries (integer, value 3) and timeout_s (number, value 1.5).",
+        "check": {
+          "type": "object",
+          "nested": {
+            "config": {
+              "retries": 3,
+              "timeout_s": 1.5
+            }
+          }
+        }
+      },
+      {
+        "id": "TS-04",
+        "q": "Reply with ONLY a JSON object with one key message whose string value is exactly: He said \"hello\" and left.",
+        "check": {
+          "type": "object",
+          "keys": {
+            "message": "He said \"hello\" and left."
+          }
+        },
+        "why": "escaping \u2014 a quant that mangles quote escaping produces unparseable JSON"
+      },
+      {
+        "id": "TS-05",
+        "q": "You have a tool: get_weather(city: string, units: string). Call it for Paris in celsius. Reply with ONLY a JSON object of the form {\"tool\": \"...\", \"arguments\": {...}}.",
+        "check": {
+          "type": "object",
+          "nested": {
+            "arguments": {
+              "city": "Paris",
+              "units": "celsius"
+            }
+          },
+          "keys": {
+            "tool": "get_weather"
+          }
+        },
+        "why": "exact key and function names \u2014 hallucinating 'location' for 'city' is the classic quantised tool-call failure"
+      },
+      {
+        "id": "TS-06",
+        "q": "Reply with ONLY a JSON object with key items whose value is an empty array, and key total whose value is the integer 0.",
+        "check": {
+          "type": "object",
+          "keys": {
+            "total": 0
+          },
+          "nested_empty": "items"
+        },
+        "why": "empty-collection edge case; models often emit null or omit the key"
+      }
+    ]
   }
 }
