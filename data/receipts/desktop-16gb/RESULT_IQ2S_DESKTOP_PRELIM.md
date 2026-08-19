@@ -65,7 +65,26 @@ Different machine, different vendor (HIP vs CUDA), different weight quant (IQ2_S
 **the per-token KV cost is a property of the architecture and it carries.** That is what makes
 the Step 1 measurement worth doing once per model rather than once per configuration.
 
-## 4. llama.cpp's fit logic does not see the desktop's VRAM
+## 4. ROCm's `hipMemGetInfo` does not report other processes' VRAM
+
+> **ATTRIBUTION CORRECTED.** This section originally said *"llama.cpp's fit logic does not
+> see the desktop's VRAM"*, implying a bug in `common_params_fit_impl`. **That is wrong.**
+> `fit.cpp` calls `ggml_backend_dev_memory` → `cudaMemGetInfo` (hipified to `hipMemGetInfo`),
+> which is the correct API. **llama.cpp asks properly and the ROCm driver answers wrongly.**
+>
+> Measured at the same instant, `-ngl 0` so the querying process held almost nothing:
+>
+> | source | free VRAM |
+> |---|---:|
+> | `hipMemGetInfo` | **16,036 MiB** |
+> | sysfs `mem_info_vram_used` | **13,306 MiB** (2,997 used) |
+>
+> `hipMemGetInfo` accounted for **268 MiB of the 2,997 MiB actually allocated** — it reports
+> roughly *total minus this process's own usage*, not system-wide free memory. The section
+> below is retained; only the cause changes, and the practical consequence is identical.
+> **Whether CUDA behaves the same is untested** — an attempt on `.73` with a concurrent
+> VRAM holder was inconclusive because that build does not emit the breakdown line. Do not
+> assume the finding generalises beyond ROCm.
 
 The finding with the widest practical reach.
 
