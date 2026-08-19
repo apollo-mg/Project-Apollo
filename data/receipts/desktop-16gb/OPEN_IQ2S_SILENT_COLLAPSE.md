@@ -1,4 +1,11 @@
-# OPEN: IQ2_S + VBR on RDNA4 silently collapses into `!` characters — cause unknown
+# ~~OPEN~~ RESOLVED TO THE COMPONENT: it is the VBR KV path — see `RESULT_VBR_COLLAPSE_CONTROLLED.md`
+
+> **An f16-KV control settled this.** Identical model, items, budget and harness; KV codec the
+> only variable. f16 answered all ten items in 422-706 characters and stayed healthy; VBR
+> collapsed on the **first** item and its canary was dead afterwards. The component is
+> identified; the mechanism inside VBR is still unknown. The elimination log below is kept
+> because it records eleven hypotheses that were all wrong in the same way — every one
+> assumed VBR was involved without testing it, which the control did in twenty minutes.
 
 **2026-08-19**, control plane **RX 9070 XT (gfx1201, RDNA4, ROCm/HIP)**, buun `02f8581`
 `build_rocm`, `Qwen3.8-27B-AD-IQ2_S.gguf`, `-ngl 99 -c 16384 -ctk vbr -ctv vbr --jinja`.
