@@ -48,6 +48,39 @@ throughput benchmarks, or memory accounting would have caught this — the model
 `run_fixture.py --tier 2`, but that path sends byte-identical requests to the manual tests
 that pass.
 
+## Round 2 — three more hypotheses dead, still no mechanism
+
+| # | hypothesis | test | result |
+|---|---|---|---|
+| 8 | overthinking, not collapse (T2-01 produced 2,861 real tokens once) | dump full response bytes | **collapse confirmed** — `bang_frac=1.00`, content empty, 3072 `!` |
+| 9 | `reasoning_effort=medium` curbs it | tier 2 at medium | **0/10, identical** — effort is irrelevant |
+| 10 | a generation-depth threshold near 2048-3072 | fresh restart per depth, canary after | **FALSIFIED** — collapsed at **1536**, below every depth that had survived |
+| 11 | VBR auto-budget varying by startup free VRAM | compare budget across 6 server logs | **4304-4312 MiB in ALL of them**, healthy and collapsed alike |
+
+**Eleven hypotheses eliminated. No mechanism identified.**
+
+### The one clean signal that keeps holding
+
+Every collapse has been **total and persistent**: once a server emits `!`, every subsequent
+request does, until restart. And a **freshly started server answers correctly** — until at
+some point it does not. Onset is not tied to request count, prompt, item, depth, effort, or
+budget, all of which were tested directly.
+
+### Honest assessment of this hunt
+
+**I thrashed.** Eleven ad-hoc hypotheses, each plausible, each killed by a control, several
+built on a single unverified sample. Two specific errors worth keeping:
+
+1. **Reasoning from n=1.** Ten items showed `NO-ANSWER (truncated)`. I dumped **one**, saw
+   `!`, and built four experiments on it. Later one item produced 2,861 real tokens and I
+   swung to "overthinking" — also from one sample. The byte-level dump that settled it took
+   two minutes and should have been the *first* step, not the tenth.
+2. **Mistaking untested for eliminated.** The onset test rotated 5 of 10 tier-2 items and I
+   recorded "items eliminated". It covered half.
+
+**The disciplined move now is to stop probing ad hoc.** The next action should be the control
+that has never been run, not a twelfth guess.
+
 ## What is NOT eliminated
 
 - Something stochastic — a race or a rare state, where ~50 requests happens to be where it
@@ -84,7 +117,11 @@ with a canary before it is made.
 
 ## Next steps, in priority order
 
-1. **f16-KV control at matched request count.** Separates weights from KV codec. Highest value.
+1. **f16-KV control — STILL NEVER RUN, and now clearly the only disciplined next step.**
+   Identical model, identical sequence, `-ctk f16 -ctv f16`. If it collapses too, VBR is
+   innocent and this is IQ2_S weights (or the HIP path) — which changes the protocol's whole
+   recommendation. If it does not, VBR is implicated by elimination rather than by a guess.
+   **Every hypothesis tested so far assumed VBR was involved without ever checking.**
 2. **Longer soak with a canary every N requests**, to establish whether onset is a threshold
    or a probability.
 3. If VBR is implicated, re-test with `VBR_BUDGET_MIB` **pinned** rather than auto — the auto
