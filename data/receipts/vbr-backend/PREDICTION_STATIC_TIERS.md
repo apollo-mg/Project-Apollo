@@ -472,3 +472,29 @@ side carries it is irrelevant.
 **Consequence: on gfx1201, the turboquant KV cache is unusable for GQA ≥ 6 models.** Not
 degraded — degenerate, from the first request, permanently. `Qwen3.5-9B` at GQA 4:1 runs the
 same codecs clean at 32k context, so this is scoped to the model class, not the card.
+
+## Round Q — VOID, not a result
+
+`-fa off` with `turbo4` on the 27B collapsed identically. **The flag was silently overridden:**
+
+```
+W llama_init_from_model: turbo/VBR KV cache requires flash attention — enabling automatically
+```
+
+Flash attention was on for the entire arm. This tests nothing, and the hypothesis that the
+defect lives in the WMMA flash-attention turbo path is **untested, not falsified**. `AFM-19`
+applies — an inert knob produces a perfect-looking null. Caught only because the manipulation
+was checked against the server log rather than assumed.
+
+**One real fact does fall out:** turbo KV *cannot* be run without flash attention on this
+build, so `-fa off` is not available as a user workaround. The FA-path question is
+source-level and cannot be reached from userspace here.
+
+### Remaining testable gaps, in order of value to a maintainer
+
+1. **Token threshold.** A 256-token canary passes; a 3072-token generation kills the server.
+   Never bisected. This is what turns a 10 GB model plus a fixture into "generate N tokens".
+2. **Prefill vs decode.** Long prompt + short generation, never run. Halves the search space.
+3. **Non-Qwen GQA ≥ 6 model.** Separates the head ratio from the Qwen-27B architecture class.
+   Nothing suitable on disk.
+4. **Slot count / `--kv-unified`.** All arms ran 4 slots unified. Untested at 1 slot.

@@ -70,7 +70,7 @@ def start(kv, log):
     # "K:V" selects an asymmetric pair; a bare name is symmetric.
     ck, cv = (kv.split(":", 1) + [kv])[:2] if ":" in kv else (kv, kv)
     subprocess.Popen([f"{BIN}/llama-server","-m",MODEL,"-ngl","99","-c",str(CTX),
-                      "-ctk",ck,"-ctv",cv,"-fa","on","--kv-unified",
+                      "-ctk",ck,"-ctv",cv,"-fa",os.environ.get("VBR_FA","on"),"--kv-unified",
                       "--jinja","--host","127.0.0.1","--port","8080"] + extra,
                      stdout=open(log,"w"), stderr=subprocess.STDOUT, env=env, start_new_session=True)
     for _ in range(150):
