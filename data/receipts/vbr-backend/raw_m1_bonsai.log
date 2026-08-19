@@ -1,0 +1,57 @@
+### m1-bonsai-27b | bin=/mnt/TG_2TB/Projects/Apollo/engines/buun-llama-cpp/build_rocm/bin | ctx=4096 | arms=['turbo3_tcq', 'f16']
+
+======================================================================
+=== KV = turbo3_tcq   [m1-bonsai-27b]
+======================================================================
+  VRAM  base=3373 after=11288  ALLOC=7915 MiB
+  LOG   1.59.357.902 I srv    load_model: initializing, n_slots = 4, n_ctx_slot = 4096, kv_unified = 'true'
+  CANARY before  ok  (!frac=0.00, chars=562)
+  T2-01  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-02  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-03  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-04  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-05  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-06  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-07  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-08  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-09  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-10  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  CANARY after   COLLAPSED  (!frac=1.00, chars=256)
+  --> first collapse: T2-01   correct=0/10
+
+======================================================================
+=== KV = f16   [m1-bonsai-27b]
+======================================================================
+  VRAM  base=3299 after=11141  ALLOC=7842 MiB
+  LOG   3.22.547.418 I srv    load_model: initializing, n_slots = 4, n_ctx_slot = 4096, kv_unified = 'true'
+  CANARY before  ok  (!frac=0.00, chars=543)
+  T2-01  chars=3244   fin=stop    !frac=0.00  has-answer
+  T2-02  chars=3207   fin=stop    !frac=0.00  has-answer
+  T2-03  chars=3457   fin=stop    !frac=0.00  has-answer
+  T2-04  chars=3207   fin=stop    !frac=0.00  has-answer
+  T2-05  chars=2787   fin=stop    !frac=0.00  has-answer
+  T2-06  chars=3893   fin=stop    !frac=0.00  has-answer
+  T2-07  chars=3443   fin=stop    !frac=0.00  has-answer
+  T2-08  chars=4004   fin=stop    !frac=0.00  has-answer
+  T2-09  chars=5485   fin=stop    !frac=0.00  has-answer
+  T2-10  chars=4100   fin=stop    !frac=0.00  has-answer
+  CANARY after   ok  (!frac=0.00, chars=543)
+  --> first collapse: NONE — arm survived   correct=10/10
+
+### SUMMARY m1-bonsai-27b
+{
+  "turbo3_tcq": {
+    "status": "ran",
+    "alloc": 7915,
+    "first_collapse": "T2-01",
+    "correct": 0,
+    "canary_after": false
+  },
+  "f16": {
+    "status": "ran",
+    "alloc": 7842,
+    "first_collapse": null,
+    "correct": 10,
+    "canary_after": true
+  }
+}

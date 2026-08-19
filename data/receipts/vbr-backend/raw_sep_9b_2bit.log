@@ -1,0 +1,57 @@
+### sep-9b-2bit | bin=/mnt/TG_2TB/Projects/Apollo/engines/buun-llama-cpp/build_rocm/bin | ctx=4096 | arms=['turbo3_tcq', 'f16']
+
+======================================================================
+=== KV = turbo3_tcq   [sep-9b-2bit]
+======================================================================
+  VRAM  base=3001 after=7009  ALLOC=4008 MiB
+  LOG   0.10.225.985 I srv    load_model: initializing, n_slots = 4, n_ctx_slot = 4096, kv_unified = 'true'
+  CANARY before  ok  (!frac=0.00, chars=519)
+  T2-01  chars=10194  fin=length  !frac=0.00  has-answer
+  T2-02  chars=1011   fin=stop    !frac=0.00  has-answer
+  T2-03  chars=7271   fin=length  !frac=0.00  has-answer
+  T2-04  chars=1515   fin=stop    !frac=0.01  has-answer
+  T2-05  chars=11071  fin=length  !frac=0.00  has-answer
+  T2-06  chars=10484  fin=length  !frac=0.00  has-answer
+  T2-07  chars=5873   fin=stop    !frac=0.00  has-answer
+  T2-08  chars=7869   fin=stop    !frac=0.00  has-answer
+  T2-09  chars=8551   fin=length  !frac=0.00  has-answer
+  T2-10  chars=943    fin=stop    !frac=0.00  has-answer
+  CANARY after   ok  (!frac=0.00, chars=519)
+  --> first collapse: NONE — arm survived   correct=10/10
+
+======================================================================
+=== KV = f16   [sep-9b-2bit]
+======================================================================
+  VRAM  base=2977 after=7050  ALLOC=4073 MiB
+  LOG   0.02.484.008 I srv    load_model: initializing, n_slots = 4, n_ctx_slot = 4096, kv_unified = 'true'
+  CANARY before  ok  (!frac=0.00, chars=596)
+  T2-01  chars=10451  fin=length  !frac=0.00  has-answer
+  T2-02  chars=1293   fin=stop    !frac=0.00  has-answer
+  T2-03  chars=2226   fin=stop    !frac=0.00  has-answer
+  T2-04  chars=1836   fin=stop    !frac=0.01  has-answer
+  T2-05  chars=11416  fin=length  !frac=0.00  has-answer
+  T2-06  chars=9810   fin=length  !frac=0.00  has-answer
+  T2-07  chars=1969   fin=stop    !frac=0.00  has-answer
+  T2-08  chars=2279   fin=stop    !frac=0.00  has-answer
+  T2-09  chars=8552   fin=length  !frac=0.00  has-answer
+  T2-10  chars=1812   fin=stop    !frac=0.00  has-answer
+  CANARY after   ok  (!frac=0.00, chars=596)
+  --> first collapse: NONE — arm survived   correct=10/10
+
+### SUMMARY sep-9b-2bit
+{
+  "turbo3_tcq": {
+    "status": "ran",
+    "alloc": 4008,
+    "first_collapse": null,
+    "correct": 10,
+    "canary_after": true
+  },
+  "f16": {
+    "status": "ran",
+    "alloc": 4073,
+    "first_collapse": null,
+    "correct": 10,
+    "canary_after": true
+  }
+}

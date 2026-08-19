@@ -224,3 +224,102 @@ more mechanically suggestive claim (I-quants use codebook lookups; so does TCQ).
 shipped (2026-08-19). The file we measured is pinned by md5 `7ba3d070fecfd7f1324b9e08887f5b8c`
 but **is no longer downloadable under that name**. Any reproduction instruction naming it is
 already broken. `gguf-label-is-not-a-spec` applies to *timestamps*, not just packagers.
+
+## Round J result — not I-quant specific
+
+| rung | bits | family | `turbo3_tcq` | f16 |
+|---|---|---|---|---|
+| `UD-Q2_K_XL` | 2 | **K-quant** | **collapse, item 1** | clean 10/10 |
+| `AD-IQ2_XS` | 2 | I-quant | **collapse, item 1** | clean 9/10 |
+| `AD-IQ3_XXS` | **3** | I-quant | **collapse, item 1** | clean 9/10 |
+
+I2 correct (0.55), J1 correct (0.60). The condition spans **2-bit and 3-bit**, **I-quants and
+K-quants**, **three recipes from two packagers**. "2-bit weights" was the wrong label and has
+been corrected in the receipt and the published map.
+
+`AD-IQ3_S-IQ3_XXS` (12,382 MiB) failed to load — 8-line server log ending at "loading model",
+with **9 GB of host RAM available against a 12.4 GiB file**. Probable system-RAM exhaustion,
+not VRAM. Retest when the desktop is quieter.
+
+---
+
+# Round K — the confound the ladder cannot resolve
+
+**No Qwen3.8-27B has ever run clean with TCQ at any weight precision.** Every clean TCQ arm
+on gfx1201 is the *9B*. So "low-bit weights" and "this model" are still entangled: the ladder
+only walked the low end, and a 6- or 8-bit 27B does not fit this card at any useful context.
+
+The separator is therefore the **other** direction — a **low-bit 9B**.
+`unsloth/Qwen3.5-9B-GGUF` `UD-Q2_K_XL`, 3,930 MiB, same D=256 hybrid architecture as the 27B,
+same packager and family as the `UD-Q2_K_XL` 27B rung that collapsed.
+
+| # | arm | prediction | conf |
+|---|---|---|---|
+| K1 | Qwen3.5-9B `UD-Q2_K_XL` + `turbo3_tcq`, gfx1201 | **collapse** | 0.70 |
+
+K1 collapse → **weight precision is the driver**, confirmed on two model sizes, and the
+"low-bit weights" framing is correct.
+K1 clean → the 27B is implicated specifically and the ladder's whole reading is wrong: it
+would mean every rung failed because of the *model*, and precision was a spurious correlate.
+
+## Round K result — K1 FALSIFIED, and it overturns the ladder
+
+Qwen3.5-9B `UD-Q2_K_XL` (2-bit, D=256, gfx1201): `turbo3_tcq` **clean 10/10**, f16 clean 10/10.
+
+**Same packager, same quant family, same bit depth, same architecture, same binary — the 27B
+collapses and the 9B does not.** Weight precision is NOT the driver. The ladder's apparent
+precision gradient was a spurious correlate: every rung was the same model.
+
+## Round L — the gate hypothesis
+
+Sorting every model tested by GQA ratio separates the results perfectly:
+
+| model | heads / kv | GQA | result |
+|---|---|---|---|
+| Llama-3.2-3B | 24 / 8 | 3:1 | clean (both backends) |
+| Qwen3.5-9B | 16 / 4 | 4:1 | clean (2-bit and 8-bit) |
+| **Qwen3.8-27B** | **24 / 4** | **6:1** | **collapse, every quant** |
+| poshih #311 (RTX 3090) | 16 / 2 | **8:1** | **corruption, reports K auto-upgraded to q8_0** |
+
+`TURBO_AUTO_ASYMMETRIC` fires at **GQA ≥ 6**, silently rewriting K to `q8_0`. So the collapsing
+runs may never have been symmetric TCQ at all — they may have been a **mixed `q8_0`-K +
+TCQ-V** cache, which is also exactly poshih's configuration.
+
+| # | arm | prediction | conf |
+|---|---|---|---|
+| L1 | 27B `AD-IQ2_S` + `turbo3_tcq`, **`TURBO_AUTO_ASYMMETRIC=0`** | **clean** | 0.65 |
+
+L1 clean → the defect is the **auto-asymmetric gate's mixed pair**, not weight precision, not
+the model, and not the TCQ codec in symmetric use. It would unify our result with #311 and
+change who the report goes to and what it says.
+L1 collapse → the gate is innocent and the 27B is implicated for some other reason.
+
+## Round L result — gate hypothesis FALSIFIED for our build, on two grounds
+
+1. **`TURBO_AUTO_ASYMMETRIC` does not exist in buun's fork.** It lives in TheTom's tree at
+   `src/llama-kv-cache.cpp:136`. The env var was inert; L1 tests nothing on this binary.
+2. **The recorded allocations already showed K was never rewritten.** `turbo1_tcq` vs
+   `turbo3_tcq` on the 27B differed by **131 MiB**, matching the **128 MiB** predicted for a
+   symmetric change, not the **64 MiB** predicted if K were pinned to `q8_0`. Our cache was
+   genuinely symmetric TCQ.
+
+The VRAM instrumentation was added to catch silent f16 fallback; it answered a mechanism
+question it was never designed for. The GQA ≥ 6 correlation survives — the *explanation* does
+not, at least for buun's fork. It may still be the mechanism in TheTom's fork for #311.
+
+---
+
+# Round M — is it GQA 6:1, or is it Qwen3.8-27B?
+
+Every collapsing arm so far is the same base model. `Ternary-Bonsai-27B-Q2_g64` is
+**GQA 6:1, D=256, 7,233 MiB** — a different base model with a completely different
+quantization scheme (ternary), and small enough to avoid the host-RAM ceiling that killed
+`AD-IQ3_S-IQ3_XXS`.
+
+| # | arm | prediction | conf |
+|---|---|---|---|
+| M1 | Ternary-Bonsai-27B `Q2_g64` + `turbo3_tcq`, gfx1201 | **collapse** | 0.70 |
+
+M1 collapse → the discriminator is architectural (GQA 6:1 / this model class), not the
+Qwen3.8 checkpoint, and not weight precision.
+M1 clean → Qwen3.8-27B is implicated specifically and GQA is a coincidence across four models.
