@@ -1,0 +1,260 @@
+<title>KV Compatibility Map</title>
+<style>
+  :root{
+    --ground:#F7F8FA; --panel:#FFFFFF; --ink:#12161D; --muted:#5A6472;
+    --rule:#DCE1E9; --rule-soft:#EAEEF3;
+    --ok:#1B6F52; --ok-bg:#E4F1EB;
+    --bad:#A81F2B; --bad-bg:#FBE6E7;
+    --stop:#9A6410; --stop-bg:#FAF0DE;
+    --unk:#5A6472; --unk-bg:#EDF0F4;
+    --accent:#2C55C4;
+    --mono:ui-monospace,"SF Mono","Cascadia Code","JetBrains Mono",Menlo,Consolas,monospace;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#0E1218; --panel:#161B23; --ink:#E7EBF1; --muted:#98A2B2;
+      --rule:#28303B; --rule-soft:#1E252E;
+      --ok:#5DCCA0; --ok-bg:#12281F;
+      --bad:#FF8189; --bad-bg:#2E1518;
+      --stop:#E5B45C; --stop-bg:#2A2010;
+      --unk:#98A2B2; --unk-bg:#1C222B;
+      --accent:#8EA9FF;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0E1218; --panel:#161B23; --ink:#E7EBF1; --muted:#98A2B2;
+    --rule:#28303B; --rule-soft:#1E252E;
+    --ok:#5DCCA0; --ok-bg:#12281F;
+    --bad:#FF8189; --bad-bg:#2E1518;
+    --stop:#E5B45C; --stop-bg:#2A2010;
+    --unk:#98A2B2; --unk-bg:#1C222B;
+    --accent:#8EA9FF;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--ground); color:var(--ink);
+    font-family:var(--sans); font-size:16px; line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:960px; margin:0 auto; padding:56px 24px 96px; display:flex; flex-direction:column; gap:44px}
+  header{display:flex; flex-direction:column; gap:10px; border-bottom:2px solid var(--ink); padding-bottom:20px}
+  h1{margin:0; font-size:clamp(28px,4vw,40px); font-weight:750; letter-spacing:-.025em; text-wrap:balance; line-height:1.15}
+  .sub{margin:0; color:var(--muted); max-width:64ch}
+  .stamp{font-family:var(--mono); font-size:12px; color:var(--muted); letter-spacing:.04em}
+
+  section{display:flex; flex-direction:column; gap:16px}
+  h2{
+    margin:0; font-size:12px; font-weight:700; letter-spacing:.11em; text-transform:uppercase;
+    color:var(--muted); display:flex; align-items:center; gap:12px;
+  }
+  h2::after{content:""; flex:1; height:1px; background:var(--rule)}
+  h3{margin:0; font-size:17px; font-weight:680; letter-spacing:-.01em}
+  p{margin:0; max-width:68ch}
+  code{font-family:var(--mono); font-size:.88em; background:var(--rule-soft); padding:1px 5px; border-radius:3px}
+
+  .legend{display:flex; flex-wrap:wrap; gap:8px}
+  .chip{
+    font-family:var(--mono); font-size:11.5px; font-weight:600; letter-spacing:.02em;
+    padding:4px 9px; border-radius:3px; white-space:nowrap;
+  }
+  .c-ok{background:var(--ok-bg); color:var(--ok)}
+  .c-bad{background:var(--bad-bg); color:var(--bad)}
+  .c-stop{background:var(--stop-bg); color:var(--stop)}
+  .c-unk{background:var(--unk-bg); color:var(--unk)}
+
+  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:14px}
+  .card{
+    background:var(--panel); border:1px solid var(--rule); border-radius:6px;
+    padding:16px 18px; display:flex; flex-direction:column; gap:8px;
+  }
+  .card.good{border-left:3px solid var(--ok)}
+  .card .cfg{font-family:var(--mono); font-size:14px; font-weight:600; color:var(--ink); word-break:break-word}
+  .card .why{font-size:13.5px; color:var(--muted); line-height:1.5}
+
+  .scroll{overflow-x:auto; border:1px solid var(--rule); border-radius:6px; background:var(--panel)}
+  table{border-collapse:collapse; width:100%; font-size:13.5px; font-variant-numeric:tabular-nums}
+  th,td{padding:9px 13px; text-align:left; border-bottom:1px solid var(--rule-soft); white-space:nowrap}
+  thead th{
+    font-size:11px; letter-spacing:.07em; text-transform:uppercase; color:var(--muted);
+    font-weight:700; background:var(--ground); border-bottom:1px solid var(--rule); position:sticky; top:0;
+  }
+  tbody tr:last-child td{border-bottom:none}
+  td.k{font-family:var(--mono); font-weight:600}
+  .note{font-size:13px; color:var(--muted); max-width:68ch}
+
+  .who{display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:16px}
+  .who .card{gap:12px}
+  .who h3{display:flex; align-items:baseline; gap:9px; flex-wrap:wrap}
+  .who .repo{font-family:var(--mono); font-size:11.5px; font-weight:500; color:var(--muted)}
+  ul{margin:0; padding-left:0; list-style:none; display:flex; flex-direction:column; gap:11px}
+  li{font-size:14px; line-height:1.55; padding-left:15px; position:relative}
+  li::before{content:""; position:absolute; left:0; top:.62em; width:5px; height:5px; border-radius:50%; background:var(--accent)}
+  li strong{font-weight:660}
+  .tag{
+    font-family:var(--mono); font-size:10.5px; font-weight:700; letter-spacing:.05em;
+    padding:2px 6px; border-radius:3px; text-transform:uppercase; vertical-align:1px;
+  }
+  .t-ready{background:var(--ok-bg); color:var(--ok)}
+  .t-wait{background:var(--stop-bg); color:var(--stop)}
+  .t-call{background:var(--unk-bg); color:var(--unk)}
+  footer{border-top:1px solid var(--rule); padding-top:18px; color:var(--muted); font-size:13px}
+  a{color:var(--accent)}
+</style>
+
+<div class="wrap">
+
+<header>
+<p class="stamp">2026-08-17 → 2026-08-19 · RX 9070 XT gfx1201 ROCm · Tesla P100 sm_60 CUDA · 1063 MHz / 150 W</p>
+<h1>KV Compatibility Map</h1>
+<p class="sub">Which KV cache codecs are safe on which hardware, with which weights. Every cell was measured — same binary commit across machines, model files md5-matched, allocation checked so nothing silently fell back to f16.</p>
+</header>
+
+<section>
+<h2>The newest finding · RDNA4</h2>
+<div class="cards">
+<div class="card" style="border-left:3px solid var(--bad)">
+<span class="cfg">TCQ KV + 2-bit weights + ROCm</span>
+<span class="why">Collapses to pure <code>!</code> output on the first request and never recovers. HTTP 200, <code>finish_reason: length</code>, throughput unchanged. <strong>All three conditions are required</strong> — remove any one and it is clean.</span>
+</div>
+<div class="card good">
+<span class="cfg">the same file on CUDA</span>
+<span class="why">md5 <code>7ba3d070…</code>, buun <code>02f8581c65</code>, identical items. Clean 9/10 on a P100. The model and the codec are both fine; the combination on RDNA4 is not.</span>
+</div>
+<div class="card good">
+<span class="cfg">-ctk q8_0 -ctv q8_0</span>
+<span class="why">Clean on the very 2-bit model TCQ collapses — 9/10, <code>finish_reason: stop</code>. So is <code>q4_0</code>. This is not "quantized KV is unsafe."</span>
+</div>
+</div>
+<p class="note"><code>vbr</code> is the CLI alias for <code>turbo3_tcq</code>. Driving the codec statically fails identically, so the dynamic VBR controller is <strong>not</strong> implicated — an earlier receipt of ours that blamed "the VBR KV path" was pointing at the wrong component.</p>
+</section>
+
+<section>
+<h2>The matrix · by weight precision</h2>
+<div class="legend">
+<span class="chip c-ok">CLEAN — normal answers, finish_reason stop</span>
+<span class="chip c-bad">COLLAPSE — all '!' to the cap, server never recovers</span>
+<span class="chip c-stop">DEGRADED — coherent but wrong</span>
+<span class="chip c-unk">NOT TESTED</span>
+</div>
+<h3>RX 9070 XT · gfx1201 · ROCm · buun 02f8581c65</h3>
+<div class="scroll">
+<table>
+<thead>
+<tr><th>model</th><th>weights</th><th>D</th><th>f16</th><th>q8_0</th><th>q4_0</th><th>turbo3_tcq</th><th>turbo1_tcq</th></tr>
+</thead>
+<tbody>
+<tr><td class="k">Llama-3.2-3B</td><td class="k">BF16</td><td>128</td><td><span class="chip c-ok">9/10</span></td><td><span class="chip c-ok">9/10</span></td><td>—</td><td><span class="chip c-ok">9/10</span></td><td><span class="chip c-stop">wrong</span></td></tr>
+<tr><td class="k">Qwen3.5-9B</td><td class="k">Q8_0</td><td>256</td><td><span class="chip c-ok">10/10</span></td><td>—</td><td>—</td><td><span class="chip c-ok">10/10</span></td><td><span class="chip c-ok">10/10</span></td></tr>
+<tr><td class="k">Qwen3.8-27B</td><td class="k">AD-IQ2_S</td><td>256</td><td><span class="chip c-ok">9/10</span></td><td><span class="chip c-ok">9/10</span></td><td><span class="chip c-ok">9/10</span></td><td><span class="chip c-bad">collapse</span></td><td><span class="chip c-bad">collapse</span></td></tr>
+<tr><td class="k">Qwen3.8-27B</td><td class="k">UD-IQ2_M</td><td>256</td><td><span class="chip c-ok">10/10</span></td><td>—</td><td>—</td><td><span class="chip c-bad">collapse</span></td><td><span class="chip c-unk">untested</span></td></tr>
+</tbody>
+</table>
+</div>
+<h3>Tesla P100 · sm_60 · CUDA · buun 02f8581c65 · single GPU</h3>
+<div class="scroll">
+<table>
+<thead>
+<tr><th>model</th><th>weights</th><th>D</th><th>f16</th><th>q8_0</th><th>turbo3_tcq</th></tr>
+</thead>
+<tbody>
+<tr><td class="k">Llama-3.2-3B</td><td class="k">BF16</td><td>128</td><td><span class="chip c-ok">9/10</span></td><td><span class="chip c-ok">9/10</span></td><td><span class="chip c-ok">9/10</span></td></tr>
+<tr><td class="k">Llama-3.2-3B · 64k ctx</td><td class="k">BF16</td><td>128</td><td><span class="chip c-ok">9/10</span></td><td><span class="chip c-ok">9/10</span></td><td><span class="chip c-ok">9/10</span></td></tr>
+<tr><td class="k">Qwen3.8-27B</td><td class="k">UD-IQ2_M</td><td>256</td><td><span class="chip c-ok">10/10</span></td><td><span class="chip c-ok">10/10</span></td><td><span class="chip c-ok">9/10</span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="note">At D=128 / BF16 the two backends agree within <strong>22 MiB of allocation on every arm</strong> and return identical verdicts. The divergence appears only at 2-bit weights.</p>
+</section>
+
+<section>
+<h2>What was ruled out, and by what</h2>
+<div class="scroll">
+<table>
+<thead><tr><th>Hypothesis</th><th>Verdict</th><th>Evidence</th></tr></thead>
+<tbody>
+<tr><td>the backend alone</td><td><span class="chip c-ok">ruled out</span></td><td>D=128/BF16 identical on both, within 22 MiB</td></tr>
+<tr><td>head_dim 256</td><td><span class="chip c-ok">ruled out</span></td><td>Qwen3.5-9B Q8_0 at D=256 clean on every TCQ tier</td></tr>
+<tr><td>context depth</td><td><span class="chip c-ok">ruled out</span></td><td>3B at 65,536 ctx — 4× allocation — clean</td></tr>
+<tr><td>quantized KV generally</td><td><span class="chip c-ok">ruled out</span></td><td>q8_0 <em>and</em> q4_0 clean on the collapsing 2-bit model</td></tr>
+<tr><td>the checkpoint / packager</td><td><span class="chip c-ok">ruled out</span></td><td>AtomicChat IQ2_S and unsloth IQ2_M collapse identically</td></tr>
+<tr><td>the VBR dynamic controller</td><td><span class="chip c-ok">ruled out</span></td><td>static turbo3_tcq fails the same way</td></tr>
+<tr><td>the 1.25 bpv floor tier</td><td><span class="chip c-ok">ruled out</span></td><td>the nominal 3.25 bpv tier fails identically</td></tr>
+<tr><td>ROCm × TCQ × 2-bit weights</td><td><span class="chip c-bad">stands</span></td><td>all three necessary; remove any one and it is clean</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<section>
+<h2>The matrix · head_dim 256 · sm_60 · multi-GPU (2026-08-17)</h2>
+<div class="scroll">
+<table>
+<thead>
+<tr><th>K / V</th><th>upstream 34af94c</th><th>TheTom f6124e9</th><th>buun a8e5b5a38</th></tr>
+</thead>
+<tbody>
+<tr><td class="k">f16 + f16</td><td><span class="chip c-ok">clean</span></td><td><span class="chip c-ok">clean</span></td><td><span class="chip c-ok">clean</span></td></tr>
+<tr><td class="k">q8_0 + q8_0</td><td><span class="chip c-ok">clean</span></td><td><span class="chip c-bad">collapse</span></td><td><span class="chip c-bad">collapse</span></td></tr>
+<tr><td class="k">q4_0 + q4_0</td><td><span class="chip c-ok">clean</span></td><td><span class="chip c-bad">collapse</span></td><td><span class="chip c-bad">collapse</span></td></tr>
+<tr><td class="k">q8_0 + f16</td><td><span class="chip c-unk">untested</span></td><td><span class="chip c-ok">clean</span></td><td><span class="chip c-stop">abort</span></td></tr>
+<tr><td class="k">f16 + q8_0</td><td><span class="chip c-unk">untested</span></td><td><span class="chip c-ok">clean</span></td><td><span class="chip c-stop">abort</span></td></tr>
+<tr><td class="k">q8_0 + turbo4</td><td>—</td><td><span class="chip c-ok">clean</span></td><td><span class="chip c-ok">clean</span></td></tr>
+<tr><td class="k">turbo8 + turbo4</td><td>—</td><td>—</td><td><span class="chip c-ok">clean</span></td></tr>
+<tr><td class="k">q8_0 + q4_0</td><td><span class="chip c-stop">abort</span></td><td><span class="chip c-stop">abort</span></td><td><span class="chip c-unk">untested</span></td></tr>
+<tr><td class="k">q5_1 sym</td><td><span class="chip c-stop">abort</span></td><td><span class="chip c-stop">abort</span></td><td><span class="chip c-unk">untested</span></td></tr>
+<tr><td class="k">iq4_nl sym</td><td><span class="chip c-stop">abort</span></td><td><span class="chip c-stop">abort</span></td><td><span class="chip c-unk">untested</span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="note">All abort rows require <code>-sm tensor</code>; under <code>-sm layer</code> they run. Every abort is the same assert — <code>ggml-backend-meta.cpp</code> <code>SPLIT_AXIS_UNKNOWN</code>, at line 537 upstream, 535 on Tom's, 533 on buun's. The collapse rows were bisected to <code>5fd308947</code> (<em>cuda : add TurboQuant MMVQ/WHT/inner-quant CUDA kernels</em>) on Tom's fork; buun's fork does not carry that commit and reached the same failure independently.</p>
+<p class="note"><strong>Caveat added 2026-08-19:</strong> on a <em>single</em> P100 with buun <code>02f8581c65</code>, <code>q8_0</code> symmetric at D=256 was <strong>clean 10/10</strong> — it did not reproduce. Three things differ from the row above (single vs dual GPU, newer buun commit, IQ2_M vs Q6_K weights) and which one matters is untested. Do not read the 2026-08-17 rows as current until a 2-GPU arm settles it.</p>
+</section>
+
+<section>
+<h2>Who to talk to</h2>
+<div class="who">
+
+<div class="card">
+<h3>buun <span class="repo">buun-llama-cpp</span></h3>
+<ul>
+<li><strong>TCQ KV corrupts generation on RDNA4 when the weights are 2-bit.</strong> <span class="tag t-ready">ready</span> Reproduces on <code>turbo3_tcq</code> and <code>turbo1_tcq</code>, two different packagers' 2-bit quants, first request every time. Same file and commit on CUDA is clean. He acquired a 9070 XT days ago, so this is the least-exercised path in the fork.</li>
+<li><strong>The mixed-type abort is not his.</strong> <span class="tag t-ready">resolved</span> Upstream refuses <code>K != V</code> without <code>GGML_CUDA_FA_ALL_QUANTS</code>; he matches stock. Tom's allow-list is the addition. This half of the earlier report is withdrawn.</li>
+<li><strong>Template v3 for Qwen3.8.</strong> <span class="tag t-ready">ready</span> The 3.6 → 3.8 rewrite dropped four of his 25 fixes: <code>| safe</code>, <code>loop.previtem</code>, nine <code>raise_exception</code> sites, and the <code>developer</code> role.</li>
+</ul>
+</div>
+
+<div class="card">
+<h3>TheTom <span class="repo">llama-cpp-turboquant</span></h3>
+<ul>
+<li><strong>The sm_60 collapse bisects to one commit.</strong> <span class="tag t-ready">ready</span> <code>5fd308947</code> — <em>cuda : add TurboQuant MMVQ/WHT/inner-quant CUDA kernels</em>. Its direct parent is clean, so it is a single-commit isolation, and its <code>+261</code> on <code>fattn.cu</code> matches the static diff independently.</li>
+<li><strong>His auto-asymmetric guard prevents a crash, not a perplexity regression.</strong> <span class="tag t-ready">ready</span> The code comment justifies it on PPL grounds; on sm_60 under tensor split, turning it off <em>aborts the server</em>.</li>
+<li><strong>PR #295 on RDNA4 costs nothing measurable.</strong> <span class="tag t-ready">ready</span> The surviving 23–57 VGPR residual moves decode throughput by less than ±1 % across two passes and does not hold a sign. Leaving it alone is supported.</li>
+</ul>
+</div>
+
+<div class="card">
+<h3>Upstream <span class="repo">ggml-org/llama.cpp</span></h3>
+<ul>
+<li><strong>The abort is theirs.</strong> <span class="tag t-call">your call</span> Reproduces on stock <code>34af94c</code>: <code>-sm tensor</code> plus <code>q8_0</code>+<code>q4_0</code>, <code>q5_1</code> sym, or <code>iq4_nl</code> sym is an immediate hard abort on multi-GPU. The f16 control passes, so tensor split itself is fine.</li>
+</ul>
+</div>
+
+</div>
+</section>
+
+<section>
+<h2>Open</h2>
+<ul>
+<li><strong>The quant ladder</strong> — where between 2-bit and 8-bit does RDNA4 + TCQ start failing? No mid-bit weight quant has been tested. With a desktop session live (13,749 MiB free) the ceiling is ~12.0 GiB of weights at 16k f16 KV, which reaches about IQ3_M; IQ4_XS needs the desktop apps closed.</li>
+<li><strong>Mechanism</strong> — nothing here identifies a kernel or code path. Runtime behaviour only.</li>
+<li><strong>Is Bug A still live?</strong> — it did not reproduce on a single P100 with the current buun commit. Needs a 2-GPU arm to say whether it is multi-GPU-only or fixed.</li>
+<li><strong>Fidelity on the clean cells</strong> — every "clean" means <em>not degenerate</em>. None of it means faithful. That is what hazard-bench is for.</li>
+</ul>
+</section>
+
+<footer>
+Receipts in <code>data/receipts/kv-tensor-split/</code> and <code>data/receipts/vbr-backend/</code>. Predictions pre-registered before every run and scored honestly — on 2026-08-19, C1 correct, C2 falsified, D3/E3 correct, G1 and G2 both falsified, H1 correct. Allocation is recorded on every arm because a codec that silently falls back to f16 produces a clean result and would fake exactly the conclusion being tested.
+</footer>
+
+</div>
