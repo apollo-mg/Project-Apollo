@@ -143,3 +143,56 @@ differing only in fork commit, and came back clean 10/10. So Bug A appears **fix
 between `a8e5b5a38` and `02f8581c65`**; no commit-level isolation was attempted. This says
 nothing about TheTom `f6124e9`, where the original collapse was measured and where the bisect
 named `5fd308947`.
+
+## Two source facts that bear on this — pointers, not mechanism
+
+**`AFM-17` applies to this whole section.** Every prediction made from reading source
+structure this campaign has been falsified. These are places to look, not claims.
+
+### 1. Pascal never runs the quantized FA kernels at all
+
+buun `24444d722` (2026-07-21), in `fattn.cu`:
+
+```
+// Pre-Volta NVIDIA (sm_60/sm_61) has no working quantized-V vector FA kernel at decode:
+// flash_attn_ext_vec's cpy_ne=2 / nthreads_KQ=16 K/Q layout runs on no other arch and
+// produces garbage on sm_60 ... Route plain q8_0/bf16 K/V through the same
+// dequant-to-f16 -> TILE path that turbo already uses (proven alive on sm_60)
+```
+
+**So "clean on CUDA" was never testing the same code.** sm_60 dequantizes to f16 and runs
+TILE. That weakens the cross-backend contrast considerably: the P100 arms show the *model and
+codec* are fine, not that the quantized FA path is fine anywhere. Note also that buun has
+already fixed one *"untested layout produces garbage"* defect in this exact file.
+
+### 2. The `ncols2` selection branches exactly where our boundary sits
+
+In the MMA launcher (`fattn.cu` ~line 205):
+
+```c
+if (use_gqa_opt && gqa_ratio > 4) → switch_ncols1<DKQ, DV, 8>
+if (use_gqa_opt && gqa_ratio > 2) → switch_ncols1<DKQ, DV, 4>
+if (use_gqa_opt && gqa_ratio > 1) → switch_ncols1<DKQ, DV, 2>
+```
+
+| model | GQA | selects | measured |
+|---|---|---|---|
+| Llama-3.2-3B | 3:1 | `ncols2=4` | clean |
+| Qwen3.5-9B | 4:1 | `ncols2=4` | clean |
+| Qwen3.8-27B | **6:1** | **`ncols2=8`** | **collapse** |
+| Ternary-Bonsai-27B | **6:1** | **`ncols2=8`** | **collapse** |
+| `turboquant#311` (RTX 3090) | **8:1** | **`ncols2=8`** | **corruption** |
+
+Every clean model takes `ncols2=4`; every failing one takes `ncols2=8`. Also relevant:
+`RESULT_PR295_GFX1201.md` measured gfx1201's surviving VGPR spills concentrated at
+**D=256, ncols=2**, up to 357 VGPR after PR #295.
+
+**Falsifiable prediction this makes:** any GQA ≥ 5 model collapses on gfx1201, any GQA ≤ 4
+does not. Only 3:1, 4:1 and 6:1 have been sampled — **a GQA 8:1 model that fits 16 GB would
+test it**, and none is on disk (`Qwen3.6-35B-A3B` at 8:1 is 17,677 MiB, too large).
+
+### 3. AMD WMMA is not on this path
+
+`fattn.cu:2105` gates the AMD WMMA branch on `Q->ne[0] <= 128`. Both collapsing models are
+**D=256**, so gfx1201 never takes WMMA for them. An earlier hypothesis in this campaign that
+the defect lived in "the WMMA turbo path" is wrong for that reason.
