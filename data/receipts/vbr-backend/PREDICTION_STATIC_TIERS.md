@@ -323,3 +323,63 @@ quantization scheme (ternary), and small enough to avoid the host-RAM ceiling th
 M1 collapse → the discriminator is architectural (GQA 6:1 / this model class), not the
 Qwen3.8 checkpoint, and not weight precision.
 M1 clean → Qwen3.8-27B is implicated specifically and GQA is a coincidence across four models.
+
+## Round M result — architectural, not the checkpoint
+
+Ternary-Bonsai-27B `Q2_g64` (GQA 6:1, D=256, ternary, different base model):
+`turbo3_tcq` **collapse at item 1, canary dead, 0/10**; f16 **clean 10/10**. M1 correct (0.70).
+
+---
+
+# Round N — GQA, or cache size, or layer count?
+
+Across the four models tested, **GQA ratio covaries perfectly with full-attention layer count
+and with KV values/token**, so the matrix cannot separate them:
+
+| model | GQA | full-attn layers | KV values/token |
+|---|---|---|---|
+| Llama-3.2-3B | 3:1 | 28 | 114,688 |
+| Qwen3.5-9B | 4:1 | **8** | **16,384** |
+| Qwen3.8-27B | **6:1** | **16** | **32,768** |
+
+The published artifact leads with GQA. That is the one a maintainer can act on — and if the
+real driver is cache size or layer count, it points at the wrong file.
+
+**Cache size is separable right now.** The 27B collapsed at ctx 4096 → 32,768 × 4,096 =
+**134M values**. The 9B at ctx 16384 → 16,384 × 16,384 = **268M values**, twice as many,
+with GQA unchanged at 4:1.
+
+| # | arm | prediction | conf |
+|---|---|---|---|
+| N1a | Qwen3.5-9B `UD-Q2_K_XL` + `turbo3_tcq` @ ctx **16384** | clean | 0.80 |
+| N1b | same @ ctx **32768** (536M values, 4× the collapsing arm) | clean | 0.75 |
+
+Both clean → **total cache size is ruled out**; GQA and layer count survive.
+Either collapses → the GQA headline is wrong and the artifact must be rewritten a third time.
+
+Note this is not the earlier depth probe, which used the 3B at D=128 / GQA 3:1 — a different
+model on the clean side of every threshold.
+
+## Round N result — cache size ruled out; GQA is the only monotonic separator
+
+9B `UD-Q2_K_XL`, GQA 4:1, `turbo3_tcq`: **clean 10/10 at ctx 16384 and again at ctx 32768**.
+N1a (0.80) and N1b (0.75) both correct. The 32k arm carries **536M cache values — 4× the
+134M in the collapsing 27B arm** — with no degradation.
+
+| model | GQA | full-attn layers | KV values/token | max cache tested | result |
+|---|---|---|---|---|---|
+| Llama-3.2-3B | 3:1 | 28 | 57,344 | **3,758M** | clean |
+| Qwen3.5-9B | 4:1 | 8 | 16,384 | 537M | clean |
+| Qwen3.8-27B | **6:1** | 16 | 32,768 | 134M | **COLLAPSE** |
+| Ternary-Bonsai-27B | **6:1** | 16 | 32,768 | 134M | **COLLAPSE** |
+
+| candidate | monotonic? | why not |
+|---|---|---|
+| **GQA ratio** | **YES** | 3:1 and 4:1 clean, 6:1 collapses |
+| full-attention layer count | no | 28 clean **>** 16 collapse |
+| KV values/token | no | 57,344 clean **>** 32,768 collapse |
+| total cache values | no | 3,758M clean **≫** 134M collapse |
+
+The Llama-3.2-3B row carries this: it is **larger than the collapsing 27B on every metric
+except GQA** and it runs clean on both backends. Of the four candidates the matrix admits,
+only the head ratio survives.

@@ -187,7 +187,19 @@
 </tbody>
 </table>
 </div>
-<p class="note"><strong>The open confound.</strong> Both collapsing models are 27B Qwen derivatives — 65 blocks, 24/4 heads, D=256, hybrid attention. <strong>A non-Qwen GQA &ge; 6 model would separate "GQA" from "this architecture class"</strong>, and none is on disk. That is the most important remaining gap.</p>
+<p class="note"><strong>Why GQA and not something correlated with it.</strong> Three other quantities move with the head ratio across these models; only GQA separates the results monotonically.</p>
+<div class="scroll">
+<table>
+<thead><tr><th>candidate</th><th>separates?</th><th>why not</th></tr></thead>
+<tbody>
+<tr><td class="k">GQA ratio</td><td><span class="chip c-bad">YES</span></td><td>3:1 and 4:1 clean, 6:1 collapses</td></tr>
+<tr><td class="k">full-attention layers</td><td><span class="chip c-ok">no</span></td><td>Llama-3.2-3B has <strong>28</strong> and is clean; the 27B has <strong>16</strong> and collapses</td></tr>
+<tr><td class="k">KV values / token</td><td><span class="chip c-ok">no</span></td><td>Llama has <strong>57,344</strong> and is clean; the 27B has <strong>32,768</strong> and collapses</td></tr>
+<tr><td class="k">total cache size</td><td><span class="chip c-ok">no</span></td><td>Qwen3.5-9B clean at <strong>536M values</strong> (ctx 32k) vs the 27B collapsing at <strong>134M</strong></td></tr>
+</tbody>
+</table>
+</div>
+<p class="note"><strong>Still open.</strong> Both collapsing models are 27B Qwen derivatives, so "GQA &ge; 6" is not yet separated from "this architecture class". A <strong>non-Qwen GQA &ge; 6 model</strong> would settle it and none is on disk. The one GQA-6 candidate found locally, <code>mtp-ThinkingCap-head-Q8_0</code>, is an 18-tensor MTP draft head that inherits its parent's metadata — not a usable model.</p>
 <p class="note"><strong>Reproduction hazard.</strong> <code>Qwen3.8-27B-UD-IQ2_M.gguf</code> now returns <strong>HTTP 404</strong> — unsloth withdrew it when Dynamic v3.0 shipped on 2026-08-19, the same day. The measured file is pinned by md5 but is no longer downloadable under that name. Quantized-model filenames are not stable identifiers over <em>time</em>, not merely across packagers.</p>
 <p class="note"><strong>Possibly related, not ours:</strong> <a href="https://github.com/TheTom/llama-cpp-turboquant/issues/311">turboquant#311</a> reports <code>turbo4</code> V-cache corruption on an <strong>RTX 3090</strong> — runaway generation with no EOS, fixed by <code>-ctv q8_0</code> on an identical build, bisected to PR #197. That model is <strong>GQA 8:1</strong>, which fits the pattern, and it is an MMA-capable CUDA part, which we cannot test. But it is a different codec, a different fork, and partial corruption rather than total collapse — so same class, not established as the same bug. His pair is <code>q8_0</code> K + <code>turbo4</code> V, which the sm_60 table below marks <strong>clean</strong>; "clean" there is hardware-scoped.</p>
 </section>
