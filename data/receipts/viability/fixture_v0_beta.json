@@ -1,0 +1,120 @@
+{
+  "name": "Apollo Viability Fixture v0 (BETA)",
+  "created": "2026-08-18",
+  "status": "BETA \u2014 registered tonight, expected to need revision. See notes.revision_triggers.",
+  "provenance": "Written from scratch for this fixture. NOT derived from HumanEval, HLE, or any published benchmark \u2014 so there is no contamination question, no canary, and no licence to honour. Difficulty is calibrated by intent, not by measurement; that calibration is exactly what the beta period is meant to test.",
+  "grading": "Exact match on `norm(answer)` first, judge as backstop. Gold answers are deliberately short and unambiguous so the judge is rarely needed.",
+  "tier1": {
+    "purpose": "PLUMBING. Server up, chat template applied, sampling sane, output format obeyed, parser and judge functional. A working stack should get 5/5. Any failure means stop and fix the stack \u2014 do not interpret it as a model result.",
+    "gate": "5 of 5",
+    "budget_hint": "answerable in a few hundred tokens; if these truncate, the budget is wrong",
+    "items": [
+      {
+        "id": "T1-01",
+        "q": "What is 17 multiplied by 23?",
+        "gold": "391",
+        "why": "deterministic arithmetic, verified reachable on IQ2_S weights"
+      },
+      {
+        "id": "T1-02",
+        "q": "What is the chemical symbol for gold?",
+        "gold": "Au",
+        "why": "single fact, universally known, two characters"
+      },
+      {
+        "id": "T1-03",
+        "q": "How many sides does a hexagon have?",
+        "gold": "6",
+        "why": "single token, no reasoning required"
+      },
+      {
+        "id": "T1-04",
+        "q": "Which is larger: 0.9 or 0.11?",
+        "gold": "0.9",
+        "why": "decimal comparison \u2014 a classic tokeniser/format trap, still trivial for a healthy model"
+      },
+      {
+        "id": "T1-05",
+        "q": "What is the population of the city of Zyrthanmoor?",
+        "gold": "UNKNOWN",
+        "why": "NEGATIVE CONTROL. This city does not exist. A stack that confabulates a number here is broken in a way accuracy alone will not show \u2014 and it is the same failure the judge itself exhibited when forced to answer in one token."
+      }
+    ]
+  },
+  "tier2": {
+    "purpose": "MODEL SANITY. Detects degraded weights, a bad quant, or wrong sampling params. A healthy model should reach 80-90%.",
+    "gate": ">= 6 of 10",
+    "items": [
+      {
+        "id": "T2-01",
+        "q": "A tank fills at 4 L/min and drains at 1.5 L/min. It starts at 20 L and holds 200 L. How many minutes until it is full?",
+        "gold": "72"
+      },
+      {
+        "id": "T2-02",
+        "q": "A shirt costs 40 dollars after a 20 percent discount. What was the original price in dollars?",
+        "gold": "50",
+        "why": "tests reversing a percentage rather than applying one"
+      },
+      {
+        "id": "T2-03",
+        "q": "If today is Wednesday, what day of the week will it be in 100 days?",
+        "gold": "Friday",
+        "why": "modular arithmetic, 100 mod 7 = 2"
+      },
+      {
+        "id": "T2-04",
+        "q": "What is the output of this Python: print(len([x for x in range(20) if x % 3 == 0]))",
+        "gold": "7",
+        "why": "0,3,6,9,12,15,18"
+      },
+      {
+        "id": "T2-05",
+        "q": "Solve for x: 3x + 7 = 2x + 15. Give only the value of x.",
+        "gold": "8"
+      },
+      {
+        "id": "T2-06",
+        "q": "A bag has 3 red and 5 blue marbles. Two are drawn without replacement. What is the probability both are red? Give the answer as a fraction in lowest terms.",
+        "gold": "3/28"
+      },
+      {
+        "id": "T2-07",
+        "q": "How many bytes are in 2.5 kibibytes?",
+        "gold": "2560",
+        "why": "KiB vs KB \u2014 the units trap that motivated this whole protocol"
+      },
+      {
+        "id": "T2-08",
+        "q": "Put these in ascending order and give only the second smallest: 0.5, 1/3, 0.45, 2/5",
+        "gold": "2/5",
+        "why": "1/3=0.333 < 2/5=0.4 < 0.45 < 0.5. 'Second smallest' is unambiguous where 'middle value' of an even-length list is not. Accepts 0.4 via judge."
+      },
+      {
+        "id": "T2-09",
+        "q": "A train travels 240 km in 3 hours. At the same speed, how many kilometres does it travel in 50 minutes?",
+        "gold": "66.67",
+        "why": "80 km/h * 5/6 h; accepts 66.7 or 200/3 via judge"
+      },
+      {
+        "id": "T2-10",
+        "q": "What is the smallest prime number greater than 90?",
+        "gold": "97"
+      }
+    ]
+  },
+  "notes": {
+    "known_weaknesses": [
+      "T2-08 originally asked for the 'middle value' of a four-item list, which is ambiguous. Rewritten to 'second smallest' before first use. Recorded because the original would have produced a known-bad score and blamed the model for it.",
+      "T2-09 has multiple valid renderings (66.67, 66.7, 200/3). It leans on the judge rather than exact match, which makes it a live test of the judge as well as the model.",
+      "Difficulty is asserted, not measured. If a healthy stack scores far from 80-90% on tier 2, the ITEMS are wrong, not necessarily the model."
+    ],
+    "revision_triggers": [
+      "A known-good stack fails tier 1 -> the item is broken, not the stack.",
+      "Tier 2 lands outside roughly 60-95% on a known-good stack -> recalibrate difficulty.",
+      "Any item where the judge and exact match disagree repeatedly -> the gold answer is underspecified.",
+      "Any item passed by a stack we KNOW is broken -> it is not discriminative, replace it."
+    ],
+    "negative_control_rationale": "T1-05 exists because rejudge.py's docstring records a measured failure: a one-token YES/NO verdict turned a reasoning model into a yes-machine that scored 'Paris' equivalent to 'Berlin'. A fixture with no item whose correct answer is a refusal cannot detect that class of failure at all."
+  }
+}
