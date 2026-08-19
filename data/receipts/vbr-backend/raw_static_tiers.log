@@ -1,0 +1,57 @@
+### rdna4-static-tiers | bin=/mnt/TG_2TB/Projects/Apollo/engines/buun-llama-cpp/build_rocm/bin | ctx=16384 | arms=['turbo1_tcq', 'turbo3_tcq']
+
+======================================================================
+=== KV = turbo1_tcq   [rdna4-static-tiers]
+======================================================================
+  VRAM  base=2652 after=13756  ALLOC=11104 MiB
+  LOG   0.05.314.331 I srv    load_model: initializing, n_slots = 4, n_ctx_slot = 16384, kv_unified = 'true'
+  CANARY before  ok  (!frac=0.00, chars=162)
+  T2-01  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-02  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-03  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-04  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-05  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-06  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-07  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-08  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-09  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-10  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  CANARY after   DEAD  (!frac=1.00, chars=256)
+  --> first collapse: T2-01   correct=0/10
+
+======================================================================
+=== KV = turbo3_tcq   [rdna4-static-tiers]
+======================================================================
+  VRAM  base=2909 after=14144  ALLOC=11235 MiB
+  LOG   0.05.232.009 I srv    load_model: initializing, n_slots = 4, n_ctx_slot = 16384, kv_unified = 'true'
+  CANARY before  ok  (!frac=0.00, chars=143)
+  T2-01  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-02  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-03  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-04  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-05  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-06  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-07  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-08  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-09  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-10  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  CANARY after   DEAD  (!frac=1.00, chars=256)
+  --> first collapse: T2-01   correct=0/10
+
+### SUMMARY rdna4-static-tiers
+{
+  "turbo1_tcq": {
+    "status": "ran",
+    "alloc": 11104,
+    "first_collapse": "T2-01",
+    "correct": 0,
+    "canary_after": false
+  },
+  "turbo3_tcq": {
+    "status": "ran",
+    "alloc": 11235,
+    "first_collapse": "T2-01",
+    "correct": 0,
+    "canary_after": false
+  }
+}

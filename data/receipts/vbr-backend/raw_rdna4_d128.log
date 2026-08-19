@@ -1,0 +1,95 @@
+### rdna4-d128 | bin=/mnt/TG_2TB/Projects/Apollo/engines/buun-llama-cpp/build_rocm/bin | ctx=16384 | arms=['f16', 'q8_0', 'turbo3_tcq', 'turbo1_tcq']
+
+======================================================================
+=== KV = f16   [rdna4-d128]
+======================================================================
+  VRAM  base=2936 after=11225  ALLOC=8289 MiB
+  LOG   0.08.157.097 I srv    load_model: initializing, n_slots = 4, n_ctx_slot = 16384, kv_unified = 'true'
+  CANARY before  ok  (!frac=0.00, chars=3)
+  T2-01  chars=483    fin=stop    !frac=0.00  has-answer
+  T2-02  chars=198    fin=stop    !frac=0.00  has-answer
+  T2-03  chars=272    fin=stop    !frac=0.00  has-answer
+  T2-04  chars=39     fin=stop    !frac=0.00  no-answer
+  T2-05  chars=49     fin=stop    !frac=0.00  has-answer
+  T2-06  chars=406    fin=stop    !frac=0.00  has-answer
+  T2-07  chars=167    fin=stop    !frac=0.00  has-answer
+  T2-08  chars=251    fin=stop    !frac=0.00  has-answer
+  T2-09  chars=258    fin=stop    !frac=0.00  has-answer
+  T2-10  chars=212    fin=stop    !frac=0.00  has-answer
+  CANARY after   ok  (!frac=0.00, chars=3)
+  --> first collapse: NONE — arm survived   correct=9/10
+
+======================================================================
+=== KV = q8_0   [rdna4-d128]
+======================================================================
+  VRAM  base=2916 after=10396  ALLOC=7480 MiB
+  LOG   0.01.403.913 I srv    load_model: initializing, n_slots = 4, n_ctx_slot = 16384, kv_unified = 'true'
+  CANARY before  ok  (!frac=0.00, chars=3)
+  T2-01  chars=483    fin=stop    !frac=0.00  has-answer
+  T2-02  chars=198    fin=stop    !frac=0.00  has-answer
+  T2-03  chars=289    fin=stop    !frac=0.00  has-answer
+  T2-04  chars=39     fin=stop    !frac=0.00  no-answer
+  T2-05  chars=49     fin=stop    !frac=0.00  has-answer
+  T2-06  chars=405    fin=stop    !frac=0.00  has-answer
+  T2-07  chars=167    fin=stop    !frac=0.00  has-answer
+  T2-08  chars=252    fin=stop    !frac=0.00  has-answer
+  T2-09  chars=258    fin=stop    !frac=0.00  has-answer
+  T2-10  chars=212    fin=stop    !frac=0.00  has-answer
+  CANARY after   ok  (!frac=0.00, chars=3)
+  --> first collapse: NONE — arm survived   correct=9/10
+
+======================================================================
+=== KV = turbo3_tcq   [rdna4-d128]
+======================================================================
+  VRAM  base=2935 after=9815  ALLOC=6880 MiB
+  LOG   0.01.349.638 I srv    load_model: initializing, n_slots = 4, n_ctx_slot = 16384, kv_unified = 'true'
+  CANARY before  ok  (!frac=0.00, chars=3)
+  T2-01  chars=428    fin=stop    !frac=0.00  has-answer
+  T2-02  chars=198    fin=stop    !frac=0.00  has-answer
+  T2-03  chars=266    fin=stop    !frac=0.00  has-answer
+  T2-04  chars=66     fin=stop    !frac=0.00  no-answer
+  T2-05  chars=134    fin=stop    !frac=0.00  has-answer
+  T2-06  chars=596    fin=stop    !frac=0.00  has-answer
+  T2-07  chars=169    fin=stop    !frac=0.00  has-answer
+  T2-08  chars=218    fin=stop    !frac=0.00  has-answer
+  T2-09  chars=254    fin=stop    !frac=0.00  has-answer
+  T2-10  chars=926    fin=stop    !frac=0.00  has-answer
+  CANARY after   ok  (!frac=0.00, chars=3)
+  --> first collapse: NONE — arm survived   correct=9/10
+
+======================================================================
+=== KV = turbo1_tcq   [rdna4-d128]
+======================================================================
+  VRAM  base=2946 after=9571  ALLOC=6625 MiB
+  LOG   0.01.354.215 I srv    load_model: initializing, n_slots = 4, n_ctx_slot = 16384, kv_unified = 'true'
+  CANARY before  DEAD  (!frac=0.00, chars=407)
+  server born broken — arm recorded, items skipped
+
+### SUMMARY rdna4-d128
+{
+  "f16": {
+    "status": "ran",
+    "alloc": 8289,
+    "first_collapse": null,
+    "correct": 9,
+    "canary_after": true
+  },
+  "q8_0": {
+    "status": "ran",
+    "alloc": 7480,
+    "first_collapse": null,
+    "correct": 9,
+    "canary_after": true
+  },
+  "turbo3_tcq": {
+    "status": "ran",
+    "alloc": 6880,
+    "first_collapse": null,
+    "correct": 9,
+    "canary_after": true
+  },
+  "turbo1_tcq": {
+    "status": "born-broken",
+    "alloc": 6625
+  }
+}
