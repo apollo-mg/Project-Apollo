@@ -401,3 +401,41 @@ the log line changed, the state differs. An inert knob produces a perfect-lookin
 
 **Corollary:** never carry a log observation between binaries or machines. Architecture is not
 the only thing that differs between two builds of "llama.cpp".
+
+## AFM-20 — five data points that vary one thing together are one data point
+
+**2026-08-19, `RESULT_TCQ_2BIT_RDNA4.md`.** A weight-quant ladder on Qwen3.8-27B ran five
+rungs from 2-bit to 3-bit across two packagers and three quant families. Every rung collapsed
+and every f16 control was clean. That read as a strong precision result, and the receipt was
+published twice on it — first as "2-bit weights", then as "low-bit weights".
+
+Both were wrong. **Every rung was the same base model.** A single 2-bit *9B* came back clean
+and the entire gradient evaporated: precision never predicted anything, it just happened to
+be the axis I varied while the real discriminator sat constant.
+
+**Rule:** before treating a gradient as causal, name the variables held fixed across the whole
+ladder and ask which of them could produce the same pattern alone. A ladder that varies one
+thing over a fixed everything-else is **n=1 on everything else**, no matter how many rungs it
+has.
+
+**Corollary (the fix that worked):** the escape was not another rung. It was moving the
+*other* direction — holding the quant recipe fixed and changing the model. One arm did what
+five more rungs could not.
+
+## AFM-21 — teacher-forced fidelity metrics are structurally blind to generation collapse
+
+**2026-08-19.** A KV cache defect that turns a server into a `!` generator was invisible to
+every fidelity method this project owns. KLD, top-1 agreement and the whole `kv-fidelity`
+panel are **teacher-forced**: reference tokens are fed in, so the model's own output never
+enters the cache. The failure here needs self-generated content accumulating — a 256-token
+canary passes, a 3072-token generation kills the server, and afterwards even the canary is
+dead.
+
+This is why an sm_60 patch could be validated at median KLD 0.0023 → 0.000001 and say nothing
+about whether free generation survives, and why a maintainer's quant evaluation would never
+surface it.
+
+**Rule:** a fidelity number and a liveness check answer different questions. Any claim that a
+KV configuration is "safe" needs at least one arm of **free generation to a token cap with a
+degeneracy detector**, not only divergence against a reference. Cheap version: a known-answer
+canary before and after a long generation, plus a `!`-fraction threshold.
