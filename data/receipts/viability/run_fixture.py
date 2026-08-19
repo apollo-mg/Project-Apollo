@@ -16,9 +16,13 @@ def norm(s):
     s = re.sub(r"[\s,]+", "", s)
     return s
 
-def ask(host, q, n_predict=512, timeout=300):
+EFFORT = None   # set from --effort; passed via chat_template_kwargs, the dial Qwen3.8 honours
+
+def ask(host, q, n_predict=512, timeout=600):
     body = {"messages": [{"role": "user", "content": PROMPT.format(q=q)}],
             "temperature": 0, "top_k": 1, "n_predict": n_predict}
+    if EFFORT:
+        body["chat_template_kwargs"] = {"reasoning_effort": EFFORT}
     req = urllib.request.Request(host.rstrip("/") + "/v1/chat/completions",
                                  data=json.dumps(body).encode(),
                                  headers={"Content-Type": "application/json"})
@@ -76,7 +80,7 @@ def run_struct(host, tier, label):
     print(f"    gate: {tier['gate']}")
     ok = 0
     for it in tier["items"]:
-        content, reasoning, fin = ask(host, it["q"])
+        content, reasoning, fin = ask(host, it["q"], n_predict=tier.get("n_predict", 512))
         obj = extract_json(content) or (extract_json(reasoning) if fin != "length" else None)
         good, why = check_struct(obj, it["check"])
         ok += good
@@ -91,7 +95,7 @@ def run_tier(host, tier, label):
     print(f"    gate: {tier['gate']}")
     ok = 0
     for it in tier["items"]:
-        content, reasoning, fin = ask(host, it["q"])
+        content, reasoning, fin = ask(host, it["q"], n_predict=tier.get("n_predict", 512))
         # B2 rule: reasoning is admissible only when the response actually finished
         text = content + ("\n" + reasoning if fin != "length" else "")
         m = ANS.search(text)
@@ -115,7 +119,12 @@ if __name__ == "__main__":
     ap.add_argument("--fixture", default=os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                                       "fixture_v0_beta.json"))
     ap.add_argument("--tier", choices=["1", "2", "struct", "both", "all"], default="both")
+    ap.add_argument("--effort", choices=["low", "medium", "high", "xhigh"],
+                    help="reasoning_effort via chat_template_kwargs; 'medium' curbs overthinking")
     a = ap.parse_args()
+    if a.effort:
+        globals()["EFFORT"] = a.effort
+        print(f"reasoning_effort = {a.effort}")
     fx = json.load(open(a.fixture))
     res = {}
     if a.tier in ("1", "both", "all"): res["t1"] = run_tier(a.host, fx["tier1"], "TIER 1 (plumbing)")
