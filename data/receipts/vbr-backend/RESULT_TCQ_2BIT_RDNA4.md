@@ -54,7 +54,14 @@ both machines**, same binary commit, same ten items, same flags:
 - **Not the VBR controller.** `vbr` is the CLI alias for `turbo3_tcq`; driving the codec
   statically collapses the same way, first item, every time.
 
-**All three conditions are necessary: ROCm/RDNA4 + a TCQ KV codec + 2-bit weights.**
+**All three conditions are necessary: gfx1201/ROCm + a TCQ KV codec + 2-bit weights.**
+
+**Scope of the backend claim.** The arm that removes the backend was a **single Tesla P100,
+sm_60, CUDA**. That establishes *not-on-sm_60*, which is not the same as *not-on-CUDA* — no
+CUDA part with Turing MMA or newer was tested, and the fleet no longer contains one (the
+1660 Ti was sold). The D=128 backend-equivalence cited above ran on **BF16 weights**, the
+condition under which nothing fails on either device, so it cannot carry the 2-bit case.
+Read this as **gfx1201 vs sm_60, one card each** — not as a vendor-level statement.
 
 ## Validity
 
@@ -78,14 +85,19 @@ fell back.
 
 ## Open
 
+- **Untested on any CUDA part with MMA.** The only CUDA evidence is sm_60. An Ampere or
+  newer card would decide whether this is an AMD-side defect or a low-bit-weight defect that
+  Pascal happens to dodge. Nothing in the fleet can answer it.
 - **Where between 2-bit and 8-bit does it start?** No mid-bit weight quant has been tested on
   RDNA4. With the desktop session live (13,749 MiB free) the ceiling is ~12.0 GiB of weights
   at 16k f16 KV, which reaches roughly IQ3_M and no further; IQ4_XS needs the desktop apps
   closed. This is the quant ladder to run next.
 - **No mechanism.** Nothing here identifies the kernel or the code path. `AFM-17` applies —
   this is all runtime behaviour, no source claim.
-- **Bug A did not reproduce here.** `q8_0` symmetric at D=256 on sm_60 was **clean 10/10**,
-  where `RESULT_OWNERSHIP.md` recorded collapse 3/3 on buun `a8e5b5a38`. Three differences:
+- **Bug A did not reproduce here — for buun specifically.** `q8_0` symmetric at D=256 on
+  sm_60 was **clean 10/10**, where `RESULT_OWNERSHIP.md` recorded collapse 3/3 on buun
+  `a8e5b5a38`. This says nothing about TheTom `f6124e9`, which is where U_E's collapse was
+  measured. Three differences:
   single GPU vs dual, buun `02f8581c65` vs `a8e5b5a38`, IQ2_M vs Q6_K. **Untested which** —
   it needs a 2-GPU arm before anyone concludes Bug A is fixed.
 - **Fidelity is not measured.** "Clean" means not degenerate. No quality claim anywhere.

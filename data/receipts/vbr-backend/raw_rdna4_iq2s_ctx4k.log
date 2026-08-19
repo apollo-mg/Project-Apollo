@@ -1,0 +1,57 @@
+### rdna4-iq2s-ctx4k | bin=/mnt/TG_2TB/Projects/Apollo/engines/buun-llama-cpp/build_rocm/bin | ctx=4096 | arms=['turbo3_tcq', 'f16']
+
+======================================================================
+=== KV = turbo3_tcq   [rdna4-iq2s-ctx4k]
+======================================================================
+  VRAM  base=2943 after=14012  ALLOC=11069 MiB
+  LOG   0.10.584.694 I srv    load_model: initializing, n_slots = 4, n_ctx_slot = 4096, kv_unified = 'true'
+  CANARY before  ok  (!frac=0.00, chars=143)
+  T2-01  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-02  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-03  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-04  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-05  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-06  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-07  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-08  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-09  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-10  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  CANARY after   COLLAPSED  (!frac=1.00, chars=256)
+  --> first collapse: T2-01   correct=0/10
+
+======================================================================
+=== KV = f16   [rdna4-iq2s-ctx4k]
+======================================================================
+  VRAM  base=2814 after=14043  ALLOC=11229 MiB
+  LOG   0.05.396.942 I srv    load_model: initializing, n_slots = 4, n_ctx_slot = 4096, kv_unified = 'true'
+  CANARY before  ok  (!frac=0.00, chars=141)
+  T2-01  chars=479    fin=stop    !frac=0.00  has-answer
+  T2-02  chars=565    fin=stop    !frac=0.00  has-answer
+  T2-03  chars=664    fin=stop    !frac=0.00  has-answer
+  T2-04  chars=540    fin=stop    !frac=0.00  has-answer
+  T2-05  chars=438    fin=stop    !frac=0.00  has-answer
+  T2-06  chars=507    fin=stop    !frac=0.00  has-answer
+  T2-07  chars=706    fin=stop    !frac=0.00  has-answer
+  T2-08  chars=422    fin=stop    !frac=0.00  has-answer
+  T2-09  chars=652    fin=stop    !frac=0.00  no-answer
+  T2-10  chars=635    fin=stop    !frac=0.00  has-answer
+  CANARY after   ok  (!frac=0.00, chars=141)
+  --> first collapse: NONE — arm survived   correct=9/10
+
+### SUMMARY rdna4-iq2s-ctx4k
+{
+  "turbo3_tcq": {
+    "status": "ran",
+    "alloc": 11069,
+    "first_collapse": "T2-01",
+    "correct": 0,
+    "canary_after": false
+  },
+  "f16": {
+    "status": "ran",
+    "alloc": 11229,
+    "first_collapse": null,
+    "correct": 9,
+    "canary_after": true
+  }
+}

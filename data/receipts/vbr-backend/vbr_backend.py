@@ -51,9 +51,10 @@ def start(kv, log):
     subprocess.run(["pkill","-x","llama-server"], capture_output=True); time.sleep(8)
     base = vram_used_mib()
     env = dict(os.environ, LD_LIBRARY_PATH=BIN)
+    extra = os.environ.get("VBR_EXTRA","").split()
     subprocess.Popen([f"{BIN}/llama-server","-m",MODEL,"-ngl","99","-c",str(CTX),
                       "-ctk",kv,"-ctv",kv,"-fa","on","--kv-unified",
-                      "--jinja","--host","127.0.0.1","--port","8080"],
+                      "--jinja","--host","127.0.0.1","--port","8080"] + extra,
                      stdout=open(log,"w"), stderr=subprocess.STDOUT, env=env, start_new_session=True)
     for _ in range(150):
         try:

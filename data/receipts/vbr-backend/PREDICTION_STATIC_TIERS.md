@@ -160,3 +160,34 @@ and `gguf-label-is-not-a-spec` applies to the collapse itself.
 `RESULT_OWNERSHIP.md` recorded that arm as *collapse 3/3* on buun `a8e5b5a38`. Differences:
 single GPU (vs dual), buun `02f8581c65` (vs `a8e5b5a38`), IQ2_M (vs Q6_K). Bug A may be
 multi-GPU-only or may be fixed in current buun — **untested, and it needs a 2-GPU arm to say.**
+
+---
+
+# Round I — quant ladder on RDNA4 (desktop use-case)
+
+Ladder from a single packager (AtomicChat), so the packaging variable is held constant.
+`AD` = "Atomic Dynamic": the suffix names the quant of the two largest tensor groups,
+`AD-<ffn_down>-<ffn_up>`, collapsed to one token when they match — so `AD-IQ3_S-IQ3_XXS`
+is a genuine intermediate rung, not a relabel.
+
+Rungs pulled: `AD-IQ2_XS` (9,431 MiB), `AD-IQ3_XXS` (11,516), `AD-IQ3_S-IQ3_XXS` (12,382).
+`IQ4_XS` and above do not fit this card at any useful context (15,736 of 16,304 MiB leaves
+nothing for KV), so the ladder brackets the low end only.
+
+**Context drops to 4096** to fit the upper rungs. That is a changed variable, so the first
+run is a control that the collapse signature survives the smaller cache.
+
+| # | arm | prediction | conf |
+|---|---|---|---|
+| I0 | `AD-IQ2_S` + `turbo3_tcq` @ **ctx 4096** | **collapse** (signature survives) | 0.85 |
+| I1 | `AD-IQ2_XS` + `turbo3_tcq` | collapse | 0.85 |
+| I2 | `AD-IQ3_XXS` + `turbo3_tcq` | collapse | 0.55 |
+| I3 | `AD-IQ3_S-IQ3_XXS` + `turbo3_tcq` | clean | 0.55 |
+
+I0 clean would **void the whole ladder plan** — it would mean the collapse depends on cache
+size and every rung would have to run at 16k, capping the ladder at `IQ3_XXS`.
+
+Also running: **2-GPU Bug A reproduction on `.194`** — Qwen3.8-27B-Q6_K, `q8_0` symmetric,
+`-sm layer`, `GGML_CUDA_ALLREDUCE=internal`, buun `02f8581c65`. Matches `RESULT_OWNERSHIP.md`
+U_E exactly except for the fork commit. Collapse → Bug A is live and multi-GPU-only.
+Clean → it is fixed between `a8e5b5a38` and `02f8581c65`.

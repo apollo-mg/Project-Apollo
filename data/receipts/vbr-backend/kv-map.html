@@ -114,12 +114,12 @@
 <h2>The newest finding · RDNA4</h2>
 <div class="cards">
 <div class="card" style="border-left:3px solid var(--bad)">
-<span class="cfg">TCQ KV + 2-bit weights + ROCm</span>
+<span class="cfg">TCQ KV + 2-bit weights + gfx1201</span>
 <span class="why">Collapses to pure <code>!</code> output on the first request and never recovers. HTTP 200, <code>finish_reason: length</code>, throughput unchanged. <strong>All three conditions are required</strong> — remove any one and it is clean.</span>
 </div>
 <div class="card good">
 <span class="cfg">the same file on CUDA</span>
-<span class="why">md5 <code>7ba3d070…</code>, buun <code>02f8581c65</code>, identical items. Clean 9/10 on a P100. The model and the codec are both fine; the combination on RDNA4 is not.</span>
+<span class="why">md5 <code>7ba3d070…</code>, buun <code>02f8581c65</code>, identical items. Clean 9/10 on a P100. The model and the codec are both fine; the combination on RDNA4 is not. <strong>sm_60 only</strong> — no CUDA part with MMA was tested.</span>
 </div>
 <div class="card good">
 <span class="cfg">-ctk q8_0 -ctv q8_0</span>
@@ -165,6 +165,7 @@
 </table>
 </div>
 <p class="note">At D=128 / BF16 the two backends agree within <strong>22 MiB of allocation on every arm</strong> and return identical verdicts. The divergence appears only at 2-bit weights.</p>
+<p class="note"><strong>Scope.</strong> This is <strong>gfx1201 vs sm_60, one card each</strong> — not a vendor-level claim. No CUDA part with Turing MMA or newer was tested, and the fleet no longer contains one. An Ampere-or-newer arm would decide whether this is an AMD-side defect or a low-bit-weight defect that Pascal happens to dodge.</p>
 </section>
 
 <section>
@@ -173,14 +174,14 @@
 <table>
 <thead><tr><th>Hypothesis</th><th>Verdict</th><th>Evidence</th></tr></thead>
 <tbody>
-<tr><td>the backend alone</td><td><span class="chip c-ok">ruled out</span></td><td>D=128/BF16 identical on both, within 22 MiB</td></tr>
+<tr><td>the backend alone</td><td><span class="chip c-ok">ruled out</span></td><td>D=128/BF16 identical on both, within 22 MiB — but BF16 is the condition where nothing fails either side, so this does not carry the 2-bit case</td></tr>
 <tr><td>head_dim 256</td><td><span class="chip c-ok">ruled out</span></td><td>Qwen3.5-9B Q8_0 at D=256 clean on every TCQ tier</td></tr>
 <tr><td>context depth</td><td><span class="chip c-ok">ruled out</span></td><td>3B at 65,536 ctx — 4× allocation — clean</td></tr>
 <tr><td>quantized KV generally</td><td><span class="chip c-ok">ruled out</span></td><td>q8_0 <em>and</em> q4_0 clean on the collapsing 2-bit model</td></tr>
 <tr><td>the checkpoint / packager</td><td><span class="chip c-ok">ruled out</span></td><td>AtomicChat IQ2_S and unsloth IQ2_M collapse identically</td></tr>
 <tr><td>the VBR dynamic controller</td><td><span class="chip c-ok">ruled out</span></td><td>static turbo3_tcq fails the same way</td></tr>
 <tr><td>the 1.25 bpv floor tier</td><td><span class="chip c-ok">ruled out</span></td><td>the nominal 3.25 bpv tier fails identically</td></tr>
-<tr><td>ROCm × TCQ × 2-bit weights</td><td><span class="chip c-bad">stands</span></td><td>all three necessary; remove any one and it is clean</td></tr>
+<tr><td>gfx1201 × TCQ × 2-bit weights</td><td><span class="chip c-bad">stands</span></td><td>all three necessary; remove any one and it is clean</td></tr>
 </tbody>
 </table>
 </div>
@@ -208,7 +209,7 @@
 </table>
 </div>
 <p class="note">All abort rows require <code>-sm tensor</code>; under <code>-sm layer</code> they run. Every abort is the same assert — <code>ggml-backend-meta.cpp</code> <code>SPLIT_AXIS_UNKNOWN</code>, at line 537 upstream, 535 on Tom's, 533 on buun's. The collapse rows were bisected to <code>5fd308947</code> (<em>cuda : add TurboQuant MMVQ/WHT/inner-quant CUDA kernels</em>) on Tom's fork; buun's fork does not carry that commit and reached the same failure independently.</p>
-<p class="note"><strong>Caveat added 2026-08-19:</strong> on a <em>single</em> P100 with buun <code>02f8581c65</code>, <code>q8_0</code> symmetric at D=256 was <strong>clean 10/10</strong> — it did not reproduce. Three things differ from the row above (single vs dual GPU, newer buun commit, IQ2_M vs Q6_K weights) and which one matters is untested. Do not read the 2026-08-17 rows as current until a 2-GPU arm settles it.</p>
+<p class="note"><strong>Resolved 2026-08-19, for buun only: the collapse rows above are stale.</strong> Re-run on <strong>dual</strong> P100 with buun <code>02f8581c65</code> — Qwen3.8-27B-Q6_K, <code>q8_0</code> symmetric, <code>-sm layer</code>, <code>GGML_CUDA_ALLREDUCE=internal</code>, matching the original U_E configuration in every respect except the fork commit — came back <strong>clean 10/10</strong>, as did the f16 control. It also did not reproduce on a single P100. So Bug A appears <strong>fixed in buun between <code>a8e5b5a38</code> and <code>02f8581c65</code></strong>; no commit-level isolation was attempted. This says nothing about TheTom <code>f6124e9</code>, where the original collapse was measured and where the bisect named <code>5fd308947</code>.</p>
 </section>
 
 <section>
@@ -218,7 +219,7 @@
 <div class="card">
 <h3>buun <span class="repo">buun-llama-cpp</span></h3>
 <ul>
-<li><strong>TCQ KV corrupts generation on RDNA4 when the weights are 2-bit.</strong> <span class="tag t-ready">ready</span> Reproduces on <code>turbo3_tcq</code> and <code>turbo1_tcq</code>, two different packagers' 2-bit quants, first request every time. Same file and commit on CUDA is clean. He acquired a 9070 XT days ago, so this is the least-exercised path in the fork.</li>
+<li><strong>TCQ KV corrupts generation on gfx1201 when the weights are 2-bit.</strong> <span class="tag t-ready">ready</span> Reproduces on <code>turbo3_tcq</code> and <code>turbo1_tcq</code>, two different packagers' 2-bit quants, first request every time. Same file and commit on CUDA is clean. He acquired a 9070 XT days ago, so this is the least-exercised path in the fork.</li>
 <li><strong>The mixed-type abort is not his.</strong> <span class="tag t-ready">resolved</span> Upstream refuses <code>K != V</code> without <code>GGML_CUDA_FA_ALL_QUANTS</code>; he matches stock. Tom's allow-list is the addition. This half of the earlier report is withdrawn.</li>
 <li><strong>Template v3 for Qwen3.8.</strong> <span class="tag t-ready">ready</span> The 3.6 → 3.8 rewrite dropped four of his 25 fixes: <code>| safe</code>, <code>loop.previtem</code>, nine <code>raise_exception</code> sites, and the <code>developer</code> role.</li>
 </ul>
