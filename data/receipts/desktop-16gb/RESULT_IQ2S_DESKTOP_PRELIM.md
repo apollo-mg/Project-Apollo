@@ -95,3 +95,51 @@ GiB"* is not conservatism. **The tooling's own estimate is the thing being corre
 - **TCQ untested here.** This HIP build carries `turbo2/3/4` only; `turbo2_tcq`, the codec the
   260k plan actually needs, exists only in buun's tree on `.194`.
 - **One model, one quant, one prompt set.**
+
+---
+
+## 5. VBR runs on RDNA4 — and its auto-budget inherits the fit-logic error
+
+**2026-08-18.** buun `02f8581` built for **gfx1201** (`build_rocm`, HIP), deliberately at the
+**same commit as `.194`** so a later RDNA4-vs-Pascal comparison is not contaminated by two
+weeks of upstream drift (the local tree had been sitting at `7939b6c4`, 2026-07-22).
+
+**It arms and it works:**
+
+```
+VBR_VMM gate: dynamic=1 no_alloc=0 policy=0 is_turbo=1 n_stream=1 v_trans=0 -> wanted=1
+VBR VMM pool #0: 2048.12 MiB VA reserved (device 0, 4 KiB pages), 0.12 MiB mapped up front
+VBR degrade order: 160 baked steps (arch + KV-layout matched; n_layer 65 vs table 64)
+VBR budget: 4737.22 MiB mapped-physical (degrade trigger armed)
+```
+
+`vbr-vmm.cu` calls the CUDA Driver VMM API (`cuMemCreate` / `cuMemSetAccess`); those hipify
+cleanly and the pool allocates on ROCm. Output correct (`17 × 23 = 391`) at **29.5 t/s** —
+marginally *faster* than the same model on f16 KV (28.6 t/s), so on this part VBR is not a
+performance compromise. buun's baked pricing table matched the architecture despite the
+`n_layer 65 vs 64` mismatch, logging it as an MTP/nextn-style variant rather than falling
+through to the generic order.
+
+**This answers a question worth answering: VBR is not CUDA-only in practice.**
+
+### The connected finding: auto-budget is planning against phantom memory
+
+The budget above was resolved **automatically** — *"KV budget auto (remaining VRAM, resolved by
+fit)"*, landing on **4737 MiB**. But §4 of this receipt measured `common_params_fit_impl`
+seeing **15,884 MiB free when sysfs reported 13,421** — it does not account for the desktop's
+allocation.
+
+**So auto-VBR on a display-driving card sizes its degrade schedule against ~2.4 GiB of memory
+that does not exist.** The failure mode is specific and nasty: VBR's whole design is to *not*
+degrade until it must, so an inflated budget means it holds a higher tier for longer and hits
+real memory pressure **later and harder** — at depth, mid-conversation, rather than at load.
+
+**This is now the strongest argument for pinning `VBR_BUDGET_MIB`, and it is not the one the
+protocol originally gave.** Reproducibility was the stated reason. The better reason is that
+**the automatic value is derived from a measurement that is wrong on exactly the hardware
+class this protocol targets.** A pinned budget is not merely more comparable — on a desktop
+card it is more *correct*.
+
+Recommended for this machine: measure free VRAM from sysfs with the desktop running, subtract
+1 GiB, subtract the model and compute buffers, and pin what remains. On the configuration
+measured here that is roughly **2.0-2.2 GiB**, against the 4.7 GiB the tool chose for itself.
