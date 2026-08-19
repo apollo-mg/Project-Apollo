@@ -111,11 +111,11 @@
 </header>
 
 <section>
-<h2>The finding · gfx1201</h2>
+<h2>The finding · gfx1201 · GQA &ge; 6</h2>
 <div class="cards">
 <div class="card" style="border-left:3px solid var(--bad)">
-<span class="cfg">TCQ KV + GQA &ge; 6 + gfx1201</span>
-<span class="why">Collapses to pure <code>!</code> on the first request and never recovers. HTTP 200, <code>finish_reason: length</code>, throughput unchanged. Nine model/quant combinations separate perfectly on the GQA ratio.</span>
+<span class="cfg">ANY turbo KV codec + GQA &ge; 6 + gfx1201</span>
+<span class="why">Collapses to pure <code>!</code> on the first request and never recovers. HTTP 200, <code>finish_reason: length</code>, throughput unchanged. <strong>8 of 8 turbo configurations collapse; 3 of 3 stock configurations are clean.</strong> One turbo tensor anywhere in the cache is sufficient.</span>
 </div>
 <div class="card good">
 <span class="cfg">the same file on a P100</span>
@@ -127,6 +127,32 @@
 </div>
 </div>
 <p class="note"><code>vbr</code> is the CLI alias for <code>turbo3_tcq</code>. Driving the codec statically fails identically, so the dynamic VBR controller is <strong>not</strong> implicated.</p>
+</section>
+
+<section>
+<h2>Every KV pair on the collapsing model</h2>
+<p class="note"><code>Qwen3.8-27B-AD-IQ2_S</code>, GQA 6:1, gfx1201, ctx 4096. <strong>Bit depth is irrelevant</strong> — <code>turbo8</code> at 8.125 bpv fails identically to <code>turbo1_tcq</code> at 1.25. <strong>TCQ vs classic is irrelevant. Which side carries it is irrelevant.</strong></p>
+<div class="scroll">
+<table>
+<thead><tr><th>K</th><th>V</th><th>any turbo?</th><th>result</th></tr></thead>
+<tbody>
+<tr><td class="k">f16</td><td class="k">f16</td><td>no</td><td><span class="chip c-ok">clean 10/10</span></td></tr>
+<tr><td class="k">q8_0</td><td class="k">q8_0</td><td>no</td><td><span class="chip c-ok">clean 9/10</span></td></tr>
+<tr><td class="k">q4_0</td><td class="k">q4_0</td><td>no</td><td><span class="chip c-ok">clean 9/10</span></td></tr>
+<tr><td class="k">turbo8</td><td class="k">turbo8</td><td>yes</td><td><span class="chip c-bad">collapse</span></td></tr>
+<tr><td class="k">turbo4</td><td class="k">turbo4</td><td>yes</td><td><span class="chip c-bad">collapse</span></td></tr>
+<tr><td class="k">turbo3_tcq</td><td class="k">turbo3_tcq</td><td>yes</td><td><span class="chip c-bad">collapse</span></td></tr>
+<tr><td class="k">turbo1_tcq</td><td class="k">turbo1_tcq</td><td>yes</td><td><span class="chip c-bad">collapse</span></td></tr>
+<tr><td class="k">turbo8</td><td class="k">turbo4</td><td>yes</td><td><span class="chip c-bad">collapse</span> <em>buun's daily pair</em></td></tr>
+<tr><td class="k">turbo4</td><td class="k">turbo3_tcq</td><td>yes</td><td><span class="chip c-bad">collapse</span></td></tr>
+<tr><td class="k">q8_0</td><td class="k">turbo8</td><td>yes</td><td><span class="chip c-bad">collapse</span></td></tr>
+<tr><td class="k">q8_0</td><td class="k">turbo4</td><td>yes</td><td><span class="chip c-bad">collapse</span> <em>= turboquant#311's pair</em></td></tr>
+<tr><td class="k">q8_0</td><td class="k">turbo3_tcq</td><td>yes</td><td><span class="chip c-bad">collapse</span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="note"><strong>Asymmetry is not a workaround</strong> — degrading V below K was tested three ways and fails every time. <strong>On gfx1201 the turboquant KV cache is unusable for GQA &ge; 6 models</strong>: not degraded, degenerate from the first request and permanently. Qwen3.5-9B at GQA 4:1 runs the same codecs clean at 32k context, so this is scoped to the model class, not the card.</p>
+<p class="note"><strong>Why VBR always lands there.</strong> The degrade ladder is per-layer and per-side (<code>llama-vbr-degrade-orders.inc</code>). The <code>q27</code> order — Qwen3.6-27B, hybrid, 16/64 KV layers, this exact model class — is 160 steps and its <em>first</em> step is already a turbo tier, so any budget pressure puts turbo tensors in the cache; by step 64 layer 3 holds TCQ on both sides and all 16 of 16 KV layers end there. <code>VBR_DEGRADE_ORDER</code> can replace the table at runtime, but no ordering helps when every turbo tier is unsafe — only the f16 entry tier is.</p>
 </section>
 
 <section>
@@ -236,7 +262,7 @@
 <div class="card">
 <h3>buun <span class="repo">buun-llama-cpp</span></h3>
 <ul>
-<li><strong>Symmetric TCQ KV corrupts generation on gfx1201 for GQA &ge; 6 models.</strong> <span class="tag t-ready">ready</span> Nine model/quant combinations separate perfectly on the GQA ratio — clean at 3:1 and 4:1, collapse at 6:1 — across two base models, five quant schemes and two packagers. Weight precision is <em>not</em> the predictor: a 2-bit 9B is clean and a 3-bit 27B collapses. The byte-identical file is clean on a P100. He acquired a 9070 XT days ago, so this is the least-exercised path in the fork.</li>
+<li><strong>Any turbo KV codec corrupts generation on gfx1201 for GQA &ge; 6 models.</strong> <span class="tag t-ready">ready</span> Nine model/quant combinations separate perfectly on the GQA ratio — clean at 3:1 and 4:1, collapse at 6:1 — across two base models, five quant schemes and two packagers. Weight precision is <em>not</em> the predictor: a 2-bit 9B is clean and a 3-bit 27B collapses. The byte-identical file is clean on a P100. He acquired a 9070 XT days ago, so this is the least-exercised path in the fork.</li>
 <li><strong>The mixed-type abort is not his.</strong> <span class="tag t-ready">resolved</span> Upstream refuses <code>K != V</code> without <code>GGML_CUDA_FA_ALL_QUANTS</code>; he matches stock. Tom's allow-list is the addition. This half of the earlier report is withdrawn.</li>
 <li><strong>Template v3 for Qwen3.8.</strong> <span class="tag t-ready">ready</span> The 3.6 → 3.8 rewrite dropped four of his 25 fixes: <code>| safe</code>, <code>loop.previtem</code>, nine <code>raise_exception</code> sites, and the <code>developer</code> role.</li>
 </ul>
@@ -273,7 +299,7 @@
 </section>
 
 <footer>
-Receipts in <code>data/receipts/kv-tensor-split/</code> and <code>data/receipts/vbr-backend/</code>. Predictions pre-registered before every run and scored honestly — on 2026-08-19: C1 correct, C2 falsified, D3/E3 correct, G1 and G2 falsified, H1 correct, I0-I2 correct, J1 correct, K1 falsified, L1 void, M1 correct. This page has been rewritten twice as the framing was falsified — first "2-bit weights", then "low-bit weights", now GQA. Allocation is recorded on every arm because a codec that silently falls back to f16 produces a clean result and would fake exactly the conclusion being tested.
+Receipts in <code>data/receipts/kv-tensor-split/</code> and <code>data/receipts/vbr-backend/</code>. Predictions pre-registered before every run and scored honestly — on 2026-08-19: C1 correct, C2 falsified, D3/E3 correct, G1 and G2 falsified, H1 correct, I0-I2 correct, J1 correct, K1 falsified, L1 void, M1 correct. This page has been rewritten twice as the framing was falsified — first "2-bit weights", then "low-bit weights", then "symmetric TCQ", now: any turbo codec at GQA &ge; 6. Allocation is recorded on every arm because a codec that silently falls back to f16 produces a clean result and would fake exactly the conclusion being tested.
 </footer>
 
 </div>
