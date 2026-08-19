@@ -191,3 +191,36 @@ Also running: **2-GPU Bug A reproduction on `.194`** — Qwen3.8-27B-Q6_K, `q8_0
 `-sm layer`, `GGML_CUDA_ALLREDUCE=internal`, buun `02f8581c65`. Matches `RESULT_OWNERSHIP.md`
 U_E exactly except for the fork commit. Collapse → Bug A is live and multi-GPU-only.
 Clean → it is fixed between `a8e5b5a38` and `02f8581c65`.
+
+## Round I results so far
+
+| rung | weights | MiB | `turbo3_tcq` | f16 control |
+|---|---|---:|---|---|
+| I0 control | `AD-IQ2_S` @ ctx 4096 | 10,625 | **collapse, item 1, canary dead** | clean 9/10 |
+| I1 | `AD-IQ2_XS` | 9,431 | **collapse, item 1, canary dead** | clean 9/10 |
+
+I0 correct (0.85) — the collapse shape at ctx 4096 matches the 16k rows exactly, so the
+ladder rungs are comparable. I1 correct (0.85).
+
+---
+
+# Round J — I-quant or 2-bit?
+
+**Every model that has collapsed is an I-quant**: `AD-IQ2_S`, `AD-IQ2_XS`, `UD-IQ2_M`. No
+2-bit **K-quant** has ever been tested. `unsloth/Qwen3.8-27B-GGUF` `UD-Q2_K_XL` (9,373 MiB)
+is one, and it is also a **third independent recipe** for the "not the checkpoint" argument.
+
+| # | arm | prediction | conf |
+|---|---|---|---|
+| J1 | `UD-Q2_K_XL` + `turbo3_tcq`, RDNA4 | **collapse** | 0.60 |
+
+J1 collapse → the condition is bit depth, and it spans quant families.
+J1 clean → the condition is **I-quant** 2-bit specifically, which is a much narrower and
+more mechanically suggestive claim (I-quants use codebook lookups; so does TCQ).
+
+## Reproduction hazard, recorded
+
+`Qwen3.8-27B-UD-IQ2_M.gguf` now returns **HTTP 404** — unsloth withdrew it when Dynamic v3.0
+shipped (2026-08-19). The file we measured is pinned by md5 `7ba3d070fecfd7f1324b9e08887f5b8c`
+but **is no longer downloadable under that name**. Any reproduction instruction naming it is
+already broken. `gguf-label-is-not-a-spec` applies to *timestamps*, not just packagers.

@@ -1,0 +1,57 @@
+### ladder-q2kxl | bin=/mnt/TG_2TB/Projects/Apollo/engines/buun-llama-cpp/build_rocm/bin | ctx=4096 | arms=['turbo3_tcq', 'f16']
+
+======================================================================
+=== KV = turbo3_tcq   [ladder-q2kxl]
+======================================================================
+  VRAM  base=2425 after=12483  ALLOC=10058 MiB
+  LOG   0.23.131.841 I srv    load_model: initializing, n_slots = 4, n_ctx_slot = 4096, kv_unified = 'true'
+  CANARY before  ok  (!frac=0.00, chars=71)
+  T2-01  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-02  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-03  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-04  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-05  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-06  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-07  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-08  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-09  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-10  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  CANARY after   COLLAPSED  (!frac=1.00, chars=256)
+  --> first collapse: T2-01   correct=0/10
+
+======================================================================
+=== KV = f16   [ladder-q2kxl]
+======================================================================
+  VRAM  base=2421 after=12662  ALLOC=10241 MiB
+  LOG   0.14.231.971 I srv    load_model: initializing, n_slots = 4, n_ctx_slot = 4096, kv_unified = 'true'
+  CANARY before  ok  (!frac=0.00, chars=148)
+  T2-01  chars=564    fin=stop    !frac=0.00  has-answer
+  T2-02  chars=373    fin=stop    !frac=0.00  has-answer
+  T2-03  chars=255    fin=stop    !frac=0.00  has-answer
+  T2-04  chars=537    fin=stop    !frac=0.00  has-answer
+  T2-05  chars=250    fin=stop    !frac=0.00  has-answer
+  T2-06  chars=261    fin=stop    !frac=0.00  has-answer
+  T2-07  chars=1021   fin=stop    !frac=0.00  has-answer
+  T2-08  chars=378    fin=stop    !frac=0.00  has-answer
+  T2-09  chars=433    fin=stop    !frac=0.00  has-answer
+  T2-10  chars=358    fin=stop    !frac=0.00  has-answer
+  CANARY after   ok  (!frac=0.00, chars=148)
+  --> first collapse: NONE — arm survived   correct=10/10
+
+### SUMMARY ladder-q2kxl
+{
+  "turbo3_tcq": {
+    "status": "ran",
+    "alloc": 10058,
+    "first_collapse": "T2-01",
+    "correct": 0,
+    "canary_after": false
+  },
+  "f16": {
+    "status": "ran",
+    "alloc": 10241,
+    "first_collapse": null,
+    "correct": 10,
+    "canary_after": true
+  }
+}

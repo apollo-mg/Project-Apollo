@@ -105,17 +105,17 @@
 <div class="wrap">
 
 <header>
-<p class="stamp">2026-08-17 → 2026-08-19 · RX 9070 XT gfx1201 ROCm · Tesla P100 sm_60 CUDA · 1063 MHz / 150 W</p>
+<p class="stamp">2026-08-17 → 2026-08-19 · RX 9070 XT gfx1201 ROCm · Tesla P100 sm_60 CUDA · 1063 MHz / 150 W · buun 02f8581c65 both machines</p>
 <h1>KV Compatibility Map</h1>
 <p class="sub">Which KV cache codecs are safe on which hardware, with which weights. Every cell was measured — same binary commit across machines, model files md5-matched, allocation checked so nothing silently fell back to f16.</p>
 </header>
 
 <section>
-<h2>The newest finding · RDNA4</h2>
+<h2>The newest finding · gfx1201</h2>
 <div class="cards">
 <div class="card" style="border-left:3px solid var(--bad)">
-<span class="cfg">TCQ KV + 2-bit weights + gfx1201</span>
-<span class="why">Collapses to pure <code>!</code> output on the first request and never recovers. HTTP 200, <code>finish_reason: length</code>, throughput unchanged. <strong>All three conditions are required</strong> — remove any one and it is clean.</span>
+<span class="cfg">TCQ KV + low-bit weights + gfx1201</span>
+<span class="why">Collapses to pure <code>!</code> output on the first request and never recovers. HTTP 200, <code>finish_reason: length</code>, throughput unchanged. <strong>All three conditions are required</strong> — remove any one and it is clean. Reproduced across <strong>2-bit and 3-bit</strong>, <strong>I-quants and K-quants</strong>, and <strong>two packagers</strong>.</span>
 </div>
 <div class="card good">
 <span class="cfg">the same file on CUDA</span>
@@ -123,7 +123,7 @@
 </div>
 <div class="card good">
 <span class="cfg">-ctk q8_0 -ctv q8_0</span>
-<span class="why">Clean on the very 2-bit model TCQ collapses — 9/10, <code>finish_reason: stop</code>. So is <code>q4_0</code>. This is not "quantized KV is unsafe."</span>
+<span class="why">Clean on the very low-bit models TCQ collapses — 9/10, <code>finish_reason: stop</code>. So is <code>q4_0</code>. This is not "quantized KV is unsafe."</span>
 </div>
 </div>
 <p class="note"><code>vbr</code> is the CLI alias for <code>turbo3_tcq</code>. Driving the codec statically fails identically, so the dynamic VBR controller is <strong>not</strong> implicated — an earlier receipt of ours that blamed "the VBR KV path" was pointing at the wrong component.</p>
@@ -164,7 +164,7 @@
 </tbody>
 </table>
 </div>
-<p class="note">At D=128 / BF16 the two backends agree within <strong>22 MiB of allocation on every arm</strong> and return identical verdicts. The divergence appears only at 2-bit weights.</p>
+<p class="note">At D=128 / BF16 the two backends agree within <strong>22 MiB of allocation on every arm</strong> and return identical verdicts. The divergence appears only at low-bit weights.</p>
 <p class="note"><strong>Scope.</strong> This is <strong>gfx1201 vs sm_60, one card each</strong> — not a vendor-level claim. No CUDA part with Turing MMA or newer was tested, and the fleet no longer contains one. An Ampere-or-newer arm would decide whether this is an AMD-side defect or a low-bit-weight defect that Pascal happens to dodge.</p>
 </section>
 
@@ -174,17 +174,38 @@
 <table>
 <thead><tr><th>Hypothesis</th><th>Verdict</th><th>Evidence</th></tr></thead>
 <tbody>
-<tr><td>the backend alone</td><td><span class="chip c-ok">ruled out</span></td><td>D=128/BF16 identical on both, within 22 MiB — but BF16 is the condition where nothing fails either side, so this does not carry the 2-bit case</td></tr>
+<tr><td>the backend alone</td><td><span class="chip c-ok">ruled out</span></td><td>D=128/BF16 identical on both, within 22 MiB — but BF16 is the condition where nothing fails either side, so this does not carry the low-bit case</td></tr>
 <tr><td>head_dim 256</td><td><span class="chip c-ok">ruled out</span></td><td>Qwen3.5-9B Q8_0 at D=256 clean on every TCQ tier</td></tr>
 <tr><td>context depth</td><td><span class="chip c-ok">ruled out</span></td><td>3B at 65,536 ctx — 4× allocation — clean</td></tr>
 <tr><td>quantized KV generally</td><td><span class="chip c-ok">ruled out</span></td><td>q8_0 <em>and</em> q4_0 clean on the collapsing 2-bit model</td></tr>
 <tr><td>the checkpoint / packager</td><td><span class="chip c-ok">ruled out</span></td><td>AtomicChat IQ2_S and unsloth IQ2_M collapse identically</td></tr>
 <tr><td>the VBR dynamic controller</td><td><span class="chip c-ok">ruled out</span></td><td>static turbo3_tcq fails the same way</td></tr>
 <tr><td>the 1.25 bpv floor tier</td><td><span class="chip c-ok">ruled out</span></td><td>the nominal 3.25 bpv tier fails identically</td></tr>
-<tr><td>gfx1201 × TCQ × 2-bit weights</td><td><span class="chip c-bad">stands</span></td><td>all three necessary; remove any one and it is clean</td></tr>
+<tr><td>gfx1201 × TCQ × low-bit weights</td><td><span class="chip c-bad">stands</span></td><td>all three necessary; remove any one and it is clean</td></tr>
 </tbody>
 </table>
 </div>
+</section>
+
+<section>
+<h2>The weight-quant ladder · Qwen3.8-27B · gfx1201 · ctx 4096</h2>
+<div class="scroll">
+<table>
+<thead><tr><th>quant</th><th>bits</th><th>family</th><th>packager</th><th>MiB</th><th>turbo3_tcq</th><th>f16 control</th></tr></thead>
+<tbody>
+<tr><td class="k">UD-Q2_K_XL</td><td>2</td><td>K-quant</td><td>unsloth v3</td><td>10,058</td><td><span class="chip c-bad">collapse</span></td><td><span class="chip c-ok">10/10</span></td></tr>
+<tr><td class="k">AD-IQ2_XS</td><td>2</td><td>I-quant</td><td>AtomicChat</td><td>9,870</td><td><span class="chip c-bad">collapse</span></td><td><span class="chip c-ok">9/10</span></td></tr>
+<tr><td class="k">AD-IQ2_S</td><td>2</td><td>I-quant</td><td>AtomicChat</td><td>11,069</td><td><span class="chip c-bad">collapse</span></td><td><span class="chip c-ok">9/10</span></td></tr>
+<tr><td class="k">UD-IQ2_M</td><td>2</td><td>I-quant</td><td>unsloth v2</td><td>10,735</td><td><span class="chip c-bad">collapse</span></td><td><span class="chip c-ok">10/10</span></td></tr>
+<tr><td class="k">AD-IQ3_XXS</td><td>3</td><td>I-quant</td><td>AtomicChat</td><td>11,845</td><td><span class="chip c-bad">collapse</span></td><td><span class="chip c-ok">9/10</span></td></tr>
+<tr><td class="k">AD-IQ3_S-IQ3_XXS</td><td>3</td><td>I-quant</td><td>AtomicChat</td><td>12,382</td><td><span class="chip c-unk">no start</span></td><td><span class="chip c-unk">no start</span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="note">Every arm collapses at <strong>item 1</strong> with the canary dead afterwards, and every f16 control on the same file is clean. The <code>AD-IQ3_S-IQ3_XXS</code> row failed to load — probable <em>host RAM</em> exhaustion (9 GB available against a 12.4 GiB model), not VRAM.</p>
+<p class="note"><strong>The open confound.</strong> No 27B has ever run clean with TCQ at <em>any</em> weight precision. The only clean TCQ arms are a different model (Qwen3.5-9B Q8_0). So <strong>"low-bit weights" and "this model" are not yet separated</strong> — a 27B at 6-bit or 8-bit does not fit this card, so the separator being run is a <em>low-bit 9B</em> instead. Until that lands, read the condition as "low-bit weights <em>or</em> this model".</p>
+<p class="note"><strong>Reproduction hazard.</strong> <code>Qwen3.8-27B-UD-IQ2_M.gguf</code> now returns <strong>HTTP 404</strong> — unsloth withdrew it when Dynamic v3.0 shipped on 2026-08-19. The measured file is pinned by md5 <code>7ba3d070fecfd7f1324b9e08887f5b8c</code> but is no longer downloadable under that name. Quantized-model filenames are not stable identifiers <em>over time</em>, not just across packagers.</p>
+<p class="note"><strong>Possibly related, not ours:</strong> <a href="https://github.com/TheTom/llama-cpp-turboquant/issues/311">turboquant#311</a> reports <code>turbo4</code> V-cache corruption on an <strong>RTX 3090</strong> — runaway generation with no EOS, fixed by switching <code>-ctv q8_0</code> on an identical build, bisected to PR #197. Different codec, different fork, different vendor, and partial corruption rather than total collapse, so <em>not</em> the same bug on this evidence. But it is the same class on an MMA-capable CUDA part, which is exactly the hardware we cannot test. Note his pair is <code>q8_0</code> K + <code>turbo4</code> V — a combination the sm_60 table below marks <strong>clean</strong>, so "clean" there is hardware-scoped.</p>
 </section>
 
 <section>
@@ -219,7 +240,7 @@
 <div class="card">
 <h3>buun <span class="repo">buun-llama-cpp</span></h3>
 <ul>
-<li><strong>TCQ KV corrupts generation on gfx1201 when the weights are 2-bit.</strong> <span class="tag t-ready">ready</span> Reproduces on <code>turbo3_tcq</code> and <code>turbo1_tcq</code>, two different packagers' 2-bit quants, first request every time. Same file and commit on CUDA is clean. He acquired a 9070 XT days ago, so this is the least-exercised path in the fork.</li>
+<li><strong>TCQ KV corrupts generation on gfx1201 when the weights are low-bit.</strong> <span class="tag t-ready">ready</span> Reproduces on <code>turbo3_tcq</code> and <code>turbo1_tcq</code>, across 2-bit and 3-bit, I-quants and K-quants, and three quant recipes from two packagers — first request every time. Same file and commit on CUDA is clean. He acquired a 9070 XT days ago, so this is the least-exercised path in the fork.</li>
 <li><strong>The mixed-type abort is not his.</strong> <span class="tag t-ready">resolved</span> Upstream refuses <code>K != V</code> without <code>GGML_CUDA_FA_ALL_QUANTS</code>; he matches stock. Tom's allow-list is the addition. This half of the earlier report is withdrawn.</li>
 <li><strong>Template v3 for Qwen3.8.</strong> <span class="tag t-ready">ready</span> The 3.6 → 3.8 rewrite dropped four of his 25 fixes: <code>| safe</code>, <code>loop.previtem</code>, nine <code>raise_exception</code> sites, and the <code>developer</code> role.</li>
 </ul>

@@ -3,3 +3,55 @@
 ======================================================================
 === KV = turbo3_tcq   [ladder-iq2xs]
 ======================================================================
+  VRAM  base=2798 after=12668  ALLOC=9870 MiB
+  LOG   0.20.807.760 I srv    load_model: initializing, n_slots = 4, n_ctx_slot = 4096, kv_unified = 'true'
+  CANARY before  ok  (!frac=0.00, chars=121)
+  T2-01  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-02  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-03  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-04  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-05  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-06  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-07  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-08  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-09  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-10  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  CANARY after   COLLAPSED  (!frac=1.00, chars=256)
+  --> first collapse: T2-01   correct=0/10
+
+======================================================================
+=== KV = f16   [ladder-iq2xs]
+======================================================================
+  VRAM  base=3133 after=13193  ALLOC=10060 MiB
+  LOG   0.15.819.532 I srv    load_model: initializing, n_slots = 4, n_ctx_slot = 4096, kv_unified = 'true'
+  CANARY before  ok  (!frac=0.00, chars=155)
+  T2-01  chars=1430   fin=stop    !frac=0.00  has-answer
+  T2-02  chars=736    fin=stop    !frac=0.00  has-answer
+  T2-03  chars=719    fin=stop    !frac=0.00  has-answer
+  T2-04  chars=569    fin=stop    !frac=0.00  has-answer
+  T2-05  chars=448    fin=stop    !frac=0.00  has-answer
+  T2-06  chars=627    fin=stop    !frac=0.00  has-answer
+  T2-07  chars=700    fin=stop    !frac=0.00  has-answer
+  T2-08  chars=892    fin=stop    !frac=0.00  has-answer
+  T2-09  chars=756    fin=stop    !frac=0.00  no-answer
+  T2-10  chars=667    fin=stop    !frac=0.00  has-answer
+  CANARY after   ok  (!frac=0.00, chars=155)
+  --> first collapse: NONE — arm survived   correct=9/10
+
+### SUMMARY ladder-iq2xs
+{
+  "turbo3_tcq": {
+    "status": "ran",
+    "alloc": 9870,
+    "first_collapse": "T2-01",
+    "correct": 0,
+    "canary_after": false
+  },
+  "f16": {
+    "status": "ran",
+    "alloc": 10060,
+    "first_collapse": null,
+    "correct": 9,
+    "canary_after": true
+  }
+}

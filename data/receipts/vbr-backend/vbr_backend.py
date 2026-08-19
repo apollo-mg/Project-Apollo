@@ -22,6 +22,21 @@ CTX   = int(os.environ.get("VBR_CTX", "16384"))
 ARMS  = os.environ.get("VBR_ARMS", "f16,q8_0,vbr").split(",")
 os.makedirs(OUT, exist_ok=True)
 
+# Exclusive lock: this runner pkills llama-server on every arm start, so two concurrent
+# runners silently destroy each other's servers mid-sequence. Refuse rather than race.
+LOCK = os.path.join(OUT, ".runner.lock")
+if os.path.exists(LOCK):
+    try:
+        other = int(open(LOCK).read().strip())
+        os.kill(other, 0)
+        sys.exit(f"REFUSING: runner pid {other} is already active (lock {LOCK}). "
+                 f"Wait for it or remove the lock if stale.")
+    except (ValueError, ProcessLookupError, PermissionError):
+        pass  # stale lock, take it
+open(LOCK, "w").write(str(os.getpid()))
+import atexit
+atexit.register(lambda: os.path.exists(LOCK) and os.remove(LOCK))
+
 TMPL = "{}\n\nThink briefly if you need to, then end your reply with exactly one line:\nExact Answer: <your answer>"
 CAN  = "What is 17 multiplied by 23? Reply with just the number."
 ITEMS = [("T2-01","A tank fills at 4 L/min and drains at 1.5 L/min. It starts at 20 L and holds 200 L. How many minutes until it is full?","72"),
