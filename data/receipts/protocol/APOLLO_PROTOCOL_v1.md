@@ -206,3 +206,66 @@ is not even consistent between vendors.
 not something this document should guess at. Candidates raised so far, **unverified here**:
 Bonsai's ternary Qwen 3.6 27B, Gemma 4 12B QAT, IQ2_XXS 27B paired with turboquant KV and a
 compaction layer.
+
+---
+
+## Step 6 — engine churn: version the suite, not the engine
+
+The tension, stated by Mark:
+
+> *"I hate the idea of a benchmark suite using constantly different builds between tests, but
+> maybe we have to think of the engine as more of a driver that you're supposed to keep up to
+> date, even if it introduces new bugs that confound the shit out of all the tests."*
+
+Both halves are right, and the resolution is not to pick one. **Pinning forever goes stale and
+measures a fork nobody runs. Chasing head means every result sits on a different substrate.**
+What works is the approach MLPerf uses for rounds and Gamers Nexus uses for driver versions:
+**results are comparable within a declared version, and crossing versions requires a bridge.**
+
+### The rule
+
+1. **Pin the engine commit per campaign** and record it in every receipt. *(Already done — every
+   receipt in this repo names its tree and SHA.)*
+2. **Results are comparable within a pinned commit.** Across commits they are not, by default.
+3. **On every bump, run the bridge arm on both the old and new commit.**
+4. If the bridge agrees within tolerance, prior results **carry forward**. If it does not, they
+   **do not** — and the bridge tells you by how much, which is more useful than either
+   pretending the change is safe or discarding the history.
+
+### The bridge arm costs nothing, because we already run it
+
+Every fidelity panel here already contains two arms that serve as the bridge:
+
+| arm | expectation | what a deviation means |
+|---|---|---|
+| **f16/f16** | an **exact null** — flip 0.0000, KL 0.00000 | the engine broke something fundamental; **stop** |
+| **`q8_0`/`q8_0`** | the same `mean_R` within run-to-run noise | numerics moved; quantify before carrying anything forward |
+
+*Reference values, buun `02f8581`, sm_60, 128 prompts, `--n-prefix 128`:*
+
+| | |
+|---|---|
+| f16/f16 | `flip 0.0000  mean_KL 0.00000  mean_R 0.0000` |
+| `q8_0`/`q8_0` | `flip 0.0014  mean_KL 0.00001  mean_R 0.1654  cvar95 3.3529` |
+
+The bridge is **per (engine commit × backend)** — a HIP build and a CUDA build of the same
+commit are different substrates and each needs its own reference row. The ≤1 pp cross-backend
+acceptance gap measured in `S2` is the same phenomenon seen from the throughput side.
+
+### Why this is worth the discipline
+
+It converts engine churn from a confound into a **measurement**. Instead of *"the build
+changed, who knows"*, you get *"the build changed and `q8_0` moved 4 %, so the depth panel
+needs re-running but the throughput work carries"*. That is a decision you can defend, and it
+takes minutes rather than re-running a campaign on faith.
+
+It also catches the failure mode that has bitten this project repeatedly: **a tree that is not
+what its name says.** `llama_stock` on `.194` was not stock; three trees on the fleet have been
+mislabelled. A bridge arm run on checkout would have caught every one of them immediately.
+
+### Corollary: match commits across nodes before comparing nodes
+
+A cross-node comparison on different commits measures the commit difference as well as the
+hardware. The buun fork was built for RDNA4 at **`02f8581`** specifically to match `.194`,
+rather than at the 2.5-week-older `7939b6c4` that was already checked out — otherwise "VBR on
+RDNA4 vs Pascal" would have silently included two weeks of upstream drift.
