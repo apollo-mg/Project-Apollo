@@ -119,7 +119,7 @@
 </div>
 <div class="card good">
 <span class="cfg">the same file on a P100</span>
-<span class="why">md5 <code>7ba3d070…</code>, same commit, same items. Clean 9/10. <strong>sm_60 only</strong> — no CUDA part with MMA was tested.</span>
+<span class="why">md5 <code>7ba3d070…</code>, same commit, same items. Clean 9/10 — but <strong>sm_60 is routed to a dequant&rarr;f16&rarr;TILE path and never runs the quantized FA kernels</strong>. This shows the model and codec are sound, not that the quantized path is sound anywhere.</span>
 </div>
 <div class="card good">
 <span class="cfg">-ctk q8_0 -ctv q8_0</span>
@@ -192,6 +192,29 @@
 </table>
 </div>
 <p class="note"><strong>The decisive pair:</strong> the byte-identical <code>UD-IQ2_M</code> file (md5 <code>7ba3d070…</code>) is <strong>clean on the P100 and collapses on gfx1201</strong>, same commit, same items. <strong>Scope: gfx1201 vs sm_60, one card each</strong> — not a vendor claim. No CUDA part with Turing MMA or newer was tested and the fleet no longer has one.</p>
+</section>
+
+<section>
+<h2>Where to look · pointers, not mechanism</h2>
+<p class="note">Every prediction made from reading source structure during this campaign has been falsified, so treat this as a place to look rather than a claim.</p>
+<h3>The ncols2 selection branches exactly where the results split</h3>
+<div class="scroll">
+<table>
+<thead><tr><th>model</th><th>GQA</th><th>selects</th><th>measured</th></tr></thead>
+<tbody>
+<tr><td class="k">Llama-3.2-3B</td><td>3:1</td><td class="k">ncols2 = 4</td><td><span class="chip c-ok">clean</span></td></tr>
+<tr><td class="k">Qwen3.5-9B</td><td>4:1</td><td class="k">ncols2 = 4</td><td><span class="chip c-ok">clean</span></td></tr>
+<tr><td class="k">Qwen3.8-27B</td><td>6:1</td><td class="k">ncols2 = 8</td><td><span class="chip c-bad">collapse</span></td></tr>
+<tr><td class="k">Ternary-Bonsai-27B</td><td>6:1</td><td class="k">ncols2 = 8</td><td><span class="chip c-bad">collapse</span></td></tr>
+<tr><td class="k">turboquant#311 · RTX 3090</td><td>8:1</td><td class="k">ncols2 = 8</td><td><span class="chip c-bad">corruption</span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="note">In the MMA launcher, <code>gqa_ratio &gt; 4</code> selects <code>ncols2 = 8</code> and <code>gqa_ratio &gt; 2</code> selects <code>ncols2 = 4</code>. <strong>Every clean model takes 4; every failing one takes 8</strong>, including the independent #311 report on different hardware and a different fork. <code>RESULT_PR295_GFX1201.md</code> also measured gfx1201's surviving VGPR spills concentrated at D=256 / ncols=2, up to 357 VGPR after PR #295.</p>
+<p class="note"><strong>Falsifiable prediction:</strong> any GQA &ge; 5 model collapses on gfx1201, any GQA &le; 4 does not. Only 3:1, 4:1 and 6:1 have been sampled — a GQA 8:1 model that fits 16 GB would test it, and none is on disk.</p>
+<h3>Two corrections to earlier guesses in this campaign</h3>
+<p class="note"><strong>Pascal never runs the quantized FA kernels.</strong> buun <code>24444d722</code> routes pre-Volta quantized-V decode through dequant&rarr;f16&rarr;TILE because <em>"flash_attn_ext_vec's cpy_ne=2 / nthreads_KQ=16 K/Q layout runs on no other arch and produces garbage on sm_60"</em>. So the P100 arms are not a same-code comparison, and the cross-backend contrast is weaker than it first appears. He has already fixed one "untested layout produces garbage" defect in this same file.</p>
+<p class="note"><strong>AMD WMMA is not on this path.</strong> <code>fattn.cu:2105</code> gates the WMMA branch on <code>Q-&gt;ne[0] &lt;= 128</code>. Both collapsing models are D=256, so gfx1201 never takes WMMA for them — an earlier hypothesis that the defect lived in "the WMMA turbo path" is wrong for that reason.</p>
 </section>
 
 <section>
