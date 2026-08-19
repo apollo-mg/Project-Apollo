@@ -1,0 +1,83 @@
+### o23-asym | bin=/mnt/TG_2TB/Projects/Apollo/engines/buun-llama-cpp/build_rocm/bin | ctx=4096 | arms=['q8_0:turbo3_tcq', 'turbo8:turbo4', 'turbo4:turbo3_tcq']
+
+======================================================================
+=== KV = q8_0:turbo3_tcq   [o23-asym]
+======================================================================
+  VRAM  base=2613 after=13780  ALLOC=11167 MiB
+  LOG   0.05.449.066 I srv    load_model: initializing, n_slots = 4, n_ctx_slot = 4096, kv_unified = 'true'
+  CANARY before  ok  (!frac=0.00, chars=119)
+  T2-01  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-02  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-03  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-04  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-05  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-06  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-07  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-08  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-09  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-10  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  CANARY after   COLLAPSED  (!frac=1.00, chars=256)
+  --> first collapse: T2-01   correct=0/10
+
+======================================================================
+=== KV = turbo8:turbo4   [o23-asym]
+======================================================================
+  VRAM  base=2765 after=13947  ALLOC=11182 MiB
+  LOG   0.05.316.309 I srv    load_model: initializing, n_slots = 4, n_ctx_slot = 4096, kv_unified = 'true'
+  CANARY before  ok  (!frac=0.00, chars=143)
+  T2-01  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-02  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-03  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-04  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-05  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-06  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-07  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-08  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-09  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-10  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  CANARY after   COLLAPSED  (!frac=1.00, chars=256)
+  --> first collapse: T2-01   correct=0/10
+
+======================================================================
+=== KV = turbo4:turbo3_tcq   [o23-asym]
+======================================================================
+  VRAM  base=2518 after=13617  ALLOC=11099 MiB
+  LOG   0.05.593.368 I srv    load_model: initializing, n_slots = 4, n_ctx_slot = 4096, kv_unified = 'true'
+  CANARY before  ok  (!frac=0.00, chars=145)
+  T2-01  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-02  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-03  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-04  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-05  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-06  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-07  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-08  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-09  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  T2-10  chars=3072   fin=length  !frac=1.00  COLLAPSED
+  CANARY after   COLLAPSED  (!frac=1.00, chars=256)
+  --> first collapse: T2-01   correct=0/10
+
+### SUMMARY o23-asym
+{
+  "q8_0:turbo3_tcq": {
+    "status": "ran",
+    "alloc": 11167,
+    "first_collapse": "T2-01",
+    "correct": 0,
+    "canary_after": false
+  },
+  "turbo8:turbo4": {
+    "status": "ran",
+    "alloc": 11182,
+    "first_collapse": "T2-01",
+    "correct": 0,
+    "canary_after": false
+  },
+  "turbo4:turbo3_tcq": {
+    "status": "ran",
+    "alloc": 11099,
+    "first_collapse": "T2-01",
+    "correct": 0,
+    "canary_after": false
+  }
+}

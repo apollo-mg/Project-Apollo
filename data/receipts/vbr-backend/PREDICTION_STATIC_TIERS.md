@@ -383,3 +383,92 @@ N1a (0.80) and N1b (0.75) both correct. The 32k arm carries **536M cache values 
 The Llama-3.2-3B row carries this: it is **larger than the collapsing 27B on every metric
 except GQA** and it runs clean on both backends. Of the four candidates the matrix admits,
 only the head ratio survives.
+
+---
+
+# Round O — is it TCQ, and is asymmetric actually safe?
+
+Two gaps in everything above, both load-bearing for the proposed fix ("degrade V one step
+below K everywhere except the f16 ceiling"):
+
+1. **Every collapsing arm used a TCQ codec** (`turbo3_tcq`, `turbo1_tcq`). No **non-TCQ**
+   turbo has been run symmetric on gfx1201. If `turbo4` symmetric also collapses, the
+   condition is "symmetric turbo", not "symmetric TCQ".
+2. **No asymmetric pair has ever been tested on gfx1201.** The proposed fix assumes
+   asymmetry is safe there. The only asymmetric datum in this whole investigation is
+   `turboquant#311` — `q8_0` K + `turbo4` V — which **corrupts** on an RTX 3090 at GQA 8:1.
+
+All arms on `Qwen3.8-27B-AD-IQ2_S` (GQA 6:1), gfx1201, ctx 4096 — the configuration that
+collapses at item 1 with 100% reliability across five quants.
+
+| # | arm | tests | prediction | conf |
+|---|---|---|---|---|
+| O1 | `turbo4` + `turbo4` (non-TCQ, symmetric) | is it TCQ-specific? | collapse | 0.55 |
+| O2 | `q8_0` K + `turbo3_tcq` V | is asymmetry the fix? | **clean** | 0.60 |
+| O3 | `turbo8` K + `turbo4` V (buun's daily pair) | does the shipped pair survive? | clean | 0.70 |
+
+O1 collapse → the fix must avoid **all** symmetric turbo at GQA ≥ 6, not just TCQ.
+O2 clean → the proposed fix is sound on this hardware and worth sending.
+O2 collapse → **the fix does not work**, and it would have shipped as a guess.
+
+## Round O results — it is not TCQ, and asymmetry does not fix it
+
+| arm | K | V | TCQ? | result |
+|---|---|---|---|---|
+| O1 | `turbo4` | `turbo4` | **no** | **COLLAPSE item 1** |
+| O2 | `q8_0` | `turbo3_tcq` | V only | **COLLAPSE item 1** |
+
+O1 correct (0.55) — a **non-TCQ** turbo collapses, so "TCQ" was wrong; the condition is any
+symmetric turbo. O2 **falsified** (0.60) — the proposed fix, `q8_0` K with a degraded V,
+collapses too. **Asymmetry is not a fix.** That is also poshih's exact shape in
+`turboquant#311`, which strengthens the case that it is the same bug.
+
+# Round P — no TCQ anywhere
+
+| # | arm | K | V | prediction | conf |
+|---|---|---|---|---|---|
+| P1 | `q8_0:turbo4` | stock | classic | **collapse** | 0.75 |
+| P2 | `q8_0:turbo8` | stock | classic, gentlest | collapse | 0.65 |
+| P3 | `turbo8:turbo8` | classic | classic, symmetric | collapse | 0.70 |
+
+P1 is poshih's pair exactly. All three collapsing → **any turbo codec on either side kills
+GQA ≥ 6 on gfx1201**, which would make turboquant unusable for this model class on RDNA4 and
+is a far larger claim than anything published so far. Any one clean → that pair is the
+workaround, and it is worth sending.
+
+## Round P results — every turbo configuration collapses; only stock KV survives
+
+| arm | K | V | result |
+|---|---|---|---|
+| P1 | `q8_0` | `turbo4` | **COLLAPSE** — poshih's exact pair |
+| P2 | `q8_0` | `turbo8` | **COLLAPSE** — gentlest codec, 8.125 bpv, V side only |
+| P3 | `turbo8` | `turbo8` | **COLLAPSE** |
+
+P1 (0.75), P2 (0.65), P3 (0.70) all correct. Combined with O1–O3 and the earlier rounds,
+**eight of eight turbo configurations collapse and three of three stock configurations are
+clean** on Qwen3.8-27B at GQA 6:1 on gfx1201.
+
+### Full KV matrix, Qwen3.8-27B (GQA 6:1), gfx1201, ctx 4096
+
+| K | V | any turbo? | result |
+|---|---|---|---|
+| f16 | f16 | no | **clean 10/10** |
+| `q8_0` | `q8_0` | no | **clean 9/10** |
+| `q4_0` | `q4_0` | no | **clean 9/10** |
+| `turbo8` | `turbo8` | yes | COLLAPSE |
+| `turbo4` | `turbo4` | yes | COLLAPSE |
+| `turbo3_tcq` | `turbo3_tcq` | yes | COLLAPSE |
+| `turbo1_tcq` | `turbo1_tcq` | yes | COLLAPSE |
+| `turbo8` | `turbo4` | yes | COLLAPSE |
+| `turbo4` | `turbo3_tcq` | yes | COLLAPSE |
+| `q8_0` | `turbo8` | yes | COLLAPSE |
+| `q8_0` | `turbo4` | yes | COLLAPSE |
+| `q8_0` | `turbo3_tcq` | yes | COLLAPSE |
+
+**One turbo tensor anywhere in the cache is sufficient.** Bit depth is irrelevant — `turbo8`
+at 8.125 bpv fails exactly like `turbo1_tcq` at 1.25. TCQ vs classic is irrelevant. Which
+side carries it is irrelevant.
+
+**Consequence: on gfx1201, the turboquant KV cache is unusable for GQA ≥ 6 models.** Not
+degraded — degenerate, from the first request, permanently. `Qwen3.5-9B` at GQA 4:1 runs the
+same codecs clean at 32k context, so this is scoped to the model class, not the card.

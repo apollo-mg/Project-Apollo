@@ -1,13 +1,54 @@
-# On gfx1201, symmetric TCQ KV collapses generation on GQA ≥ 6 models
+# On gfx1201, ANY turbo KV codec collapses generation on GQA ≥ 6 models
 
 **2026-08-19.** Control plane **RX 9070 XT (gfx1201, ROCm/HIP)** and **`.194` Tesla P100
 (sm_60, CUDA)**. Binary **buun `02f8581c65`** on both — same fork, same commit, only the
 device differs. Script `vbr_backend.py`; raw logs in `raw/`; every prediction pre-registered
 in `PREDICTION_STATIC_TIERS.md` and scored there, including four falsifications.
 
-> **This receipt was rewritten twice.** It first claimed "2-bit weights", then "low-bit
-> weights". Both were wrong — a 2-bit 9B runs clean and a 3-bit 27B collapses. The weight
-> ladder was a confound: every rung was the same base model.
+> **This receipt was rewritten three times.** It claimed "2-bit weights", then "low-bit
+> weights", then "symmetric TCQ". All three were wrong. A 2-bit 9B runs clean; a 3-bit 27B
+> collapses; `turbo4` is not a TCQ codec and collapses; and asymmetric pairs collapse too.
+> The weight ladder was a confound — every rung was the same base model — and the TCQ framing
+> survived only because no non-TCQ turbo had been run.
+
+## The whole KV matrix on the collapsing model
+
+`Qwen3.8-27B-AD-IQ2_S`, GQA 6:1, gfx1201, ctx 4096. **Eight of eight turbo configurations
+collapse; three of three stock configurations are clean.**
+
+| K | V | any turbo? | result |
+|---|---|---|---|
+| f16 | f16 | no | **clean 10/10** |
+| `q8_0` | `q8_0` | no | **clean 9/10** |
+| `q4_0` | `q4_0` | no | **clean 9/10** |
+| `turbo8` | `turbo8` | yes | COLLAPSE |
+| `turbo4` | `turbo4` | yes | COLLAPSE |
+| `turbo3_tcq` | `turbo3_tcq` | yes | COLLAPSE |
+| `turbo1_tcq` | `turbo1_tcq` | yes | COLLAPSE |
+| `turbo8` | `turbo4` | yes | COLLAPSE |
+| `turbo4` | `turbo3_tcq` | yes | COLLAPSE |
+| `q8_0` | `turbo8` | yes | COLLAPSE |
+| `q8_0` | `turbo4` | yes | COLLAPSE |
+| `q8_0` | `turbo3_tcq` | yes | COLLAPSE |
+
+**One turbo tensor anywhere in the cache is sufficient.** Bit depth is irrelevant — `turbo8`
+at 8.125 bpv fails identically to `turbo1_tcq` at 1.25. TCQ vs classic is irrelevant. Which
+side carries it is irrelevant. `q8_0` K + `turbo4` V is **poshih's exact configuration in
+`turboquant#311`**, reproducing here on different hardware and a different fork.
+
+**Consequence: on gfx1201 the turboquant KV cache is unusable for GQA ≥ 6 models** — not
+degraded, degenerate from the first request and permanently. `Qwen3.5-9B` at GQA 4:1 runs the
+same codecs clean at 32k, so this is scoped to the model class, not the card.
+
+### Why VBR always lands there
+
+The degrade ladder is per-layer and per-side (`llama-vbr-degrade-orders.inc`, generated
+2026-07-05). The `q27` order — Qwen3.6-27B, hybrid, 16/64 KV layers, our exact model class —
+runs 160 steps. Its **first step is already a turbo tier**, so any budget pressure at all puts
+turbo tensors in the cache; by step 64 layer 3 holds TCQ on both sides, and all 16 of 16 KV
+layers end there. `VBR_DEGRADE_ORDER=<file>` overrides the table at runtime
+(`llama-kv-cache.cpp:3756`), but no ordering helps when every turbo tier is unsafe — only the
+f16 entry tier is.
 
 ## The result
 
