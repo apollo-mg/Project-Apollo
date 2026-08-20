@@ -121,10 +121,23 @@ Then check it against **the smallest machine that must run it**, using your Step
 > and the failure mode here is silent: throughput is unchanged and every fidelity metric that
 > is teacher-forced reports the server healthy.
 
-**Current recommendation:** benchmark on **`q8_0` or f16 KV**, which are clean on every
-configuration this fleet has measured, on both architectures. Use a turbo codec only after
-running the liveness check below on your own hardware, and only where the memory saving is
-what makes the run possible at all.
+**Current recommendation: VBR where verified, stock where not.** VBR remains the best KV
+protocol available to us and the design is sound — the defect is implementation-specific.
+It is **gated on the liveness check below**, run once per (card × model), which takes 30
+seconds. Where it fails, fall back to **`q8_0` or f16**, clean on every configuration this
+fleet has measured.
+
+Status on this fleet:
+
+| hardware | status | basis |
+|---|---|---|
+| Tesla P100 (sm_60) | **verified clean** | measured; also routed to dequant→f16→TILE by `24444d722`, so it does not execute the quantized FA path at all |
+| RX 9070 XT (gfx1201) | **broken for GQA ≥ 6** | 8/8 turbo configurations collapse past a ~112-token prompt |
+| Volta / Turing / Ampere+ | **unverified** | none in the fleet. `turboquant#311` reports `turbo4` V-cache corruption on an RTX 3090 at GQA 8:1 |
+
+**Note what the Pascal row does and does not say.** It is safe by *routing*, not because the
+quantized kernels were validated there. That safety does not transfer to any card that takes
+the MMA path.
 
 **Liveness check — 30 seconds, do it before trusting any KV codec:**
 
