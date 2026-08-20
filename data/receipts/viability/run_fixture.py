@@ -5,7 +5,7 @@ Tier 1 is a GATE: any failure means the stack is broken, not the model.
 Tier 2 is a GATE on the model/quant/sampling being sane.
 Reports per-tier pass/fail plus the structural outcome of each item.
 """
-import argparse, collections, json, os, re, sys, urllib.request
+import argparse, collections, json, math, os, re, sys, urllib.request
 
 PROMPT = ("{q}\n\nThink briefly if you need to, then end your reply with exactly one line:\n"
           "Exact Answer: <your answer>")
@@ -21,6 +21,54 @@ def bare(s):
     return norm(s).strip("*_`\"'")
 
 _PUNCT = re.compile(r"[^a-z0-9/]")
+
+_MIXED = re.compile(r"(?<![\d./])(\d+)\s+(\d+)\s*/\s*(\d+)(?![\d./])")
+_FRAC  = re.compile(r"(?<![\d./])(\d+)\s*/\s*(\d+)(?![\d./])")
+_NUM   = re.compile(r"[-+]?\d*\.?\d+")
+
+def numeric_values(text):
+    """Every distinct number in `text`, understanding mixed numbers and fractions.
+
+    Returns None if there are none. Mixed/fraction spans are consumed first so
+    '66 2/3' reads as one value (66.667), not three.
+    """
+    t = (text or "").replace(",", "")
+    vals = []
+    for rx, fn in ((_MIXED, lambda m: int(m[1]) + int(m[2]) / int(m[3])),
+                   (_FRAC,  lambda m: int(m[1]) / int(m[2]))):
+        out = []
+        for m in rx.finditer(t):
+            try: vals.append(fn(m))
+            except ZeroDivisionError: return None
+            out.append((m.start(), m.end()))
+        for a, b in reversed(out):
+            t = t[:a] + " " + t[b:]
+    for m in _NUM.finditer(t):
+        try: vals.append(float(m.group()))
+        except ValueError: pass
+    return vals or None
+
+def answer_matches(got, gold):
+    """Exact first, then a UNIT-TOLERANT numeric compare.
+
+    Dry run 01: the model answered '72 minutes', '2560 bytes', 'UDP 123' and '66 2/3 km'
+    — all correct, all scored FAIL, because norm() strips whitespace and a trailing period
+    but not a unit. On the calibration arm that turned a right answer into ANSWERED-WRONG,
+    the same cell confabulation lands in.
+
+    Deliberately conservative: the numeric path fires only when the reply contains EXACTLY
+    ONE distinct number. 'not 72 but 80' carries two and falls through to a miss rather than
+    matching the first one it sees.
+    """
+    if bare(got) == bare(gold):
+        return True
+    gv = numeric_values(gold)
+    if not gv or len(set(gv)) != 1:
+        return False
+    av = numeric_values(got)
+    if not av or len({round(v, 6) for v in av}) != 1:
+        return False
+    return math.isclose(av[0], gv[0], rel_tol=1e-3, abs_tol=1e-9)
 
 def abstain_key(s):
     """Aggressive fold, used ONLY for the abstention check — never for the correctness
@@ -47,7 +95,7 @@ def classify(got, gold):
         return "NO-ANSWER"
     if abstain_key(got) in ABSTAIN:
         return "ABSTAINED"
-    if gold != "UNKNOWN" and g == bare(gold):
+    if gold != "UNKNOWN" and answer_matches(got, gold):
         return "ANSWERED-CORRECT"
     return "ANSWERED-WRONG"
 
@@ -129,22 +177,26 @@ def check_struct(obj, chk):
 def run_struct(host, tier, label):
     print(f"\n=== {label}")
     print(f"    gate: {tier['gate']}")
-    ok = 0
+    ok = trunc = 0
     for it in tier["items"]:
         content, reasoning, fin = ask(host, it["q"], n_predict=tier.get("n_predict", 512))
         obj = extract_json(content) or (extract_json(reasoning) if fin != "length" else None)
         good, why = check_struct(obj, it["check"])
+        # A reply that ran out of budget produced no JSON because it never finished, not
+        # because the model cannot emit JSON. Dry run 01 scored three of these FAIL and then
+        # printed "NOT usable for tool calling" off them.
+        truncated = (not good) and fin == "length"
+        trunc += truncated
         ok += good
-        status = "PASS" if good else "FAIL"
-        if fin == "length": status += " (truncated)"
+        status = "TRUNCATED" if truncated else ("PASS" if good else "FAIL")
         print(f"    {it['id']}  {status:<18} {why}")
-    print(f"    -> {ok}/{len(tier['items'])}")
-    return ok, len(tier["items"])
+    print(f"    -> {ok}/{len(tier['items'])}" + (f"   ({trunc} truncated -> VOID)" if trunc else ""))
+    return ok, len(tier["items"]), trunc
 
 def run_tier(host, tier, label):
     print(f"\n=== {label}: {tier['purpose'][:70]}...")
     print(f"    gate: {tier['gate']}")
-    ok = 0
+    ok = trunc = 0
     for it in tier["items"]:
         content, reasoning, fin = ask(host, it["q"], n_predict=tier.get("n_predict", 512),
                                       prompt=tier.get("prompt"))
@@ -161,13 +213,14 @@ def run_tier(host, tier, label):
                    or any(w in norm(got) for w in ("unknown", "doesnotexist", "nosuch",
                                                    "fictional", "notreal", "cannot", "noinfo")))
         else:
-            hit = norm(got) == norm(gold)
+            hit = answer_matches(got, gold)
         ok += hit
+        trunc += (fin == "length" and not hit)
         status = "PASS" if hit else ("NO-ANSWER" if not got else "FAIL")
         if fin == "length": status += " (truncated)"
         print(f"    {it['id']}  {status:<20} got={got[:34]!r:<38} want={gold!r}")
-    print(f"    -> {ok}/{len(tier['items'])}")
-    return ok, len(tier["items"])
+    print(f"    -> {ok}/{len(tier['items'])}" + (f"   ({trunc} truncated)" if trunc else ""))
+    return ok, len(tier["items"]), trunc
 
 
 def run_cal(host, tier, label):
@@ -243,14 +296,30 @@ if __name__ == "__main__":
         res["cal"] = run_cal(a.host, fx["tier_cal"], "TIER CAL (calibration / abstention)")
     print("\n" + "="*70)
     if "t1" in res:
-        o, n = res["t1"]; print(f"TIER 1 {'PASS' if o == n else 'FAIL'}  ({o}/{n}, gate {n}/{n})"
-                                + ("" if o == n else "   <-- STACK IS BROKEN, stop here"))
+        o, n, tr = res["t1"]
+        # A truncated plumbing item is a BUDGET failure. Dry run 01 printed "STACK IS BROKEN"
+        # because T1-05 — the abstention item, the most expensive item in the fixture — ran
+        # out of tokens on a perfectly healthy stack.
+        v = "PASS" if o == n else ("BUDGET" if tr and o + tr == n else "FAIL")
+        tail = {"PASS": "", "BUDGET": f"   <-- {tr} item(s) TRUNCATED; raise tier1.n_predict, "
+                                      "the stack is NOT implicated",
+                "FAIL": "   <-- STACK IS BROKEN, stop here"}[v]
+        print(f"TIER 1 {v}  ({o}/{n}, gate {n}/{n}){tail}")
     if "t2" in res:
-        o, n = res["t2"]; print(f"TIER 2 {'PASS' if o >= 6 else 'FAIL'}  ({o}/{n}, gate >=6/{n})")
+        o, n, tr = res["t2"]
+        # Truncation makes the score a floor: PASSING despite it is still a pass, but
+        # FAILING with items that never finished is inconclusive, not a model result.
+        v = "PASS" if o >= 6 else ("INCONCLUSIVE" if tr else "FAIL")
+        print(f"TIER 2 {v}  ({o}/{n}, gate >=6/{n})"
+              + (f"   [{tr} truncated — score is a FLOOR]" if tr else ""))
     if "ts" in res:
-        o, n = res["ts"]
-        print(f"TIER STRUCT {'PASS' if o >= 5 else 'FAIL'}  ({o}/{n}, gate >=5/{n})")
-        if "t2" in res and res["t2"][0] >= 6 and o < 5:
+        o, n, tr = res["ts"]
+        v = "VOID (truncation)" if tr else ("PASS" if o >= 5 else "FAIL")
+        print(f"TIER STRUCT {v}  ({o}/{n}, gate >=5/{n})")
+        if tr:
+            print(f"  {tr} item(s) never finished. No claim about tool calling is supported"
+                  "\n  by this run — raise tier_struct.n_predict and re-run.")
+        elif "t2" in res and res["t2"][0] >= 6 and o < 5:
             print("  NOTE: tiers 1-2 pass but structured output fails — this quant is usable"
                   "\n        for chat and NOT usable for tool calling. That is a real result,"
                   "\n        not a fixture bug.")

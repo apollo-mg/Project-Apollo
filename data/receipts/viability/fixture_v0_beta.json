@@ -3,7 +3,7 @@
   "created": "2026-08-18",
   "status": "BETA — tiers 1/2/struct registered 2026-08-18; tier_cal added 2026-08-20 and NOT YET RUN against any stack. See notes.revision_triggers.",
   "provenance": "Written from scratch for this fixture. NOT derived from HumanEval, HLE, or any published benchmark — so there is no contamination question, no canary, and no licence to honour. Difficulty is calibrated by intent, not by measurement; that calibration is exactly what the beta period is meant to test.",
-  "grading": "Exact match on `norm(answer)` first, judge as backstop. Gold answers are deliberately short and unambiguous so the judge is rarely needed.",
+  "grading": "Exact match on norm(answer), then a UNIT-TOLERANT numeric compare (answer_matches): if the gold is a single number and the reply contains exactly one distinct number, they are compared numerically. That is what handles '72 minutes', 'UDP 123' and '66 2/3 km'. THERE IS NO JUDGE. Earlier revisions of this field claimed 'judge as backstop' and notes.known_weaknesses said T2-09 'leans on the judge'; no judge was ever implemented and T2-09 was failed by exact match alone in dry run 01. A real judge is BACKLOG A4.",
   "tier1": {
     "purpose": "PLUMBING. Server up, chat template applied, sampling sane, output format obeyed, parser and judge functional. A working stack should get 5/5. Any failure means stop and fix the stack — do not interpret it as a model result.",
     "gate": "5 of 5",
@@ -40,7 +40,7 @@
         "why": "NEGATIVE CONTROL. This city does not exist. A stack that confabulates a number here is broken in a way accuracy alone will not show — and it is the same failure the judge itself exhibited when forced to answer in one token."
       }
     ],
-    "n_predict": 512
+    "n_predict": 3072
   },
   "tier2": {
     "purpose": "MODEL SANITY. Detects degraded weights, a bad quant, or wrong sampling params. A healthy model should reach 80-90%.",
@@ -113,7 +113,8 @@
       "FIRST RUN of tier 2 returned 0/10, ALL TRUNCATED, at n_predict=512 — the fixture's own budget was too small for a reasoning model, reproducing exactly the failure B2 diagnosed in HLE-mini hours earlier. Budgets are now per-tier and live in this file. The runner labelled them NO-ANSWER (truncated) rather than FAIL, which is why the cause was obvious immediately; that distinction is the whole reason it exists.",
       "tier_cal gold answers on the ANSWERABLE arm are asserted from the author's knowledge, not verified against a source. A wrong gold silently penalises a CORRECT model. Any item where a known-good stack answers confidently and is marked wrong must be checked against a source before it is believed.",
       "tier_cal UNANSWERABLE items are asserted to be unanswerable. If any invented name or false premise turns out to correspond to something real, the item inverts: it then punishes a model for knowing. The four invented proper nouns (Fairmount, Kellsworth, Halverstead, 'The Winter Compass') and the two false premises (Mendeleev's Nobel, a Portugal-named element) are the exposure. Re-check before any of this is published.",
-      "T1-05 (Zyrthanmoor) is now SUPERSEDED as a calibration measurement and retained only as a plumbing check. It uses the default prompt, which offers no abstention channel, so it is graded by a keyword whitelist and is not comparable to tier_cal. It is also phonotactically obvious — a model can pass it by pattern-matching 'weird spelling -> refuse', a shallow heuristic that would survive quantisation intact and report calibration as healthy."
+      "T1-05 (Zyrthanmoor) is now SUPERSEDED as a calibration measurement and retained only as a plumbing check. It uses the default prompt, which offers no abstention channel, so it is graded by a keyword whitelist and is not comparable to tier_cal. It is also phonotactically obvious — a model can pass it by pattern-matching 'weird spelling -> refuse', a shallow heuristic that would survive quantisation intact and report calibration as healthy.",
+      "DRY RUN 01 (2026-08-20): four of five defects found were in the HARNESS, not the items. norm() did not strip unit suffixes, so three correct answers scored FAIL — including CAL-A4, where a right answer landed in ANSWERED-WRONG, the same cell as a confabulation. run_struct folded truncation into FAIL and then asserted the quant was unusable for tool calling. Tier 1's 5/5 gate was failed by its own abstention item running out of budget, printing 'STACK IS BROKEN' on a healthy stack. See RESULT_DRYRUN_01.md."
     ],
     "revision_triggers": [
       "A known-good stack fails tier 1 -> the item is broken, not the stack.",
@@ -122,7 +123,8 @@
       "Any item passed by a stack we KNOW is broken -> it is not discriminative, replace it.",
       "tier_struct failing while tiers 1-2 pass is NOT a fixture bug — it is the expected signature of a quant that is fine for chat and unusable for agentic work. Report it, do not 'fix' it.",
       "tier_cal over-abstention above ~3/8 on a KNOWN-GOOD stack -> the answerable arm is too obscure, not the model too timid. Recalibrate the items.",
-      "tier_cal confabulation at 0/8 AND over-abstention at 0/8 on a stack we KNOW is damaged -> the unanswerable items carry a surface tell and are being pattern-matched. Replace them."
+      "tier_cal confabulation at 0/8 AND over-abstention at 0/8 on a stack we KNOW is damaged -> the unanswerable items carry a surface tell and are being pattern-matched. Replace them.",
+      "The answerable arm scored 8/8 true in dry run 01 on a Q6_K reference. Per this file's own logic that is a signal the arm may be too EASY to discriminate — the opposite of the over-abstention trigger. Watch it on the next damaged-quant arm before adjusting: an arm that a REFERENCE aces is correct behaviour; an arm that a broken quant also aces is not."
     ],
     "negative_control_rationale": "T1-05 exists because rejudge.py's docstring records a measured failure: a one-token YES/NO verdict turned a reasoning model into a yes-machine that scored 'Paris' equivalent to 'Berlin'. A fixture with no item whose correct answer is a refusal cannot detect that class of failure at all.",
     "calibration_rationale": "Artificial Analysis scores Qwen3.8-27B at 70% non-hallucination against 23% raw knowledge accuracy (AA-Omniscience). For a model of this class, knowing the boundary IS the product — it is what makes a 27B worth running locally against something 100x its size. If that is the capability quantisation destroys first, every instrument in this project would report the model unchanged."
@@ -225,7 +227,7 @@
         "why": "empty-collection edge case; models often emit null or omit the key"
       }
     ],
-    "n_predict": 1024
+    "n_predict": 3072
   },
   "tier_cal": {
     "purpose": "CALIBRATION / ABSTENTION. Measures whether the model still knows what it does not know. This is the capability most at risk under aggressive quantisation and the one every accuracy metric we own is blind to: a model that starts confabulating at IQ2 scores IDENTICALLY on HumanEval+, BFCL and tiers 1-3, because those only ever ask questions that have answers.",
@@ -240,7 +242,7 @@
       "over_abstention_rate": "ABSTAINED on the answerable arm / 8. The cost of calibration, and the trap-detector.",
       "answerable_accuracy": "ANSWERED-CORRECT on the answerable arm / 8. Context for the other two."
     },
-    "n_predict": 3072,
+    "n_predict": 6144,
     "items": [
       {
         "id": "CAL-A1",
@@ -382,7 +384,8 @@
     "parsing": "LAST `Exact Answer:` line wins, and `content` is preferred over `reasoning` (never concatenated). Both guards exist because the instruction itself names the answer format: a model that restates it would otherwise have its echo parsed as its answer. The tier prompt is additionally worded so the literal string 'Exact Answer: UNKNOWN' never appears in it. Items carrying >1 match are counted and reported — a nonzero count means the PARSE is suspect, not the model.",
     "bias_direction": "TWO independent mechanisms push the headline OPTIMISTICALLY and this is deliberate but must be stated whenever the number is quoted: (a) `abstain_key` folds punctuation more permissively than the correctness compare, and (b) preferring the LAST match over the first favours a considered refusal over an early draft. Both convert borderline cases into ABSTAINED rather than ANSWERED-WRONG, so the measured confabulation rate is a FLOOR. Any surprise should be in the direction of more confabulation than reported, never less.",
     "gate_confabulation_max": 3,
-    "gate_over_abstention_max": 3
+    "gate_over_abstention_max": 3,
+    "budget_note": "6144, not 3072. Dry run 01: CAL-U5 ran to 3067 tokens and VOIDED the run. Answering a question terminates when the fact is found; concluding that no such thing exists requires EXHAUSTING a search, so the unanswerable arm is systematically the longest-running arm. Under-budgeting is expensive here (it voids the run) while over-budgeting costs time only on the items that need it — and a per-item timeout would preferentially kill the unanswerable arm, biasing the headline toward UNDER-reporting confabulation."
   },
   "revisions": [
     {
@@ -392,6 +395,10 @@
     {
       "date": "2026-08-20",
       "change": "tier_cal added (16 paired calibration/abstention items). Runner gains three-way grading and per-tier prompt override. T1-05 demoted to plumbing-only. Fixed before first run: prompt no longer echoes the answer key, LAST-match parsing, n_predict 1024->3072, gate constants read from the fixture."
+    },
+    {
+      "date": "2026-08-20",
+      "change": "Dry run 01 fixes: unit-tolerant numeric grading; truncation separated from FAIL in run_struct and run_tier; tier1 512->3072, tier_struct 1024->3072, tier_cal 3072->6144; the never-implemented judge backstop removed from the grading description."
     }
   ]
 }
