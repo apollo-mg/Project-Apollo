@@ -103,7 +103,11 @@ def classify(got, gold):
 JSONL = None    # set from --jsonl; opened append, flushed per item
 EFFORT = None   # set from --effort; passed via chat_template_kwargs, the dial Qwen3.8 honours
 
-def ask(host, q, n_predict=512, timeout=600, prompt=None):
+TPS_FLOOR = 2.5   # assumed worst-case decode rate; .194 measured 7.7 tok/s on a 27B Q6_K
+
+def ask(host, q, n_predict=512, timeout=None, prompt=None):
+    if timeout is None:
+        timeout = 300 + n_predict / TPS_FLOOR
     body = {"messages": [{"role": "user", "content": (prompt or PROMPT).format(q=q)}],
             "temperature": 0, "top_k": 1, "n_predict": n_predict}
     if EFFORT:
@@ -144,7 +148,11 @@ def extract_json(text):
     """Pull the first JSON value out of a reply. Tolerates ``` fences and leading prose,
     because those are formatting noise, not the syntax failure we are testing for."""
     t = re.sub(r"```(?:json)?", "", text).strip()
-    for opener, closer in (("{", "}"), ("[", "]")):
+    # Whichever bracket appears FIRST wins. Trying "{" unconditionally made an array of
+    # objects parse as its first element (dry run 02, TS-02).
+    openers = sorted((("{", "}"), ("[", "]")),
+                     key=lambda oc: (t.find(oc[0]) if t.find(oc[0]) >= 0 else len(t) + 1))
+    for opener, closer in openers:
         i = t.find(opener)
         if i < 0: continue
         depth = 0
@@ -296,6 +304,7 @@ if __name__ == "__main__":
                                                       "fixture_v0_beta.json"))
     ap.add_argument("--tier", choices=["1", "2", "struct", "cal", "both", "all"],
                     default="both")
+    ap.add_argument("--only", help="comma-separated item ids; run just these")
     ap.add_argument("--jsonl", help="append per-item results here, flushed as they complete "
                                     "(survives a killed run)")
     ap.add_argument("--effort", choices=["low", "medium", "high", "xhigh"],
@@ -308,6 +317,12 @@ if __name__ == "__main__":
         globals()["EFFORT"] = a.effort
         print(f"reasoning_effort = {a.effort}")
     fx = json.load(open(a.fixture))
+    if a.only:
+        want = {x.strip() for x in a.only.split(",") if x.strip()}
+        for _t in ("tier1", "tier2", "tier_struct", "tier_cal"):
+            if _t in fx:
+                fx[_t] = dict(fx[_t], items=[i for i in fx[_t]["items"] if i["id"] in want])
+        print(f"--only: {sorted(want)}")
     res = {}
     if a.tier in ("1", "both", "all"): res["t1"] = run_tier(a.host, fx["tier1"], "TIER 1 (plumbing)")
     if a.tier in ("2", "both", "all"): res["t2"] = run_tier(a.host, fx["tier2"], "TIER 2 (model sanity)")
