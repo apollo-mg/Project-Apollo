@@ -40,8 +40,11 @@ achieved discordant count** rather than assume power. A run that yields 12 disco
 underpowered no matter how many items it contained — that is precisely how HumanEval+ died, and
 a corpus that reports only a rate would hide it a second time.
 
-**Working target: 240 unanswerable + 240 answerable = 480 items.** Covers ψ≥0.70 down to ~20 %
-disagreement on the headline arm, and gives the answerable arm the same power so
+**Working target: 240 unanswerable + 240 answerable = 480 items.** The coverage is **per arm**,
+not from the total: 240 items is the 20 %/ψ=0.70 cell (234), so each arm independently reaches
+that point. It does **not** mean 480 buys 480 items' worth of power on one question — the two
+arms answer different questions and are sized separately. Equal sizing gives the answerable arm
+the same power so
 "over-abstention did not change" is a claim rather than an assumption. The answerable arm is
 not decoration: without power there, a rise in confabulation cannot be distinguished from the
 model simply answering more of everything.

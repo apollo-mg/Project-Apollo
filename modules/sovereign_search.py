@@ -15,6 +15,35 @@ def get_sqlite_conn():
     conn.row_factory = sqlite3.Row
     return conn
 
+from uuid import uuid5, NAMESPACE_DNS
+from langchain_core.documents import Document
+
+def index_document(file_path: str, content: str):
+    """Indexes a document into both ChromaDB and SQLite FTS5."""
+    doc_id = str(uuid5(NAMESPACE_DNS, file_path))
+    
+    # 1. Vector Store
+    try:
+        vs = get_vector_store()
+        # ChromaDB under langchain usually handles ids via the underlying add_documents
+        # Langchain Chroma wrapper takes ids as an argument.
+        vs.add_documents([Document(page_content=content, metadata={"source": file_path})], ids=[doc_id])
+        logger.info(f"Indexed into Vector Store: {file_path}")
+    except Exception as e:
+        logger.error(f"Failed to add to Vector Store: {e}")
+        
+    # 2. SQLite FTS5
+    conn = get_sqlite_conn()
+    if conn:
+        try:
+            conn.execute("INSERT OR REPLACE INTO chunks_fts(chunk_id, source, content) VALUES (?, ?, ?)", (doc_id, file_path, content))
+            conn.commit()
+            logger.info(f"Indexed into FTS5: {file_path}")
+        except Exception as e:
+            logger.error(f"Failed to add to FTS5: {e}")
+        finally:
+            conn.close()
+
 def search_bm25(query: str, n_results: int = 10):
     """Executes a BM25 exact keyword search using SQLite FTS5."""
     conn = get_sqlite_conn()

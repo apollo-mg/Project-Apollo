@@ -79,6 +79,125 @@ class SovereignMessageBus:
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS swarm_profiles (
+                    name TEXT PRIMARY KEY,
+                    config_json TEXT NOT NULL,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS swarm_prompts (
+                    name TEXT PRIMARY KEY,
+                    prompt_text TEXT NOT NULL,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS a2a_messages (
+                    id TEXT PRIMARY KEY,
+                    sender TEXT NOT NULL,
+                    recipient TEXT NOT NULL,
+                    message_payload TEXT NOT NULL,
+                    status TEXT DEFAULT 'unread',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            conn.commit()
+
+    def get_swarm_profile(self, name: str) -> Optional[Dict]:
+        """Retrieves a configuration profile by name from the central database."""
+        with closing(sqlite3.connect(self.db_path, timeout=30.0)) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT config_json FROM swarm_profiles WHERE name = ?", (name,))
+            row = cursor.fetchone()
+            if row:
+                return json.loads(row[0])
+            return None
+
+    def get_model_preset(self, model_name: str) -> Optional[Dict]:
+        """Retrieves default sampling parameters for a given model string."""
+        with closing(sqlite3.connect(self.db_path, timeout=30.0)) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT temperature, top_p, top_k, max_tokens FROM model_presets WHERE model_name = ?", (model_name,))
+            row = cursor.fetchone()
+            if row:
+                return {
+                    "temperature": row[0],
+                    "top_p": row[1],
+                    "top_k": row[2],
+                    "max_tokens": row[3]
+                }
+            return None
+
+    def get_swarm_prompt(self, name: str) -> Optional[str]:
+        """Retrieves a system prompt by name from the central database."""
+        with closing(sqlite3.connect(self.db_path, timeout=30.0)) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT prompt_text FROM swarm_prompts WHERE name = ?", (name,))
+            row = cursor.fetchone()
+            if row:
+                return row[0]
+            return None
+
+    def set_swarm_profile(self, name: str, config: Dict) -> None:
+        """Saves a configuration profile to the central database."""
+        with closing(sqlite3.connect(self.db_path, timeout=30.0)) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO swarm_profiles (name, config_json)
+                VALUES (?, ?)
+                ON CONFLICT(name) DO UPDATE SET
+                    config_json=excluded.config_json,
+                    updated_at=CURRENT_TIMESTAMP
+            ''', (name, json.dumps(config)))
+            conn.commit()
+
+    def send_a2a_message(self, sender: str, recipient: str, message: str) -> str:
+        """Sends a direct Architect-to-Architect message via the Sovereign Message Bus."""
+        msg_id = str(uuid.uuid4())
+        with closing(sqlite3.connect(self.db_path, timeout=30.0)) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO a2a_messages (id, sender, recipient, message_payload)
+                VALUES (?, ?, ?, ?)
+            ''', (msg_id, sender, recipient, message))
+            conn.commit()
+            logging.info(f"[MessageBus] A2A Message sent from {sender} to {recipient}. ID: {msg_id}")
+            return msg_id
+
+    def poll_a2a_messages(self, recipient: str) -> List[Dict]:
+        """Polls for unread A2A messages intended for a specific recipient."""
+        with closing(sqlite3.connect(self.db_path, timeout=30.0)) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT * FROM a2a_messages 
+                WHERE recipient = ? AND status = 'unread'
+                ORDER BY created_at ASC
+            ''', (recipient,))
+            return [dict(row) for row in cursor.fetchall()]
+
+    def mark_a2a_message_read(self, msg_id: str) -> None:
+        """Marks an A2A message as read."""
+        with closing(sqlite3.connect(self.db_path, timeout=30.0)) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                UPDATE a2a_messages SET status = 'read' WHERE id = ?
+            ''', (msg_id,))
+            conn.commit()
+
+    def set_swarm_prompt(self, name: str, prompt_text: str) -> None:
+        """Saves a system prompt to the central database."""
+        with closing(sqlite3.connect(self.db_path, timeout=30.0)) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO swarm_prompts (name, prompt_text)
+                VALUES (?, ?)
+                ON CONFLICT(name) DO UPDATE SET
+                    prompt_text=excluded.prompt_text,
+                    updated_at=CURRENT_TIMESTAMP
+            ''', (name, prompt_text))
             conn.commit()
 
     def publish_task(self, task_name: str, requirements: Dict, payload: str) -> str:
@@ -144,16 +263,16 @@ class SovereignMessageBus:
             conn.commit()
             return None
 
-    def complete_task(self, task_id: str, result_payload: str, success: bool = True):
+    def complete_task(self, task_id: str, result_payload: str, success: bool = True, error_trace: str = None):
         """A worker node submits the final output payload back to the bus."""
         status = 'completed' if success else 'failed'
         with closing(sqlite3.connect(self.db_path, timeout=30.0)) as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                UPDATE task_queue 
-                SET status = ?, output_payload = ?, completed_at = CURRENT_TIMESTAMP
+                UPDATE task_queue
+                SET status = ?, output_payload = ?, error_trace = ?, completed_at = CURRENT_TIMESTAMP
                 WHERE id = ?
-            ''', (status, result_payload, task_id))
+            ''', (status, result_payload, error_trace, task_id))
             conn.commit()
             logging.info(f"[MessageBus] Task #{task_id} marked as {status}.")
 
@@ -168,6 +287,18 @@ class SovereignMessageBus:
             ''', (task_id,))
             conn.commit()
             logging.info(f"[MessageBus] Task #{task_id} marked as aborted by Supervisor.")
+
+    def release_task(self, task_id: str):
+        """Resets a claimed task back to pending state."""
+        with closing(sqlite3.connect(self.db_path, timeout=30.0)) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                UPDATE task_queue
+                SET status = 'pending', assigned_node = NULL, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ? AND status = 'claimed'
+            ''', (task_id,))
+            conn.commit()
+            logging.info(f"[MessageBus] Task #{task_id} released back to pending.")
 
     def check_task_status(self, task_id: str) -> Optional[Dict]:
         """Allows the Architect to poll the status of a previously dispatched task."""
@@ -255,13 +386,13 @@ class SovereignMessageBus:
                 return row[0]
             return None
 
-    def record_heartbeat(self, node_id: str, status: str, active_model_archetype: str = "any", max_slot_context: int = 8192, hot_kv_tokens: int = 0, warm_kv_tokens: int = 0, kv_precision: str = "fp16") -> None:
+    def record_heartbeat(self, node_id: str, status: str, active_model_archetype: str = "any", max_slot_context: int = 8192, hot_kv_tokens: int = 0, warm_kv_tokens: int = 0, kv_precision: str = "fp16", endpoint: str = None, catalog_url: str = None) -> None:
         """Records a heartbeat telemetry ping from a worker node."""
         with closing(sqlite3.connect(self.db_path, timeout=30.0)) as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO fleet_status (node_id, status, active_model_archetype, max_slot_context, hot_kv_tokens, warm_kv_tokens, kv_precision, last_seen)
-                VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                INSERT INTO fleet_status (node_id, status, active_model_archetype, max_slot_context, hot_kv_tokens, warm_kv_tokens, kv_precision, endpoint, catalog_url, last_seen)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                 ON CONFLICT(node_id) DO UPDATE SET
                     status=excluded.status,
                     active_model_archetype=excluded.active_model_archetype,
@@ -269,8 +400,10 @@ class SovereignMessageBus:
                     hot_kv_tokens=excluded.hot_kv_tokens,
                     warm_kv_tokens=excluded.warm_kv_tokens,
                     kv_precision=excluded.kv_precision,
+                    endpoint=excluded.endpoint,
+                    catalog_url=excluded.catalog_url,
                     last_seen=CURRENT_TIMESTAMP
-            ''', (node_id, status, active_model_archetype, max_slot_context, hot_kv_tokens, warm_kv_tokens, kv_precision))
+            ''', (node_id, status, active_model_archetype, max_slot_context, hot_kv_tokens, warm_kv_tokens, kv_precision, endpoint, catalog_url))
             conn.commit()
 
     def get_fleet_status(self) -> List[Dict]:
@@ -299,6 +432,15 @@ class SovereignMessageBus:
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM proposed_skills WHERE status = ? ORDER BY created_at DESC", (status,))
             return [dict(row) for row in cursor.fetchall()]
+
+    def get_proposed_skill(self, skill_id: int) -> Optional[Dict]:
+        """Retrieves a single proposed skill by ID."""
+        with closing(sqlite3.connect(self.db_path, timeout=30.0)) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM proposed_skills WHERE id = ?", (skill_id,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
 
     def update_proposed_skill_status(self, skill_id: int, status: str) -> None:
         """Updates the status of a proposed skill (e.g. 'approved' or 'dismissed')."""
@@ -355,7 +497,7 @@ class MessageBusClient:
             # Handle connection refused if server is not reachable
             return None
 
-    def complete_task(self, task_id: str, result_payload: str, success: bool = True):
+    def complete_task(self, task_id: str, result_payload: str, success: bool = True, error_trace: str = None):
         import urllib.request
         import json
         req = urllib.request.Request(
@@ -363,14 +505,26 @@ class MessageBusClient:
             data=json.dumps({
                 "task_id": task_id,
                 "result_payload": result_payload,
-                "success": success
+                "success": success,
+                "error_trace": error_trace
             }).encode('utf-8'),
             headers={'Content-Type': 'application/json'}
         )
         with urllib.request.urlopen(req) as res:
             pass
 
-    def record_heartbeat(self, node_id: str, status: str, active_model_archetype: str = "any", max_slot_context: int = 8192, hot_kv_tokens: int = 0, warm_kv_tokens: int = 0, kv_precision: str = "fp16") -> None:
+    def release_task(self, task_id: str):
+        import urllib.request
+        import json
+        req = urllib.request.Request(
+            f"{self.api_url}/tasks/release",
+            data=json.dumps({"task_id": task_id}).encode('utf-8'),
+            headers={'Content-Type': 'application/json'}
+        )
+        with urllib.request.urlopen(req) as res:
+            pass
+
+    def record_heartbeat(self, node_id: str, status: str, active_model_archetype: str = "any", max_slot_context: int = 8192, hot_kv_tokens: int = 0, warm_kv_tokens: int = 0, kv_precision: str = "fp16", endpoint: str = None, catalog_url: str = None) -> None:
         import urllib.request
         import json
         req = urllib.request.Request(
@@ -382,7 +536,11 @@ class MessageBusClient:
                 "max_slot_context": max_slot_context,
                 "hot_kv_tokens": hot_kv_tokens,
                 "warm_kv_tokens": warm_kv_tokens,
-                "kv_precision": kv_precision
+                "kv_precision": kv_precision,
+                "endpoint": endpoint,
+                "catalog_url": catalog_url
+
+
             }).encode('utf-8'),
             headers={'Content-Type': 'application/json'}
         )
@@ -399,6 +557,28 @@ class MessageBusClient:
         with urllib.request.urlopen(req) as res:
             data = json.loads(res.read().decode())
             return data.get("task")
+
+    def get_swarm_profile(self, name: str) -> Optional[Dict]:
+        import urllib.request
+        import json
+        req = urllib.request.Request(f"{self.api_url}/config/swarm/profiles/{name}")
+        try:
+            with urllib.request.urlopen(req) as res:
+                data = json.loads(res.read().decode())
+                return data.get("profile")
+        except urllib.error.URLError:
+            return None
+
+    def get_swarm_prompt(self, name: str) -> Optional[str]:
+        import urllib.request
+        import json
+        req = urllib.request.Request(f"{self.api_url}/config/swarm/prompts/{name}")
+        try:
+            with urllib.request.urlopen(req) as res:
+                data = json.loads(res.read().decode())
+                return data.get("prompt")
+        except urllib.error.URLError:
+            return None
 
 if __name__ == "__main__":
     import os

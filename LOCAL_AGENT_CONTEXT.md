@@ -35,6 +35,7 @@ You are communicating via the WebUI. Be concise but architecturally rigorous.
 - **Qwopus lineage:** Built on Qwen 3.5 27b; remains the verified coordinator model for flawless tool-calling under aggressive quantization.
 - **Fine-tune in progress:** jackrong is already working on a Qwopus fine-tune based on Qwen 3.6 27B.
 - **Known failure modes:** Local models *can* exhibit "2-Bit Drunk" loops under multi-turn schema validation at extreme quantization; more stable now with recent XML tool fixes.
+- **Reasoning Model Truncation Trap (Methodology Lesson):** Any test interacting with a reasoning model MUST set a generous token budget (≥8k-16k) and capture `finish_reason`. A truncated `<think>` block often leaves an empty `content` block, causing naive test harnesses to record "empty output" (a fake behavioral blind spot) instead of "budget exhausted". This has repeatedly produced false negatives that look like real findings (Laguna 86%, Puzzle, AgentWorld).
 - **Location:** `../AI/Model Lab/` — see local `GEMINI.md` for detailed model cards, quant configs, and benchmark logs.
 
 ### Daydream Daemon: OPERATIONAL (Early Testing)
@@ -42,6 +43,13 @@ You are communicating via the WebUI. Be concise but architecturally rigorous.
 - **Architecture:** Dual-pass pipeline — Dreamer (high-temp idea generation from `APOLLO_CHRONOLOGY.md`) → Filter (low-temp JSON Schema verdict via llama.cpp Guided Decoding). Survivability gating: only fires when system is idle (CPU <15%, GPU EWMA <15%).
 - **Output:** Actionable epiphanies saved to `data/actionable_epiphanies.jsonl`.
 - **Status:** Works, but tested only against larger models. Unknown if Bonsai-8B is competent enough for the task — unverified on small models. Foundation for self-improving system loop (Sleep Cycle → LoRA fine-tune on correction pairs).
+
+### The Consensus Crucible (Adversarial Detonation): OPERATIONAL
+- **Tool:** `delegate_sandbox_task`
+- **Function:** When you invoke this tool with a task description, it spawns a specialized Software Engineer sub-agent to write the required Python script.
+- **Verification:** Before the code is ever executed, it undergoes a mandatory "Crucible" phase. Three ruthless Judge agents (Correctness, Edge Cases, Security) try to refute the proposed code over up to 3 rounds.
+- **Detonation:** Only if a quorum (all 3 judges) accepts the code, it is forwarded over SSH to the P100 node and securely executed inside the Starbuck K3s Sandbox Warm Pool (`starbuck_execute_in_sandbox`).
+- **Usage:** Use this when generating untrusted or complex scripts that need strict adversarial verification before running in a sandboxed environment.
 
 ### Upstream PR Activity
 - **PR #163** (`open-multi-agent`): Sampling params passthrough (temperature, top_p, frequency_penalty, presence_penalty, repetition_penalty, mirostat*). Force-pushed to address review feedback. Pending merge from JackChen-me.

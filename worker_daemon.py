@@ -5,10 +5,14 @@ import os
 import json
 import logging
 import subprocess
+import setproctitle
 
 # Ensure we can import from the Apollo root
 APOLLO_ROOT = os.environ.get("APOLLO_ROOT", os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(APOLLO_ROOT)
+
+NODE_NAME = os.environ.get("NODE_NAME", "apollo-worker")
+setproctitle.setproctitle(NODE_NAME)
 
 try:
     from modules.message_bus import SovereignMessageBus, MessageBusClient
@@ -72,7 +76,7 @@ def execute_task(task: dict) -> str:
 
     logger.info(f"Executing task '{task_name}' (ID: {task_id}) using profile: '{profile_name}'")
     
-    engine_dir = os.path.join(APOLLO_ROOT, "engines", "open-multi-agent-upstream")
+    engine_dir = os.path.join(APOLLO_ROOT, "engines", "open-multi-agent")
     cmd = ["npx", "--yes", "tsx", "examples/apollo_cli.ts", "--profile", profile_name, "-p", payload]
     logger.info(f"Running command: {' '.join(cmd)}")
     
@@ -135,15 +139,16 @@ def execute_task(task: dict) -> str:
         process.wait(timeout=900)
         log_queue.put(None) # stop worker
         
+        full_output = "".join(output_payload)
         if process.returncode == 0:
-            return "".join(output_payload)
+            return full_output, None
         else:
-            raise RuntimeError(f"Apollo CLI exited with code {process.returncode}:\n{''.join(output_payload)}")
+            return None, full_output
     except subprocess.TimeoutExpired:
         process.kill()
-        raise RuntimeError("Task execution timed out after 15 minutes.")
+        return None, "RuntimeError: Task execution timed out after 15 minutes."
     except Exception as e:
-        raise RuntimeError(f"Failed to execute Apollo CLI: {e}")
+        return None, f"RuntimeError: Failed to execute Apollo CLI: {e}"
 
 def main():
     logger.info(f"Starting Worker Daemon: {NODE_NAME}")
@@ -165,17 +170,95 @@ def main():
     current_status = "idle"
 
     def heartbeat_worker():
+        import urllib.request
         while True:
             try:
-                os_version = f"{platform.system()} {platform.release()}"
+                active_model = "offline"
+                max_ctx = CONTEXT_WINDOW
+                hot_kv = 0
+
+                # Try to ping the local llama-server for live telemetry
                 try:
-                    load = os.getloadavg()
-                    current_load = f"{load[0]:.2f}, {load[1]:.2f}, {load[2]:.2f}"
-                except AttributeError:
-                    current_load = "N/A"
-                bus.record_heartbeat(NODE_NAME, current_status, os_version, current_load)
+                    req = urllib.request.Request("http://127.0.0.1:8082/props", method="GET")
+                    with urllib.request.urlopen(req, timeout=1) as res:
+                        data = json.loads(res.read().decode('utf-8'))
+                        
+                        model_path = data.get("model_path", "")
+                        if model_path:
+                            active_model = os.path.basename(model_path)
+                        else:
+                            active_model = "online"
+                            
+                        # Extract the actual live context window size loaded into VRAM
+                        max_ctx = data.get("default_generation_settings", {}).get("n_ctx", CONTEXT_WINDOW)
+                except Exception:
+                    pass
+
+                try:
+                    req = urllib.request.Request("http://127.0.0.1:8082/health", method="GET")
+                    with urllib.request.urlopen(req, timeout=1) as res:
+                        data = json.loads(res.read().decode('utf-8'))
+                        # llama-server /health sometimes has n_kv_used or we can just send 0 if unavailable
+                except Exception:
+                    pass
+
+                # Check if NullClaw A2A is enabled
+                catalog_url = None
+                config_paths = [
+                    os.path.expanduser("~/.nullclaw/config.json"),
+                    os.path.abspath(os.path.join(os.path.dirname(__file__), "engines", "nullclaw", "config.json")),
+                    os.path.abspath(os.path.join(os.path.dirname(__file__), "engines", "nullclaw", ".nullclaw", "config.json"))
+                ]
+                for config_path in config_paths:
+                    if os.path.exists(config_path):
+                        try:
+                            with open(config_path, 'r') as f:
+                                nc_config = json.load(f)
+                                if nc_config.get("a2a", {}).get("enabled"):
+                                    catalog_url = "/.well-known/agent-card.json"
+                                    break
+                        except Exception:
+                            pass
+
+                bus.record_heartbeat(
+                    node_id=NODE_NAME,
+                    status=current_status,
+                    active_model_archetype=active_model,
+                    max_slot_context=max_ctx,
+                    hot_kv_tokens=hot_kv,
+                    warm_kv_tokens=0,
+                    kv_precision="fp16",
+                    catalog_url=catalog_url
+                )
+                
+                # Check for state-sync auto-updates (handled by the API returning core_version)
+                # We do this directly against the REST API for simplicity
+                import urllib.request
+                import hashlib
+                req = urllib.request.Request(f"{api_url}/node/heartbeat", data=json.dumps({
+                    "node_id": NODE_NAME, "status": current_status
+                }).encode('utf-8'), headers={'Content-Type': 'application/json'}, method="POST")
+                with urllib.request.urlopen(req, timeout=2) as res:
+                    data = json.loads(res.read().decode('utf-8'))
+                    remote_version = data.get("core_version")
+                    
+                    if remote_version:
+                        hasher = hashlib.md5()
+                        try:
+                            with open(os.path.abspath(__file__), "rb") as f:
+                                hasher.update(f.read())
+                            local_version = hasher.hexdigest()
+                            
+                            if local_version != remote_version:
+                                logger.warning(f"State-Sync mismatch! Local: {local_version}, Remote: {remote_version}")
+                                logger.warning("Restarting daemon to trigger auto-sync via systemd ExecStartPre...")
+                                import os
+                                os._exit(0)
+                        except Exception as e:
+                            logger.error(f"Failed to check local core version: {e}")
+                            
             except Exception as e:
-                pass
+                logger.error(f"Heartbeat ping failed: {e}")
             time.sleep(5)
 
     if hasattr(bus, 'record_heartbeat'):
@@ -198,7 +281,42 @@ def main():
                 try:
                     # Execute it
                     result_payload = execute_task(claimed_task)
-                    
+
+                    # Intercept MoE Telemetry
+                    telemetry_file = "/tmp/llama_moe_routing.log"
+                    if os.path.exists(telemetry_file):
+                        try:
+                            with open(telemetry_file, "r") as f:
+                                lines = f.readlines()
+                            open(telemetry_file, "w").close() # Clear file
+
+                            heat_map = {}
+                            for line in lines:
+                                if line.startswith("[MoE_Telemetry]"):
+                                    try:
+                                        data = json.loads(line.split("[MoE_Telemetry] ")[1])
+                                        layer = str(data["layer"])
+                                        if layer not in heat_map:
+                                            heat_map[layer] = {}
+                                        for exp, count in data["experts"].items():
+                                            heat_map[layer][exp] = heat_map[layer].get(exp, 0) + count
+                                    except Exception:
+                                        pass
+
+                            if heat_map:
+                                try:
+                                    parsed = json.loads(result_payload)
+                                    if isinstance(parsed, dict):
+                                        parsed["moe_routing_map"] = heat_map
+                                        result_payload = json.dumps(parsed)
+                                except Exception:
+                                    result_payload = json.dumps({
+                                        "raw_output": result_payload,
+                                        "moe_routing_map": heat_map
+                                    })
+                        except Exception as e:
+                            logger.error(f"Failed to process MoE telemetry: {e}")
+
                     # Mark it completed
                     bus.complete_task(task_id, result_payload=result_payload, success=True)
                     logger.info(f"Task #{task_id} marked as COMPLETED.")

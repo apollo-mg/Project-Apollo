@@ -64,6 +64,7 @@ Project Apollo stands on the shoulders of giants. This Sovereign OS is made poss
 **Q: What models work best with this architecture?**
 **A:** Because Apollo heavily utilizes complex, multi-turn tool calling and schema enforcement, you need models with strong structural adherence. 
 *   **The Orchestrator:** We strongly recommend **Qwen 3.6 27B** (Dense) or the **Qwopus** variants. They exhibit exceptional tool-calling stability, rarely hallucinate syntax, and survive 15+ turn loops without degrading into "apology loops."
+*   **The Investigator:** For massive codebase exploration and topology mapping, we use the **FastContext-1.0-4B-RL** model. Utilizing Group Relative Policy Optimization (GRPO), it reliably executes parallel `Glob` and `Grep` searches, returning only strictly validated file/line citations without polluting the orchestrator's context window.
 *   **The Edge Workers:** For basic logging or simple regex extractions, smaller 8B or 14B models (like Llama 3 or DeepSeek-R1 14B) are perfectly viable for the remote worker nodes.
 *   *Note on Gemma 4:* While fantastic for creative/philosophical reasoning (ideal for the Daydream Daemon), we have found their strict JSON tool-calling capabilities to be currently unreliable for the main orchestration loop.
 
