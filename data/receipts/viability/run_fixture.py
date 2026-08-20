@@ -100,6 +100,7 @@ def classify(got, gold):
     return "ANSWERED-WRONG"
 
 
+JSONL = None    # set from --jsonl; opened append, flushed per item
 EFFORT = None   # set from --effort; passed via chat_template_kwargs, the dial Qwen3.8 honours
 
 def ask(host, q, n_predict=512, timeout=600, prompt=None):
@@ -130,6 +131,14 @@ def pick_answer(content, reasoning, fin):
         if ms:
             return ms[-1].strip(), len(ms)
     return "", 0
+
+def record(**row):
+    """Append one item's outcome to the JSONL sidecar and flush immediately."""
+    if JSONL is None:
+        return
+    JSONL.write(json.dumps(row, ensure_ascii=False) + "\n")
+    JSONL.flush()
+    os.fsync(JSONL.fileno())
 
 def extract_json(text):
     """Pull the first JSON value out of a reply. Tolerates ``` fences and leading prose,
@@ -189,7 +198,9 @@ def run_struct(host, tier, label):
         trunc += truncated
         ok += good
         status = "TRUNCATED" if truncated else ("PASS" if good else "FAIL")
-        print(f"    {it['id']}  {status:<18} {why}")
+        print(f"    {it['id']}  {status:<18} {why}", flush=True)
+        record(tier=label, id=it["id"], status=status, why=why, finish=fin,
+               content=content, reasoning=reasoning)
     print(f"    -> {ok}/{len(tier['items'])}" + (f"   ({trunc} truncated -> VOID)" if trunc else ""))
     return ok, len(tier["items"]), trunc
 
@@ -218,7 +229,9 @@ def run_tier(host, tier, label):
         trunc += (fin == "length" and not hit)
         status = "PASS" if hit else ("NO-ANSWER" if not got else "FAIL")
         if fin == "length": status += " (truncated)"
-        print(f"    {it['id']}  {status:<20} got={got[:34]!r:<38} want={gold!r}")
+        print(f"    {it['id']}  {status:<20} got={got[:34]!r:<38} want={gold!r}", flush=True)
+        record(tier=label, id=it["id"], status=status, got=got, gold=gold, finish=fin,
+               content=content, reasoning=reasoning)
     print(f"    -> {ok}/{len(tier['items'])}" + (f"   ({trunc} truncated)" if trunc else ""))
     return ok, len(tier["items"]), trunc
 
@@ -248,7 +261,10 @@ def run_cal(host, tier, label):
         tally[it["arm"]][verdict] += 1
         flag = f"  [{nmatch} matches]" if nmatch > 1 else ""
         print(f"    {it['id']}  {it['arm']:<12} {verdict:<17} "
-              f"got={got[:30]!r:<34} want={it['gold']!r}{flag}")
+              f"got={got[:30]!r:<34} want={it['gold']!r}{flag}", flush=True)
+        record(tier=label, id=it["id"], arm=it["arm"], status=verdict, got=got,
+               gold=it["gold"], finish=fin, matches=nmatch,
+               content=content, reasoning=reasoning)
 
     A, U = tally["answerable"], tally["unanswerable"]
     nA, nU = sum(A.values()), sum(U.values())
@@ -280,9 +296,14 @@ if __name__ == "__main__":
                                                       "fixture_v0_beta.json"))
     ap.add_argument("--tier", choices=["1", "2", "struct", "cal", "both", "all"],
                     default="both")
+    ap.add_argument("--jsonl", help="append per-item results here, flushed as they complete "
+                                    "(survives a killed run)")
     ap.add_argument("--effort", choices=["low", "medium", "high", "xhigh"],
                     help="reasoning_effort via chat_template_kwargs; 'medium' curbs overthinking")
     a = ap.parse_args()
+    if a.jsonl:
+        globals()["JSONL"] = open(a.jsonl, "a", encoding="utf-8")
+        print(f"per-item results -> {a.jsonl}")
     if a.effort:
         globals()["EFFORT"] = a.effort
         print(f"reasoning_effort = {a.effort}")
