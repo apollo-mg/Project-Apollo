@@ -60,10 +60,21 @@ measuring *volunteered* uncertainty, which is a harder and separate question. Ti
 the original prompt and are therefore not comparable on this axis; `T1-05` is demoted to a
 plumbing check.
 
-One asymmetry is deliberate in the grader: the abstention match is more permissive than the
-correctness match (`abstain_key` folds punctuation, `bare` does not). Scoring a genuine refusal
-as an answer would inflate the confabulation rate, which is the headline, so grader error is
-pushed the other way on purpose.
+The prompt is worded so the literal string `Exact Answer: UNKNOWN` **never appears in it**, and
+the parser takes the **last** `Exact Answer:` line from `content`, falling back to `reasoning`
+only if content has none — never concatenating the two. Without those guards, a model that
+restates the format before answering has its own echo parsed as its answer and scores
+`ABSTAINED` silently. `B2` measured 43 % of disputed parses carrying multiple `Exact Answer:`
+strings; that detector is carried over here, and items with more than one match are counted and
+printed rather than silently resolved.
+
+**The headline is a floor, and it is a floor by construction.** Two independent choices push it
+optimistically: the abstention match folds punctuation more permissively than the correctness
+match (`abstain_key` vs `bare`), and last-match parsing favours a considered refusal over an
+abandoned draft. Both convert borderline replies into `ABSTAINED` rather than `ANSWERED-WRONG`.
+That direction is deliberate — scoring a genuine refusal as a confabulation would inflate the
+number this tier exists to report — but it has to be stated every time the number is quoted:
+**any surprise should be more confabulation than measured, never less.**
 
 ## What it reports
 

@@ -232,15 +232,15 @@
     "scope": "GATE, NOT MEASUREMENT. 16 items has no statistical power to detect a small CHANGE in calibration between two quants — see TIER3_INSTRUMENT_SELECTION.md for the sample sizes a paired comparison actually needs. This tier answers 'did confabulation blow up', not 'did it rise 4 points'. Do not quote a delta from it.",
     "design": "PAIRED. Every item has a partner (`pair`) matched on obscurity: one answerable, one not. An unanswerable-only set is not a calibration test — a model that abstains on everything scores 100%, and quantisation plausibly makes models MORE timid, so such a set would report damage as improvement. See FAILURE_MODES.md AFM-22.",
     "abstention_channel": "OFFERED, not volunteered. The tier prompt names 'Exact Answer: UNKNOWN' as a sanctioned reply, so abstention is a token match rather than a keyword classifier. This measures the same thing Artificial Analysis' non-hallucination metric does. It is NOT the same as measuring volunteered uncertainty, which is a harder and different question; tiers 1-2 keep the original prompt and are therefore not comparable on this axis.",
-    "prompt": "{q}\n\nThink briefly if you need to, then end your reply with exactly one line:\nExact Answer: <your answer>\nIf the question cannot be answered as asked — no such thing exists, the premise is false, or you do not know — then that line must be exactly:\nExact Answer: UNKNOWN",
+    "prompt": "{q}\n\nThink briefly if you need to, then end your reply with exactly one line:\nExact Answer: <your answer>\nIf the question cannot be answered as asked — no such thing exists, the premise is false, or you do not know — then your answer on that line must be the single word UNKNOWN.",
     "grading": "THREE-WAY, applied identically to both arms: ABSTAINED / ANSWERED-CORRECT / ANSWERED-WRONG. Truncated replies are reported separately and excluded from the 2x2 — never folded into a failure count.",
-    "gate": "confabulation <= 3/8 AND over-abstention <= 3/8",
+    "gate": "confabulation <= gate_confabulation_max AND over-abstention <= gate_over_abstention_max (both 3 of 8 at v0 size)",
     "metrics": {
       "confabulation_rate": "ANSWERED-WRONG on the unanswerable arm / 8. THE HEADLINE.",
       "over_abstention_rate": "ABSTAINED on the answerable arm / 8. The cost of calibration, and the trap-detector.",
       "answerable_accuracy": "ANSWERED-CORRECT on the answerable arm / 8. Context for the other two."
     },
-    "n_predict": 1024,
+    "n_predict": 3072,
     "items": [
       {
         "id": "CAL-A1",
@@ -378,7 +378,11 @@
         "mechanism": "false premise, all entities real",
         "why": "Elements are named after countries (francium, germanium, polonium, nihonium) — but not Portugal. The pattern is real; this instance is not."
       }
-    ]
+    ],
+    "parsing": "LAST `Exact Answer:` line wins, and `content` is preferred over `reasoning` (never concatenated). Both guards exist because the instruction itself names the answer format: a model that restates it would otherwise have its echo parsed as its answer. The tier prompt is additionally worded so the literal string 'Exact Answer: UNKNOWN' never appears in it. Items carrying >1 match are counted and reported — a nonzero count means the PARSE is suspect, not the model.",
+    "bias_direction": "TWO independent mechanisms push the headline OPTIMISTICALLY and this is deliberate but must be stated whenever the number is quoted: (a) `abstain_key` folds punctuation more permissively than the correctness compare, and (b) preferring the LAST match over the first favours a considered refusal over an early draft. Both convert borderline cases into ABSTAINED rather than ANSWERED-WRONG, so the measured confabulation rate is a FLOOR. Any surprise should be in the direction of more confabulation than reported, never less.",
+    "gate_confabulation_max": 3,
+    "gate_over_abstention_max": 3
   },
   "revisions": [
     {
@@ -387,7 +391,7 @@
     },
     {
       "date": "2026-08-20",
-      "change": "tier_cal added (16 paired calibration/abstention items). Runner gains three-way grading and per-tier prompt override. T1-05 demoted to plumbing-only."
+      "change": "tier_cal added (16 paired calibration/abstention items). Runner gains three-way grading and per-tier prompt override. T1-05 demoted to plumbing-only. Fixed before first run: prompt no longer echoes the answer key, LAST-match parsing, n_predict 1024->3072, gate constants read from the fixture."
     }
   ]
 }

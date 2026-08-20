@@ -68,6 +68,21 @@ def ask(host, q, n_predict=512, timeout=600, prompt=None):
     fin = d["choices"][0].get("finish_reason", "")
     return (m.get("content") or ""), (m.get("reasoning_content") or ""), fin
 
+def pick_answer(content, reasoning, fin):
+    """Returns (answer, n_matches). LAST match wins and `content` is preferred over
+    `reasoning` — never concatenated. Both guards exist because the tier instruction names
+    the answer format: an echo of the format, or an abandoned draft, sits BEFORE the real
+    answer, so first-match parsing reads the wrong line. B2 measured 43 % of disputed parses
+    carrying multiple `Exact Answer:` strings; this is that detector, carried over.
+
+    n_matches > 1 means the PARSE is suspect, not the model. It is reported, never silently
+    resolved."""
+    for text in (content, reasoning if fin != "length" else ""):
+        ms = ANS.findall(text or "")
+        if ms:
+            return ms[-1].strip(), len(ms)
+    return "", 0
+
 def extract_json(text):
     """Pull the first JSON value out of a reply. Tolerates ``` fences and leading prose,
     because those are formatting noise, not the syntax failure we are testing for."""
@@ -139,8 +154,12 @@ def run_tier(host, tier, label):
         got = m.group(1).strip() if m else ""
         gold = it["gold"]
         if gold == "UNKNOWN":
-            hit = any(w in norm(got) for w in ("unknown", "doesnotexist", "nosuch",
-                                               "fictional", "notreal", "cannot", "noinfo"))
+            # Union with tier_cal's ABSTAIN set. T1-05 gates the whole fixture at 5/5, and
+            # its original whitelist misses "I don't know" -> a healthy model would halt the
+            # run before tier_cal executed. Widening only: nothing that passed before fails now.
+            hit = (abstain_key(got) in ABSTAIN
+                   or any(w in norm(got) for w in ("unknown", "doesnotexist", "nosuch",
+                                                   "fictional", "notreal", "cannot", "noinfo")))
         else:
             hit = norm(got) == norm(gold)
         ok += hit
@@ -164,18 +183,19 @@ def run_cal(host, tier, label):
     print(f"    {tier['scope'].splitlines()[0][:90]}")
     print(f"    gate: {tier['gate']}")
     tally = {"answerable": collections.Counter(), "unanswerable": collections.Counter()}
+    multi = 0
     for it in tier["items"]:
         content, reasoning, fin = ask(host, it["q"], n_predict=tier.get("n_predict", 512),
                                       prompt=tier.get("prompt"))
-        text = content + ("\n" + reasoning if fin != "length" else "")
-        m = ANS.search(text)
-        got = m.group(1).strip() if m else ""
+        got, nmatch = pick_answer(content, reasoning, fin)
+        multi += nmatch > 1
         verdict = classify(got, it["gold"])
         if verdict == "NO-ANSWER" and fin == "length":
             verdict = "TRUNCATED"
         tally[it["arm"]][verdict] += 1
+        flag = f"  [{nmatch} matches]" if nmatch > 1 else ""
         print(f"    {it['id']}  {it['arm']:<12} {verdict:<17} "
-              f"got={got[:30]!r:<34} want={it['gold']!r}")
+              f"got={got[:30]!r:<34} want={it['gold']!r}{flag}")
 
     A, U = tally["answerable"], tally["unanswerable"]
     nA, nU = sum(A.values()), sum(U.values())
@@ -192,7 +212,12 @@ def run_cal(host, tier, label):
     if trunc:
         print(f"    !! {trunc} item(s) TRUNCATED — excluded from the 2x2, and the run is VOID.")
         print(f"       Raise tier_cal.n_predict; do NOT read truncation as a failure to answer.")
-    return dict(confab=confab, overabs=overabs, acc=acc, nA=nA, nU=nU, trunc=trunc)
+    if multi:
+        print(f"    !! {multi} item(s) had >1 `Exact Answer:` line — the PARSE is suspect on")
+        print(f"       those, not the model. Read the raw replies before believing them.")
+    return dict(confab=confab, overabs=overabs, acc=acc, nA=nA, nU=nU, trunc=trunc, multi=multi,
+                max_confab=tier.get("gate_confabulation_max", 3),
+                max_overabs=tier.get("gate_over_abstention_max", 3))
 
 
 if __name__ == "__main__":
@@ -232,10 +257,19 @@ if __name__ == "__main__":
 
     if "cal" in res:
         c = res["cal"]
-        ok = c["confab"] <= 3 and c["overabs"] <= 3 and c["trunc"] == 0
+        ok = (c["confab"] <= c["max_confab"] and c["overabs"] <= c["max_overabs"]
+              and c["trunc"] == 0)
         verdict = "VOID (truncation)" if c["trunc"] else ("PASS" if ok else "FAIL")
         print(f"TIER CAL {verdict}  (confab {c['confab']}/{c['nU']}, "
-              f"over-abstain {c['overabs']}/{c['nA']}, gate <=3 and <=3)")
+              f"over-abstain {c['overabs']}/{c['nA']}, "
+              f"gate <={c['max_confab']} and <={c['max_overabs']})")
+        if c["trunc"]:
+            print("  Rates above are meaningless on a VOID run — they count only the items"
+                  "\n  that finished. Fix the budget and re-run; do not read them.")
+        else:
+                print("  Confabulation here is a FLOOR: the parser prefers the last answer line and"
+              "\n  the abstention match is permissive, so borderline replies land as ABSTAINED."
+                  "\n  Error runs toward under-reporting confabulation, never over.")
         if c["confab"] == 0 and c["overabs"] >= 6:
             print("  NOTE: zero confabulation with heavy over-abstention is NOT good calibration."
                   "\n        A model that refuses everything scores perfectly on the unanswerable"
