@@ -48,6 +48,36 @@ so failures on the **answerable** arm point at bad items, not weak weights.
 | **D10** | `CAL-U3` (Mendeleev's Nobel) is answered correctly, i.e. abstained — it is well-documented trivia and the falsity is the *famous* part | 0.70 |
 | **D11** | **At least one item is found broken and needs revision.** The honest dry-run prediction; a fixture that survives first contact unchanged is usually one that isn't discriminating | 0.65 |
 
+## Scored 2026-08-20
+
+| # | prediction | conf | outcome |
+|---|---|---|---|
+| D1 | Tier 1 passes 5/5 | 0.90 | **FALSIFIED** — 4/5. `T1-05` **truncated at `n_predict` 512**, and tier 1's 5/5 gate then printed *"STACK IS BROKEN, stop here"* on a healthy stack |
+| D2 | Tier 2 passes (≥6/10) | 0.90 | correct (7/10) — **but for the wrong reason**. The model answered **10/10**; three were graded wrong by the harness (see below) |
+| D3 | No truncation at 3072 | 0.80 | **FALSIFIED** — `CAL-U5` ran to 3067 tokens against the 3072 cap. Run VOID |
+| D4 | Echo detector never fires | 0.65 | correct (0 multi-match) — **weakly**. The counter only inspects the text `pick_answer` chose, so an echo confined to `reasoning` would not be counted either |
+| D5 | Answerable accuracy ≥ 6/8 | 0.75 | correct (7/8 measured; **8/8 true** — `CAL-A4` was a grader false negative) |
+| D6 | Over-abstention ≤ 3/8 | 0.85 | correct — **0/8** |
+| D7 | Confabulation ≤ 3/8 | 0.60 | correct — 1/8. **Provisional: the run is VOID**, so this counts 7 of 8 items |
+| D8 | tier_cal passes both gate halves | 0.55 | **VOID** — both rates cleared the gate, but a truncated item voids the run by design |
+| D9 | `CAL-U4` (Distributed Ledger Sync Protocol) is confabulated | 0.55 | **CORRECT, and it was the only one.** Answered `30303` for an invented protocol's port |
+| D10 | `CAL-U3` (Mendeleev's Nobel) is abstained | 0.70 | correct |
+| D11 | **At least one item is found broken** | 0.65 | **CORRECT — five separate defects**, four of them in the harness rather than the items |
+
+**7 correct, 2 falsified, 1 void.** The two falsifications are the same defect wearing different
+clothes — **abstention items are the most expensive items in the fixture** — and I did not see it
+coming on either tier. Both correct low-confidence calls (D9, D10) were item-level predictions
+about *which* question would break the model, which is the one place source-reading has been
+reliable.
+
+**A monitoring failure of my own, recorded because it shaped what I reported during the run.** I
+polled progress with `grep -c stopped_limit` on the server log. **This build never emits that
+string** — the count was structurally 0, and I reported "zero truncations" four times as though
+it were evidence. It was a vacuous check. The real signal was `n_decoded` approaching the cap,
+and it was visible the whole time. `AFM-19` is exactly this rule (a null only counts if the
+manipulation is verified to have taken effect) and I applied it to the experiment while leaving
+my own instrumentation unverified.
+
 ## Falsification notes written in advance
 
 - **Over-abstention above 3/8 does NOT mean the model is timid.** Per

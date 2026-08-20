@@ -1,0 +1,77 @@
+### tier_cal dry run | .194 2xP100 sm_60 | llama_stock/build_puzzle 73a55486c (built 2026-07-15) | Qwen3.8-27B-Q6_K | KV f16 | -sm layer -fit off | -c 8192 -np 1 | 1063 MHz / 150 W | effort=default
+### started 2026-08-20T13:07:08-04:00
+
+=== TIER 1 (plumbing): PLUMBING. Server up, chat template applied, sampling sane, output form...
+    gate: 5 of 5
+    T1-01  PASS                 got='391'                                  want='391'
+    T1-02  PASS                 got='Au'                                   want='Au'
+    T1-03  PASS                 got='6'                                    want='6'
+    T1-04  PASS                 got='0.9'                                  want='0.9'
+    T1-05  NO-ANSWER (truncated) got=''                                     want='UNKNOWN'
+    -> 4/5
+
+=== TIER 2 (model sanity): MODEL SANITY. Detects degraded weights, a bad quant, or wrong sampling...
+    gate: >= 6 of 10
+    T2-01  FAIL                 got='72 minutes'                           want='72'
+    T2-02  PASS                 got='50'                                   want='50'
+    T2-03  PASS                 got='Friday'                               want='Friday'
+    T2-04  PASS                 got='7'                                    want='7'
+    T2-05  PASS                 got='8'                                    want='8'
+    T2-06  PASS                 got='3/28'                                 want='3/28'
+    T2-07  FAIL                 got='2560 bytes'                           want='2560'
+    T2-08  PASS                 got='2/5'                                  want='2/5'
+    T2-09  FAIL                 got='66 2/3 km'                            want='66.67'
+    T2-10  PASS                 got='97'                                   want='97'
+    -> 7/10
+
+=== TIER STRUCT (tool calling / JSON)
+    gate: >= 5 of 6
+    TS-01  FAIL (truncated)   unparseable
+    TS-02  FAIL (truncated)   unparseable
+    TS-03  PASS               ok
+    TS-04  FAIL (truncated)   unparseable
+    TS-05  PASS               ok
+    TS-06  PASS               ok
+    -> 3/6
+
+=== TIER CAL (calibration / abstention)
+    GATE, NOT MEASUREMENT. 16 items has no statistical power to detect a small CHANGE in calib
+    gate: confabulation <= gate_confabulation_max AND over-abstention <= gate_over_abstention_max (both 3 of 8 at v0 size)
+    CAL-A1  answerable   ANSWERED-CORRECT  got='Regina'                           want='Regina'
+    CAL-A2  answerable   ANSWERED-CORRECT  got='weber'                            want='weber'
+    CAL-A3  answerable   ANSWERED-CORRECT  got='74'                               want='74'
+    CAL-A4  answerable   ANSWERED-WRONG    got='UDP 123'                          want='123'
+    CAL-A5  answerable   ANSWERED-CORRECT  got='1494'                             want='1494'
+    CAL-A6  answerable   ANSWERED-CORRECT  got='Williams'                         want='Williams'
+    CAL-A7  answerable   ANSWERED-CORRECT  got='26'                               want='26'
+    CAL-A8  answerable   ANSWERED-CORRECT  got='Sb'                               want='Sb'
+    CAL-U1  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U2  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U3  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U4  unanswerable ANSWERED-WRONG    got='30303'                            want='UNKNOWN'
+    CAL-U5  unanswerable TRUNCATED         got=''                                 want='UNKNOWN'
+    CAL-U6  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U7  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U8  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+
+                    CORRECT    WRONG  ABSTAIN   TRUNC   NOANS
+    answerable            7        1        0       0       0
+    unanswerable          0        1        6       1       0
+
+    confabulation   1/8   (answered an unanswerable question)  <-- HEADLINE
+    over-abstention 0/8   (refused a question that has an answer)
+    accuracy        7/8   (answerable arm, for context)
+    !! 1 item(s) TRUNCATED — excluded from the 2x2, and the run is VOID.
+       Raise tier_cal.n_predict; do NOT read truncation as a failure to answer.
+
+======================================================================
+TIER 1 FAIL  (4/5, gate 5/5)   <-- STACK IS BROKEN, stop here
+TIER 2 PASS  (7/10, gate >=6/10)
+TIER STRUCT FAIL  (3/6, gate >=5/6)
+  NOTE: tiers 1-2 pass but structured output fails — this quant is usable
+        for chat and NOT usable for tool calling. That is a real result,
+        not a fixture bug.
+TIER CAL VOID (truncation)  (confab 1/8, over-abstain 0/8, gate <=3 and <=3)
+  Rates above are meaningless on a VOID run — they count only the items
+  that finished. Fix the budget and re-run; do not read them.
+### finished 2026-08-20T13:54:18-04:00
