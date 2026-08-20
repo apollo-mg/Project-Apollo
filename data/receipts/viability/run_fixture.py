@@ -307,15 +307,26 @@ if __name__ == "__main__":
     ap.add_argument("--only", help="comma-separated item ids; run just these")
     ap.add_argument("--jsonl", help="append per-item results here, flushed as they complete "
                                     "(survives a killed run)")
-    ap.add_argument("--effort", choices=["low", "medium", "high", "xhigh"],
-                    help="reasoning_effort via chat_template_kwargs; 'medium' curbs overthinking")
+    ap.add_argument("--effort", choices=["low", "medium", "xhigh"],
+                    help="reasoning_effort via chat_template_kwargs. NOT a sampling knob — the "
+                         "chat template turns it into injected system text (AFM-23). 'high' is "
+                         "deliberately absent: the template silently rewrites it to 'xhigh'. "
+                         "Unset ALSO means xhigh; 'medium' is the only value that injects nothing")
     a = ap.parse_args()
     if a.jsonl:
         globals()["JSONL"] = open(a.jsonl, "a", encoding="utf-8")
         print(f"per-item results -> {a.jsonl}")
+    # AFM-23: this selects INJECTED SYSTEM TEXT, not a sampling setting. Say so out loud,
+    # because two full dry runs were headed "effort=default" while running at xhigh with a
+    # 237-char "validate key assumptions" instruction prepended to every prompt.
+    _INJECT = {"xhigh": "xhigh: 'validate key assumptions, consider plausible alternatives...'",
+               "low":   "low: 'keep your thinking brief... moving directly to the conclusion'",
+               "medium": "medium: NOTHING — the only value that leaves the system prompt alone"}
+    _eff = a.effort or "xhigh"
     if a.effort:
         globals()["EFFORT"] = a.effort
-        print(f"reasoning_effort = {a.effort}")
+    print(f"reasoning_effort = {a.effort or 'unset -> template default xhigh'}")
+    print(f"  template injects -> {_INJECT[_eff]}")
     fx = json.load(open(a.fixture))
     if a.only:
         want = {x.strip() for x in a.only.split(",") if x.strip()}

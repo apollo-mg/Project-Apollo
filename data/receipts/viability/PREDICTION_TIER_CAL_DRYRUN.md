@@ -11,7 +11,7 @@
 | model | `Qwen3.8-27B-Q6_K.gguf`, 22.88 GB |
 | KV | **f16**, symmetric |
 | split | layer |
-| effort | default (no `reasoning_effort` override) |
+| effort | **xhigh** — recorded at the time as "default". The template resolves an unset `reasoning_effort` to `xhigh` and injects a 237-char *"validate key assumptions"* instruction into the system prompt. See `RESULT_EFFORT_IS_A_PROMPT_EDIT.md` / `AFM-23`. |
 | fixture | `fixture_v0_beta.json` @ `2db8548`, `n_predict` 3072 |
 
 **Why this binary.** `llama-cpp-turboquant`'s server binary is dated **2026-07-04**, but the

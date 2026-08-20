@@ -470,3 +470,33 @@ folded *abstained* and *answered-wrong* into a single `FAIL` on the answerable a
 the one cell the 2×2 is built to separate. The classifier has to be three-way and applied
 **identically to both arms**, or the items are authored against a scalar that cannot be
 decomposed.
+
+## AFM-23 — a parameter that looks like a sampling knob may be a prompt edit
+
+**2026-08-20.** `reasoning_effort` arrives in the same JSON body as `temperature` and `top_k`,
+one field over, and reads as a generation setting. It is not. It is consumed by the **chat
+template**, which prepends a literal instruction string to the system message.
+
+On Qwen3.8-27B the rendered system block is **237 chars at `xhigh`, 166 at `low`, and 0 at
+`medium`** — and `xhigh` is what you get when you send nothing at all. Three consequences fired
+at once on a fixture that had been running "at default" for two full passes:
+
+- **"default" was `xhigh`**, not "unmodified". Every receipt header saying `effort=default` was
+  describing a 237-character injected instruction as an absence.
+- **`medium` has no branch in the template.** It validates, then falls through to an empty
+  string, so it is the *only* setting that leaves the prompt untouched — not a midpoint.
+- **`high` is silently rewritten to `xhigh`**, so a tool offering both (ours did) offers a
+  choice that cannot do anything.
+
+The content matters, not just the length. `xhigh` injects *"validate key assumptions"* — nearly
+a direct instruction to check premises — while `low` injects *"moving directly to the
+conclusion."* On a calibration tier built out of false-premise items, that is not a confound
+in the margins; it may be a larger effect than the quantisation the tier exists to measure.
+
+**Rule:** before treating any API parameter as orthogonal to prompt content, **render the chat
+template with the parameter varied and diff the output.** The request body cannot tell you
+which fields are sampling and which are text; only the template can. Anything that reaches
+`chat_template_kwargs` is prompt input by definition.
+
+**Corollary:** pin and report it like clock state. A number produced "at default" is not
+reproducible across a template revision, and templates get revised far more often than kernels.

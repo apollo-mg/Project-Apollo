@@ -1,0 +1,19 @@
+per-item results -> dryrun_194_q6k_02.jsonl
+--only: ['CAL-U5', 'CAL-U6', 'CAL-U7', 'CAL-U8', 'TS-02']
+
+=== TIER 1 (plumbing): PLUMBING. Server up, chat template applied, sampling sane, output form...
+    gate: 5 of 5
+    -> 0/0
+
+=== TIER 2 (model sanity): MODEL SANITY. Detects degraded weights, a bad quant, or wrong sampling...
+    gate: >= 6 of 10
+    -> 0/0
+
+=== TIER STRUCT (tool calling / JSON)
+    gate: >= 5 of 6
+    TS-02  PASS               ok
+    -> 1/1
+
+=== TIER CAL (calibration / abstention)
+    GATE, NOT MEASUREMENT. 16 items has no statistical power to detect a small CHANGE in calib
+    gate: confabulation <= gate_confabulation_max AND over-abstention <= gate_over_abstention_max (both 3 of 8 at v0 size)

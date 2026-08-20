@@ -3,7 +3,7 @@
 **2026-08-20**, `.194`, 2× Tesla P100 (sm_60), 1063 MHz / 150 W.
 Binary `~/llama_stock/build_puzzle/bin/llama-server` (tree `73a55486c`, **built 2026-07-15**,
 post-dates the sm_60 FAST_FP16 carve-out). `Qwen3.8-27B-Q6_K`, **f16 KV**, `-sm layer -fit off`,
-`-c 8192 -np 1`, effort default. Raw `dryrun_194_q6k.log`, 47 min wall, 7.7 tok/s decode.
+`-c 8192 -np 1`, **effort `xhigh`** (recorded as "default"; the template resolves unset to `xhigh` and injects an assumption-validation instruction — `AFM-23`). Raw `dryrun_194_q6k.log`, 47 min wall, 7.7 tok/s decode.
 Pre-registration and scoring: `PREDICTION_TIER_CAL_DRYRUN.md`.
 
 ## Headline
