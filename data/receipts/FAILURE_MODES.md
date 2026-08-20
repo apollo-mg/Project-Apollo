@@ -439,3 +439,34 @@ surface it.
 KV configuration is "safe" needs at least one arm of **free generation to a token cap with a
 degeneracy detector**, not only divergence against a reference. Cheap version: a known-answer
 canary before and after a long generation, plus a `!`-fraction threshold.
+
+## AFM-22 — abstention measured without a matched answerable control rewards timidity
+
+**2026-08-20.** Designing the calibration tier, the obvious construction is a set of
+unanswerable questions, scored on how often the model refuses. That instrument is broken in a
+way that points the wrong direction: **a model that abstains on everything scores 100 %.**
+
+This is not a hypothetical. The damage quantisation does is plausibly *toward* timidity — a
+flatter distribution hedges more — so an unanswerable-only set would report the exact
+degradation it is meant to catch as an improvement. Same shape as AFM-20: the axis being
+varied is not the axis being measured.
+
+There is a second layer. "What is the population of Zyrthanmoor?" **leaks its own answer
+through orthography.** A model can score perfectly on it by pattern-matching *weird spelling →
+refuse*, with no calibration involved. That heuristic is shallow, which is precisely why it
+would **survive quantisation intact** and report calibration as healthy while real calibration
+degraded. The unanswerable arm therefore needs ordinary surfaces: false premises with real
+entities (a Nobel that was never won), real categories with invented members (a Canadian
+province called Fairmount), real authors with invented works.
+
+**Rule:** every abstention item needs a partner that *has* an answer and is matched on
+obscurity, and both rates get reported side by side — confabulation on the unanswerable arm,
+over-abstention on the answerable arm. Neither number means anything alone. Matching on
+obscurity is load-bearing too: "capital of France" against an invented city discriminates on
+fame, not calibration.
+
+**Corollary for the grader.** A two-way grader cannot express this. `run_fixture.py` originally
+folded *abstained* and *answered-wrong* into a single `FAIL` on the answerable arm, which is
+the one cell the 2×2 is built to separate. The classifier has to be three-way and applied
+**identically to both arms**, or the items are authored against a scalar that cannot be
+decomposed.

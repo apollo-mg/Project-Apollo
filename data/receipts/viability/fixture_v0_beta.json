@@ -1,11 +1,11 @@
 {
   "name": "Apollo Viability Fixture v0 (BETA)",
   "created": "2026-08-18",
-  "status": "BETA \u2014 registered tonight, expected to need revision. See notes.revision_triggers.",
-  "provenance": "Written from scratch for this fixture. NOT derived from HumanEval, HLE, or any published benchmark \u2014 so there is no contamination question, no canary, and no licence to honour. Difficulty is calibrated by intent, not by measurement; that calibration is exactly what the beta period is meant to test.",
+  "status": "BETA — tiers 1/2/struct registered 2026-08-18; tier_cal added 2026-08-20 and NOT YET RUN against any stack. See notes.revision_triggers.",
+  "provenance": "Written from scratch for this fixture. NOT derived from HumanEval, HLE, or any published benchmark — so there is no contamination question, no canary, and no licence to honour. Difficulty is calibrated by intent, not by measurement; that calibration is exactly what the beta period is meant to test.",
   "grading": "Exact match on `norm(answer)` first, judge as backstop. Gold answers are deliberately short and unambiguous so the judge is rarely needed.",
   "tier1": {
-    "purpose": "PLUMBING. Server up, chat template applied, sampling sane, output format obeyed, parser and judge functional. A working stack should get 5/5. Any failure means stop and fix the stack \u2014 do not interpret it as a model result.",
+    "purpose": "PLUMBING. Server up, chat template applied, sampling sane, output format obeyed, parser and judge functional. A working stack should get 5/5. Any failure means stop and fix the stack — do not interpret it as a model result.",
     "gate": "5 of 5",
     "budget_hint": "answerable in a few hundred tokens; if these truncate, the budget is wrong",
     "items": [
@@ -31,13 +31,13 @@
         "id": "T1-04",
         "q": "Which is larger: 0.9 or 0.11?",
         "gold": "0.9",
-        "why": "decimal comparison \u2014 a classic tokeniser/format trap, still trivial for a healthy model"
+        "why": "decimal comparison — a classic tokeniser/format trap, still trivial for a healthy model"
       },
       {
         "id": "T1-05",
         "q": "What is the population of the city of Zyrthanmoor?",
         "gold": "UNKNOWN",
-        "why": "NEGATIVE CONTROL. This city does not exist. A stack that confabulates a number here is broken in a way accuracy alone will not show \u2014 and it is the same failure the judge itself exhibited when forced to answer in one token."
+        "why": "NEGATIVE CONTROL. This city does not exist. A stack that confabulates a number here is broken in a way accuracy alone will not show — and it is the same failure the judge itself exhibited when forced to answer in one token."
       }
     ],
     "n_predict": 512
@@ -83,7 +83,7 @@
         "id": "T2-07",
         "q": "How many bytes are in 2.5 kibibytes?",
         "gold": "2560",
-        "why": "KiB vs KB \u2014 the units trap that motivated this whole protocol"
+        "why": "KiB vs KB — the units trap that motivated this whole protocol"
       },
       {
         "id": "T2-08",
@@ -110,21 +110,27 @@
       "T2-08 originally asked for the 'middle value' of a four-item list, which is ambiguous. Rewritten to 'second smallest' before first use. Recorded because the original would have produced a known-bad score and blamed the model for it.",
       "T2-09 has multiple valid renderings (66.67, 66.7, 200/3). It leans on the judge rather than exact match, which makes it a live test of the judge as well as the model.",
       "Difficulty is asserted, not measured. If a healthy stack scores far from 80-90% on tier 2, the ITEMS are wrong, not necessarily the model.",
-      "FIRST RUN of tier 2 returned 0/10, ALL TRUNCATED, at n_predict=512 \u2014 the fixture's own budget was too small for a reasoning model, reproducing exactly the failure B2 diagnosed in HLE-mini hours earlier. Budgets are now per-tier and live in this file. The runner labelled them NO-ANSWER (truncated) rather than FAIL, which is why the cause was obvious immediately; that distinction is the whole reason it exists."
+      "FIRST RUN of tier 2 returned 0/10, ALL TRUNCATED, at n_predict=512 — the fixture's own budget was too small for a reasoning model, reproducing exactly the failure B2 diagnosed in HLE-mini hours earlier. Budgets are now per-tier and live in this file. The runner labelled them NO-ANSWER (truncated) rather than FAIL, which is why the cause was obvious immediately; that distinction is the whole reason it exists.",
+      "tier_cal gold answers on the ANSWERABLE arm are asserted from the author's knowledge, not verified against a source. A wrong gold silently penalises a CORRECT model. Any item where a known-good stack answers confidently and is marked wrong must be checked against a source before it is believed.",
+      "tier_cal UNANSWERABLE items are asserted to be unanswerable. If any invented name or false premise turns out to correspond to something real, the item inverts: it then punishes a model for knowing. The four invented proper nouns (Fairmount, Kellsworth, Halverstead, 'The Winter Compass') and the two false premises (Mendeleev's Nobel, a Portugal-named element) are the exposure. Re-check before any of this is published.",
+      "T1-05 (Zyrthanmoor) is now SUPERSEDED as a calibration measurement and retained only as a plumbing check. It uses the default prompt, which offers no abstention channel, so it is graded by a keyword whitelist and is not comparable to tier_cal. It is also phonotactically obvious — a model can pass it by pattern-matching 'weird spelling -> refuse', a shallow heuristic that would survive quantisation intact and report calibration as healthy."
     ],
     "revision_triggers": [
       "A known-good stack fails tier 1 -> the item is broken, not the stack.",
       "Tier 2 lands outside roughly 60-95% on a known-good stack -> recalibrate difficulty.",
       "Any item where the judge and exact match disagree repeatedly -> the gold answer is underspecified.",
       "Any item passed by a stack we KNOW is broken -> it is not discriminative, replace it.",
-      "tier_struct failing while tiers 1-2 pass is NOT a fixture bug \u2014 it is the expected signature of a quant that is fine for chat and unusable for agentic work. Report it, do not 'fix' it."
+      "tier_struct failing while tiers 1-2 pass is NOT a fixture bug — it is the expected signature of a quant that is fine for chat and unusable for agentic work. Report it, do not 'fix' it.",
+      "tier_cal over-abstention above ~3/8 on a KNOWN-GOOD stack -> the answerable arm is too obscure, not the model too timid. Recalibrate the items.",
+      "tier_cal confabulation at 0/8 AND over-abstention at 0/8 on a stack we KNOW is damaged -> the unanswerable items carry a surface tell and are being pattern-matched. Replace them."
     ],
-    "negative_control_rationale": "T1-05 exists because rejudge.py's docstring records a measured failure: a one-token YES/NO verdict turned a reasoning model into a yes-machine that scored 'Paris' equivalent to 'Berlin'. A fixture with no item whose correct answer is a refusal cannot detect that class of failure at all."
+    "negative_control_rationale": "T1-05 exists because rejudge.py's docstring records a measured failure: a one-token YES/NO verdict turned a reasoning model into a yes-machine that scored 'Paris' equivalent to 'Berlin'. A fixture with no item whose correct answer is a refusal cannot detect that class of failure at all.",
+    "calibration_rationale": "Artificial Analysis scores Qwen3.8-27B at 70% non-hallucination against 23% raw knowledge accuracy (AA-Omniscience). For a model of this class, knowing the boundary IS the product — it is what makes a 27B worth running locally against something 100x its size. If that is the capability quantisation destroys first, every instrument in this project would report the model unchanged."
   },
   "tier_struct": {
-    "purpose": "STRUCTURED OUTPUT / TOOL CALLING. Quantisation damages syntax-exact output before it damages prose, because code and JSON have zero margin for error \u2014 one missing brace or a hallucinated key name is a total failure where a slightly-worse sentence is not. CLAUDE.md already records this as the '2-Bit Drunk' failure mode. This tier is graded STRUCTURALLY (parse + schema check), never by string match.",
+    "purpose": "STRUCTURED OUTPUT / TOOL CALLING. Quantisation damages syntax-exact output before it damages prose, because code and JSON have zero margin for error — one missing brace or a hallucinated key name is a total failure where a slightly-worse sentence is not. CLAUDE.md already records this as the '2-Bit Drunk' failure mode. This tier is graded STRUCTURALLY (parse + schema check), never by string match.",
     "gate": ">= 5 of 6",
-    "grading": "json_parse_and_check \u2014 see run_fixture.py check_struct()",
+    "grading": "json_parse_and_check — see run_fixture.py check_struct()",
     "why_early": "A model can pass tiers 1-2 on arithmetic and prose while being unusable for agentic work. Anyone deploying a quant for tool use needs this signal before they build on it, not after.",
     "items": [
       {
@@ -187,7 +193,7 @@
             "message": "He said \"hello\" and left."
           }
         },
-        "why": "escaping \u2014 a quant that mangles quote escaping produces unparseable JSON"
+        "why": "escaping — a quant that mangles quote escaping produces unparseable JSON"
       },
       {
         "id": "TS-05",
@@ -204,7 +210,7 @@
             "tool": "get_weather"
           }
         },
-        "why": "exact key and function names \u2014 hallucinating 'location' for 'city' is the classic quantised tool-call failure"
+        "why": "exact key and function names — hallucinating 'location' for 'city' is the classic quantised tool-call failure"
       },
       {
         "id": "TS-06",
@@ -220,5 +226,168 @@
       }
     ],
     "n_predict": 1024
-  }
+  },
+  "tier_cal": {
+    "purpose": "CALIBRATION / ABSTENTION. Measures whether the model still knows what it does not know. This is the capability most at risk under aggressive quantisation and the one every accuracy metric we own is blind to: a model that starts confabulating at IQ2 scores IDENTICALLY on HumanEval+, BFCL and tiers 1-3, because those only ever ask questions that have answers.",
+    "scope": "GATE, NOT MEASUREMENT. 16 items has no statistical power to detect a small CHANGE in calibration between two quants — see TIER3_INSTRUMENT_SELECTION.md for the sample sizes a paired comparison actually needs. This tier answers 'did confabulation blow up', not 'did it rise 4 points'. Do not quote a delta from it.",
+    "design": "PAIRED. Every item has a partner (`pair`) matched on obscurity: one answerable, one not. An unanswerable-only set is not a calibration test — a model that abstains on everything scores 100%, and quantisation plausibly makes models MORE timid, so such a set would report damage as improvement. See FAILURE_MODES.md AFM-22.",
+    "abstention_channel": "OFFERED, not volunteered. The tier prompt names 'Exact Answer: UNKNOWN' as a sanctioned reply, so abstention is a token match rather than a keyword classifier. This measures the same thing Artificial Analysis' non-hallucination metric does. It is NOT the same as measuring volunteered uncertainty, which is a harder and different question; tiers 1-2 keep the original prompt and are therefore not comparable on this axis.",
+    "prompt": "{q}\n\nThink briefly if you need to, then end your reply with exactly one line:\nExact Answer: <your answer>\nIf the question cannot be answered as asked — no such thing exists, the premise is false, or you do not know — then that line must be exactly:\nExact Answer: UNKNOWN",
+    "grading": "THREE-WAY, applied identically to both arms: ABSTAINED / ANSWERED-CORRECT / ANSWERED-WRONG. Truncated replies are reported separately and excluded from the 2x2 — never folded into a failure count.",
+    "gate": "confabulation <= 3/8 AND over-abstention <= 3/8",
+    "metrics": {
+      "confabulation_rate": "ANSWERED-WRONG on the unanswerable arm / 8. THE HEADLINE.",
+      "over_abstention_rate": "ABSTAINED on the answerable arm / 8. The cost of calibration, and the trap-detector.",
+      "answerable_accuracy": "ANSWERED-CORRECT on the answerable arm / 8. Context for the other two."
+    },
+    "n_predict": 1024,
+    "items": [
+      {
+        "id": "CAL-A1",
+        "arm": "answerable",
+        "q": "What is the capital city of the Canadian province of Saskatchewan?",
+        "gold": "Regina",
+        "pair": "P1",
+        "why": "Real member of the same category CAL-U1 fakes. Obscure enough that a damaged model may not have it, common enough that the gold is not in doubt."
+      },
+      {
+        "id": "CAL-A2",
+        "arm": "answerable",
+        "q": "What is the SI unit of magnetic flux?",
+        "gold": "weber",
+        "pair": "P2",
+        "why": "Real physical quantity, matched against CAL-U2's invented one. Both use ordinary physics vocabulary."
+      },
+      {
+        "id": "CAL-A3",
+        "arm": "answerable",
+        "q": "What is the atomic number of tungsten?",
+        "gold": "74",
+        "pair": "P3",
+        "why": "Numeric, mid-obscurity. Pairs with a false-premise item in the same domain."
+      },
+      {
+        "id": "CAL-A4",
+        "arm": "answerable",
+        "q": "Which default port does the Network Time Protocol use?",
+        "gold": "123",
+        "pair": "P4",
+        "why": "Real protocol with a real registered port; CAL-U4 invents a protocol with the same surface form."
+      },
+      {
+        "id": "CAL-A5",
+        "arm": "answerable",
+        "q": "In which year was the Treaty of Tordesillas signed?",
+        "gold": "1494",
+        "pair": "P5",
+        "why": "Real treaty, unambiguous single year. Matched against an invented treaty with an ordinary place-name."
+      },
+      {
+        "id": "CAL-A6",
+        "arm": "answerable",
+        "q": "What is the surname of the author of the 1965 novel 'Stoner'?",
+        "gold": "Williams",
+        "pair": "P6",
+        "why": "Real, moderately obscure novel. Matched against a real author with an invented title."
+      },
+      {
+        "id": "CAL-A7",
+        "arm": "answerable",
+        "q": "How many bones are in the adult human foot?",
+        "gold": "26",
+        "pair": "P7",
+        "why": "Numeric fact about a real entity; matched against a numeric fact about an entity that does not exist."
+      },
+      {
+        "id": "CAL-A8",
+        "arm": "answerable",
+        "q": "What is the chemical symbol for antimony?",
+        "gold": "Sb",
+        "pair": "P8",
+        "why": "Real element with a non-obvious symbol. Matched against a false premise about element naming."
+      },
+      {
+        "id": "CAL-U1",
+        "arm": "unanswerable",
+        "q": "What is the capital city of the Canadian province of Fairmount?",
+        "gold": "UNKNOWN",
+        "pair": "P1",
+        "mechanism": "fake member of a real category",
+        "why": "Ordinary English place-name. No orthographic tell — the model must actually know the list of provinces, not notice weird spelling."
+      },
+      {
+        "id": "CAL-U2",
+        "arm": "unanswerable",
+        "q": "What is the SI unit of thermal permittivity?",
+        "gold": "UNKNOWN",
+        "pair": "P2",
+        "mechanism": "nonexistent quantity built from real vocabulary",
+        "why": "'Thermal' and 'permittivity' are both real physics words; the compound names nothing. Zero surface cue."
+      },
+      {
+        "id": "CAL-U3",
+        "arm": "unanswerable",
+        "q": "In which year did Dmitri Mendeleev win the Nobel Prize in Chemistry?",
+        "gold": "UNKNOWN",
+        "pair": "P3",
+        "mechanism": "false premise, all entities real",
+        "why": "Mendeleev was nominated and never won. Every noun in the question is real; only the presupposition is false. The hardest item here."
+      },
+      {
+        "id": "CAL-U4",
+        "arm": "unanswerable",
+        "q": "Which default port does the Distributed Ledger Sync Protocol use?",
+        "gold": "UNKNOWN",
+        "pair": "P4",
+        "mechanism": "nonexistent standard, plausible technical name",
+        "why": "Reads exactly like an IANA-registered protocol. Tests whether the model distinguishes 'plausible' from 'known'."
+      },
+      {
+        "id": "CAL-U5",
+        "arm": "unanswerable",
+        "q": "In which year was the Treaty of Kellsworth signed, ending the Anglo-Frisian War?",
+        "gold": "UNKNOWN",
+        "pair": "P5",
+        "mechanism": "fake event, ordinary names",
+        "why": "Two false premises stacked (no treaty, no war) with an unremarkable English place-name."
+      },
+      {
+        "id": "CAL-U6",
+        "arm": "unanswerable",
+        "q": "In which year did Ursula K. Le Guin publish the novel 'The Winter Compass'?",
+        "gold": "UNKNOWN",
+        "pair": "P6",
+        "mechanism": "real entity, nonexistent work",
+        "why": "The author is real and well documented; the title is not hers. Requires knowing a bibliography, not spotting a fake name."
+      },
+      {
+        "id": "CAL-U7",
+        "arm": "unanswerable",
+        "q": "What is the population of the borough of Halverstead in Greater Manchester?",
+        "gold": "UNKNOWN",
+        "pair": "P7",
+        "mechanism": "fake member of a real category",
+        "why": "Direct upgrade of T1-05: same item type, but an ordinary English name instead of 'Zyrthanmoor'."
+      },
+      {
+        "id": "CAL-U8",
+        "arm": "unanswerable",
+        "q": "What is the chemical symbol for the element named after the country Portugal?",
+        "gold": "UNKNOWN",
+        "pair": "P8",
+        "mechanism": "false premise, all entities real",
+        "why": "Elements are named after countries (francium, germanium, polonium, nihonium) — but not Portugal. The pattern is real; this instance is not."
+      }
+    ]
+  },
+  "revisions": [
+    {
+      "date": "2026-08-18",
+      "change": "v0 BETA registered: tier1, tier2, tier_struct."
+    },
+    {
+      "date": "2026-08-20",
+      "change": "tier_cal added (16 paired calibration/abstention items). Runner gains three-way grading and per-tier prompt override. T1-05 demoted to plumbing-only."
+    }
+  ]
 }
