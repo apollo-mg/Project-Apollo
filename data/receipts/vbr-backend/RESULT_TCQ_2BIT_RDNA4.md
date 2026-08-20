@@ -50,6 +50,44 @@ layers end there. `VBR_DEGRADE_ORDER=<file>` overrides the table at runtime
 (`llama-kv-cache.cpp:3756`), but no ordering helps when every turbo tier is unsafe — only the
 f16 entry tier is.
 
+## MINIMAL REPRODUCTION — a prompt-length threshold, first request
+
+**The trigger is prompt length, not generation length, not request count, not the fixture.**
+
+```bash
+llama-server -m Qwen3.8-27B-AD-IQ2_S.gguf -ngl 99 -c 4096 \
+             -ctk turbo4 -ctv turbo4 -fa on --kv-unified --jinja
+
+# ~110 server-side prompt tokens -> normal output
+# ~112 server-side prompt tokens -> every token is '!', HTTP 200, finish_reason length
+```
+
+| server-side `prompt_tokens` | output |
+|---|---|
+| 104, 106, 108, **110** | **normal** |
+| **112**, 114, 116, 118, 120, 122, 124 | **all `!`** |
+
+Deterministic on both sides of the boundary, on the **first request** to a fresh server, with
+`!` from the **first generated token** — so generation never works at all past the threshold
+rather than degrading partway.
+
+**It is sticky.** Once one oversized prompt has been processed, every later request on that
+server returns `!` too, including short ones that would have been fine. That is why the
+fixture's post-run canary was dead.
+
+**GQA gates it, and does not merely shift it.** `Qwen3.5-9B` (GQA 4:1) on the same card,
+same codec, same build is clean at **70, 120, 260, 510, 1010 and 2010** prompt tokens —
+18× past the 27B's boundary.
+
+### What this retires from the investigation below
+
+- **Generation length is irrelevant.** A fresh server generating 2,560 tokens to the cap on a
+  short prompt is clean; the length sweep was clean at every value from 256 to 3072.
+- **Request count is irrelevant.** Five consecutive short requests are clean.
+- **The fixture was measuring prompt length all along.** Its canary is ~50 tokens (under the
+  threshold, always passed); its tier-2 items are ~112+ (over it, always collapsed). The
+  "collapse at item 1" pattern in every table below is that, not sequence dependence.
+
 ## The result
 
 Collapse = every response is pure `!` to the token cap, HTTP 200, `finish_reason: length`,
