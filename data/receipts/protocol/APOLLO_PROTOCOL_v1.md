@@ -102,10 +102,45 @@ Then check it against **the smallest machine that must run it**, using your Step
 
 ## Step 3 — pin the KV budget; do not let it float
 
-We run **VBR (variable-bit-rate KV) with `VBR_BUDGET_MIB` pinned**, and we recommend it.
+> **RETRACTED 2026-08-19.** This step previously read *"We run VBR with `VBR_BUDGET_MIB`
+> pinned, and we recommend it."* **That recommendation is withdrawn.** Nine hours after it
+> was written, the same fleet measured that **any turbo KV codec — VBR, TCQ or classic —
+> produces pure `!` output past a ~112-token prompt on GQA ≥ 6 models on gfx1201**, at HTTP
+> 200, from the first generated token, permanently. See
+> `data/receipts/vbr-backend/RESULT_TCQ_2BIT_RDNA4.md`.
+>
+> **The reasoning below about *pinning* is still correct and still applies** — an unpinned
+> budget is derived from live free memory and is not reproducible. What is withdrawn is
+> choosing a turbo codec at all without first testing it on the exact (card × model) you
+> intend to measure.
+>
+> **This document's own Step 4 would have caught it.** Step 3 picked the instrument and
+> Step 4 validates the stack — but Step 4 was never run against Step 3's own choice. **Run
+> the tier-1 gate against your KV configuration before you standardise on it**, not only
+> against the model. Everything measured through a broken instrument inherits its failures,
+> and the failure mode here is silent: throughput is unchanged and every fidelity metric that
+> is teacher-forced reports the server healthy.
 
-**Why VBR:** one flag adapts to context depth instead of forcing you to hand-size a KV type
-per (machine × model × context). It starts at f16 and degrades only under real pressure.
+**Current recommendation:** benchmark on **`q8_0` or f16 KV**, which are clean on every
+configuration this fleet has measured, on both architectures. Use a turbo codec only after
+running the liveness check below on your own hardware, and only where the memory saving is
+what makes the run possible at all.
+
+**Liveness check — 30 seconds, do it before trusting any KV codec:**
+
+```bash
+# one request, ~120-token prompt, to a freshly started server
+curl -s localhost:8080/v1/chat/completions -H 'Content-Type: application/json' -d '{
+  "messages":[{"role":"user","content":"<paste ~120 tokens of text> What is 2 plus 2?"}],
+  "temperature":0,"n_predict":64}' | jq -r '.choices[0].message.content'
+```
+
+If the reply is punctuation repeated to the token cap, the codec is broken for that
+(card × model). A **short** prompt will not reveal it — that is what took us a day.
+
+**Why VBR was attractive:** one flag adapts to context depth instead of forcing you to
+hand-size a KV type per (machine × model × context). It starts at f16 and degrades only under
+real pressure. That design is sound; the RDNA4 implementation is not, for this model class.
 
 **Why pinned, and this is not optional:** left alone, VBR derives its budget from *live free
 memory*, so the same command produces different arithmetic on a different machine — or on the
