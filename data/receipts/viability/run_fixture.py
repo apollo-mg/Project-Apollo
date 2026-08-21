@@ -100,6 +100,15 @@ def classify(got, gold):
     return "ANSWERED-WRONG"
 
 
+SAMPLING = {"temperature": 0, "top_k": 1}   # set from --sampling
+SAMPLING_NAME = "greedy"
+# Card-recommended thinking-mode sampling (huggingface.co/Qwen/Qwen3.8-27B). NOT deterministic
+# — any rate measured under it needs repeats, which greedy did not.
+SAMPLING_PRESETS = {
+    "greedy": {"temperature": 0, "top_k": 1},
+    "card":   {"temperature": 1.0, "top_p": 0.95, "top_k": 20, "min_p": 0.0,
+               "presence_penalty": 0.0},
+}
 JSONL = None    # set from --jsonl; opened append, flushed per item
 EFFORT = None   # set from --effort; passed via chat_template_kwargs, the dial Qwen3.8 honours
 
@@ -109,7 +118,7 @@ def ask(host, q, n_predict=512, timeout=None, prompt=None):
     if timeout is None:
         timeout = 300 + n_predict / TPS_FLOOR
     body = {"messages": [{"role": "user", "content": (prompt or PROMPT).format(q=q)}],
-            "temperature": 0, "top_k": 1, "n_predict": n_predict}
+            "n_predict": n_predict, **SAMPLING}
     if EFFORT:
         body["chat_template_kwargs"] = {"reasoning_effort": EFFORT}
     req = urllib.request.Request(host.rstrip("/") + "/v1/chat/completions",
@@ -196,6 +205,7 @@ def record(**row):
     """Append one item's outcome to the JSONL sidecar and flush immediately."""
     if JSONL is None:
         return
+    row.setdefault("sampling", SAMPLING_NAME)
     JSONL.write(json.dumps(row, ensure_ascii=False) + "\n")
     JSONL.flush()
     os.fsync(JSONL.fileno())
@@ -392,6 +402,11 @@ if __name__ == "__main__":
     ap.add_argument("--no-escalate", action="store_true",
                     help="do not retry a truncated item at 2x budget (disables NON-TERMINATING "
                          "detection; truncation then VOIDs the tier as before)")
+    ap.add_argument("--sampling", choices=["greedy", "card"], default="greedy",
+                    help="greedy (temp 0/top_k 1) is deterministic but is NOT what this model is "
+                         "tuned for and causes non-termination on false-premise items; 'card' is "
+                         "the published thinking-mode config and needs repeats")
+    ap.add_argument("--seed", type=int, help="server seed; only meaningful with --sampling card")
     ap.add_argument("--only", help="comma-separated item ids; run just these")
     ap.add_argument("--jsonl", help="append per-item results here, flushed as they complete "
                                     "(survives a killed run)")
@@ -401,6 +416,14 @@ if __name__ == "__main__":
                          "deliberately absent: the template silently rewrites it to 'xhigh'. "
                          "Unset ALSO means xhigh; 'medium' is the only value that injects nothing")
     a = ap.parse_args()
+    globals()["SAMPLING"] = dict(SAMPLING_PRESETS[a.sampling])
+    globals()["SAMPLING_NAME"] = a.sampling
+    if a.seed is not None:
+        SAMPLING["seed"] = a.seed
+    print(f"sampling = {a.sampling}  {SAMPLING}")
+    if a.sampling == "greedy":
+        print("  WARNING: greedy is not this model's recommended sampling and is a known cause"
+              "\n  of failure-to-terminate on false-premise items. See RETRACTION_NO_STOP.md.")
     if a.jsonl:
         globals()["JSONL"] = open(a.jsonl, "a", encoding="utf-8")
         print(f"per-item results -> {a.jsonl}")
