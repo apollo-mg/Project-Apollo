@@ -1,0 +1,60 @@
+=== clock/power at start ===
+0, 1063 MHz, 150.00 W, 0 MiB
+1, 1063 MHz, 150.00 W, 0 MiB
+2, 1063 MHz, 150.00 W, 0 MiB
+3, 1063 MHz, 150.00 W, 0 MiB
+
+### L2  gpus=0,1 numa=0 sm=layer  2026-08-21T16:47:43+00:00
+  Device 0: Tesla P100-PCIE-16GB, compute capability 6.0, VMM: yes, VRAM: 16269 MiB
+  Device 1: Tesla P100-PCIE-16GB, compute capability 6.0, VMM: yes, VRAM: 16269 MiB
+| model                          |       size |     params | backend    | ngl |            test |                  t/s |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | --------------: | -------------------: |
+| qwen35 27B Q6_K                |  21.30 GiB |    27.32 B | CUDA       |  99 |           pp512 |        106.39 ± 0.05 |
+| qwen35 27B Q6_K                |  21.30 GiB |    27.32 B | CUDA       |  99 |           tg128 |          7.70 ± 0.00 |
+build: 73a55486c (9937)
+
+### T2a  gpus=0,1 numa=0 sm=tensor  2026-08-21T16:49:00+00:00
+  Device 0: Tesla P100-PCIE-16GB, compute capability 6.0, VMM: yes, VRAM: 16269 MiB
+  Device 1: Tesla P100-PCIE-16GB, compute capability 6.0, VMM: yes, VRAM: 16269 MiB
+| model                          |       size |     params | backend    | ngl |     sm |            test |                  t/s |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | -----: | --------------: | -------------------: |
+| qwen35 27B Q6_K                |  21.30 GiB |    27.32 B | CUDA       |  99 | tensor |           pp512 |        173.46 ± 0.07 |
+| qwen35 27B Q6_K                |  21.30 GiB |    27.32 B | CUDA       |  99 | tensor |           tg128 |         13.00 ± 0.02 |
+build: 73a55486c (9937)
+
+### T2b  gpus=2,3 numa=1 sm=tensor  2026-08-21T16:49:50+00:00
+  Device 0: Tesla P100-PCIE-16GB, compute capability 6.0, VMM: yes, VRAM: 16269 MiB
+  Device 1: Tesla P100-PCIE-16GB, compute capability 6.0, VMM: yes, VRAM: 16269 MiB
+| model                          |       size |     params | backend    | ngl |     sm |            test |                  t/s |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | -----: | --------------: | -------------------: |
+| qwen35 27B Q6_K                |  21.30 GiB |    27.32 B | CUDA       |  99 | tensor |           pp512 |        172.79 ± 0.01 |
+| qwen35 27B Q6_K                |  21.30 GiB |    27.32 B | CUDA       |  99 | tensor |           tg128 |         13.00 ± 0.03 |
+build: 73a55486c (9937)
+
+### T4  gpus=0,1,2,3 numa=- sm=tensor  2026-08-21T16:50:40+00:00
+  Device 0: Tesla P100-PCIE-16GB, compute capability 6.0, VMM: yes, VRAM: 16269 MiB
+  Device 1: Tesla P100-PCIE-16GB, compute capability 6.0, VMM: yes, VRAM: 16269 MiB
+  Device 2: Tesla P100-PCIE-16GB, compute capability 6.0, VMM: yes, VRAM: 16269 MiB
+  Device 3: Tesla P100-PCIE-16GB, compute capability 6.0, VMM: yes, VRAM: 16269 MiB
+| model                          |       size |     params | backend    | ngl |     sm |            test |                  t/s |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | -----: | --------------: | -------------------: |
+| qwen35 27B Q6_K                |  21.30 GiB |    27.32 B | CUDA       |  99 | tensor |           pp512 |        224.10 ± 0.44 |
+| qwen35 27B Q6_K                |  21.30 GiB |    27.32 B | CUDA       |  99 | tensor |           tg128 |         15.34 ± 0.05 |
+build: 73a55486c (9937)
+
+### CONC  T2a and T2b simultaneously  2026-08-21T16:51:23+00:00
+[A 0,1] | model                          |       size |     params | backend    | ngl |     sm |            test |                  t/s |
+[A 0,1] | ------------------------------ | ---------: | ---------: | ---------- | --: | -----: | --------------: | -------------------: |
+[A 0,1] | qwen35 27B Q6_K                |  21.30 GiB |    27.32 B | CUDA       |  99 | tensor |           pp512 |        173.48 ± 0.01 |
+[A 0,1] | qwen35 27B Q6_K                |  21.30 GiB |    27.32 B | CUDA       |  99 | tensor |           tg128 |         13.00 ± 0.03 |
+[B 2,3] | model                          |       size |     params | backend    | ngl |     sm |            test |                  t/s |
+[B 2,3] | ------------------------------ | ---------: | ---------: | ---------- | --: | -----: | --------------: | -------------------: |
+[B 2,3] | qwen35 27B Q6_K                |  21.30 GiB |    27.32 B | CUDA       |  99 | tensor |           pp512 |        173.70 ± 0.04 |
+[B 2,3] | qwen35 27B Q6_K                |  21.30 GiB |    27.32 B | CUDA       |  99 | tensor |           tg128 |         13.03 ± 0.03 |
+
+=== clock/power at end (thermal/power drift check) ===
+0, 1063 MHz, 32.88 W, 54
+1, 1063 MHz, 33.85 W, 48
+2, 1063 MHz, 29.98 W, 45
+3, 1063 MHz, 31.17 W, 46
+### finished 2026-08-21T16:52:14+00:00
