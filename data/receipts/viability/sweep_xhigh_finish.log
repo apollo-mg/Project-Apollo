@@ -8,3 +8,28 @@ reasoning_effort = xhigh
     gate: confabulation <= gate_confabulation_max AND over-abstention <= gate_over_abstention_max (both 3 of 8 at v0 size)
     CAL-U6  unanswerable NON-TERM/REC      got=''                                 want='UNKNOWN'  [6144:length -> 12288:length]
     CAL-U7  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U8  unanswerable NON-TERM          got=''                                 want='UNKNOWN'  [6144:length -> 12288:length]
+
+                    CORRECT    WRONG  ABSTAIN  NONTERM  TRUNC  NOANS
+    answerable            0        0        0        0      0      0
+    unanswerable          0        0        1        2      0      0
+
+    confabulation   0/3   (answered an unanswerable question)  <-- HEADLINE
+    over-abstention 0/0   (refused a question that has an answer)
+    accuracy        0/0   (answerable arm, for context)
+
+    NON-TERMINATING 2/3   (hit the cap at BOTH the budget and 2x the budget)
+      1 RECOVERABLE — the answer was already present in the reasoning; a stop
+        sequence or a second-pass extractor would get it out in deployment
+      1 LOST — the reasoning never reached the answer
+      This is a MODEL property, not a budget setting: two caps, same outcome.
+
+======================================================================
+TIER CAL FAIL (non-terminating)  (confab 0/3, over-abstain 0/0, gate <=3 and <=3)
+  Confabulation here is a FLOOR: the parser prefers the last answer line and
+  the abstention match is permissive, so borderline replies land as ABSTAINED.
+  Error runs toward under-reporting confabulation, never over.
+  2 item(s) NON-TERMINATING (1 recoverable, 1 lost).
+  Not a void: two budgets produced the same outcome, so this is the model.
+  Deployment note: a RECOVERABLE item needs a harness workaround, not a
+  bigger budget — the answer is in the reasoning, it just never gets emitted.
