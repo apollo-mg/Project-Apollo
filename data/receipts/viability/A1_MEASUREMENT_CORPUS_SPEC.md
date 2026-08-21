@@ -49,6 +49,35 @@ the same power so
 not decoration: without power there, a rise in confabulation cannot be distinguished from the
 model simply answering more of everything.
 
+## MEASURED 2026-08-21 — the unanswerable arm costs 4-9x its partner
+
+`A5`, computed from the dry-run JSONL (16 items, `Qwen3.8-27B-Q6_K`, effort `xhigh`):
+
+| arm | median chars | mean | max |
+|---|---|---|---|
+| answerable | 724 | 747 | 933 |
+| **unanswerable** | **5,090** | **6,850** | 21,512 |
+| unanswerable, non-terminator excluded | 2,877 | 4,755 | 11,414 |
+
+**Ratio: 7.0x median, 4.0x with the non-terminator removed, 9.2x mean.** The spec's guess of
+3-6x was low.
+
+At 240 pairs that is **~521k generated tokens ≈ 18.8 h per sweep** on 2× P100 at 7.7 tok/s,
+and **~37.6 h for a two-quant comparison** — which is what the corpus exists to do.
+
+Three consequences:
+
+1. **Shrinking the answerable arm saves almost nothing.** It is ~11 % of the cost. The
+   "equal power vs control-only" question above was framed as the biggest cost lever; it is
+   **not**. The lever is the unanswerable count, and that is the arm carrying the headline, so
+   it cannot be cheaply cut. **That open question is settled: size both arms equally.**
+2. **A1 does not belong on Pascal.** The 9070 XT runs this model class several times faster
+   and `tier_cal` needs no turbo KV — stock f16/q8_0 is verified clean on gfx1201, and the
+   codec collapse never touches it. Measure decode there before committing.
+3. **Effort is now a cost variable as well as a confound.** Every number above is at `xhigh`,
+   which injects *"validate key assumptions"* (`AFM-23`). `medium` injects nothing and may
+   generate far less. That makes the effort sweep a prerequisite for sizing, not a follow-up.
+
 ## Construction — make unanswerability DECIDABLE, not asserted
 
 The v0 gate's largest liability is `A2`: sixteen items whose golds and whose *unanswerability*
