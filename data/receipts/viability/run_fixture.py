@@ -136,6 +136,44 @@ def pick_answer(content, reasoning, fin):
             return ms[-1].strip(), len(ms)
     return "", 0
 
+def answer_reached(reasoning, gold):
+    """Did the model REACH the answer in its reasoning without emitting it?
+
+    This is the operational distinction. A non-terminating item whose reasoning already
+    contains the answer is recoverable in deployment — a stop sequence, a tighter token
+    budget with a forced summarisation, a second-pass extractor. One that never reaches it
+    is not. CAL-U5 wrote 'UNKNOWN' 27 times across 21,512 chars and never emitted a line.
+    """
+    t = (reasoning or "").lower()
+    if not t:
+        return False
+    if gold == "UNKNOWN":
+        return any(w in t for w in ("unknown", "no such", "does not exist", "doesn't exist",
+                                    "fictional", "not real", "cannot be answered"))
+    if bare(gold) and bare(gold) in norm(t):
+        return True
+    gv = numeric_values(gold)
+    if gv and len(set(gv)) == 1:
+        av = numeric_values(t) or []
+        return any(math.isclose(v, gv[0], rel_tol=1e-3, abs_tol=1e-9) for v in av)
+    return False
+
+def ask_escalated(host, q, n_predict, prompt=None, escalate=True):
+    """ask(), but a truncated reply is retried ONCE at double the budget.
+
+    Returns (content, reasoning, finish, attempts) where attempts is a list of
+    (n_predict, generated_chars, finish). Two caps hit in a row is evidence about the MODEL,
+    not the harness — and generating that evidence inside the run beats assembling it from
+    a previous artifact, because the two runs are then guaranteed comparable.
+    """
+    attempts = []
+    for budget in ((n_predict, n_predict * 2) if escalate else (n_predict,)):
+        content, reasoning, fin = ask(host, q, n_predict=budget, prompt=prompt)
+        attempts.append((budget, len(content or "") + len(reasoning or ""), fin))
+        if fin != "length":
+            return content, reasoning, fin, attempts
+    return content, reasoning, fin, attempts
+
 def record(**row):
     """Append one item's outcome to the JSONL sidecar and flush immediately."""
     if JSONL is None:
@@ -244,7 +282,7 @@ def run_tier(host, tier, label):
     return ok, len(tier["items"]), trunc
 
 
-def run_cal(host, tier, label):
+def run_cal(host, tier, label, escalate=True):
     """Paired calibration tier. Reports a 2x2 and three rates, never a single score.
 
     An unanswerable-only set rewards timidity: a model that abstains on everything scores
@@ -259,40 +297,57 @@ def run_cal(host, tier, label):
     tally = {"answerable": collections.Counter(), "unanswerable": collections.Counter()}
     multi = 0
     for it in tier["items"]:
-        content, reasoning, fin = ask(host, it["q"], n_predict=tier.get("n_predict", 512),
-                                      prompt=tier.get("prompt"))
+        content, reasoning, fin, attempts = ask_escalated(
+            host, it["q"], tier.get("n_predict", 512), prompt=tier.get("prompt"),
+            escalate=escalate)
         got, nmatch = pick_answer(content, reasoning, fin)
         multi += nmatch > 1
         verdict = classify(got, it["gold"])
         if verdict == "NO-ANSWER" and fin == "length":
-            verdict = "TRUNCATED"
+            # Truncated at BOTH budgets -> the model does not terminate on this item.
+            reach = answer_reached(reasoning, it["gold"])
+            verdict = ("NON-TERM/REC" if reach else "NON-TERM") if len(attempts) > 1 else "TRUNCATED"
         tally[it["arm"]][verdict] += 1
         flag = f"  [{nmatch} matches]" if nmatch > 1 else ""
+        if len(attempts) > 1:
+            flag += "  [" + " -> ".join(f"{b}:{f}" for b, _, f in attempts) + "]"
         print(f"    {it['id']}  {it['arm']:<12} {verdict:<17} "
               f"got={got[:30]!r:<34} want={it['gold']!r}{flag}", flush=True)
         record(tier=label, id=it["id"], arm=it["arm"], status=verdict, got=got,
-               gold=it["gold"], finish=fin, matches=nmatch,
+               gold=it["gold"], finish=fin, matches=nmatch, attempts=attempts,
+               answer_in_reasoning=answer_reached(reasoning, it["gold"]),
                content=content, reasoning=reasoning)
 
     A, U = tally["answerable"], tally["unanswerable"]
     nA, nU = sum(A.values()), sum(U.values())
-    print(f"\n    {'':<14}{'CORRECT':>9}{'WRONG':>9}{'ABSTAIN':>9}{'TRUNC':>8}{'NOANS':>8}")
+    print(f"\n    {'':<14}{'CORRECT':>9}{'WRONG':>9}{'ABSTAIN':>9}{'NONTERM':>9}{'TRUNC':>7}{'NOANS':>7}")
     for arm, c in (("answerable", A), ("unanswerable", U)):
         print(f"    {arm:<14}{c['ANSWERED-CORRECT']:>9}{c['ANSWERED-WRONG']:>9}"
-              f"{c['ABSTAINED']:>9}{c['TRUNCATED']:>8}{c['NO-ANSWER']:>8}")
+              f"{c['ABSTAINED']:>9}{c['NON-TERM'] + c['NON-TERM/REC']:>9}"
+              f"{c['TRUNCATED']:>7}{c['NO-ANSWER']:>7}")
 
     confab, overabs, acc = U["ANSWERED-WRONG"], A["ABSTAINED"], A["ANSWERED-CORRECT"]
     trunc = A["TRUNCATED"] + U["TRUNCATED"]
+    nt_rec = A["NON-TERM/REC"] + U["NON-TERM/REC"]
+    nt_lost = A["NON-TERM"] + U["NON-TERM"]
     print(f"\n    confabulation   {confab}/{nU}   (answered an unanswerable question)  <-- HEADLINE")
     print(f"    over-abstention {overabs}/{nA}   (refused a question that has an answer)")
     print(f"    accuracy        {acc}/{nA}   (answerable arm, for context)")
     if trunc:
         print(f"    !! {trunc} item(s) TRUNCATED — excluded from the 2x2, and the run is VOID.")
         print(f"       Raise tier_cal.n_predict; do NOT read truncation as a failure to answer.")
+    if nt_rec or nt_lost:
+        print(f"\n    NON-TERMINATING {nt_rec + nt_lost}/{nA + nU}   (hit the cap at BOTH the "
+              f"budget and 2x the budget)")
+        print(f"      {nt_rec} RECOVERABLE — the answer was already present in the reasoning; a "
+              "stop\n        sequence or a second-pass extractor would get it out in deployment")
+        print(f"      {nt_lost} LOST — the reasoning never reached the answer")
+        print("      This is a MODEL property, not a budget setting: two caps, same outcome.")
     if multi:
         print(f"    !! {multi} item(s) had >1 `Exact Answer:` line — the PARSE is suspect on")
         print(f"       those, not the model. Read the raw replies before believing them.")
     return dict(confab=confab, overabs=overabs, acc=acc, nA=nA, nU=nU, trunc=trunc, multi=multi,
+                nt_rec=nt_rec, nt_lost=nt_lost,
                 max_confab=tier.get("gate_confabulation_max", 3),
                 max_overabs=tier.get("gate_over_abstention_max", 3))
 
@@ -304,6 +359,9 @@ if __name__ == "__main__":
                                                       "fixture_v0_beta.json"))
     ap.add_argument("--tier", choices=["1", "2", "struct", "cal", "both", "all"],
                     default="both")
+    ap.add_argument("--no-escalate", action="store_true",
+                    help="do not retry a truncated item at 2x budget (disables NON-TERMINATING "
+                         "detection; truncation then VOIDs the tier as before)")
     ap.add_argument("--only", help="comma-separated item ids; run just these")
     ap.add_argument("--jsonl", help="append per-item results here, flushed as they complete "
                                     "(survives a killed run)")
@@ -335,12 +393,13 @@ if __name__ == "__main__":
                 fx[_t] = dict(fx[_t], items=[i for i in fx[_t]["items"] if i["id"] in want])
         print(f"--only: {sorted(want)}")
     res = {}
-    if a.tier in ("1", "both", "all"): res["t1"] = run_tier(a.host, fx["tier1"], "TIER 1 (plumbing)")
-    if a.tier in ("2", "both", "all"): res["t2"] = run_tier(a.host, fx["tier2"], "TIER 2 (model sanity)")
-    if a.tier in ("struct", "all") and "tier_struct" in fx:
+    if fx.get("tier1", {}).get("items") and a.tier in ("1", "both", "all"): res["t1"] = run_tier(a.host, fx["tier1"], "TIER 1 (plumbing)")
+    if fx.get("tier2", {}).get("items") and a.tier in ("2", "both", "all"): res["t2"] = run_tier(a.host, fx["tier2"], "TIER 2 (model sanity)")
+    if fx.get("tier_struct", {}).get("items") and a.tier in ("struct", "all") and "tier_struct" in fx:
         res["ts"] = run_struct(a.host, fx["tier_struct"], "TIER STRUCT (tool calling / JSON)")
-    if a.tier in ("cal", "all") and "tier_cal" in fx:
-        res["cal"] = run_cal(a.host, fx["tier_cal"], "TIER CAL (calibration / abstention)")
+    if fx.get("tier_cal", {}).get("items") and a.tier in ("cal", "all") and "tier_cal" in fx:
+        res["cal"] = run_cal(a.host, fx["tier_cal"], "TIER CAL (calibration / abstention)",
+                             escalate=not a.no_escalate)
     print("\n" + "="*70)
     if "t1" in res:
         o, n, tr = res["t1"]
@@ -373,9 +432,11 @@ if __name__ == "__main__":
 
     if "cal" in res:
         c = res["cal"]
+        nt = c["nt_rec"] + c["nt_lost"]
         ok = (c["confab"] <= c["max_confab"] and c["overabs"] <= c["max_overabs"]
-              and c["trunc"] == 0)
-        verdict = "VOID (truncation)" if c["trunc"] else ("PASS" if ok else "FAIL")
+              and c["trunc"] == 0 and nt == 0)
+        verdict = ("VOID (truncation)" if c["trunc"]
+                   else ("FAIL (non-terminating)" if nt else ("PASS" if ok else "FAIL")))
         print(f"TIER CAL {verdict}  (confab {c['confab']}/{c['nU']}, "
               f"over-abstain {c['overabs']}/{c['nA']}, "
               f"gate <={c['max_confab']} and <={c['max_overabs']})")
@@ -386,6 +447,11 @@ if __name__ == "__main__":
                 print("  Confabulation here is a FLOOR: the parser prefers the last answer line and"
               "\n  the abstention match is permissive, so borderline replies land as ABSTAINED."
                   "\n  Error runs toward under-reporting confabulation, never over.")
+        if nt:
+            print(f"  {nt} item(s) NON-TERMINATING ({c['nt_rec']} recoverable, {c['nt_lost']} lost)."
+                  "\n  Not a void: two budgets produced the same outcome, so this is the model."
+                  "\n  Deployment note: a RECOVERABLE item needs a harness workaround, not a"
+                  "\n  bigger budget — the answer is in the reasoning, it just never gets emitted.")
         if c["confab"] == 0 and c["overabs"] >= 6:
             print("  NOTE: zero confabulation with heavy over-abstention is NOT good calibration."
                   "\n        A model that refuses everything scores perfectly on the unanswerable"

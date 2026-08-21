@@ -17,3 +17,25 @@ per-item results -> dryrun_194_q6k_02.jsonl
 === TIER CAL (calibration / abstention)
     GATE, NOT MEASUREMENT. 16 items has no statistical power to detect a small CHANGE in calib
     gate: confabulation <= gate_confabulation_max AND over-abstention <= gate_over_abstention_max (both 3 of 8 at v0 size)
+    CAL-U5  unanswerable TRUNCATED         got=''                                 want='UNKNOWN'
+    CAL-U6  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U7  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U8  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+
+                    CORRECT    WRONG  ABSTAIN   TRUNC   NOANS
+    answerable            0        0        0       0       0
+    unanswerable          0        0        3       1       0
+
+    confabulation   0/4   (answered an unanswerable question)  <-- HEADLINE
+    over-abstention 0/0   (refused a question that has an answer)
+    accuracy        0/0   (answerable arm, for context)
+    !! 1 item(s) TRUNCATED — excluded from the 2x2, and the run is VOID.
+       Raise tier_cal.n_predict; do NOT read truncation as a failure to answer.
+
+======================================================================
+TIER 1 PASS  (0/0, gate 0/0)
+TIER 2 FAIL  (0/0, gate >=6/0)
+TIER STRUCT FAIL  (1/1, gate >=5/1)
+TIER CAL VOID (truncation)  (confab 0/4, over-abstain 0/0, gate <=3 and <=3)
+  Rates above are meaningless on a VOID run — they count only the items
+  that finished. Fix the budget and re-run; do not read them.

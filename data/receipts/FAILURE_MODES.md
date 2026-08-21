@@ -459,6 +459,16 @@ degraded. The unanswerable arm therefore needs ordinary surfaces: false premises
 entities (a Nobel that was never won), real categories with invented members (a Canadian
 province called Fairmount), real authors with invented works.
 
+**AMENDED 2026-08-21 — the second layer was measured, and it came back inverted.** Held
+constant against the same prompt, the model **fabricated** a population for `Zyrthanmoor` and
+**correctly refused** `Halverstead, Greater Manchester`. The obvious fake was the one it failed.
+Working explanation: a name that reads as fiction may be received as a *fiction prompt*, where
+inventing a plausible number is cooperative. So an orthographic tell does not make an item
+easier — it makes it a **different test**, of whether unreality reads as an invitation to
+invent. The rule below stands (matched controls, plausible surfaces for measuring calibration);
+the claim that obvious fakes are trivially passed does not. See
+`viability/RESULT_HATCH_PROBE.md`. n=1 per cell.
+
 **Rule:** every abstention item needs a partner that *has* an answer and is matched on
 obscurity, and both rates get reported side by side — confabulation on the unanswerable arm,
 over-abstention on the answerable arm. Neither number means anything alone. Matching on
