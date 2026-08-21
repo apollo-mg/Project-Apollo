@@ -510,3 +510,28 @@ which fields are sampling and which are text; only the template can. Anything th
 
 **Corollary:** pin and report it like clock state. A number produced "at default" is not
 reproducible across a template revision, and templates get revised far more often than kernels.
+
+## AFM-24 — a negative capability claim is only as wide as the envelope you tested
+
+**2026-08-21.** An item generated 21,512 characters without emitting an answer, twice, at two
+budgets. It was labelled **`NON-TERMINATING`** and a whole verdict class was built on that name.
+
+The name asserts a property of the model. What was measured is narrower: *did not emit an answer
+within 6,144 tokens, nor within 12,288, at `n_ctx` 16,384, greedy sampling, effort `xhigh`, on
+this quant.* **The model's native context is 262,144 tokens** — we exercised **6 %** of it. Every
+element of that envelope is a bound on the claim, and at least two of them are known to matter:
+the same item terminated cleanly at `medium` and `low`, and the card's recommended sampling
+(`temperature=1.0`) was never used, while greedy decoding is a documented cause of exactly this
+signature in reasoning models.
+
+Renamed to **`NO-STOP`**, and the runner now prints the budgets and the envelope alongside it.
+
+**Rule:** phrase negative findings as *"did not X within &lt;envelope&gt;"*, never *"cannot X"*, and
+put the envelope in the **label**, not only in the prose underneath — labels are what get quoted,
+tabulated, and carried into the next document. If the envelope is a small fraction of what the
+system supports, say the fraction.
+
+**This cuts both ways and it is the useful half:** scoping is not hedging. *"Did not terminate
+within 12k tokens under greedy at xhigh"* is a **stronger** and more actionable statement than
+*"non-terminating"*, because it tells a deployer exactly which knob to reach for. The vague claim
+is the weak one.

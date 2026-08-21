@@ -158,7 +158,17 @@ def answer_reached(reasoning, gold):
         return any(math.isclose(v, gv[0], rel_tol=1e-3, abs_tol=1e-9) for v in av)
     return False
 
-def ask_escalated(host, q, n_predict, prompt=None, escalate=True):
+def server_ctx(host, default=0):
+    """n_ctx per slot, from /props. Escalation has to fit inside it."""
+    try:
+        with urllib.request.urlopen(host.rstrip("/") + "/props", timeout=20) as r:
+            d = json.loads(r.read())
+        g = d.get("default_generation_settings") or {}
+        return int(g.get("n_ctx") or d.get("n_ctx") or default)
+    except Exception:
+        return default
+
+def ask_escalated(host, q, n_predict, prompt=None, escalate=True, n_ctx=0):
     """ask(), but a truncated reply is retried ONCE at double the budget.
 
     Returns (content, reasoning, finish, attempts) where attempts is a list of
@@ -167,7 +177,15 @@ def ask_escalated(host, q, n_predict, prompt=None, escalate=True):
     a previous artifact, because the two runs are then guaranteed comparable.
     """
     attempts = []
-    for budget in ((n_predict, n_predict * 2) if escalate else (n_predict,)):
+    budgets = [n_predict]
+    if escalate:
+        # Leave room for the prompt; a retry that cannot exceed the first attempt is not a
+        # retry, and asking for more than the context can hold is unservable.
+        headroom = (n_ctx - 1024) if n_ctx else n_predict * 2
+        second = min(n_predict * 2, headroom)
+        if second > n_predict:
+            budgets.append(second)
+    for budget in budgets:
         content, reasoning, fin = ask(host, q, n_predict=budget, prompt=prompt)
         attempts.append((budget, len(content or "") + len(reasoning or ""), fin))
         if fin != "length":
@@ -294,19 +312,28 @@ def run_cal(host, tier, label, escalate=True):
     print(f"\n=== {label}")
     print(f"    {tier['scope'].splitlines()[0][:90]}")
     print(f"    gate: {tier['gate']}")
+    nctx = server_ctx(host)
+    nq = tier.get("n_predict", 512)
+    if escalate and nctx and nctx - 1024 <= nq:
+        print(f"    !! server n_ctx={nctx} cannot hold an escalated retry above n_predict={nq};"
+              f"\n       NON-TERMINATING cannot be distinguished from under-budgeting this run."
+              f"\n       Restart the server with -c >= {nq*2 + 1024}.")
     tally = {"answerable": collections.Counter(), "unanswerable": collections.Counter()}
     multi = 0
     for it in tier["items"]:
         content, reasoning, fin, attempts = ask_escalated(
             host, it["q"], tier.get("n_predict", 512), prompt=tier.get("prompt"),
-            escalate=escalate)
+            escalate=escalate, n_ctx=nctx)
         got, nmatch = pick_answer(content, reasoning, fin)
         multi += nmatch > 1
         verdict = classify(got, it["gold"])
         if verdict == "NO-ANSWER" and fin == "length":
             # Truncated at BOTH budgets -> the model does not terminate on this item.
             reach = answer_reached(reasoning, it["gold"])
-            verdict = ("NON-TERM/REC" if reach else "NON-TERM") if len(attempts) > 1 else "TRUNCATED"
+            # One attempt means escalation was disabled OR the context could not hold a
+            # bigger retry — either way there is no two-budget evidence, so it stays
+            # TRUNCATED. Never call something NON-TERMINATING off a single cap.
+            verdict = ("NO-STOP/REC" if reach else "NO-STOP") if len(attempts) > 1 else "TRUNCATED"
         tally[it["arm"]][verdict] += 1
         flag = f"  [{nmatch} matches]" if nmatch > 1 else ""
         if len(attempts) > 1:
@@ -320,16 +347,16 @@ def run_cal(host, tier, label, escalate=True):
 
     A, U = tally["answerable"], tally["unanswerable"]
     nA, nU = sum(A.values()), sum(U.values())
-    print(f"\n    {'':<14}{'CORRECT':>9}{'WRONG':>9}{'ABSTAIN':>9}{'NONTERM':>9}{'TRUNC':>7}{'NOANS':>7}")
+    print(f"\n    {'':<14}{'CORRECT':>9}{'WRONG':>9}{'ABSTAIN':>9}{'NO-STOP':>9}{'TRUNC':>7}{'NOANS':>7}")
     for arm, c in (("answerable", A), ("unanswerable", U)):
         print(f"    {arm:<14}{c['ANSWERED-CORRECT']:>9}{c['ANSWERED-WRONG']:>9}"
-              f"{c['ABSTAINED']:>9}{c['NON-TERM'] + c['NON-TERM/REC']:>9}"
+              f"{c['ABSTAINED']:>9}{c['NO-STOP'] + c['NO-STOP/REC']:>9}"
               f"{c['TRUNCATED']:>7}{c['NO-ANSWER']:>7}")
 
     confab, overabs, acc = U["ANSWERED-WRONG"], A["ABSTAINED"], A["ANSWERED-CORRECT"]
     trunc = A["TRUNCATED"] + U["TRUNCATED"]
-    nt_rec = A["NON-TERM/REC"] + U["NON-TERM/REC"]
-    nt_lost = A["NON-TERM"] + U["NON-TERM"]
+    nt_rec = A["NO-STOP/REC"] + U["NO-STOP/REC"]
+    nt_lost = A["NO-STOP"] + U["NO-STOP"]
     print(f"\n    confabulation   {confab}/{nU}   (answered an unanswerable question)  <-- HEADLINE")
     print(f"    over-abstention {overabs}/{nA}   (refused a question that has an answer)")
     print(f"    accuracy        {acc}/{nA}   (answerable arm, for context)")
@@ -337,12 +364,15 @@ def run_cal(host, tier, label, escalate=True):
         print(f"    !! {trunc} item(s) TRUNCATED — excluded from the 2x2, and the run is VOID.")
         print(f"       Raise tier_cal.n_predict; do NOT read truncation as a failure to answer.")
     if nt_rec or nt_lost:
-        print(f"\n    NON-TERMINATING {nt_rec + nt_lost}/{nA + nU}   (hit the cap at BOTH the "
-              f"budget and 2x the budget)")
+        print(f"\n    NO-STOP {nt_rec + nt_lost}/{nA + nU}   did not emit an answer within "
+              f"{nq} tokens, nor within {min(nq*2, (nctx-1024) if nctx else nq*2)}")
         print(f"      {nt_rec} RECOVERABLE — the answer was already present in the reasoning; a "
               "stop\n        sequence or a second-pass extractor would get it out in deployment")
         print(f"      {nt_lost} LOST — the reasoning never reached the answer")
-        print("      This is a MODEL property, not a budget setting: two caps, same outcome.")
+        print(f"      SCOPE: this says the model did not stop inside the envelope TESTED "
+              f"(n_ctx {nctx or '?'},\n        greedy, this effort level). It does NOT say the "
+              "model cannot stop. Native\n        context is 262,144; anything smaller bounds "
+              "the claim, it does not settle it.")
     if multi:
         print(f"    !! {multi} item(s) had >1 `Exact Answer:` line — the PARSE is suspect on")
         print(f"       those, not the model. Read the raw replies before believing them.")
@@ -448,8 +478,9 @@ if __name__ == "__main__":
               "\n  the abstention match is permissive, so borderline replies land as ABSTAINED."
                   "\n  Error runs toward under-reporting confabulation, never over.")
         if nt:
-            print(f"  {nt} item(s) NON-TERMINATING ({c['nt_rec']} recoverable, {c['nt_lost']} lost)."
-                  "\n  Not a void: two budgets produced the same outcome, so this is the model."
+            print(f"  {nt} item(s) NO-STOP ({c['nt_rec']} recoverable, {c['nt_lost']} lost)."
+                  "\n  Not a void: two budgets produced the same outcome. Scoped to the tested"
+                  "\n  envelope — a bound on the model, not a capability verdict."
                   "\n  Deployment note: a RECOVERABLE item needs a harness workaround, not a"
                   "\n  bigger budget — the answer is in the reasoning, it just never gets emitted.")
         if c["confab"] == 0 and c["overabs"] >= 6:
