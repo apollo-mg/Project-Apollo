@@ -1,0 +1,105 @@
+{
+  "name": "Apollo review fixture v0",
+  "created": "2026-08-21",
+  "provenance": "RD-* items are real code from this repo as it was BEFORE its fix commit. Every defect was found and fixed on 2026-08-21 during the tier_cal dry runs \u2014 ground truth is free because we caused, diagnosed and fixed them. CC-* are current code believed correct: the 'nothing is wrong here' controls, without which an invented-defect rate cannot be measured at all.",
+  "design_notes": [
+    "RD-01 (norm) was DROPPED: norm() alone is a correct normaliser and the defect lives in its caller, so the snippet would have tested mind-reading rather than review.",
+    "Post-hoc commentary naming a defect is stripped from every item. A docstring written AFTER the fix tells the reviewer what to look for \u2014 and in a CONTROL it hands over the ground truth for a different item.",
+    "CC items are 'believed correct', not 'proven correct'. A genuine defect found in one is a TRUE positive and must be adjudicated by hand, not auto-scored as invention."
+  ],
+  "items": [
+    {
+      "id": "RD-02",
+      "source": "extract_json() @ 41055c1^",
+      "code": "def extract_json(text):\n    \"\"\"Pull the first JSON value out of a reply. Tolerates ``` fences and leading prose,\n    because those are formatting noise, not the syntax failure we are testing for.\"\"\"\n    t = re.sub(r\"```(?:json)?\", \"\", text).strip()\n    for opener, closer in ((\"{\", \"}\"), (\"[\", \"]\")):\n        i = t.find(opener)\n        if i < 0: continue\n        depth = 0\n        for j in range(i, len(t)):\n            if t[j] == opener: depth += 1\n            elif t[j] == closer:\n                depth -= 1\n                if depth == 0:\n                    try: return json.loads(t[i:j+1])\n                    except Exception: break\n    return None\n",
+      "defect": "Tries '{' before '[' unconditionally, so an array of objects parses as its FIRST ELEMENT.",
+      "hint": [
+        "bracket",
+        "order",
+        "first",
+        "array",
+        "object",
+        "precedence"
+      ]
+    },
+    {
+      "id": "RD-03",
+      "source": "run_struct() @ ece284d^",
+      "code": "def run_struct(host, tier, label):\n    print(f\"\\n=== {label}\")\n    print(f\"    gate: {tier['gate']}\")\n    ok = 0\n    for it in tier[\"items\"]:\n        content, reasoning, fin = ask(host, it[\"q\"], n_predict=tier.get(\"n_predict\", 512))\n        obj = extract_json(content) or (extract_json(reasoning) if fin != \"length\" else None)\n        good, why = check_struct(obj, it[\"check\"])\n        ok += good\n        status = \"PASS\" if good else \"FAIL\"\n        if fin == \"length\": status += \" (truncated)\"\n        print(f\"    {it['id']}  {status:<18} {why}\")\n    print(f\"    -> {ok}/{len(tier['items'])}\")\n    return ok, len(tier[\"items\"])\n",
+      "defect": "A reply that hit the token cap is scored FAIL, conflating budget exhaustion with model failure.",
+      "hint": [
+        "truncat",
+        "length",
+        "budget",
+        "cap",
+        "finish",
+        "fail"
+      ]
+    },
+    {
+      "id": "RD-05",
+      "source": "ask() @ 41055c1^",
+      "code": "def ask(host, q, n_predict=512, timeout=600, prompt=None):\n    body = {\"messages\": [{\"role\": \"user\", \"content\": (prompt or PROMPT).format(q=q)}],\n            \"temperature\": 0, \"top_k\": 1, \"n_predict\": n_predict}\n    if EFFORT:\n        body[\"chat_template_kwargs\"] = {\"reasoning_effort\": EFFORT}\n    req = urllib.request.Request(host.rstrip(\"/\") + \"/v1/chat/completions\",\n                                 data=json.dumps(body).encode(),\n                                 headers={\"Content-Type\": \"application/json\"})\n    with urllib.request.urlopen(req, timeout=timeout) as r:\n        d = json.loads(r.read())\n    m = d[\"choices\"][0][\"message\"]\n    fin = d[\"choices\"][0].get(\"finish_reason\", \"\")\n    return (m.get(\"content\") or \"\"), (m.get(\"reasoning_content\") or \"\"), fin\n",
+      "defect": "Fixed 600s timeout while n_predict is caller-supplied; a large n_predict cannot finish inside it.",
+      "hint": [
+        "timeout",
+        "600",
+        "n_predict",
+        "abort",
+        "slow",
+        "rate"
+      ]
+    },
+    {
+      "id": "RD-06",
+      "source": "classify() @ ece284d^",
+      "code": "def classify(got, gold):\n    \"\"\"Three-way, applied IDENTICALLY to both arms \u2014 that identity is the whole point.\n    The old grader folded 'abstained' and 'confabulated' into one FAIL on the answerable\n    arm, which is exactly the distinction a calibration 2x2 is made of.\"\"\"\n    g = bare(got)\n    if not g:\n        return \"NO-ANSWER\"\n    if abstain_key(got) in ABSTAIN:\n        return \"ABSTAINED\"\n    if gold != \"UNKNOWN\" and g == bare(gold):\n        return \"ANSWERED-CORRECT\"\n    return \"ANSWERED-WRONG\"\n\n\nEFFORT = None   # set from --effort; passed via chat_template_kwargs, the dial Qwen3.8 honours\n",
+      "defect": "Correctness is an exact string compare, so a right answer with a unit ('UDP 123' vs '123') is classified ANSWERED-WRONG \u2014 the same bucket as a fabrication.",
+      "hint": [
+        "exact",
+        "string",
+        "unit",
+        "compare",
+        "numeric",
+        "wrong"
+      ]
+    },
+    {
+      "id": "RD-07",
+      "source": "run_cal() @ 0263777^",
+      "code": "def run_cal(host, tier, label):\n    \"\"\"Paired calibration tier. Reports a 2x2 and three rates, never a single score.\n\n    An unanswerable-only set rewards timidity: a model that abstains on everything scores\n    100%, and quantisation plausibly makes models MORE timid, so it would report damage as\n    improvement. Every item here has an obscurity-matched partner on the other arm, and the\n    over-abstention rate is reported next to the confabulation rate for exactly that reason.\n    FAILURE_MODES.md AFM-22.\n    \"\"\"\n    print(f\"\\n=== {label}\")\n    print(f\"    {tier['scope'].splitlines()[0][:90]}\")\n    print(f\"    gate: {tier['gate']}\")\n    tally = {\"answerable\": collections.Counter(), \"unanswerable\": collections.Counter()}\n    multi = 0\n    for it in tier[\"items\"]:\n        content, reasoning, fin = ask(host, it[\"q\"], n_predict=tier.get(\"n_predict\", 512),\n                                      prompt=tier.get(\"prompt\"))\n        got, nmatch = pick_answer(content, reasoning, fin)\n        multi += nmatch > 1\n        verdict = classify(got, it[\"gold\"])\n        if verdict == \"NO-ANSWER\" and fin == \"length\":\n            verdict = \"TRUNCATED\"\n        tally[it[\"arm\"]][verdict] += 1\n        flag = f\"  [{nmatch} matches]\" if nmatch > 1 else \"\"\n        print(f\"    {it['id']}  {it['arm']:<12} {verdict:<17} \"\n              f\"got={got[:30]!r:<34} want={it['gold']!r}{flag}\")\n\n    A, U = tally[\"answerable\"], tally[\"unanswerable\"]\n    nA, nU = sum(A.values()), sum(U.values())\n    print(f\"\\n    {'':<14}{'CORRECT':>9}{'WRONG':>9}{'ABSTAIN':>9}{'TRUNC':>8}{'NOANS':>8}\")\n    for arm, c in ((\"answerable\", A), (\"unanswerable\", U)):\n        print(f\"    {arm:<14}{c['ANSWERED-CORRECT']:>9}{c['ANSWERED-WRONG']:>9}\"\n              f\"{c['ABSTAINED']:>9}{c['TRUNCATED']:>8}{c['NO-ANSWER']:>8}\")\n\n    confab, overabs, acc = U[\"ANSWERED-WRONG\"], A[\"ABSTAINED\"], A[\"ANSWERED-CORRECT\"]\n    trunc = A[\"TRUNCATED\"] + U[\"TRUNCATED\"]\n    print(f\"\\n    confabulation   {confab}/{nU}   (answered an unanswerable question)  <-- HEADLINE\")\n    print(f\"    over-abstention {overabs}/{nA}   (refused a question that has an answer)\")\n    print(f\"    accuracy        {acc}/{nA}   (answerable arm, for context)\")\n    if trunc:\n        print(f\"    !! {trunc} item(s) TRUNCATED \u2014 excluded from the 2x2, and the run is VOID.\")\n        print(f\"       Raise tier_cal.n_predict; do NOT read truncation as a failure to answer.\")\n    if multi:\n        print(f\"    !! {multi} item(s) had >1 `Exact Answer:` line \u2014 the PARSE is suspect on\")\n        print(f\"       those, not the model. Read the raw replies before believing them.\")\n    return dict(confab=confab, overabs=overabs, acc=acc, nA=nA, nU=nU, trunc=trunc, multi=multi,\n                max_confab=tier.get(\"gate_confabulation_max\", 3),\n                max_overabs=tier.get(\"gate_over_abstention_max\", 3))\n\n\nif __name__ == \"__main__\":\n    ap = argparse.ArgumentParser()\n    ap.add_argument(\"--host\", default=\"http://127.0.0.1:8080\")\n    ap.add_argument(\"--fixture\", default=os.path.join(os.path.dirname(os.path.abspath(__file__)),\n                                                      \"fixture_v0_beta.json\"))\n    ap.add_argument(\"--tier\", choices=[\"1\", \"2\", \"struct\", \"cal\", \"both\", \"all\"],\n                    default=\"both\")\n    ap.add_argument(\"--effort\", choices=[\"low\", \"medium\", \"high\", \"xhigh\"],\n                    help=\"reasoning_effort via chat_template_kwargs; 'medium' curbs overthinking\")\n    a = ap.parse_args()\n    if a.effort:\n        globals()[\"EFFORT\"] = a.effort\n        print(f\"reasoning_effort = {a.effort}\")\n    fx = json.load(open(a.fixture))\n    res = {}\n    if a.tier in (\"1\", \"both\", \"all\"): res[\"t1\"] = run_tier(a.host, fx[\"tier1\"], \"TIER 1 (plumbing)\")\n    if a.tier in (\"2\", \"both\", \"all\"): res[\"t2\"] = run_tier(a.host, fx[\"tier2\"], \"TIER 2 (model sanity)\")\n    if a.tier in (\"struct\", \"all\") and \"tier_struct\" in fx:\n        res[\"ts\"] = run_struct(a.host, fx[\"tier_struct\"], \"TIER STRUCT (tool calling / JSON)\")\n    if a.tier in (\"cal\", \"all\") and \"tier_cal\" in fx:\n        res[\"cal\"] = run_cal(a.host, fx[\"tier_cal\"], \"TIER CAL (calibration / abstention)\")\n    print(\"\\n\" + \"=\"*70)\n    if \"t1\" in res:\n        o, n, tr = res[\"t1\"]\n        # A truncated plumbing item is a BUDGET failure. Dry run 01 printed \"STACK IS BROKEN\"\n        # because T1-05 \u2014 the abstention item, the most expensive item in the fixture \u2014 ran\n        # out of tokens on a perfectly healthy stack.\n        v = \"PASS\" if o == n else (\"BUDGET\" if tr and o + tr == n else \"FAIL\")\n        tail = {\"PASS\": \"\", \"BUDGET\": f\"   <-- {tr} item(s) TRUNCATED; raise tier1.n_predict, \"\n                                      \"the stack is NOT implicated\",\n                \"FAIL\": \"   <-- STACK IS BROKEN, stop here\"}[v]\n        print(f\"TIER 1 {v}  ({o}/{n}, gate {n}/{n}){tail}\")\n    if \"t2\" in res:\n        o, n, tr = res[\"t2\"]\n        # Truncation makes the score a floor: PASSING despite it is still a pass, but\n        # FAILING with items that never finished is inconclusive, not a model result.\n        v = \"PASS\" if o >= 6 else (\"INCONCLUSIVE\" if tr else \"FAIL\")\n        print(f\"TIER 2 {v}  ({o}/{n}, gate >=6/{n})\"\n              + (f\"   [{tr} truncated \u2014 score is a FLOOR]\" if tr else \"\"))\n    if \"ts\" in res:\n        o, n, tr = res[\"ts\"]\n        v = \"VOID (truncation)\" if tr else (\"PASS\" if o >= 5 else \"FAIL\")\n        print(f\"TIER STRUCT {v}  ({o}/{n}, gate >=5/{n})\")\n        if tr:\n            print(f\"  {tr} item(s) never finished. No claim about tool calling is supported\"\n                  \"\\n  by this run \u2014 raise tier_struct.n_predict and re-run.\")\n        elif \"t2\" in res and res[\"t2\"][0] >= 6 and o < 5:\n            print(\"  NOTE: tiers 1-2 pass but structured output fails \u2014 this quant is usable\"\n                  \"\\n        for chat and NOT usable for tool calling. That is a real result,\"\n                  \"\\n        not a fixture bug.\")\n\n    if \"cal\" in res:\n        c = res[\"cal\"]\n        ok = (c[\"confab\"] <= c[\"max_confab\"] and c[\"overabs\"] <= c[\"max_overabs\"]\n              and c[\"trunc\"] == 0)\n        verdict = \"VOID (truncation)\" if c[\"trunc\"] else (\"PASS\" if ok else \"FAIL\")\n        print(f\"TIER CAL {verdict}  (confab {c['confab']}/{c['nU']}, \"\n              f\"over-abstain {c['overabs']}/{c['nA']}, \"\n              f\"gate <={c['max_confab']} and <={c['max_overabs']})\")\n        if c[\"trunc\"]:\n            print(\"  Rates above are meaningless on a VOID run \u2014 they count only the items\"\n                  \"\\n  that finished. Fix the budget and re-run; do not read them.\")\n        else:\n                print(\"  Confabulation here is a FLOOR: the parser prefers the last answer line and\"\n              \"\\n  the abstention match is permissive, so borderline replies land as ABSTAINED.\"\n                  \"\\n  Error runs toward under-reporting confabulation, never over.\")\n        if c[\"confab\"] == 0 and c[\"overabs\"] >= 6:\n            print(\"  NOTE: zero confabulation with heavy over-abstention is NOT good calibration.\"\n                  \"\\n        A model that refuses everything scores perfectly on the unanswerable\"\n                  \"\\n        arm. That is the failure this tier's paired design exists to catch.\")\n        if \"t2\" in res and res[\"t2\"][0] >= 6 and not ok and c[\"trunc\"] == 0:\n            print(\"  NOTE: tiers 1-2 pass but calibration fails \u2014 this quant answers questions\"\n                  \"\\n        correctly and no longer knows which ones it cannot answer. No\"\n                  \"\\n        accuracy metric in this project would have surfaced that.\")\n",
+      "defect": "Per-item results are printed but never persisted, so a killed run loses everything completed so far.",
+      "hint": [
+        "persist",
+        "durab",
+        "print",
+        "stdout",
+        "lost",
+        "crash",
+        "flush",
+        "file"
+      ]
+    },
+    {
+      "id": "CC-01",
+      "source": "numeric_values() @ HEAD",
+      "code": "def numeric_values(text):\n    \"\"\"Every distinct number in `text`, understanding mixed numbers and fractions.\n\n    Returns None if there are none. Mixed/fraction spans are consumed first so\n    '66 2/3' reads as one value (66.667), not three.\n    \"\"\"\n    t = (text or \"\").replace(\",\", \"\")\n    vals = []\n    for rx, fn in ((_MIXED, lambda m: int(m[1]) + int(m[2]) / int(m[3])),\n                   (_FRAC,  lambda m: int(m[1]) / int(m[2]))):\n        out = []\n        for m in rx.finditer(t):\n            try: vals.append(fn(m))\n            except ZeroDivisionError: return None\n            out.append((m.start(), m.end()))\n        for a, b in reversed(out):\n            t = t[:a] + \" \" + t[b:]\n    for m in _NUM.finditer(t):\n        try: vals.append(float(m.group()))\n        except ValueError: pass\n    return vals or None\n",
+      "defect": null,
+      "hint": null
+    },
+    {
+      "id": "CC-02",
+      "source": "answer_matches() @ HEAD",
+      "code": "def answer_matches(got, gold):\n    \"\"\"Exact first, then a UNIT-TOLERANT numeric compare.\n\n        Deliberately conservative: the numeric path fires only when the reply contains EXACTLY\n    ONE distinct number. 'not 72 but 80' carries two and falls through to a miss rather than\n    matching the first one it sees.\n    \"\"\"\n    if bare(got) == bare(gold):\n        return True\n    gv = numeric_values(gold)\n    if not gv or len(set(gv)) != 1:\n        return False\n    av = numeric_values(got)\n    if not av or len({round(v, 6) for v in av}) != 1:\n        return False\n    return math.isclose(av[0], gv[0], rel_tol=1e-3, abs_tol=1e-9)\n",
+      "defect": null,
+      "hint": null
+    },
+    {
+      "id": "CC-03",
+      "source": "pick_answer() @ HEAD",
+      "code": "def pick_answer(content, reasoning, fin):\n    \"\"\"Returns (answer, n_matches). LAST match wins and `content` is preferred over\n    `reasoning` \u2014 never concatenated. Both guards exist because the tier instruction names\n    the answer format: an echo of the format, or an abandoned draft, sits BEFORE the real\n    answer, so first-match parsing reads the wrong line.     carrying multiple `Exact Answer:` strings; this is that detector, carried over.\n\n    n_matches > 1 means the PARSE is suspect, not the model. It is reported, never silently\n    resolved.\"\"\"\n    for text in (content, reasoning if fin != \"length\" else \"\"):\n        ms = ANS.findall(text or \"\")\n        if ms:\n            return ms[-1].strip(), len(ms)\n    return \"\", 0\n",
+      "defect": null,
+      "hint": null
+    }
+  ]
+}
