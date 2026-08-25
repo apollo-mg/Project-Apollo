@@ -50,6 +50,46 @@ card sampling (`temp 1.0 / top_p 0.95 / top_k 20`), 3 seeds.
 codec `RESULT_OWNERSHIP.md` measured **silently collapsing** at D=256 on both forks, which is
 itself a finding a reader needs.
 
+## REVISION 2026-08-25, before any arm was scored — matched SIZE, not matched bitrate
+
+Mark: *"VBR can only be worse than an equivalent tier of CBR if VBR allows a sensitive part of
+the cache to degrade that otherwise wouldn't."* That is the real question, and the original arm
+list could not answer it.
+
+**The flaw:** `V325` was specified as "fill until `kv_bpv` ≈ 3.25." That chases a moving target —
+the achieved distribution is whatever the controller happened to reach, and it need not be stable
+across seeds. Comparing a fixed thing to a moving one.
+
+**The fix (Mark): control by SIZE, like an MP3 encoder.** Give both codecs the same byte budget
+and compare quality. Set the floor to t1 so it never binds — then the VRAM budget is the only
+constraint and the controller spends its allowance wherever the price table says.
+
+| id | KV config | bytes @32k | what it isolates |
+|---|---|---|---|
+| `F16` | `-ctk f16 -ctv f16` | 2048 MiB | reference ceiling |
+| `CBR325` | `-ctk turbo3_tcq -ctv turbo3_tcq` | **416 MiB** | flat allocation |
+| `VBR416` | `-ct vbr --vbr-floor t1 --vbr-vram 416M` | **416 MiB** | **price-ordered allocation, same bytes** |
+| `VBR416R` | same, `VBR_DEGRADE_ORDER=<reversed>` | **416 MiB** | **does the TABLE do the work?** |
+| `Q40` | `-ctk q4_0 -ctv q4_0` | 576 MiB | what stock llama.cpp users run |
+
+**`VBR416R` is the new arm and the most informative one.** The runtime accepts a custom degrade
+order (`VBR_DEGRADE_ORDER=<file>`, tokens `<il><k|v>:<tier>`). Feeding it a *reversed* order at
+the same budget isolates the pricing table's contribution from the codec machinery's.
+
+Three outcomes, all publishable:
+
+- `VBR416 > CBR325` **and** `VBR416 > VBR416R` → the pricing table is doing real work. The
+  imatrix analogy holds.
+- `VBR416 ≈ VBR416R` → **the table is not doing the work on this model.** Given Qwen3.8 runs the
+  `q27` order generated for Qwen3.6 and *was never scanned*, that is a live possibility and a
+  finding buun would want.
+- `VBR416 < CBR325` → Mark's failure mode confirmed: VBR degraded something flat allocation
+  would have protected.
+
+**Note the asymmetry this framing exposes:** VBR's downside is bounded by pricing quality; CBR's
+is bounded only by the flat rate. VBR is a *bet on the table*, and this model is running another
+model's table.
+
 ## Measures
 
 1. **`tier_cal`** (16 items, 3 seeds) — the only instrument we own that can see calibration
