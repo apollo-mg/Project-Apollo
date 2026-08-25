@@ -2,7 +2,8 @@
 """Run one fidelity arm: fill to the target bitrate, verify achieved kv_bpv, then measure."""
 import json, subprocess, sys, time, urllib.request
 HOST=f"http://10.0.0.194:8100"
-LABEL=sys.argv[1]; TARGET=float(sys.argv[2]) if len(sys.argv)>2 else None
+LABEL=sys.argv[1]
+TARGET=float(sys.argv[2]) if len(sys.argv)>2 and sys.argv[2] else None
 
 def slots():
     s=json.load(urllib.request.urlopen(HOST+"/slots",timeout=30))
@@ -22,14 +23,25 @@ def ask(msg,n,seed=1001,cache=True):
 
 FILL=("Section %d. The subsystem records ambient telemetry at fixed intervals and forwards it to "
       "the aggregator, which reconciles clock drift before persisting to the archive tier. ")
-hist=""; achieved=slots().get("kv_bpv")
-if TARGET:
+# GUARD: verify the server actually runs the codec this arm claims. A stale server on the
+# same port produced 48 mislabeled cells before this check existed.
+EXPECT={"F16":16.0,"S325":3.25,"Q40":4.5}
+_idle=slots().get("kv_bpv")
+if LABEL in EXPECT and _idle is not None and abs(_idle-EXPECT[LABEL])>0.01:
+    sys.exit(f"  ABORT {LABEL}: server reports kv_bpv={_idle}, expected {EXPECT[LABEL]}. "
+             f"Wrong server on this port?")
+hist=""; achieved=_idle; u={}
+# FILL_TO: every arm fills to the SAME depth so context is not confounded with codec.
+FILL_TO=int(sys.argv[3]) if len(sys.argv)>3 else 0
+if TARGET or FILL_TO:
     for step in range(1,40):
         hist += FILL % step * 60
         _,_,_,_,u = ask(hist+"\nReply: ok",8)
         achieved=slots().get("kv_bpv")
-        if achieved is not None and achieved <= TARGET*1.02: break
-print(f"  achieved kv_bpv = {achieved}  (target {TARGET})  ctx≈{u.get('prompt_tokens',0) if TARGET else 0:,}")
+        got=u.get("prompt_tokens",0)
+        if TARGET and achieved is not None and achieved <= TARGET*1.02: break
+        if FILL_TO and got >= FILL_TO: break
+print(f"  achieved kv_bpv = {achieved}  (target {TARGET})  ctx≈{u.get('prompt_tokens',0):,}")
 
 # LIVENESS at depth (AFM-21: fidelity metrics cannot see this)
 c,r,fin,dt,u = ask(hist+"\n\nWrite 400 words on how a KV cache is laid out in memory.",500)
