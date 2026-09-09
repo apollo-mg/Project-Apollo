@@ -1,0 +1,44 @@
+### cache A/B 2026-09-08T19:50:46-04:00 build=a56eeef5
+
+======== arm tensor  --split-mode tensor
+0.04.106.772 I srv    load_model: VBR_ARTIFACT_CAPTURE store ready attention_children=1 lanes=2 requested_ring=67108864 constructed_ring=67108864 chunk=8388608
+  pass 1 wall=4.762302128s
+    0.10.742.470 I slot print_timing: id  0 | task 0 | prompt eval time =    4549.43 ms /  4010 tokens (    1.13 ms per token,   881.43 tokens per second)
+  pass 2 wall=.248831253s
+    0.11.046.340 I slot print_timing: id  0 | task 12 | prompt eval time =      53.53 ms /     4 tokens (   13.38 ms per token,    74.72 tokens per second)
+
+======== arm layer  --split-mode layer
+0.01.430.595 I srv    load_model: VBR_ARTIFACT_CAPTURE store ready attention_children=1 lanes=2 requested_ring=67108864 constructed_ring=67108864 chunk=8388608
+  pass 1 wall=5.014570509s
+    0.06.973.652 I slot print_timing: id  0 | task 0 | prompt eval time =    4789.01 ms /  4010 tokens (    1.19 ms per token,   837.33 tokens per second)
+  pass 2 wall=.282379253s
+    0.07.288.846 I slot print_timing: id  0 | task 12 | prompt eval time =      53.04 ms /     4 tokens (   13.26 ms per token,    75.42 tokens per second)
+
+######## CACHEAB DONE 2026-09-08T19:51:07-04:00
+-----8<-----
+### artifact-store binding discriminator 2026-09-08T19:51:07-04:00
+build_rev=a56eeef5
+binary_mtime=2026-09-07 21:00:32
+model=Qwen3.5-4B-Q5_K_S.gguf
+
+======== arm A  CUDA_VISIBLE_DEVICES=all  args: --split-mode tensor
+0.01.467.716 I srv    load_model: VBR_ARTIFACT_CAPTURE store ready attention_children=1 lanes=2 requested_ring=67108864 constructed_ring=67108864 chunk=8388608
+  -> server listening
+
+======== arm B  CUDA_VISIBLE_DEVICES=all  args: --split-mode tensor --tensor-split 1,1
+0.01.457.581 I srv    load_model: VBR_ARTIFACT_CAPTURE store ready attention_children=1 lanes=2 requested_ring=67108864 constructed_ring=67108864 chunk=8388608
+  -> server listening
+
+======== arm C  CUDA_VISIBLE_DEVICES=all  args: --split-mode layer
+0.01.354.626 I srv    load_model: VBR_ARTIFACT_CAPTURE store ready attention_children=1 lanes=2 requested_ring=67108864 constructed_ring=67108864 chunk=8388608
+  -> server listening
+
+======== arm D  CUDA_VISIBLE_DEVICES=all  args: --split-mode layer --tensor-split 1,1
+0.01.358.406 I srv    load_model: VBR_ARTIFACT_CAPTURE store ready attention_children=1 lanes=2 requested_ring=67108864 constructed_ring=67108864 chunk=8388608
+  -> server listening
+
+======== arm E  CUDA_VISIBLE_DEVICES=0  args: --split-mode layer
+0.01.286.901 I srv    load_model: VBR_ARTIFACT_CAPTURE store ready attention_children=1 lanes=1 requested_ring=67108864 constructed_ring=67108864 chunk=8388608
+  -> server listening
+
+######## ARTBIND DONE 2026-09-08T19:51:22-04:00

@@ -1,0 +1,146 @@
+# PREREG: what causes the `qwen38_fixed_grader` timeout wall?
+
+**Written:** 2026-09-08, before running the probe. Predictions logged with confidence, scored honestly after.
+
+## Observation to explain
+
+At 15:12:02, immediately after `t08_execute_code_t01_math` PASSED in 26s, every subsequent task returned
+INFRA_ERROR at *exactly* the timeout constant (360s / 420s, to the hundredth of a second). 12 consecutive
+tasks, no recovery. `run_agent.log` shows `API call #1/10` issued and `trace.jsonl` of 0 lines — the **first**
+API call never returns. The task is trivial ("Use `web_search` to find the capital of France"); det02 did it
+in 45s with 62 chars of reasoning.
+
+Server is not wedged: GPU at 98%, actively generating (`task 119000`, `n_gen` climbing past 1576).
+The model is producing an enormous single response that outlives the harness timeout.
+
+## Already ruled out
+
+- **The toolcalls.py patch** — runs downstream of the subprocess timeout; grading never executes on these tasks.
+- **A wedged or crashed server** — actively generating during analysis.
+- **A stuck kernel** — `hermes_kernel_p9qkz1d4` dates to Sep 4, 0% CPU, unrelated to this run.
+- **Agent/tool configuration** — `run_agent.log` setup lines byte-identical to det02: same 19 tools, same
+  16 deferred behind `tool_search`, same 100k context limit, same ~5,896-token first request.
+- **Server flags** — live cmdline verified from `/proc`; det02 used the same `--reasoning-effort medium
+  --min-p 0`, `n_ctx_slot 32768`, `kv_unified true`, speculative decoding.
+
+## Critical caveat on existing evidence
+
+The pre-wall decode median (33.3 t/s) is computed **entirely from tasks that completed**, all of which ran
+before 15:12. There is **no completed-request telemetry after the wall** — by construction, since every
+post-wall request was killed. The single post-wall measurement is `tg_3s ≈ 19.6` on task 119000, ~40% below
+the pre-wall median. Evidence is suggestive of degradation but is n=1. See AFM-34.
+
+## Hypotheses and predictions
+
+**H1 — Server state degradation (AFM-26).** Something in the server's state at ~2h uptime / after the
+`t08_execute_code` task causes runaway generation. *Prediction: the degraded server runs away on the probe
+request; a freshly restarted server answers it in <60s.* **Confidence: 60%**
+
+**H2 — Request-shaped runaway.** These prompts reliably induce degenerate generation at IQ3_XXS regardless of
+server state, and det02's passes were luck (K=1). *Prediction: both degraded and fresh servers run away.*
+**Confidence: 25%**
+
+**H3 — Transient / non-reproducible.** *Prediction: both complete normally; the wall does not reproduce.*
+**Confidence: 15%**
+
+## Probe (A/B, identical request both arms)
+
+1. **Arm A (degraded):** before restarting, POST the exact hanging request to the live server with
+   `"stream": true`. Observe 20s of tokens. Record: tokens emitted, whether text is a repetition loop,
+   an unterminated thinking block, or coherent prose.
+2. **Arm B (fresh):** restart llama-server with byte-identical flags. Send the same request. Same observations.
+
+## Discriminator on the stream text
+
+- **Literal repetition loop** → quant degeneration at IQ3_XXS (the "2-Bit Drunk" pattern).
+- **Unterminated thinking block / no stop token** → chat-template or stop-token defect.
+- **Coherent endless prose** → reasoning-effort injection driving length.
+
+## In-flight discriminator (free, already running)
+
+`t13_humaneval_micro` tasks are micro-tasks in a different family. If they PASS, the wall is task-family
+specific (favours H2). If they time out too, it is a server-state transition (favours H1).
+
+## Standing note
+
+This is K=1 vs K=1. Per `agent-benchmark-determinism`, K=1 is an existence proof, not a rate. Twelve
+contiguous failures is too many for subprocess-level variance, which is why shared **server** state is the
+lead suspect — but no mechanism goes in a receipt until the A/B reproduces it.
+
+---
+
+# ADDENDUM (2026-09-08, post-outage): measurement salvaged from a log that no longer exists
+
+A ~2-hour power outage killed the desktop mid-investigation. The scratchpad server logs
+(`clean32k.log`, `qwen_deploy2.log`) lived in `/tmp` and are **gone** — see the `scratchpad-is-volatile`
+rule, which this violates again. The numbers below were extracted before the outage and are transcribed
+here because **they cannot be regenerated**. The bench `results/` and `traces/` (on `/home`) survived.
+
+## The measurement that fixes AFM-34's survivorship bias
+
+llama-server emits a `tg_3s` progress line every ~3s **during** generation — including for requests that
+are later killed. Bucketing those by server-uptime timestamp samples the pathological requests directly,
+which the completion-only `eval time` lines structurally cannot.
+
+| run | pre-wall (<34 min uptime) | post-wall (>34 min) | ratio |
+|---|---|---|---|
+| `qwen38_fixed_grader` | n=273, median **38.8** t/s (p10 27.1, p90 45.0) | n=1808, median **19.7** t/s (p10 19.3, p90 **19.9**) | **1.97×** |
+| `qwen38_deploy_det02` (control) | n=309, median 35.5 t/s | n=731, median 25.3 t/s | 1.40× |
+
+Two things stand out:
+
+1. **Both runs degraded with uptime.** det02 was not immune — it fell 1.40×. This is AFM-26 behaviour in
+   both, differing in magnitude, not in kind. det02 stayed fast enough that its ~14,000-token generations
+   still fit inside 360s; fixed_grader did not.
+2. **The post-wall distribution has almost no variance** — p10 19.3, median 19.7, p90 19.9 across 1,808
+   samples spanning ~90 minutes and many different context depths. Decode rate normally varies with
+   `n_past`. A rate pinned to 19.7 ± 0.3 looks **clamped**, not merely slow.
+
+## GPU state measured live during the degraded period
+
+| metric | value |
+|---|---|
+| power | **367 W** against a **374 W** cap |
+| sclk | 3038 MHz (high — *not* downclocked) |
+| junction / memory / edge temp | 82 C / 86 C / 51 C |
+| `throttle_status` | 49152 (nonzero) |
+| `indep_throttle_status` | 3 |
+| busy | 100% |
+
+The card was burning ~98% of its power budget at full clocks while delivering **half** the tokens. That is
+wasted compute, not thermal downclocking — the classic signature of speculative decoding whose drafts are
+being rejected, or of work being redone.
+
+## Evidence that did NOT survive the survivorship check
+
+- **MTP draft acceptance:** pre-wall n=116, mean 0.661. **Post-wall: zero samples** — acceptance is logged
+  only on request completion, so the killed requests report nothing. The MTP-collapse hypothesis is
+  therefore *unconfirmed*, not supported. Same trap as AFM-34, caught before it became a claim.
+- **VBR events:** 39 pre-wall vs 21 post-wall — fewer after the wall, which does not support a VBR-cascade story.
+
+## Arithmetic that makes the wall make sense
+
+Runaway generations in `fixed_grader` reached 6,600–8,500 tokens.
+
+- at the pre-wall rate (38.8 t/s): 170–219 s → **fits** inside the 360 s timeout
+- at the post-wall rate (19.7 t/s): 335–431 s → **does not fit**
+
+So two independent conditions had to coincide: the model must emit a multi-thousand-token response, **and**
+decode must have halved. det02 met the first but not the second. This reframes the wall as a *threshold*
+effect rather than a new failure — which is why it appeared to switch on instantly at 15:12.
+
+## Status of the pre-registered A/B
+
+**Arm A (degraded server) is permanently unrecoverable** — the outage destroyed the server state that
+produced the wall. The hypotheses stand as written and unscored. To test H1 vs H2 now requires
+*reproducing* degradation from a cold server (sustained load until decode halves), which is a different and
+slower experiment than the probe originally planned. H3 (transient) is weakened but not excluded.
+
+**Do not score H1/H2/H3 from the salvaged data above.** It is consistent with H1 and was collected without
+the controlled comparison the prereg demanded.
+
+## Final state of the run (from surviving `results/`)
+
+`passed=34, failed=0, infra_errors=17, task_count=61` — the run was killed by the outage at ~51/61.
+The dispatcher-fix conclusion in `RESULT_DISPATCHER_FIX_LIVE.md` is unaffected: it rests on the per-task
+outcome diff, which survived on disk.
