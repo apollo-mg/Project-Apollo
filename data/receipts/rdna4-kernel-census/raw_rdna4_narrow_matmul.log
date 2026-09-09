@@ -1,0 +1,205 @@
+waiting for GPU to free (2026-09-09T17:52:12-04:00)...
+  GPU quiet for 90s straight; starting 2026-09-09T17:53:43-04:00
+=== ENVIRONMENT 2026-09-09T17:53:43-04:00 ===
+commit: 3823c9eb6
+GPU[0]		: Card Series: 		AMD Radeon RX 9070 XT
+GPU[0]		: Card Model: 		0x7550
+GPU[0]		: Card SKU: 		1E490TX
+--- clock state at start (receipts must record this) ---
+GPU[0]		: mclk clock level: 0: (96Mhz)
+GPU[0]		: sclk clock level: S: (0Mhz)
+GPU[0]		: Average Graphics Package Power (W): 13.0
+
+=== CORRECTNESS: q8_0 m=10240 n=4 k=320 ===
+  (reported: segfault on gfx1030; clean on gfx1100 and gfx90a; gfx1201 untried)
+ggml_cuda_init: found 1 ROCm devices (Total VRAM: 16304 MiB):
+  Device 0: AMD Radeon RX 9070 XT, gfx1201 (0x1201), VMM: yes, Wave Size: 32, VRAM: 16304 MiB
+Testing 2 devices
+
+Backend 1/2: ROCm0
+  Device description: AMD Radeon RX 9070 XT
+  Device memory: 16304 MB (16238 MB free)
+
+  MUL_MAT(type_a=q8_0,type_b=f32,m=10240,n=4,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): [1;32mOK[0m
+  1/1 tests passed
+  Backend ROCm0: [1;32mOK[0m
+Backend 2/2: CPU
+  Skipping CPU backend
+2/2 backends passed
+[1;32mOK[0m
+  VERDICT: PASS - no fault, correctness OK
+
+=== CORRECTNESS: full narrow trio + bf16/f16 sweep ===
+ggml_cuda_init: found 1 ROCm devices (Total VRAM: 16304 MiB):
+  Device 0: AMD Radeon RX 9070 XT, gfx1201 (0x1201), VMM: yes, Wave Size: 32, VRAM: 16304 MiB
+Testing 2 devices
+
+Backend 1/2: ROCm0
+  Device description: AMD Radeon RX 9070 XT
+  Device memory: 16304 MB (16238 MB free)
+
+  MUL_MAT(type_a=q8_0,type_b=f32,m=4,n=1,k=10240,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): [1;32mOK[0m
+  MUL_MAT(type_a=q8_0,type_b=f32,m=320,n=1,k=10240,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): [1;32mOK[0m
+  MUL_MAT(type_a=q8_0,type_b=f32,m=10240,n=1,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): [1;32mOK[0m
+  MUL_MAT(type_a=f16,type_b=f32,m=4,n=1,k=10240,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): [1;32mOK[0m
+  MUL_MAT(type_a=f16,type_b=f32,m=320,n=1,k=10240,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): [1;32mOK[0m
+  MUL_MAT(type_a=f16,type_b=f32,m=10240,n=1,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): [1;32mOK[0m
+  MUL_MAT(type_a=q8_0,type_b=f32,m=4,n=4,k=10240,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): [1;32mOK[0m
+  MUL_MAT(type_a=q8_0,type_b=f32,m=320,n=4,k=10240,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): [1;32mOK[0m
+  MUL_MAT(type_a=q8_0,type_b=f32,m=10240,n=4,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): [1;32mOK[0m
+  MUL_MAT(type_a=f16,type_b=f32,m=4,n=4,k=10240,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): [1;32mOK[0m
+  MUL_MAT(type_a=f16,type_b=f32,m=320,n=4,k=10240,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): [1;32mOK[0m
+  MUL_MAT(type_a=f16,type_b=f32,m=10240,n=4,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+[1;32mOK[0m
+  MUL_MAT(type_a=f16,type_b=f32,m=10240,n=1,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+[1;32mOK[0m
+  MUL_MAT(type_a=f16,type_b=f32,m=10240,n=4,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): [1;32mOK[0m
+  14/14 tests passed
+  Backend ROCm0: [1;32mOK[0m
+Backend 2/2: CPU
+  Skipping CPU backend
+2/2 backends passed
+[1;32mOK[0m
+  trio exit: 0
+ggml_cuda_init: found 1 ROCm devices (Total VRAM: 16304 MiB):
+  Device 0: AMD Radeon RX 9070 XT, gfx1201 (0x1201), VMM: yes, Wave Size: 32, VRAM: 16304 MiB
+Testing 2 devices
+
+Backend 1/2: ROCm0
+  Device description: AMD Radeon RX 9070 XT
+  Device memory: 16304 MB (16238 MB free)
+
+  MUL_MAT(type_a=f16,type_b=f32,m=10240,n=1,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): [1;32mOK[0m
+  MUL_MAT(type_a=f16,type_b=f32,m=10240,n=4,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): [1;32mOK[0m
+  MUL_MAT(type_a=bf16,type_b=f32,m=10240,n=1,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+[1;32mOK[0m
+  MUL_MAT(type_a=f16,type_b=f32,m=10240,n=1,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+[1;32mOK[0m
+  MUL_MAT(type_a=bf16,type_b=f32,m=10240,n=2,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup reset
+ggml_backend_cuda_graph_compute: CUDA graph warmup reset
+ggml_backend_cuda_graph_compute: CUDA graph warmup reset
+[1;32mOK[0m
+  MUL_MAT(type_a=f16,type_b=f32,m=10240,n=2,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): [1;32mOK[0m
+  MUL_MAT(type_a=bf16,type_b=f32,m=10240,n=3,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup reset
+ggml_backend_cuda_graph_compute: CUDA graph warmup reset
+ggml_backend_cuda_graph_compute: CUDA graph warmup reset
+[1;32mOK[0m
+  MUL_MAT(type_a=f16,type_b=f32,m=10240,n=3,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): [1;32mOK[0m
+  MUL_MAT(type_a=bf16,type_b=f32,m=10240,n=4,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): [1;32mOK[0m
+  MUL_MAT(type_a=f16,type_b=f32,m=10240,n=4,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): [1;32mOK[0m
+  MUL_MAT(type_a=bf16,type_b=f32,m=10240,n=5,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): [1;32mOK[0m
+  MUL_MAT(type_a=f16,type_b=f32,m=10240,n=5,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): [1;32mOK[0m
+  MUL_MAT(type_a=bf16,type_b=f32,m=10240,n=6,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): [1;32mOK[0m
+  MUL_MAT(type_a=f16,type_b=f32,m=10240,n=6,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): [1;32mOK[0m
+  14/14 tests passed
+  Backend ROCm0: [1;32mOK[0m
+Backend 2/2: CPU
+  Skipping CPU backend
+2/2 backends passed
+[1;32mOK[0m
+  sweep exit: 0
+
+=== PERF: narrow trio, q8_0 vs f16, n=1 and n=4 ===
+ggml_cuda_init: found 1 ROCm devices (Total VRAM: 16304 MiB):
+  Device 0: AMD Radeon RX 9070 XT, gfx1201 (0x1201), VMM: yes, Wave Size: 32, VRAM: 16304 MiB
+ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+Testing 2 devices
+
+Backend 1/2: ROCm0
+  Device description: AMD Radeon RX 9070 XT
+  Device memory: 16304 MB (16238 MB free)
+
+  MUL_MAT(type_a=q8_0,type_b=f32,m=4,n=1,k=10240,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+           131072 runs -     7.89 us/run -  81.92 kFLOP/run - [1;34m 10.39 GFLOPS[0m
+  MUL_MAT(type_a=q8_0,type_b=f32,m=320,n=1,k=10240,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+                  98304 runs -    10.36 us/run -   6.55 MFLOP/run - [1;34m632.29 GFLOPS[0m
+  MUL_MAT(type_a=q8_0,type_b=f32,m=10240,n=1,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+                  32768 runs -    32.38 us/run -   6.55 MFLOP/run - [1;34m202.42 GFLOPS[0m
+  MUL_MAT(type_a=f16,type_b=f32,m=4,n=1,k=10240,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+            163800 runs -     6.14 us/run -  81.92 kFLOP/run - [1;34m 13.34 GFLOPS[0m
+  MUL_MAT(type_a=f16,type_b=f32,m=320,n=1,k=10240,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+                   98280 runs -    10.27 us/run -   6.55 MFLOP/run - [1;34m638.37 GFLOPS[0m
+  MUL_MAT(type_a=f16,type_b=f32,m=10240,n=1,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+                   49140 runs -    23.04 us/run -   6.55 MFLOP/run - [1;34m284.43 GFLOPS[0m
+  MUL_MAT(type_a=q8_0,type_b=f32,m=4,n=4,k=10240,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+            57344 runs -    18.42 us/run - 327.68 kFLOP/run - [1;34m 17.79 GFLOPS[0m
+  MUL_MAT(type_a=q8_0,type_b=f32,m=320,n=4,k=10240,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+                  64855 runs -    16.21 us/run -  26.21 MFLOP/run - [1;34m  1.62 TFLOPS[0m
+  MUL_MAT(type_a=q8_0,type_b=f32,m=10240,n=4,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+                  76300 runs -    13.55 us/run -  26.21 MFLOP/run - [1;34m  1.94 TFLOPS[0m
+  MUL_MAT(type_a=f16,type_b=f32,m=4,n=4,k=10240,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+            139230 runs -     7.45 us/run - 327.68 kFLOP/run - [1;34m 43.96 GFLOPS[0m
+  MUL_MAT(type_a=f16,type_b=f32,m=320,n=4,k=10240,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+                   72485 runs -    14.15 us/run -  26.21 MFLOP/run - [1;34m  1.85 TFLOPS[0m
+  MUL_MAT(type_a=f16,type_b=f32,m=10240,n=4,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+                   22890 runs -    44.50 us/run -  26.21 MFLOP/run - [1;34m589.12 GFLOPS[0m
+  MUL_MAT(type_a=f16,type_b=f32,m=10240,n=1,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+                   49140 runs -    23.06 us/run -   6.55 MFLOP/run - [1;34m284.21 GFLOPS[0m
+  MUL_MAT(type_a=f16,type_b=f32,m=10240,n=4,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0):                    22890 runs -    44.51 us/run -  26.21 MFLOP/run - [1;34m589.00 GFLOPS[0m
+  Backend ROCm0: [1;32mOK[0m
+Backend 2/2: CPU
+  Skipping CPU backend
+2/2 backends passed
+[1;32mOK[0m
+
+=== PERF: bf16 vs f16 sweep n=1..6 on m=10240,k=320 ===
+  (mmvf thresholds on RDNA4: f16 <= 5 tuned, bf16 <= 3 flat/untuned)
+ggml_cuda_init: found 1 ROCm devices (Total VRAM: 16304 MiB):
+  Device 0: AMD Radeon RX 9070 XT, gfx1201 (0x1201), VMM: yes, Wave Size: 32, VRAM: 16304 MiB
+ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+Testing 2 devices
+
+Backend 1/2: ROCm0
+  Device description: AMD Radeon RX 9070 XT
+  Device memory: 16304 MB (16238 MB free)
+
+  MUL_MAT(type_a=f16,type_b=f32,m=10240,n=1,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+                   49140 runs -    23.25 us/run -   6.55 MFLOP/run - [1;34m281.83 GFLOPS[0m
+  MUL_MAT(type_a=f16,type_b=f32,m=10240,n=4,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+                   22890 runs -    44.73 us/run -  26.21 MFLOP/run - [1;34m586.11 GFLOPS[0m
+  MUL_MAT(type_a=bf16,type_b=f32,m=10240,n=1,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+                  49140 runs -    22.89 us/run -   6.55 MFLOP/run - [1;34m286.29 GFLOPS[0m
+  MUL_MAT(type_a=f16,type_b=f32,m=10240,n=1,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+                   49140 runs -    23.13 us/run -   6.55 MFLOP/run - [1;34m283.29 GFLOPS[0m
+  MUL_MAT(type_a=bf16,type_b=f32,m=10240,n=2,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+                  38150 runs -    29.84 us/run -  13.11 MFLOP/run - [1;34m439.30 GFLOPS[0m
+  MUL_MAT(type_a=f16,type_b=f32,m=10240,n=2,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+                   38150 runs -    30.43 us/run -  13.11 MFLOP/run - [1;34m430.71 GFLOPS[0m
+  MUL_MAT(type_a=bf16,type_b=f32,m=10240,n=3,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+                  30522 runs -    38.21 us/run -  19.66 MFLOP/run - [1;34m514.57 GFLOPS[0m
+  MUL_MAT(type_a=f16,type_b=f32,m=10240,n=3,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+                   30522 runs -    36.29 us/run -  19.66 MFLOP/run - [1;34m541.83 GFLOPS[0m
+  MUL_MAT(type_a=bf16,type_b=f32,m=10240,n=4,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+                  72485 runs -    13.96 us/run -  26.21 MFLOP/run - [1;34m  1.88 TFLOPS[0m
+  MUL_MAT(type_a=f16,type_b=f32,m=10240,n=4,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+                   22890 runs -    44.40 us/run -  26.21 MFLOP/run - [1;34m590.45 GFLOPS[0m
+  MUL_MAT(type_a=bf16,type_b=f32,m=10240,n=5,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+                  73248 runs -    14.18 us/run -  32.77 MFLOP/run - [1;34m  2.31 TFLOPS[0m
+  MUL_MAT(type_a=f16,type_b=f32,m=10240,n=5,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+                   21364 runs -    51.10 us/run -  32.77 MFLOP/run - [1;34m641.20 GFLOPS[0m
+  MUL_MAT(type_a=bf16,type_b=f32,m=10240,n=6,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0): ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+                  71232 runs -    14.48 us/run -  39.32 MFLOP/run - [1;34m  2.72 TFLOPS[0m
+  MUL_MAT(type_a=f16,type_b=f32,m=10240,n=6,k=320,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1,src_overlap=0):                    68688 runs -    14.80 us/run -  39.32 MFLOP/run - [1;34m  2.66 TFLOPS[0m
+  Backend ROCm0: [1;32mOK[0m
+Backend 2/2: CPU
+  Skipping CPU backend
+2/2 backends passed
+[1;32mOK[0m
+
+=== GUARDS ===
+  perf result lines: 2
+  *** WARNING: fewer perf lines than the 26 cases the filters select -- filter may have missed. DO NOT report these numbers without checking. ***
+  GPU faults in dmesg since start:
+
+=== DONE 2026-09-09T17:54:16-04:00 ===
