@@ -304,8 +304,30 @@ That is the "full power, full clocks, half the tokens" signature exactly.
   restored alongside target), but it fires **47 times from minute 0.29**, always `draft=0`, and
   acceptance stayed healthy for 80 requests afterwards. Constant, not causal. Called prematurely and
   retracted within minutes.
-- **`vbr reset ... 0/14,2xx prompt tokens reusable`** — also constant from min 0.6. The prompt cache
-  is discarded on nearly every request throughout, before and after the collapse.
+- **`vbr reset ... 0/14,2xx prompt tokens reusable`** — present from min 0.6, before and after.
+
+  **CORRECTED 2026-09-09.** The claim above — "the prompt cache is discarded on nearly every
+  request" — is **wrong**, and was repeated twice before being checked. Those warnings are the
+  *exceptions*. The `edit/divergence sample` lines are the norm and show the cache working:
+
+  | run | requests | vbr resets | aggregate token reuse | >=50% reuse |
+  |---|---|---|---|---|
+  | `bd_iq3xxs` | 49 | 16 (33%) | **87.3%** (588,330/673,894) | 48/49 |
+  | `preserve_off` | 92 | 35 (38%) | **86.2%** (1,131,804/1,312,446) | 87/92 |
+
+  The harness is **append-only** (message counts 2→4→6→…→14 with monotonic token growth) and the
+  system prompt is **byte-identical across tasks** — same SHA256, 35,207 chars, tools in stable
+  alphabetical order. So the prompt-instability failure mode (the one costing OpenCode ~4x against
+  DeepSeek's harness on cache hit rate) is **not ours**.
+
+  What *is* real: **33–38% of requests trigger a `vbr reset` forcing a full re-prefill "at the entry
+  tier" despite a long textual match.** Task 83: `lcp = 9504` tokens matched, reset reported
+  `0/13152` reusable. That is VBR declining to reuse KV written at a degraded tier — a VBR cost, not
+  a prompt-construction problem. Quantifying it needs an `-ctk f16 -ctv f16` arm.
+
+  I read the warnings and never looked at the lines reporting normal operation. Same shape as
+  AFM-34: a real log line, correctly parsed, describing a population I had not established was
+  representative.
 
 ## Predictions for the fix (logged before testing)
 
