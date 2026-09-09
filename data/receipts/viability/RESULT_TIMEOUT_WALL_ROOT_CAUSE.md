@@ -412,3 +412,69 @@ Not "send a big request" and not "wait 25 minutes". It is:
 > falls ~2.7× (60 → 22 t/s on an identical prompt). A restart restores acceptance to 0.93–0.97.
 > 80 requests before the clamp never fell below 0.444; every request after was ≤ 0.312.
 > A single 20,901-token request on a fresh server does **not** reproduce it (watermark stays at 256).
+
+---
+
+# ISOLATION CONFIRMED (2026-09-09): the clamp is harmless; MTP's response to it is the defect
+
+The `bitdepth_iq3xxs` arm runs the **same model, same build, same VBR settings, with MTP OFF**.
+The VBR floor clamp **fired anyway** at minute 19.2:
+
+```
+19.09  tg_3s = 27.67
+19.11  W prepare_with_slots: VBR budget 5442.49 MiB exceeded with the degrade order
+         clamped at the --vbr-floor (projected 160.38 MiB at 18176 cells)
+19.12  tg_3s = 27.35
+19.15  tg_3s = 27.70
+```
+
+Decode across the clamp, measured on **progress lines** (which include requests that never complete,
+so this is not survivorship-limited):
+
+| | n | median | p10 | p90 |
+|---|---|---|---|---|
+| before clamp | 289 | **27.3 t/s** | 26.8 | 27.7 |
+| after clamp | 50 | **27.5 t/s** | 27.4 | 27.6 |
+
+**Ratio 0.99×. No effect whatsoever.** The run continued normally.
+
+## Contrast
+
+| condition | clamp fires | outcome |
+|---|---|---|
+| VBR + **MTP** | yes | acceptance → **0.000**, decode **2.7× slower** (60 → 22 t/s), permanent, contiguous wall |
+| VBR + **no MTP** | yes | decode **unchanged** (0.99×), run continues |
+
+**The VBR floor clamp is not itself harmful.** It fires under both configurations. The defect is that
+**MTP enters a permanently-rejecting state when it fires** and never recovers without a restart.
+
+This is the isolation the earlier report flagged as missing. It is stronger than the proposed
+`-ctk f16 -ctv f16` control would have been: rather than removing VBR and showing the wall
+disappears (which would leave open whether VBR or the checkpoint machinery mattered), it keeps VBR
+and the clamp **fully present** and removes only MTP — and the harm disappears.
+
+**Restate the defect for buun as:** *when the VBR degrade order clamps at `--vbr-floor`, the MTP
+draft head permanently stops producing acceptable drafts (`acceptance 0.000`, `mean len 1.00`) for
+the life of the server. The clamp itself is benign — with `--spec-type` omitted the same clamp fires
+with no measurable effect on decode.*
+
+## Also noted: runaways are NOT quant-specific
+
+`RESULT_TURBO_IQ2M_WALLED.md` attributed bimodal generation (≈100 tokens or ≈8,300) to IQ2_M
+quantisation and scored P3 as confirmed. The 3-bit arm shows the same shape:
+
+```
+IQ3_XXS: [100, 100, 100, 100, 100, 181, 9178, 9379, 8850]   3/9 runaways
+IQ2_M:   [100, 175, 100, 100, 100, 8332, 8334, 8393, ...]
+```
+
+Both runaway lengths are simply 360 s × decode rate — timeout-limited, not model-limited.
+**P3's attribution to quantisation is withdrawn.** Whether the runaway *rate* differs by bit depth
+is exactly what `PREREG_BITDEPTH_AGENTIC.md` is measuring; that question is still open and the
+design still answers it.
+
+**Open puzzle:** det02 (3-bit, MTP on) passed `t02_read_missing` and `t02_read_nested`; this arm
+(3-bit, MTP off) runs away on both. Speculative decoding should be output-equivalent — the target
+verifies every token — so MTP should not change *what* is generated. Either that equivalence does not
+hold on this build, or it is run-to-run variance (hermesbench sends no sampling; the server default
+is not greedy). Not resolved; do not assume either.

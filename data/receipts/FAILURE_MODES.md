@@ -1106,3 +1106,47 @@ his own hardware that wasn't true.
 **Related:** [AFM-34] wrong-field greps; the AllReduce-on-Pascal case, where the visible warning also
 named the wrong cause; `readiness-probes-lie` — this is its inverse, a probe reporting failure for
 something that succeeded.
+
+---
+
+## AFM-36 — Killing a harness leaves its agent child alive, and it poisons the next run
+
+**Observed:** 2026-09-09. Three consecutive bit-depth arms produced impossible results — the third
+scored **100% INFRA_ERROR**, including `t01_terminal_smoke_t01_echo`, a task that had passed in
+25–30 s in every previous run all week.
+
+I suspected the `-n 4096` flag I had just added. It was innocent. The cause:
+
+```
+1873578  ppid 856  07:41  ~/.hermes/hermes-agent/.venv/bin/python -u run_agent.py --model ...
+```
+
+**An orphaned `run_agent.py` from the *previous* run, still alive and still generating.** Killing
+`hermesbench run` kills the parent; the agent subprocess it spawned survives, keeps its HTTP
+connection, and keeps requesting. With `-np 1` the server serialises, so every request from the new
+run queues behind an orphan burning through a multi-thousand-token runaway — and times out.
+
+Proof: with the orphan killed and **the same server, same `-n 4096`**, a trivial request returned in
+**1 second**. Before, the identical request did not return in 85.
+
+**Why it is hard to see:** the symptom is indistinguishable from a model or config failure. The
+server is healthy (`/health` 200), decode looks normal in the logs, and the new run's tasks simply
+time out. Nothing in the harness's output mentions a process it does not know about.
+
+**How to apply:**
+1. **When killing a benchmark, kill its agent children.** `hermesbench run` → `run_agent.py` is a
+   parent/child pair; the parent's death does not propagate. Kill by PID from `ps -eo pid,ppid`,
+   or use `scripts/safekill.sh`.
+2. **Before starting any run, check for orphans**: `ps -eo pid,etime,comm | awk '$3=="python"'`.
+   An agent process older than the run you are about to start is a contaminant.
+3. **`-np 1` turns any orphan into a total outage**, not a slowdown. Single-slot serving means one
+   stuck process starves everything.
+
+**Contaminated by this:** `bitdepth_iq3xxs_budget_tight` and `bitdepth_iq3xxs_v3` are suspect and
+should not be compared against clean runs. The TURBO run may be affected — it followed a killed
+`preserve_off`.
+
+**Related:** the project rule against `pkill -f` on a self-matching pattern. While diagnosing this I
+did exactly that — `ps … | grep '[h]ermesbench'` matched my own shell, because the pattern string
+appears in the command line — and killed my own session. The `[h]` trick defeats grep matching
+*itself*, not a shell whose arguments contain the literal word.
