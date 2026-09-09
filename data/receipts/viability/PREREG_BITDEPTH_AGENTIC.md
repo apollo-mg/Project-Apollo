@@ -84,3 +84,83 @@ unenforced-budget defect reported in am423 issue #5.
 **Prediction added before relaunch — P5: the budget cap cuts INFRA_ERROR by more than half in arm A**
 (from 53% to under 25%). 75%. If it does not, timeouts have a second cause beyond unbounded
 generation.
+
+---
+
+## PROTOCOL CHANGE 3 (2026-09-09): `HERMES_MAX_TOKENS=4096`
+
+v4 ran clean of orphans (process tree verified) and still produced **43% INFRA with 7/13 requests
+over the 4096 cap**, max 12,999. So **server-side `-n 4096` does not bound generation** on this
+build — confirmed independently of AFM-36.
+
+Found the client-side lever in hermes-agent `cli.py:2670`:
+
+```python
+_env_mt = os.environ.get("HERMES_MAX_TOKENS")
+_mt = _model_config.get("max_tokens")
+self.max_tokens = _int_or(_env_mt, None) if _env_mt else (_mt if isinstance(_mt, int) else None)
+```
+
+With neither set the agent sends `max_tokens: None` (omitted), so the request carries no budget at
+all. `HERMES_MAX_TOKENS` makes it send an **explicit** value — a different code path from the server
+default. hermesbench builds the subprocess env as `{**os.environ, ...}` in both
+`hermes_invocation.py` and `run_real.py`, so exporting it propagates.
+
+**This is also the concrete fix for am423 issue #5**: rather than "pass `task.max_tokens` through,"
+the harness should set `HERMES_MAX_TOKENS` from `task.max_tokens` when spawning the agent.
+
+**P6: with `HERMES_MAX_TOKENS=4096`, no request exceeds ~4096 tokens.** 70%. If explicit
+`max_tokens` also fails to bound, then nothing at any layer bounds generation on this build and the
+only viable control is the wall clock — which would make agentic benchmarking on this stack
+fundamentally unreliable, and is worth reporting on its own.
+
+---
+
+## SCORING — P6 FALSIFIED (2026-09-09, same day)
+
+**P6 was: "with `HERMES_MAX_TOKENS=4096`, no request exceeds ~4096 tokens." Logged at 70%.**
+**Result: FALSIFIED.** The server's own log records **14 generations ending at exactly 8192**
+in run v5 — with the variable exported for the whole run.
+
+### Why the reasoning failed
+
+The `cli.py:2670` snippet quoted above is real, but **it is not the code path hermesbench uses.**
+hermesbench drives `run_agent.py`, which constructs the agent at `run_agent.py:1477`:
+
+```python
+agent = AIAgent(base_url=base_url, model=model, api_key=api_key, max_iterations=max_turns,
+                enabled_toolsets=..., disabled_toolsets=..., save_trajectories=..., ...)
+```
+
+**`max_tokens` is never passed**, so `agent.max_tokens` keeps its default `None`. I found the
+right code and the wrong entry point — the error was reading a grep hit as *the* implementation
+without checking which caller the benchmark actually invokes. (`HERMES_MAX_TOKENS` is read only in
+`cli.py`, `gateway/run.py`, `api_server.py`.) Environment propagation was never the problem;
+the receiving path simply doesn't read it.
+
+**Verified on the wire, not by inference:** a capture stub recorded the outgoing request bodies.
+With `HERMES_MAX_TOKENS=1024`, and with it unset, **all 9 captured requests omitted `max_tokens`
+entirely** (`[messages, model, stream, stream_options, tools]`).
+
+### The 8192 comes from somewhere else
+
+`finish_reason='length'` triggers a continuation that boosts and *does* send an explicit cap
+(`turn_iteration_prep.py:382`, injected by `chat_completion_helpers.py:1381`):
+`(agent.max_tokens or 4096) * 2**n` → **8192, 16384, 32768** — hard-anchored to the literal 4096
+because `agent.max_tokens` is `None`, and **not reachable from any env var or server flag.**
+An explicit request cap also overrides the server's `-n`, so `-n` bounds only the first call.
+
+### Retracted recommendation — do NOT send this upstream
+
+The line above — *"This is also the concrete fix for am423 issue #5: the harness should set
+`HERMES_MAX_TOKENS` from `task.max_tokens` when spawning the agent"* — **is wrong and is retracted.**
+Setting that variable does nothing for the `run_agent.py` path. Had we posted it, we would have
+sent an upstream maintainer a fix that cannot work. The follow-up comment was drafted but never
+approved; it must not go out in that form.
+
+A correct fix would pass the cap into `AIAgent(...)` at `run_agent.py:1477` (or have hermesbench
+supply `max_tokens` per request), and separately bound the continuation ladder — which today can
+reach 4096+8192+16384+32768 = **61,440 tokens ≈ 2,318 s** on this hardware for a single turn.
+
+**P6's closing sentence was right for the wrong reason:** generation is effectively unbounded from
+the benchmark's side, and the wall clock is the only control the harness currently has.

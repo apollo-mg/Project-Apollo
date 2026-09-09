@@ -1150,3 +1150,22 @@ should not be compared against clean runs. The TURBO run may be affected — it 
 did exactly that — `ps … | grep '[h]ermesbench'` matched my own shell, because the pattern string
 appears in the command line — and killed my own session. The `[h]` trick defeats grep matching
 *itself*, not a shell whose arguments contain the literal word.
+
+## AFM-37 — `pkill -f` self-match, third occurrence, against a written rule
+
+**2026-09-09.** Ran `pkill -x -f "python3 <path>/capture_stub.py"` to clean up a probe stub.
+The searching shell's own command line contained the pattern, so the kill took the shell
+(exit 144). Same mechanism as the 2026-08-06 and 2026-08-07 incidents; CLAUDE.md already
+carries an explicit prohibition, and `scripts/safekill.sh` already exists for this.
+
+**No damage:** `llama-server` and the gated RDNA4 job both survived — only the stub and the shell died.
+
+**Why it recurred:** the rule was being applied to *benchmark* processes, and this felt like
+"just a little cleanup stub," so it wasn't pattern-matched as the dangerous case. The rule is
+about the `-f` flag, not about how important the target is.
+
+**Fix that actually works:** never type `pkill -f`/`pgrep -f` with an interpolated path. Resolve
+PIDs first (`pgrep -f '[c]apture_stub.py'` — bracket the first character so the pattern cannot
+match itself), verify each `/proc/<pid>/cmdline`, then `kill` by numeric PID. The bracket form
+was already used correctly two lines later in the same command block; the bare form above it
+was the one that fired.
