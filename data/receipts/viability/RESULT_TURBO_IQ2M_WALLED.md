@@ -96,3 +96,50 @@ which the whole sub-3-bit field converged on independently for weights.
 What the runaway actually contains — a repetition loop (quantisation degeneration) versus coherent
 but endless reasoning (a stopping-rule failure). These are different findings with different
 implications, and the diagnostic probe has not yet returned a clean capture.
+
+---
+
+# SEPARATE BUG FOUND WHILE DIAGNOSING: `max_tokens` does not bound generation
+
+Attempting to capture a runaway's *content* by re-sending a file-read prompt with
+`{"max_tokens": 400}`, the request never returned. Server state at the time:
+
+```
+task 52065 | n_gen = 14039, tg = 25.23 t/s     <- request sent with max_tokens: 400
+/slots -> slot 0: is_processing = True
+```
+
+**14,039 tokens against a 400-token cap — 35× over, and still generating.**
+
+`max_tokens` in the OpenAI-compatible API is specified to bound **all** completion tokens, reasoning
+included. On this build it does not bound `reasoning_content` at all. Two earlier requests in this
+session with `max_tokens: 96` returned promptly, so the cap is not universally ignored — it appears
+to bound *visible content* while leaving the reasoning channel unbounded, which only becomes visible
+on a model that reasons without converging.
+
+## Why this matters more than the model result
+
+- **The 360 s harness timeout is the only backstop.** Every runaway tonight (~8,300 tokens ≈ 360 s ×
+  24 t/s) was terminated by the *client*, not by any server-side limit.
+- **Anyone using `max_tokens` as a safety bound on a reasoning model is unprotected.** That is the
+  natural, documented way to bound cost and latency, and it silently does not work here.
+- Server-side `n_predict` *does* bound generation (the tier_cal fixture's escalation
+  `[6144:length -> 12288:length]` shows it working), so the two paths differ.
+
+## Reproduction
+
+Any reasoning model on this build, any prompt that induces long reasoning:
+
+```
+curl .../v1/chat/completions -d '{"messages":[...],"max_tokens":400}'
+# observe n_gen in the server log climb past 400 without bound
+```
+
+Build: buun `3823c9eb6`, RX 9070 XT / ROCm. Not yet checked against upstream llama.cpp or against
+`a56eeef5`+ — **do not report as fork-specific without that check.**
+
+## Consequence for the corpus work
+
+This is a second, independent argument for **token-budget caps enforced server-side** rather than
+wall-clock timeouts (`RESULT_CORPUS_HARDENING_GOLDEN.md` item 2). A client-side `max_tokens` cannot
+be relied on, so the budget has to be set with `n_predict` where the server will honour it.
