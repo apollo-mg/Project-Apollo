@@ -144,3 +144,89 @@ the controlled comparison the prereg demanded.
 `passed=34, failed=0, infra_errors=17, task_count=61` — the run was killed by the outage at ~51/61.
 The dispatcher-fix conclusion in `RESULT_DISPATCHER_FIX_LIVE.md` is unaffected: it rests on the per-task
 outcome diff, which survived on disk.
+
+---
+
+# CORRECTION (2026-09-08, late): the "decode collapse" was a SAMPLING ARTIFACT, not server degradation
+
+The addendum above reports decode falling **38.8 → 19.7 t/s** post-wall, with "almost no variance"
+across 1,808 samples, and reads that as the server degrading. **That reading is wrong**, and the
+error is the same family as AFM-34 one level up.
+
+## What reproduced it
+
+The `preserve_off` run on the 9070 (2026-09-08 evening) hit the identical signature — `tg_3s` at
+19.89/19.87, GPU power-pegged at 340 W, full clocks, normal temps. This time the server was still
+running, so the question the outage cost us this morning could actually be asked.
+
+## The server was not degrading
+
+Pairing every request's prompt depth against its decode rate, split early vs late in the run:
+
+| cohort | shallow prompts (<2k tok) | deep prompts (>8k tok) |
+|---|---|---|
+| EARLY (first third) | 41.2 t/s (n=19) | 29.5 t/s (n=11) |
+| LATE (last third) | **39.2 t/s** (n=16) | **34.2 t/s** (n=9) |
+
+**At identical prompt depth, late decode is 1.05× early — i.e. unchanged.** Deep prompts actually got
+*faster*. There is no accumulated state degradation. A restart would have "fixed" nothing.
+
+## What the 19.7 floor actually was
+
+Profiling the samples by cohort:
+
+| cohort | samples | distinct tasks | completed |
+|---|---|---|---|
+| `tg_3s < 24` | 111 | **1** | **0/1** |
+| `tg_3s > 34` | 187 | 27 | 26/27 |
+
+**Every slow sample came from a single stuck request.** llama-server emits a progress line roughly
+every 3 s during generation, so one request that runs for six minutes contributes ~120 samples while
+nothing else is running. A rolling median over recent samples therefore reports *that one request's*
+rate as if it were the server's.
+
+The same arithmetic explains this morning: **1,808 post-wall samples ÷ one per 3 s ≈ 90 minutes ≈ 15
+timeouts × 360 s.** The "near-zero variance at 19.7" was never a clamped server — it was a handful of
+stuck generations at steady state, each sampled ~120 times.
+
+## Also falsified: decode declining within a long generation
+
+The obvious mechanism — a long generation slowing as its own output extends the context — does **not**
+hold. Tracing `tg_3s` against `n_gen` inside single long generations:
+
+| task 4641 (max 9,346 tok) | task 12975 (max 7,134) | task 17843 (max 6,737) |
+|---|---|---|
+| 41.5 → 42.9 t/s | 47.4 → 42.3 t/s | **20.1 → 20.0, flat from n_gen=100** |
+
+The slow request was slow **from its first hundred tokens** and stayed flat. Slowness is a property
+the request has from the start, not something it accumulates.
+
+## What still stands from the addendum
+
+- **The threshold model.** Confirmed live: 6,077 tokens took ~157 s at 43.6 t/s early and ~303 s at
+  20.1 t/s later — the monitor fired `TIMEOUT RISK` on exactly that arithmetic. Long generations are
+  a normal property of this workload and only become fatal when paired with a slow request.
+- The GPU is power-pegged at full clocks with normal temperatures while producing half the tokens.
+  That remains true and still indicates wasted compute rather than thermal throttling.
+
+## What is now OPEN (was wrongly considered closed)
+
+**Why are some individual requests ~2× slower from their first tokens?** MTP draft acceptance is the
+leading candidate — a fully-rejected draft burns GPU on tokens that are thrown away, which matches
+"full power, half the output" exactly, and the healthy-vs-slow ratio (~43 vs ~20 t/s) is close to the
+measured MTP multiplier. But the evidence is **not there yet**:
+
+- All 81 *bench* requests show acceptance 0.46–1.00. None collapsed.
+- The one zero-acceptance record (0/187, mean len 1.00, 22.04 t/s) is **my own probe**, sent with
+  `temperature: 0`, which the bench does not use. That is a confound in the probe, not a finding.
+- The slow bench request never completed, so it printed no acceptance record at all.
+
+**Do not write "MTP collapse causes the wall" anywhere until a probe under the bench's own sampling
+reproduces zero acceptance.** That test is running.
+
+## Standing lesson
+
+Three times today a rolling statistic was computed over a population defined by the very outcome
+under investigation — completion-only `eval time` lines (survivorship), and now progress-line
+medians dominated by whichever request happens to be stuck. **Before believing an aggregate, ask
+which requests contributed to it and whether that set is independent of what you are measuring.**

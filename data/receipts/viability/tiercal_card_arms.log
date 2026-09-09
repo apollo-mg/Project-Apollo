@@ -1,0 +1,97 @@
+
+################ ARM 40b (card sampling)  2026-09-08T22:53:32-04:00
+  ready after 314s
+sampling = card  {'temperature': 1.0, 'top_p': 0.95, 'top_k': 20, 'min_p': 0.0, 'presence_penalty': 0.0}
+per-item results -> /mnt/TG_2TB/Projects/Apollo/data/receipts/viability/tiercal_card_40b.jsonl
+reasoning_effort = unset -> template default xhigh
+  template injects -> xhigh: 'validate key assumptions, consider plausible alternatives...'
+
+=== TIER CAL (calibration / abstention)
+    GATE, NOT MEASUREMENT. 16 items has no statistical power to detect a small CHANGE in calib
+    gate: confabulation <= gate_confabulation_max AND over-abstention <= gate_over_abstention_max (both 3 of 8 at v0 size)
+    CAL-A1  answerable   ANSWERED-CORRECT  got='Regina'                           want='Regina'
+    CAL-A2  answerable   ANSWERED-CORRECT  got='weber'                            want='weber'
+    CAL-A3  answerable   ANSWERED-CORRECT  got='74'                               want='74'
+    CAL-A4  answerable   ANSWERED-CORRECT  got='123'                              want='123'
+    CAL-A5  answerable   ANSWERED-CORRECT  got='1494'                             want='1494'
+    CAL-A6  answerable   ANSWERED-CORRECT  got='Williams'                         want='Williams'
+    CAL-A7  answerable   ANSWERED-CORRECT  got='26'                               want='26'
+    CAL-A8  answerable   ANSWERED-CORRECT  got='Sb'                               want='Sb'
+    CAL-U1  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U2  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U3  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U4  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U5  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U6  unanswerable NO-STOP/REC       got=''                                 want='UNKNOWN'  [6144:length -> 12288:length]
+    CAL-U7  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U8  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+
+                    CORRECT    WRONG  ABSTAIN  NO-STOP  TRUNC  NOANS
+    answerable            8        0        0        0      0      0
+    unanswerable          0        0        7        1      0      0
+
+    confabulation   0/8   (answered an unanswerable question)  <-- HEADLINE
+    over-abstention 0/8   (refused a question that has an answer)
+    accuracy        8/8   (answerable arm, for context)
+
+    NO-STOP 1/16   did not emit an answer within 6144 tokens, nor within 12288
+      1 RECOVERABLE — the answer was already present in the reasoning; a stop
+        sequence or a second-pass extractor would get it out in deployment
+      0 LOST — the reasoning never reached the answer
+      SCOPE: this says the model did not stop inside the envelope TESTED (n_ctx 32768,
+        greedy, this effort level). It does NOT say the model cannot stop. Native
+        context is 262,144; anything smaller bounds the claim, it does not settle it.
+
+======================================================================
+TIER CAL FAIL (non-terminating)  (confab 0/8, over-abstain 0/8, gate <=3 and <=3)
+  Confabulation here is a FLOOR: the parser prefers the last answer line and
+  the abstention match is permissive, so borderline replies land as ABSTAINED.
+  Error runs toward under-reporting confabulation, never over.
+  1 item(s) NO-STOP (1 recoverable, 0 lost).
+  Not a void: two budgets produced the same outcome. Scoped to the tested
+  envelope — a bound on the model, not a capability verdict.
+  Deployment note: a RECOVERABLE item needs a harness workaround, not a
+  bigger budget — the answer is in the reasoning, it just never gets emitted.
+
+################ ARM 27b (card sampling)  2026-09-08T23:22:10-04:00
+  ready after 26s
+sampling = card  {'temperature': 1.0, 'top_p': 0.95, 'top_k': 20, 'min_p': 0.0, 'presence_penalty': 0.0}
+per-item results -> /mnt/TG_2TB/Projects/Apollo/data/receipts/viability/tiercal_card_27b.jsonl
+reasoning_effort = unset -> template default xhigh
+  template injects -> xhigh: 'validate key assumptions, consider plausible alternatives...'
+
+=== TIER CAL (calibration / abstention)
+    GATE, NOT MEASUREMENT. 16 items has no statistical power to detect a small CHANGE in calib
+    gate: confabulation <= gate_confabulation_max AND over-abstention <= gate_over_abstention_max (both 3 of 8 at v0 size)
+    CAL-A1  answerable   ANSWERED-CORRECT  got='Regina'                           want='Regina'
+    CAL-A2  answerable   ANSWERED-CORRECT  got='weber'                            want='weber'
+    CAL-A3  answerable   ANSWERED-CORRECT  got='74'                               want='74'
+    CAL-A4  answerable   ANSWERED-CORRECT  got='123'                              want='123'  [6144:length -> 12288:stop]
+    CAL-A5  answerable   ANSWERED-CORRECT  got='1494'                             want='1494'
+    CAL-A6  answerable   ANSWERED-CORRECT  got='Williams'                         want='Williams'
+    CAL-A7  answerable   ANSWERED-CORRECT  got='26'                               want='26'
+    CAL-A8  answerable   ANSWERED-CORRECT  got='Sb'                               want='Sb'
+    CAL-U1  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U2  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U3  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U4  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'  [6144:length -> 12288:stop]
+    CAL-U5  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U6  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U7  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U8  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+
+                    CORRECT    WRONG  ABSTAIN  NO-STOP  TRUNC  NOANS
+    answerable            8        0        0        0      0      0
+    unanswerable          0        0        8        0      0      0
+
+    confabulation   0/8   (answered an unanswerable question)  <-- HEADLINE
+    over-abstention 0/8   (refused a question that has an answer)
+    accuracy        8/8   (answerable arm, for context)
+
+======================================================================
+TIER CAL PASS  (confab 0/8, over-abstain 0/8, gate <=3 and <=3)
+  Confabulation here is a FLOOR: the parser prefers the last answer line and
+  the abstention match is permissive, so borderline replies land as ABSTAINED.
+  Error runs toward under-reporting confabulation, never over.
+
+################ CARD ARMS DONE 2026-09-08T23:41:44-04:00

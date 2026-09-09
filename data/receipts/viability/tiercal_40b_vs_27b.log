@@ -1,0 +1,116 @@
+
+################ ARM 40b  2026-09-08T21:29:21-04:00
+model: /mnt/HDD/AI_Models/davidau40/Qwen3.6-40B-GrIntell-F-Fusion-Uncen-Htic-NEO-MAX-MTP-IQ4_XS.gguf
+  ready after 314s
+sampling = greedy  {'temperature': 0, 'top_k': 1}
+  WARNING: greedy is not this model's recommended sampling and is a known cause
+  of failure-to-terminate on false-premise items. See RETRACTION_NO_STOP.md.
+per-item results -> /mnt/TG_2TB/Projects/Apollo/data/receipts/viability/tiercal_40b.jsonl
+reasoning_effort = unset -> template default xhigh
+  template injects -> xhigh: 'validate key assumptions, consider plausible alternatives...'
+
+=== TIER CAL (calibration / abstention)
+    GATE, NOT MEASUREMENT. 16 items has no statistical power to detect a small CHANGE in calib
+    gate: confabulation <= gate_confabulation_max AND over-abstention <= gate_over_abstention_max (both 3 of 8 at v0 size)
+    CAL-A1  answerable   ANSWERED-CORRECT  got='Regina'                           want='Regina'
+    CAL-A2  answerable   ANSWERED-CORRECT  got='weber'                            want='weber'
+    CAL-A3  answerable   ANSWERED-CORRECT  got='74'                               want='74'
+    CAL-A4  answerable   ANSWERED-CORRECT  got='123'                              want='123'
+    CAL-A5  answerable   ANSWERED-CORRECT  got='1494'                             want='1494'
+    CAL-A6  answerable   ANSWERED-CORRECT  got='Williams'                         want='Williams'
+    CAL-A7  answerable   ANSWERED-CORRECT  got='26'                               want='26'
+    CAL-A8  answerable   ANSWERED-CORRECT  got='Sb'                               want='Sb'
+    CAL-U1  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U2  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U3  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U4  unanswerable NO-ANSWER         got=''                                 want='UNKNOWN'
+    CAL-U5  unanswerable NO-STOP/REC       got=''                                 want='UNKNOWN'  [6144:length -> 12288:length]
+    CAL-U6  unanswerable NO-STOP/REC       got=''                                 want='UNKNOWN'  [6144:length -> 12288:length]
+    CAL-U7  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U8  unanswerable NO-STOP/REC       got=''                                 want='UNKNOWN'  [6144:length -> 12288:length]
+
+                    CORRECT    WRONG  ABSTAIN  NO-STOP  TRUNC  NOANS
+    answerable            8        0        0        0      0      0
+    unanswerable          0        0        4        3      0      1
+
+    confabulation   0/8   (answered an unanswerable question)  <-- HEADLINE
+    over-abstention 0/8   (refused a question that has an answer)
+    accuracy        8/8   (answerable arm, for context)
+
+    NO-STOP 3/16   did not emit an answer within 6144 tokens, nor within 12288
+      3 RECOVERABLE — the answer was already present in the reasoning; a stop
+        sequence or a second-pass extractor would get it out in deployment
+      0 LOST — the reasoning never reached the answer
+      SCOPE: this says the model did not stop inside the envelope TESTED (n_ctx 32768,
+        greedy, this effort level). It does NOT say the model cannot stop. Native
+        context is 262,144; anything smaller bounds the claim, it does not settle it.
+
+======================================================================
+TIER CAL FAIL (non-terminating)  (confab 0/8, over-abstain 0/8, gate <=3 and <=3)
+  Confabulation here is a FLOOR: the parser prefers the last answer line and
+  the abstention match is permissive, so borderline replies land as ABSTAINED.
+  Error runs toward under-reporting confabulation, never over.
+  3 item(s) NO-STOP (3 recoverable, 0 lost).
+  Not a void: two budgets produced the same outcome. Scoped to the tested
+  envelope — a bound on the model, not a capability verdict.
+  Deployment note: a RECOVERABLE item needs a harness workaround, not a
+  bigger budget — the answer is in the reasoning, it just never gets emitted.
+
+################ ARM 27b  2026-09-08T22:22:43-04:00
+model: /mnt/models/AI_Models/Qwen 3.6/Qwen3.6-27B-Q6_K-MTP.gguf
+  ready after 26s
+sampling = greedy  {'temperature': 0, 'top_k': 1}
+  WARNING: greedy is not this model's recommended sampling and is a known cause
+  of failure-to-terminate on false-premise items. See RETRACTION_NO_STOP.md.
+per-item results -> /mnt/TG_2TB/Projects/Apollo/data/receipts/viability/tiercal_27b.jsonl
+reasoning_effort = unset -> template default xhigh
+  template injects -> xhigh: 'validate key assumptions, consider plausible alternatives...'
+
+=== TIER CAL (calibration / abstention)
+    GATE, NOT MEASUREMENT. 16 items has no statistical power to detect a small CHANGE in calib
+    gate: confabulation <= gate_confabulation_max AND over-abstention <= gate_over_abstention_max (both 3 of 8 at v0 size)
+    CAL-A1  answerable   ANSWERED-CORRECT  got='Regina'                           want='Regina'
+    CAL-A2  answerable   ANSWERED-CORRECT  got='Weber'                            want='weber'
+    CAL-A3  answerable   ANSWERED-CORRECT  got='74'                               want='74'
+    CAL-A4  answerable   NO-STOP/REC       got=''                                 want='123'  [6144:length -> 12288:length]
+    CAL-A5  answerable   ANSWERED-CORRECT  got='1494'                             want='1494'
+    CAL-A6  answerable   ANSWERED-CORRECT  got='Williams'                         want='Williams'
+    CAL-A7  answerable   ANSWERED-CORRECT  got='26'                               want='26'
+    CAL-A8  answerable   ANSWERED-CORRECT  got='Sb'                               want='Sb'
+    CAL-U1  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U2  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U3  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U4  unanswerable NO-STOP/REC       got=''                                 want='UNKNOWN'  [6144:length -> 12288:length]
+    CAL-U5  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U6  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U7  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U8  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+
+                    CORRECT    WRONG  ABSTAIN  NO-STOP  TRUNC  NOANS
+    answerable            7        0        0        1      0      0
+    unanswerable          0        0        7        1      0      0
+
+    confabulation   0/8   (answered an unanswerable question)  <-- HEADLINE
+    over-abstention 0/8   (refused a question that has an answer)
+    accuracy        7/8   (answerable arm, for context)
+
+    NO-STOP 2/16   did not emit an answer within 6144 tokens, nor within 12288
+      2 RECOVERABLE — the answer was already present in the reasoning; a stop
+        sequence or a second-pass extractor would get it out in deployment
+      0 LOST — the reasoning never reached the answer
+      SCOPE: this says the model did not stop inside the envelope TESTED (n_ctx 32768,
+        greedy, this effort level). It does NOT say the model cannot stop. Native
+        context is 262,144; anything smaller bounds the claim, it does not settle it.
+
+======================================================================
+TIER CAL FAIL (non-terminating)  (confab 0/8, over-abstain 0/8, gate <=3 and <=3)
+  Confabulation here is a FLOOR: the parser prefers the last answer line and
+  the abstention match is permissive, so borderline replies land as ABSTAINED.
+  Error runs toward under-reporting confabulation, never over.
+  2 item(s) NO-STOP (2 recoverable, 0 lost).
+  Not a void: two budgets produced the same outcome. Scoped to the tested
+  envelope — a bound on the model, not a capability verdict.
+  Deployment note: a RECOVERABLE item needs a harness workaround, not a
+  bigger budget — the answer is in the reasoning, it just never gets emitted.
+
+################ TIERCAL DONE 2026-09-08T22:53:29-04:00
