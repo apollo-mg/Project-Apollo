@@ -1,0 +1,98 @@
+# RESULT: DavidAU TURBO IQ2_M — runs away on anything non-trivial; VBR and MTP exonerated
+
+**Date:** 2026-09-09 · **Hardware:** RX 9070 XT · **Build:** buun `3823c9eb6`
+**Model:** `Qwen3.8-27B-TurboFCFusion-735-882-Here-Uncen-NEO-CODER-MAX-MTP-IQ2_M.gguf` (11.29 GiB)
+**Config:** `-c 32768 -np 1 -fa on --kv-unified -ctk vbr -ctv vbr --vbr-floor t2 --vbr-vram auto`,
+**no `--spec-type`** (MTP deliberately disabled) · **Bench:** hermesbench, fixed grader
+
+## Why MTP was off
+
+Isolation, per Mark: **VBR > MTP in priority.** *"Speed /= goodness."* VBR is the subsystem we want
+working; MTP carries a known defect (`RESULT_TIMEOUT_WALL_ROOT_CAUSE.md`). Running with MTP would
+have made this result uninterpretable.
+
+**The isolation worked and is the most valuable part of this run.**
+
+## Result: walled after 6 tasks
+
+| | |
+|---|---|
+| attempted | 12 of 61 (killed — every remaining task was 360 s of nothing) |
+| PASS | 6 (all `t01_terminal_smoke` + `t02_read_head`) |
+| INFRA_ERROR | 6 (consecutive, no recovery) |
+
+Per-request generation length, in order:
+
+```
+[100, 175, 100, 100, 100, 8332, 8334, 8393, 8518, 8452, 8640]
+ <----- trivial tasks ----->  <-------- runaway, never recovers -------->
+```
+
+**Nothing between 479 and 8,332 tokens.** The model either answers in ~100 tokens or generates until
+the harness kills it (~8,300 tokens ≈ 360 s × 24 t/s). `t03_patch_edit_t01_basic` did not recover,
+confirming this is not one hard family.
+
+## VBR and MTP are both exonerated
+
+| signal | value | meaning |
+|---|---|---|
+| VBR floor clamps | **0** | the tier clamp never fired |
+| VBR watermark | **13,312, flat** | vs the 21,504 that triggered the MTP collapse |
+| context checkpoints | 27 | no runaway accumulation |
+| draft/spec log lines | **0** | MTP genuinely absent |
+| decode | **24–25 t/s, stable throughout** | no degradation |
+
+Neither subsystem we spent the night on is involved. **This is the quantisation.** That
+discrimination is only possible because MTP was disabled first — with it enabled, this would have
+been indistinguishable from the acceptance collapse.
+
+## Prediction scorecard
+
+| prediction | claim | outcome |
+|---|---|---|
+| P1 (75%) | completes 61 tasks without a wall | **FALSIFIED** — walled at 6 |
+| P2 (60%) | decode 27–32 t/s | **FALSIFIED** — 24–25 |
+| P3 (55%) | IQ2_M shows degradation IQ3_XXS did not | **CONFIRMED** |
+| P4 (70%) | valid_pass_rate below 0.943 | **UNSCORABLE** — see below |
+
+**P2's error:** I derived the band by dividing the IQ3_XXS rate by the MTP multiplier, ignoring that
+**IQ2_M's dequantisation path costs more per weight than IQ3_XXS's.** A smaller file is not a faster
+model when the format is more expensive to unpack.
+
+## The verdict schema produced its most misleading number yet
+
+`valid_pass_rate = 6/6 = **1.000**`
+
+**A model that cannot complete a single non-trivial task scores a perfect pass rate**, because every
+failure was classified INFRA_ERROR and left the denominator. This is the third time in one campaign
+the same schema defect has produced a flattering headline (the `fixed_grader` 1.0; det02's 0.943
+pre-rescore; now this). It is the strongest argument yet for splitting the verdict schema —
+`RESULT_CORPUS_HARDENING_GOLDEN.md` item 4, now promoted to first priority.
+
+## The 2-bit control panel (all present locally)
+
+The TURBO result confounds three variables: bit depth, quant format (IQ2_M), and model lineage
+(a DavidAU merge). Same-base-model variants on disk separate them:
+
+| model | GiB | isolates |
+|---|---|---|
+| `GSQ-RCO-IQ3_XXS-mtp` | 9.73 | 3-bit baseline (measured: valid_pass_rate 0.943) |
+| **`GSQ-RCO-IQ2_XS-mtp`** | **8.17** | **bit depth alone** — same base, family, MTP |
+| **`UD-IQ2_M`** | **9.61** | **same format, different recipe** — isolates the merge |
+| `UD-Q2_K_XL` | 9.15 | unsloth K-quant allocation |
+| `AD-IQ2_XS` | 9.21 | a third recipe at nominally the same depth |
+
+**`UD-IQ2_M` is the sharpest single control**: same nominal format as TURBO, different packager,
+unmerged base. Runaway there implicates the format; clean there implicates the merge.
+
+**Note the spread: 8.17 → 11.29 GiB across models all labelled "2-bit."** Nothing below 3 bits is
+uniform any more — every surviving recipe is a *dynamic allocation* scheme keeping attention,
+embeddings and output at higher precision. So these comparisons measure **where a recipe spends its
+bits**, not bit depth. Same lesson as `gguf-label-is-not-a-spec`, and the same principle as VBR,
+which the whole sub-3-bit field converged on independently for weights.
+
+## Open
+
+What the runaway actually contains — a repetition loop (quantisation degeneration) versus coherent
+but endless reasoning (a stopping-rule failure). These are different findings with different
+implications, and the diagnostic probe has not yet returned a clean capture.
