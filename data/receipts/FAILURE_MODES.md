@@ -1164,8 +1164,19 @@ carries an explicit prohibition, and `scripts/safekill.sh` already exists for th
 "just a little cleanup stub," so it wasn't pattern-matched as the dangerous case. The rule is
 about the `-f` flag, not about how important the target is.
 
-**Fix that actually works:** never type `pkill -f`/`pgrep -f` with an interpolated path. Resolve
-PIDs first (`pgrep -f '[c]apture_stub.py'` — bracket the first character so the pattern cannot
-match itself), verify each `/proc/<pid>/cmdline`, then `kill` by numeric PID. The bracket form
-was already used correctly two lines later in the same command block; the bare form above it
-was the one that fired.
+**Fix I first recorded — INSUFFICIENT, it failed within the hour:** "bracket the first character
+so the pattern cannot match itself" (`pgrep -f '[c]apture_stub.py'`).
+
+**Fourth occurrence, same session:** `pgrep -f '[l]lm_proxy.py'` killed the shell anyway. The
+bracket stops the *pattern* from matching itself, but the same command block also contained the
+literal string `llm_proxy.py` in a `setsid ... llm_proxy.py` line. `pgrep -f` matches the whole
+command line, so the shell still matched. **Bracketing is not sufficient whenever the target name
+legitimately appears anywhere else in the block** — which, for a block that both starts and stops
+a service, is always.
+
+**Fix that actually works:** do not identify long-running helpers by name at all.
+1. Have the process write a **pidfile** (`--pidfile`), and stop it with `kill $(cat pidfile)`.
+2. Or capture `$!` at launch and reuse that PID.
+3. If you must search, do it in a command block that contains the target string **exactly once** —
+   inside the pattern — and verify `/proc/<pid>/cmdline` before signalling.
+`scripts/safekill.sh` excludes self and ancestors and remains the safe general tool.
