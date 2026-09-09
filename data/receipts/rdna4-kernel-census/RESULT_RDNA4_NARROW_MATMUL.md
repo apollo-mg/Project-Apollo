@@ -97,3 +97,65 @@ every other shape. A 10240-deep reduction producing 4 outputs.
 ## Not yet sent anywhere
 
 Nothing here has gone to Tom or jasstrong. Any outreach needs Mark's explicit approval and his own words.
+
+---
+
+# Addendum — inside jasstrong's narrow window (#363). The earlier headline was outside it.
+
+**Date:** 2026-09-09, same session. **Raw:** `raw_rdna4_narrow_window.log` (36 timing lines).
+
+## Why this addendum exists
+
+#363 gates its change on `src0_ne[1] <= GGML_MMVF_NARROW_MAX` (default **4096**), and
+`src0_ne[1]` is **m**. The headline table above is at **m=10240**, which is *outside* that window —
+so it does **not** speak to his patch. Framing it as though it did would have been wrong.
+These are the measurements inside the window.
+
+Also relevant: `fp32_mma_hardware_available()` is `GGML_CUDA_CC_IS_CDNA(cc)` — his F32 arm cannot
+reach RDNA4. But `bf16_mma_hardware_available()` is `... || cc >= GGML_CUDA_CC_RDNA3`, which
+**does** include RDNA4. **His BF16 arm changes RDNA4 behaviour.**
+
+## Result — the patch's premise holds on RDNA4, harder than on MI210
+
+f16 (`ne11 <= 5`) vs bf16 (`ne11 <= 3`) again used as a natural A/B: the cliffs land exactly at
+those constants, which confirms the thresholds empirically.
+
+**m=320, k=10240:**
+
+| n | f16 µs | bf16 µs | paths |
+|---|---|---|---|
+| 1-3 | 10.18 / 11.74 / 12.74 | 10.04 / 11.75 / 15.64 | both mmvf |
+| **4** | **13.84** | **118.10** | f16 mmvf, bf16 **GEMM — 8.5× worse** |
+| **5** | **15.43** | **121.49** | f16 mmvf, bf16 GEMM |
+| 6-8 | 121.93 / 124.88 / 127.73 | 123.97 / 127.46 / 130.40 | both GEMM |
+
+**m=4, k=10240:**
+
+| n | f16 µs | bf16 µs | paths |
+|---|---|---|---|
+| 1-3 | 6.06 / 6.34 / 6.84 | 5.99 / 6.38 / 10.18 | both mmvf |
+| **4** | **7.46** | **244.18** | f16 mmvf, bf16 **GEMM — 32.7× worse** |
+| **5** | **7.45** | **244.72** | f16 mmvf, bf16 GEMM |
+| 6-8 | 204.52 / 204.76 / 204.96 | 242.64 / 242.71 / 243.22 | both GEMM |
+
+## Three conclusions
+
+1. **The patch's premise is confirmed on RDNA4, and the effect is far larger than his MI210
+   numbers (29% at four rows).** Inside the window the GEMM costs **8.5×** at m=320 and **32.7×**
+   at m=4 at n=4. A GEMM producing 4 output columns really is almost all setup.
+
+2. **`GGML_MMVF_NARROW_MAX = 4096` is well placed for RDNA4.** Both sides now measured on the
+   same hardware: inside the window mmvf wins by 8.5-32.7×; outside it (m=10240, headline table)
+   the GEMM wins by 3.2-3.6×. The gate is doing real work, and 4096 separates our two data points
+   correctly. We have not bisected where the true crossover lies between 320 and 10240.
+
+3. **The same cliff remains in F16 after the patch, and on RDNA4 it is expensive.** #363 modifies
+   only the F32 and BF16 branches. The F16 AMD branch has its own `GGML_CUDA_CC_IS_RDNA4(cc) →
+   ne11 <= 5` and **no narrow-weight case**, so F16 still falls off at n=6:
+   **7.45 → 204.52 µs at m=4 (27.5×)** and **15.43 → 121.93 µs at m=320 (7.9×)**.
+   Extending the same `src0_ne[1] <= narrow_max` guard to the F16 branch looks worth it on RDNA4.
+
+## Caveat
+
+Perf-mode microbenchmarks on an idle GPU, not end-to-end decode. We have no qwen4exp model that
+fits 16 GB, so we cannot reproduce his ms/token table — only the kernel-level crossover.

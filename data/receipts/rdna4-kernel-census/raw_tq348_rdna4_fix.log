@@ -1,0 +1,51 @@
+ggml_cuda_init: found 1 ROCm devices (Total VRAM: 16304 MiB):
+  Device 0: AMD Radeon RX 9070 XT, gfx1201 (0x1201), VMM: yes, Wave Size: 32, VRAM: 16304 MiB
+Testing 2 devices
+
+Backend 1/2: ROCm0
+  Device description: AMD Radeon RX 9070 XT
+  Device memory: 16304 MB (16182 MB free)
+
+  MUL_MAT(type_a=tq4_1s,type_b=f32,m=16,n=1,k=256,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1): [1;32mOK[0m
+  MUL_MAT(type_a=tq4_1s,type_b=f32,m=16,n=2,k=256,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1): [1;32mOK[0m
+  MUL_MAT(type_a=tq4_1s,type_b=f32,m=16,n=3,k=256,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1): [1;32mOK[0m
+  MUL_MAT(type_a=tq4_1s,type_b=f32,m=16,n=4,k=256,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1): [1;32mOK[0m
+  MUL_MAT(type_a=tq4_1s,type_b=f32,m=16,n=5,k=256,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1): [1;32mOK[0m
+  MUL_MAT(type_a=tq4_1s,type_b=f32,m=16,n=6,k=256,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1): [1;32mOK[0m
+  MUL_MAT(type_a=tq4_1s,type_b=f32,m=16,n=7,k=256,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1): [1;32mOK[0m
+  MUL_MAT(type_a=tq4_1s,type_b=f32,m=16,n=8,k=256,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,o=1): J_best=0
+[1;32mOK[0m
+/tmp/claude-1000/-mnt-TG-2TB-Projects-Apollo/9457b3f4-5754-4ef0-902f-d30c8f5f3912/scratchpad/tq348/repo/ggml/src/ggml-cuda/template-instances/../mmq.cuh:1561: fatal error
+[New LWP 1876822]
+[New LWP 1876821]
+[New LWP 1876820]
+[New LWP 1876683]
+[New LWP 1876682]
+
+This GDB supports auto-downloading debuginfo from the following URLs:
+  <https://debuginfod.archlinux.org>
+  <https://debuginfod.cachyos.org>
+Enable debuginfod for this session? (y or [n]) [answered N; input not from terminal]
+Debuginfod has been disabled.
+To make this setting permanent, add 'set debuginfod enabled off' to .gdbinit.
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/usr/lib/libthread_db.so.1".
+0x00007f05076b5b82 in ?? () from /usr/lib/libc.so.6
+#0  0x00007f05076b5b82 in ?? () from /usr/lib/libc.so.6
+#1  0x00007f0507730868 in wait4 () from /usr/lib/libc.so.6
+#2  0x00007f050cf80cfb in ggml_print_backtrace () from /tmp/claude-1000/-mnt-TG-2TB-Projects-Apollo/9457b3f4-5754-4ef0-902f-d30c8f5f3912/scratchpad/tq348/repo/build_bug/bin/libggml-base.so.0
+#3  0x00007f050cf80e8e in ggml_abort () from /tmp/claude-1000/-mnt-TG-2TB-Projects-Apollo/9457b3f4-5754-4ef0-902f-d30c8f5f3912/scratchpad/tq348/repo/build_bug/bin/libggml-base.so.0
+#4  0x00007f050cb5d978 in void mul_mat_q_switch_J<(ggml_type)46, true>(ggml_backend_cuda_context&, mmq_args const&, ihipStream_t*) () from /tmp/claude-1000/-mnt-TG-2TB-Projects-Apollo/9457b3f4-5754-4ef0-902f-d30c8f5f3912/scratchpad/tq348/repo/build_bug/bin/libggml-hip.so.0
+#5  0x00007f050c3de83c in ggml_cuda_mul_mat_q(ggml_backend_cuda_context&, ggml_tensor const*, ggml_tensor const*, ggml_tensor const*, ggml_tensor*, bool) () from /tmp/claude-1000/-mnt-TG-2TB-Projects-Apollo/9457b3f4-5754-4ef0-902f-d30c8f5f3912/scratchpad/tq348/repo/build_bug/bin/libggml-hip.so.0
+#6  0x00007f050c4650ef in ggml_cuda_mul_mat_tq4_1s_mmq(ggml_backend_cuda_context&, ggml_tensor const*, ggml_tensor const*, ggml_tensor*) () from /tmp/claude-1000/-mnt-TG-2TB-Projects-Apollo/9457b3f4-5754-4ef0-902f-d30c8f5f3912/scratchpad/tq348/repo/build_bug/bin/libggml-hip.so.0
+#7  0x00007f050c3c800d in ggml_cuda_mul_mat(ggml_backend_cuda_context&, ggml_tensor const*, ggml_tensor const*, ggml_tensor*) () from /tmp/claude-1000/-mnt-TG-2TB-Projects-Apollo/9457b3f4-5754-4ef0-902f-d30c8f5f3912/scratchpad/tq348/repo/build_bug/bin/libggml-hip.so.0
+#8  0x00007f050c3c0876 in ggml_cuda_graph_evaluate_and_capture(ggml_backend_cuda_context*, ggml_cgraph*, bool, bool, unsigned long) () from /tmp/claude-1000/-mnt-TG-2TB-Projects-Apollo/9457b3f4-5754-4ef0-902f-d30c8f5f3912/scratchpad/tq348/repo/build_bug/bin/libggml-hip.so.0
+#9  0x00007f050c3bd16c in ggml_backend_cuda_graph_compute(ggml_backend*, ggml_cgraph*) () from /tmp/claude-1000/-mnt-TG-2TB-Projects-Apollo/9457b3f4-5754-4ef0-902f-d30c8f5f3912/scratchpad/tq348/repo/build_bug/bin/libggml-hip.so.0
+#10 0x00007f050cf9aeee in ggml_backend_graph_compute () from /tmp/claude-1000/-mnt-TG-2TB-Projects-Apollo/9457b3f4-5754-4ef0-902f-d30c8f5f3912/scratchpad/tq348/repo/build_bug/bin/libggml-base.so.0
+#11 0x00007f050cfa1240 in ggml_backend_compare_graph_backend () from /tmp/claude-1000/-mnt-TG-2TB-Projects-Apollo/9457b3f4-5754-4ef0-902f-d30c8f5f3912/scratchpad/tq348/repo/build_bug/bin/libggml-base.so.0
+#12 0x0000564a3be4e9f7 in test_case::eval(ggml_backend*, ggml_backend*, char const*, printer*) ()
+#13 0x0000564a3bde5584 in test_backend(ggml_backend*, ggml_backend_device*, test_mode, char const*, char const*, printer*, char const*, int)::{lambda(ggml_backend*, ggml_backend*)#1}::operator()(ggml_backend*, ggml_backend*) const ()
+#14 0x0000564a3bdea55b in test_backend(ggml_backend*, ggml_backend_device*, test_mode, char const*, char const*, printer*, char const*, int) ()
+#15 0x0000564a3bd9dc4a in main ()
+[Inferior 1 (process 1876680) detached]
+timeout: the monitored command dumped core
