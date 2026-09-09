@@ -101,6 +101,20 @@ implications, and the diagnostic probe has not yet returned a clean capture.
 
 # SEPARATE BUG FOUND WHILE DIAGNOSING: `max_tokens` does not bound generation
 
+> **CAVEAT ADDED 2026-09-09 — this observation may be contaminated; treat as UNVERIFIED.**
+>
+> The `max_tokens: 400 -> n_gen 14,039` reading was taken **minutes after killing the TURBO bench**.
+> Per **AFM-36**, killing `hermesbench run` leaves its `run_agent.py` child alive and generating.
+> Task 52065 may therefore have been *the orphan's* request, not mine — I identified it by being the
+> most recent task in the log, which is exactly the wrong way to identify a request when another
+> process is issuing them.
+>
+> **What is independently confirmed** (2026-09-09, clean server, process tree verified, no orphans):
+> server-side `-n 4096` does not bound all generations — two requests reached **8,185** and
+> **12,990** tokens against that cap. So the *class* of defect (token budgets not reliably enforced)
+> is real. The specific `max_tokens` figure above is not trustworthy and needs re-measuring on an
+> idle server before it is quoted anywhere.
+
 Attempting to capture a runaway's *content* by re-sending a file-read prompt with
 `{"max_tokens": 400}`, the request never returned. Server state at the time:
 
