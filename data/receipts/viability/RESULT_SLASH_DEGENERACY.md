@@ -1,4 +1,60 @@
-# RESOLVED — a slow stream consumer makes llama-server latch into degenerate `/` output
+# RETRACTED — "backpressure isolated" was wrong. The latch is unexplained.
+
+> **Retraction 2026-09-10 01:00.** Two hours ago this file was marked RESOLVED, claiming a
+> single-variable isolation of consumer backpressure. **That claim does not survive the overnight
+> control arms and is withdrawn.**
+>
+> The positive control (`pd2_control`: inline drain, stock flags — the exact configuration that
+> latched 3/3) **did not latch**: 20/20, 19 PASS / 1 FAIL, 0 slashes. Pre-registered P-D3 (85%)
+> is FALSIFIED, and by the pre-committed table both P-D2 arms are void.
+>
+> ### The full ledger, ordered by start time
+>
+> | run | client | flags | started | outcome |
+> |---|---|---|---|---|
+> | bitdepth_iq3xxs_v5 | direct | — | 13:49 | **LATCH** |
+> | cacheab_ctrl | inline | ckpt32 | 18:41 | **LATCH** |
+> | cacheab_treat | inline | ckpt0 | 20:43 | **LATCH** |
+> | noproxy_ctl | direct | — | 22:15 | clean |
+> | proxy_repeat | inline | stock | 22:31 | **LATCH** |
+> | decoupled_run | decoupled | stock | 23:57 | clean |
+> | pd2_novbrcache | inline | no-vbr-cache | 00:32 | clean |
+> | pd2_control | inline | stock | 00:48 | clean |
+>
+> inline **3/5**, decoupled **0/1**, direct **1/2**.
+>
+> **Every latch is before 22:31. Every run from 23:57 on is clean.** Start time predicts the
+> outcome better than any flag I manipulated. The decoupled result — the entire basis for the
+> backpressure claim — is fully explained by where it sits in that sequence, with no drain-mode
+> effect required.
+>
+> ### What went wrong methodologically
+>
+> I ran **sequential arms with one repetition each** against a **stochastic** outcome, and
+> attributed every difference to the variable I had just changed. That is invalid, and I did it
+> three times in one night: checkpoints (P-C2, falsified), backpressure (claimed resolved, now
+> retracted), and idle-cache (P-D2, void). The key comparison arm was **n=1** and I wrote
+> "RESOLVED" on it.
+>
+> I also never logged GPU temperature or clocks per run, despite `gpu-clock-benchmark-discipline`
+> requiring exactly that. The card ran under sustained load from 13:49 to ~22:45 and had long idle
+> gaps afterwards. **A thermal/clock confound is now a live hypothesis and I have no data to test
+> it against**, because I did not record the one thing the project's own rule says to record.
+>
+> ### What still stands
+>
+> - The degenerate output is real and captured: 4096 `/`, 99.1% shingle share, across three runs.
+> - It latches until server restart.
+> - Harness defects (doubling ladder, 960 s timeout, discarded traces) were real amplifiers.
+> - IQ3_XXS on tasks 1-20 is **18-19/20** on clean runs; `t03_patch_edit/t05_v4a` always fails.
+>
+> ### What a valid experiment needs
+>
+> Interleaved conditions (A/B/A/B, not A-then-B), **≥3 reps per condition**, GPU temp and clocks
+> logged per task, and a latch-rate comparison with an interval — not a single clean run treated
+> as proof. Nothing goes to buun or Tom before that.
+
+# Superseded claim (kept for the record)
 
 > **Final status (2026-09-10 00:08).** The trigger is **consumer backpressure**, isolated by a
 > single-variable experiment. The caveat block below is kept for the record; it was correct when
