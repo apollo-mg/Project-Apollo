@@ -137,3 +137,72 @@ is whether 20 tasks is enough given a stochastic trigger (observed latch points 
 *If FALSIFIED* (20 clean tasks unproxied): the proxy becomes a prime suspect, since proxied runs
 latched at 2 and 8. That would invalidate the wire captures and make `RESULT_SLASH_DEGENERACY.md`
 a finding about my own tooling rather than about the model.
+
+---
+
+## Pre-registration — proxied repeat (logged before running)
+
+**Question:** is the proxy causing the latch, or were the two proxied arms unlucky?
+
+**Design:** byte-identical to `noproxy_ctl` (same 20 tasks, same order, VBR, fresh server,
+`--timeout-overhead 300`) with **one difference: the harness points at the proxy**.
+Timeout deliberately left at 300 rather than shortened, to keep the comparison exact even though
+latch detection alone would tolerate a shorter one.
+
+**P-P1: the proxied repeat latches within 20 tasks. 70%.**
+Proxied 2/2 so far (tasks 2 and 8); unproxied 1/2 (v5 at 16, `noproxy_ctl` clean through 20).
+*CONFIRMED:* 3/3 proxied vs 0/2 unproxied — the proxy is causing it, `RESULT_SLASH_DEGENERACY.md`
+becomes a finding about my tooling, and the probe matrix is invalid as designed.
+*FALSIFIED:* the two earlier arms were unlucky, the latch is a genuine stochastic model/server
+fault, and the `/` capture stands.
+
+**Pre-committed:** either way this gets written up. A clean proxied run does **not** license
+quietly restoring the original claim — it moves the proxy from "leading suspect" to "not excluded",
+because n=3 with a stochastic trigger is still thin.
+
+### SCORING — P-P1 CONFIRMED (2026-09-09 22:5x, stopped early at 13/20)
+
+**Latched at task 3 — the same position as `cacheab_ctrl`.** 2 PASS then 11 consecutive
+INFRA_ERROR at 360 s each. Stopped at 13/20: the verdict was established and the remaining
+7 tasks were 42 minutes of GPU for no information.
+
+| condition | runs | latch position |
+|---|---|---|
+| **proxied** | **3/3 latched** | 2, 8, **2** |
+| unproxied | 1/2 latched | 16, never-in-20 |
+
+Wire capture: 24 of 28 responses >90% `/`, first at +239 s. Identical signature.
+
+**Verdict: `tools/llmproxy` in the request path causes the latch.** The instrumentation built to
+observe the failure was inducing it. The pre-registered consequence applies —
+`RESULT_SLASH_DEGENERACY.md` is a finding about the proxy interaction, not about the model, and
+the probe matrix is invalid as designed (it assumed a latched server was model state).
+
+### The claim this does NOT collapse to
+
+The proxy **cannot manufacture slashes**. It only reads `delta.content` out of the SSE the server
+sent, and a corrupted parse would yield replacement characters, not 4096 clean `/`. So the server
+really did emit them. The correct statement is:
+
+> **Putting this proxy in the path causes llama-server (VBR, IQ3_XXS, gfx1201) to emit degenerate
+> `/` output and stay degenerate until restart.**
+
+That is an interaction, not an artefact, and it is still a server-side fault — just one with a
+trigger we now partly control, which makes it far more debuggable than a stochastic latch.
+
+### Leading mechanism (untested): consumer backpressure
+
+`llm_proxy.py` awaits `out.write(chunk)` for **every** chunk before reading the next, so each token
+costs a Python round-trip and a second socket hop. The server therefore sees a materially slower
+consumer than a direct client. VBR re-tiers on timing, and the v5/ctrl logs are full of
+`VBR_RETIER_PREFLIGHT` and `vbr reset` events.
+
+**Decisive test:** decouple the two halves — drain upstream as fast as it arrives into a queue,
+write downstream from a separate task. Latch disappears → backpressure confirmed, and
+"a slow stream consumer corrupts decode" is a genuine, reportable server bug that would affect any
+slow client or network. Latch persists → look at connection churn (a fresh `ClientSession`
+per request means no keep-alive) next.
+
+**Unproxied latch is still unexplained.** v5 latched at 16 with no proxy. Whatever the proxy
+aggravates, something else can trigger it too — and we still have never seen the text of an
+unproxied runaway.
