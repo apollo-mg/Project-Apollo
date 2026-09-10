@@ -58,3 +58,36 @@ this data, and collecting it costs nothing.
 3 reps per condition cannot support a rate claim. 0/3 vs 3/3 would be suggestive, not conclusive
 (Fisher exact p = 0.1). Anything short of that is a pilot indicating whether a larger run is worth
 the electricity. **Nothing goes to buun until an arm separates cleanly and is replicated.**
+
+---
+
+## SCORING (2026-09-10 12:19, all 9 runs complete)
+
+| run | KV | pattern | capped gens | vbr resets | resets gone bad |
+|---|---|---|---|---|---|
+| A1 | VBR | `.........I.I` | 1 | 11 | 1 |
+| A2 | VBR | `..III` (aborted early) | 3 | 5 | 3 |
+| A3 | VBR | `...........I` | 1 | 11 | 1 |
+| B1 B2 B3 | q8_0 | all `............` | **0** | 0 | 0 |
+| C1 C2 C3 | f16 | all `............` | **0** | 0 | 0 |
+
+**VBR 3/3 runs affected. Non-VBR 0/6. Fisher one-tailed p = 0.0119.**
+**5/5 degenerate generations followed a `vbr reset`. 5/27 resets (18.5%) went bad.**
+
+**P-F1 (70%) CONFIRMED** — the repro was not lost; all three VBR reps failed.
+**P-F2 (55%) CONFIRMED** — latch rate is higher under VBR than f16, at the largest possible
+separation for this design (3/3 vs 0/3).
+**P-F3 (30%) FALSIFIED** — power does not track failure. f16 spent **11.9%** of seconds above the
+374 W hard cap and was clean; VBR spent **2.9%** and failed every run. Excursion rate is
+*anti*-correlated with failure.
+
+### Design notes that mattered
+
+Interleaving A,B,C,A,B,C,A,B,C was what made this readable. Yesterday's sequential single-rep arms
+produced three attributions and three retractions; the same data collected in blocks would have
+been confounded with time again. The early-abort on 3 consecutive INFRA saved ~20 min on A2 alone.
+
+### Caveat that remains
+
+Everything here is one card (gfx1201), one model, one quantisation, one fork. The claim supported
+is "VBR fails where q8_0 and f16 do not, on this hardware" — not that VBR is broken in general.
