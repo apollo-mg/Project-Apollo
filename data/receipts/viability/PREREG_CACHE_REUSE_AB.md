@@ -257,3 +257,33 @@ real and reportable server bug, and the proxy is rehabilitated as an observation
 Logged now so it cannot be invented later. This is the direct test of the idle-capture path above:
 if disabling idle-slot publication fixes an inline run, the mechanism is identified rather than
 merely correlated.
+
+---
+
+## Pre-registration — P-D2 overnight, WITH positive control (logged before running)
+
+**Arm A (the test): inline proxy + `--no-vbr-prompt-cache`.**
+**Arm B (positive control): inline proxy, server flags unchanged.**
+
+Arm B exists because `llm_proxy.py` was edited *after* the three inline latches (decoupled mode
+plus disconnect propagation were added). Inline should be untouched — `q is None` takes the old
+path — but "should be" is not evidence. Without Arm B, a clean Arm A is ambiguous between
+"the flag fixed it" and "my edit silently changed inline behaviour", and I would have no way to
+tell those apart tomorrow.
+
+**P-D2 (50%, logged before the decoupled result was known): Arm A does not latch within 20 tasks.**
+
+**P-D3 (85%): Arm B latches within 20 tasks**, reproducing the 3/3 inline behaviour on the current
+binary. *If FALSIFIED, Arm A is uninterpretable* — it would mean inline no longer latches at all
+and both arms are measuring nothing.
+
+Joint reading:
+
+| Arm A (no-vbr-prompt-cache) | Arm B (control) | conclusion |
+|---|---|---|
+| clean | latches | **idle-slot VBR capture is the mechanism** |
+| latches | latches | not idle capture; backpressure corrupts by another path |
+| clean | clean | the proxy edit changed inline behaviour; both void, re-test needed |
+| latches | clean | incoherent; suspect drift, re-run everything |
+
+Order: A then B, so the approved test lands first if the night is cut short.

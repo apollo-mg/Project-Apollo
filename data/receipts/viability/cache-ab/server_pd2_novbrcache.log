@@ -1,0 +1,95 @@
+0.00.027.505 I VBR dynamic runtime controller: KV budget auto (remaining VRAM, resolved by fit), entry tier f16, floor 2.25 bits/value, price-ordered decode-time degrades
+0.00.027.593 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.027.977 W srv  llama_server: -----------------
+0.00.027.990 W srv  llama_server: CORS is set to allow all origins ('*') and no API key is set
+0.00.027.990 W srv  llama_server: this can be a security risk (cross-origin attacks)
+0.00.027.991 W srv  llama_server: more info: https://github.com/ggml-org/llama.cpp/pull/25655
+0.00.027.991 W srv  llama_server: -----------------
+0.00.029.268 I srv    load_model: loading model '/mnt/TG_2TB/AI/Models/gsq-rco/Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf'
+0.00.029.342 I common_fit_params: VBR dynamic: fitting with KV priced at the turbo2_tcq floor tier
+VMEAN tap: no live V layers — add disabled
+0.00.361.856 I operator(): VBR dynamic: KV VRAM budget 5488 MiB (auto, from remaining memory) — decode-time degrade controller armed
+0.00.610.519 W model has unused tensor blk.64.attn_norm.weight (size = 20480 bytes) -- ignoring
+0.00.610.524 W model has unused tensor blk.64.post_attention_norm.weight (size = 20480 bytes) -- ignoring
+0.00.610.531 W model has unused tensor blk.64.attn_q.weight (size = 51609600 bytes) -- ignoring
+0.00.610.533 W model has unused tensor blk.64.attn_k.weight (size = 4300800 bytes) -- ignoring
+0.00.610.536 W model has unused tensor blk.64.attn_v.weight (size = 4300800 bytes) -- ignoring
+0.00.610.545 W model has unused tensor blk.64.attn_output.weight (size = 25804800 bytes) -- ignoring
+0.00.610.547 W model has unused tensor blk.64.attn_q_norm.weight (size = 1024 bytes) -- ignoring
+0.00.610.550 W model has unused tensor blk.64.attn_k_norm.weight (size = 1024 bytes) -- ignoring
+0.00.610.552 W model has unused tensor blk.64.ffn_gate.weight (size = 73113600 bytes) -- ignoring
+0.00.610.555 W model has unused tensor blk.64.ffn_down.weight (size = 73113600 bytes) -- ignoring
+0.00.610.557 W model has unused tensor blk.64.ffn_up.weight (size = 73113600 bytes) -- ignoring
+0.00.610.561 W model has unused tensor blk.64.nextn.eh_proj.weight (size = 43008000 bytes) -- ignoring
+0.00.610.564 W model has unused tensor blk.64.nextn.enorm.weight (size = 20480 bytes) -- ignoring
+0.00.610.567 W model has unused tensor blk.64.nextn.hnorm.weight (size = 20480 bytes) -- ignoring
+0.00.610.574 W model has unused tensor blk.64.nextn.shared_head_norm.weight (size = 20480 bytes) -- ignoring
+0.06.181.796 I cmn          init: llama threadpool init, n_threads = 8
+TCQ1 decode: K/V codebooks (K=baked-in V=baked-in) hotswap=0
+TCQ decode: context-adaptive V alpha enabled
+0.06.343.474 I srv    load_model: computation-frontier ratchet: legacy reads authoritative, flip after 1024 qualifying agreements
+0.06.343.480 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 32768, kv_unified = 'true'
+0.06.343.535 W srv    load_model: dynamic VBR prompt-cache artifacts were explicitly disabled; fixed KV state images are unsafe and cache-ram will be disabled
+0.06.343.556 W srv          init: --cache-idle-slots requires --cache-ram, disabling
+0.06.347.767 I srv          init: chat template supports preserving reasoning, consider enabling it via --reasoning-preserve
+0.06.347.802 I srv  llama_server: model loaded
+0.06.347.806 I srv  llama_server: listening on http://127.0.0.1:8090
+0.09.019.374 I slot cache_plan_s: id  0 | task -1 | selected slot by LRU, t_last = -1 (best rejected sim = 0.000)
+0.09.025.734 I slot launch_slot_: id  0 | task 0 | processing task, is_child = 0
+0.09.025.751 I slot   operator(): id  0 | task 0 | edit/divergence sample (cached/incoming/lcp/reusable/rewind/append/cache_prompt) = (0/11/0/0/0/11/1)
+0.09.153.985 W slot   operator(): id  0 | task 0 | created context checkpoint 1 of 32 (pos_min = 6, pos_max = 6, n_tokens = 7, size = 149.626 MiB)
+0.09.213.200 I slot print_timing: id  0 | task 0 | prompt eval time =     187.44 ms /    11 tokens (   17.04 ms per token,    58.69 tokens per second)
+0.09.213.203 I slot print_timing: id  0 | task 0 |        eval time =       0.00 ms /     1 tokens (    0.00 ms per token,     0.00 tokens per second)
+0.09.213.203 I slot print_timing: id  0 | task 0 |       total time =     187.44 ms /    12 tokens
+0.09.213.205 I slot print_timing: id  0 | task 0 |    graphs reused =          0
+0.09.213.227 I slot      release: id  0 | task 0 | stop processing: n_tokens = 11, truncated = 0
+0.14.465.535 I slot cache_plan_s: id  0 | task -1 | selected slot by decayed retention value, t_last = 108095415257 (best rejected sim = 0.000)
+0.14.466.170 I slot launch_slot_: id  0 | task 3 | processing task, is_child = 0
+0.14.466.180 I slot   operator(): id  0 | task 3 | edit/divergence sample (cached/incoming/lcp/reusable/rewind/append/cache_prompt) = (11/13153/1/1/10/13152/1)
+0.18.737.007 I slot print_timing: id  0 | task 3 | prompt processing, n_tokens =   4096, progress = 0.31, t =   4.27 s / 959.07 tokens per second
+0.21.285.610 I slot print_timing: id  0 | task 3 | prompt processing, n_tokens =   6144, progress = 0.47, t =   6.82 s / 900.96 tokens per second
+0.24.018.453 I slot print_timing: id  0 | task 3 | prompt processing, n_tokens =   8192, progress = 0.62, t =   9.55 s / 857.60 tokens per second
+0.26.974.885 I slot print_timing: id  0 | task 3 | prompt processing, n_tokens =  10240, progress = 0.78, t =  12.51 s / 818.63 tokens per second
+TCQ: encode V alpha=1.0 (context-adaptive decode-time alpha active)
+0.29.966.419 I slot print_timing: id  0 | task 3 | prompt processing, n_tokens =  12288, progress = 0.93, t =  15.50 s / 792.76 tokens per second
+0.30.746.147 I slot print_timing: id  0 | task 3 | prompt processing, n_tokens =  12637, progress = 0.96, t =  16.28 s / 776.23 tokens per second
+0.31.303.161 W slot   operator(): id  0 | task 3 | created context checkpoint 1 of 32 (pos_min = 12636, pos_max = 12636, n_tokens = 12637, size = 149.626 MiB)
+0.31.344.932 I slot print_timing: id  0 | task 3 | prompt processing, n_tokens =  13048, progress = 0.99, t =  16.88 s / 773.04 tokens per second
+0.31.989.993 W slot   operator(): id  0 | task 3 | created context checkpoint 2 of 32 (pos_min = 13047, pos_max = 13047, n_tokens = 13048, size = 149.626 MiB)
+0.32.031.811 I slot print_timing: id  0 | task 3 | prompt processing, n_tokens =  13149, progress = 1.00, t =  17.57 s / 748.56 tokens per second
+0.32.257.076 W slot   operator(): id  0 | task 3 | created context checkpoint 3 of 32 (pos_min = 13148, pos_max = 13148, n_tokens = 13149, size = 149.626 MiB)
+0.34.341.316 I slot print_timing: id  0 | task 3 | prompt eval time =   17877.88 ms / 13153 tokens (    1.36 ms per token,   735.71 tokens per second)
+0.34.341.318 I slot print_timing: id  0 | task 3 |        eval time =    1997.25 ms /    55 tokens (   36.99 ms per token,    27.04 tokens per second)
+0.34.341.319 I slot print_timing: id  0 | task 3 |       total time =   19875.13 ms / 13208 tokens
+0.34.341.320 I slot print_timing: id  0 | task 3 |    graphs reused =         53
+0.34.341.893 I slot      release: id  0 | task 3 | stop processing: n_tokens = 13207, truncated = 0
+0.34.554.807 I slot cache_plan_s: id  0 | task -1 | selected slot by LCP similarity, f_sim_best = 0.995 (> 0.100 thold), f_keep = 0.996
+0.34.555.398 I slot launch_slot_: id  0 | task 68 | processing task, is_child = 0
+0.34.555.414 I slot   operator(): id  0 | task 68 | edit/divergence sample (cached/incoming/lcp/reusable/rewind/append/cache_prompt) = (13207/13223/13152/13152/55/71/1)
+0.34.555.552 I slot   operator(): id  0 | task 68 | VBR_RETIER_PREFLIGHT owner=server_checkpoint_restore result=fits fault=0 pools=1 watermark=13312 needed=381878272 available=381878272 physical_growth=0 physical_free=40894464 max_deficit=0
+0.34.563.063 W slot   operator(): id  0 | task 68 | restored context checkpoint (pos_min = 13148, pos_max = 13148, n_tokens = 13149, n_past = 13149, size = 149.626 MiB)
+0.34.563.069 I slot   operator(): id  0 | task 68 | CHECKPOINT_ATTN_ONLY_TRIM p0=13149 target=1 draft=0
+0.34.776.023 W slot   operator(): id  0 | task 68 | created context checkpoint 3 of 32 (pos_min = 13218, pos_max = 13218, n_tokens = 13219, size = 149.626 MiB)
+0.36.716.703 I slot print_timing: id  0 | task 68 | prompt eval time =     286.18 ms /    74 tokens (    3.87 ms per token,   258.58 tokens per second)
+0.36.716.705 I slot print_timing: id  0 | task 68 |        eval time =    1875.11 ms /    52 tokens (   36.77 ms per token,    27.20 tokens per second)
+0.36.716.706 I slot print_timing: id  0 | task 68 |       total time =    2161.29 ms /   126 tokens
+0.36.716.706 I slot print_timing: id  0 | task 68 |    graphs reused =        103
+0.36.717.209 I slot      release: id  0 | task 68 | stop processing: n_tokens = 13274, truncated = 0
+0.39.408.186 I slot cache_plan_s: id  0 | task -1 | selected slot by LCP similarity, f_sim_best = 0.723 (> 0.100 thold), f_keep = 0.716
+0.39.408.722 I slot launch_slot_: id  0 | task 122 | processing task, is_child = 0
+0.39.408.735 I slot   operator(): id  0 | task 122 | edit/divergence sample (cached/incoming/lcp/reusable/rewind/append/cache_prompt) = (13274/13149/9501/9501/3773/3648/1)
+0.39.438.336 W slot vbr_reset_on: id  0 | task 122 | vbr reset: cursor 42 and only 0/13149 prompt tokens reusable (< 0.25) — dropping the prefix; the full re-prefill re-enters at the entry tier
+0.43.858.965 I slot print_timing: id  0 | task 122 | prompt processing, n_tokens =   4096, progress = 0.31, t =   4.45 s / 920.40 tokens per second
+0.46.378.353 I slot print_timing: id  0 | task 122 | prompt processing, n_tokens =   6144, progress = 0.47, t =   6.97 s / 881.54 tokens per second
+TCQ1 encode: K/V codebooks (K=baked-in V=baked-in) hotswap=0
+0.49.061.793 I slot print_timing: id  0 | task 122 | prompt processing, n_tokens =   8192, progress = 0.62, t =   9.65 s / 848.65 tokens per second
+0.51.829.171 I slot print_timing: id  0 | task 122 | prompt processing, n_tokens =  10240, progress = 0.78, t =  12.42 s / 824.45 tokens per second
+0.54.870.406 I slot print_timing: id  0 | task 122 | prompt processing, n_tokens =  12288, progress = 0.93, t =  15.46 s / 794.74 tokens per second
+0.55.662.204 I slot print_timing: id  0 | task 122 | prompt processing, n_tokens =  12633, progress = 0.96, t =  16.25 s / 777.25 tokens per second
+0.56.261.151 W slot   operator(): id  0 | task 122 | created context checkpoint 1 of 32 (pos_min = 12632, pos_max = 12632, n_tokens = 12633, size = 149.626 MiB)
+0.56.286.152 I slot print_timing: id  0 | task 122 | prompt processing, n_tokens =  13048, progress = 0.99, t =  16.88 s / 773.10 tokens per second
+0.56.941.836 W slot   operator(): id  0 | task 122 | created context checkpoint 2 of 32 (pos_min = 13047, pos_max = 13047, n_tokens = 13048, size = 149.626 MiB)
+0.56.972.847 I slot print_timing: id  0 | task 122 | prompt processing, n_tokens =  13145, progress = 1.00, t =  17.56 s / 748.40 tokens per second
+0.57.232.246 W slot   operator(): id  0 | task 122 | created context checkpoint 3 of 32 (pos_min = 13144, pos_max = 13144, n_tokens = 13145, size = 149.626 MiB)
+TCQ1 encode: K/V codebooks (K=baked-in V=baked-in) hotswap=0
+TCQ1 encode: K/V codebooks (K=baked-in V=baked-in) hotswap=0
