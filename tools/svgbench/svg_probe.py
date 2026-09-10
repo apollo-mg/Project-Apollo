@@ -53,6 +53,38 @@ def grid(png, cols=64, rows=32):
     return "\n".join(out)
 
 
+
+def _components(mask, scale=4, min_cells=6):
+    """Connected components of ink on a downsampled mask (4-connectivity, iterative BFS).
+
+    Added after the first live run: a pelican with a DETACHED HEAD scored 9/9, because every
+    check only asked whether ink existed in roughly the right regions. None asked whether the
+    shapes form one coherent object. Connectivity is subject-agnostic -- it works for a wombat
+    on a tractor -- and it is what distinguishes "drew the parts" from "assembled them".
+    """
+    H, W = mask.shape
+    h, w = H // scale, W // scale
+    small = mask[:h * scale, :w * scale].reshape(h, scale, w, scale).mean(axis=(1, 3)) > 0.15
+    seen = np.zeros_like(small, dtype=bool)
+    comps = []
+    from collections import deque
+    for sy in range(h):
+        for sx in range(w):
+            if not small[sy, sx] or seen[sy, sx]:
+                continue
+            q = deque([(sy, sx)]); seen[sy, sx] = True; cells = []
+            while q:
+                y, x = q.popleft(); cells.append((y, x))
+                for dy, dx in ((1,0),(-1,0),(0,1),(0,-1)):
+                    ny, nx = y+dy, x+dx
+                    if 0 <= ny < h and 0 <= nx < w and small[ny, nx] and not seen[ny, nx]:
+                        seen[ny, nx] = True; q.append((ny, nx))
+            if len(cells) >= min_cells:
+                comps.append(cells)
+    comps.sort(key=len, reverse=True)
+    return comps, h, w
+
+
 def _runs(colprofile, thresh):
     """Contiguous column runs above threshold -> list of (start, end)."""
     runs, s = [], None
@@ -112,6 +144,27 @@ def structural(svg, png):
 
     px = arr.reshape(-1, 3)
     c["colour_variety"] = len({tuple(v) for v in px[::37]}) >= 4
+
+    # --- assembly checks (added 2026-09-10 after a detached-head pelican scored 9/9) ---
+    comps, ch, cw = _components(mask)
+    total = sum(len(x) for x in comps) or 1
+    notes["n_components"] = len(comps)
+    notes["largest_component_frac"] = round(len(comps[0]) / total, 3) if comps else 0.0
+    notes["component_sizes"] = [len(x) for x in comps[:6]]
+    # does ONE component span the upper region and the lower region? i.e. is the subject
+    # actually attached to the vehicle, rather than floating above it?
+    up_lim, lo_lim = int(0.40 * ch), int(0.55 * ch)
+    spans = False
+    for cells in comps:
+        ys = [y for y, _ in cells]
+        if min(ys) < up_lim and max(ys) > lo_lim:
+            spans = True; break
+    c["subject_attached"] = spans
+    # Fragmentation, not spanning, is what catches a detached head: the pelican's BODY is joined
+    # to the bike by its legs, so subject_attached passes while the head floats free.
+    # THRESHOLD IS PROVISIONAL -- calibrated on n=4 (good 1.00, blob 1.00, pass1 0.762, blank 0.0).
+    # Recalibrate as samples accumulate; a legitimate separate ground line costs a few points.
+    c["assembly_coherent"] = notes["largest_component_frac"] >= 0.85
 
     try:
         root = ET.parse(svg).getroot()
