@@ -1,0 +1,17 @@
+diff --git a/hermesbench/runner.py b/hermesbench/runner.py
+index efc6769..8fe4d27 100644
+--- a/hermesbench/runner.py
++++ b/hermesbench/runner.py
+@@ -413,7 +413,11 @@ def _run_verifier(task: TaskSpec, worktree: Path, trace_path: Path) -> VerifierR
+     try:
+         from hermesbench.trace import read_trace
+ 
+-        trace = read_trace(trace_path) if trace_path.exists() else []
++        from hermesbench.toolcalls import normalise_trace
++        # 2026-08-29 (hermes-agent e16ad33a9d) moved core tools behind the discovery
++        # bridge and renamed several. Without this, a correct agent reads as having used
++        # no tools at all. See hermesbench/toolcalls.py.
++        trace = normalise_trace(read_trace(trace_path)) if trace_path.exists() else []
+         result = fn(worktree, trace)
+         # Verifier defines its own VerifierResult (Q5: stdlib-only).
+         # Use duck-typing, not isinstance, since the classes are

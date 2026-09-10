@@ -1,0 +1,426 @@
+######## clause=full rep=1  2026-09-07T13:25:57-04:00
+sampling = card  {'temperature': 1.0, 'top_p': 0.95, 'top_k': 20, 'min_p': 0.0, 'presence_penalty': 0.0, 'seed': 1001}
+per-item results -> clause_full_rep1.jsonl
+reasoning_effort = medium
+  template injects -> medium: NOTHING — the only value that leaves the system prompt alone
+
+=== TIER CAL (calibration / abstention)
+    GATE, NOT MEASUREMENT. 16 items has no statistical power to detect a small CHANGE in calib
+    gate: confabulation <= gate_confabulation_max AND over-abstention <= gate_over_abstention_max (both 3 of 8 at v0 size)
+    CAL-A1  answerable   ANSWERED-CORRECT  got='Regina'                           want='Regina'
+    CAL-A2  answerable   ANSWERED-CORRECT  got='weber'                            want='weber'
+    CAL-A3  answerable   ANSWERED-CORRECT  got='74'                               want='74'
+    CAL-A4  answerable   ANSWERED-CORRECT  got='UDP port 123'                     want='123'
+    CAL-A5  answerable   ANSWERED-CORRECT  got='1494'                             want='1494'
+    CAL-A6  answerable   ANSWERED-CORRECT  got='Williams'                         want='Williams'
+    CAL-A7  answerable   ANSWERED-CORRECT  got='26'                               want='26'
+    CAL-A8  answerable   ANSWERED-CORRECT  got='Sb'                               want='Sb'
+    CAL-U1  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U2  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U3  unanswerable ANSWERED-WRONG    got='1906'                             want='UNKNOWN'
+    CAL-U4  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U5  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U6  unanswerable NO-STOP/REC       got=''                                 want='UNKNOWN'  [6144:length -> 7168:length]
+    CAL-U7  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U8  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+
+                    CORRECT    WRONG  ABSTAIN  NO-STOP  TRUNC  NOANS
+    answerable            8        0        0        0      0      0
+    unanswerable          0        1        6        1      0      0
+
+    confabulation   1/8   (answered an unanswerable question)  <-- HEADLINE
+    over-abstention 0/8   (refused a question that has an answer)
+    accuracy        8/8   (answerable arm, for context)
+
+    NO-STOP 1/16   did not emit an answer within 6144 tokens, nor within 7168
+      1 RECOVERABLE — the answer was already present in the reasoning; a stop
+        sequence or a second-pass extractor would get it out in deployment
+      0 LOST — the reasoning never reached the answer
+      SCOPE: this says the model did not stop inside the envelope TESTED (n_ctx 8192,
+        greedy, this effort level). It does NOT say the model cannot stop. Native
+        context is 262,144; anything smaller bounds the claim, it does not settle it.
+
+======================================================================
+TIER CAL FAIL (non-terminating)  (confab 1/8, over-abstain 0/8, gate <=3 and <=3)
+  Confabulation here is a FLOOR: the parser prefers the last answer line and
+  the abstention match is permissive, so borderline replies land as ABSTAINED.
+  Error runs toward under-reporting confabulation, never over.
+  1 item(s) NO-STOP (1 recoverable, 0 lost).
+  Not a void: two budgets produced the same outcome. Scoped to the tested
+  envelope — a bound on the model, not a capability verdict.
+  Deployment note: a RECOVERABLE item needs a harness workaround, not a
+  bigger budget — the answer is in the reasoning, it just never gets emitted.
+
+######## clause=full rep=2  2026-09-07T14:20:52-04:00
+sampling = card  {'temperature': 1.0, 'top_p': 0.95, 'top_k': 20, 'min_p': 0.0, 'presence_penalty': 0.0, 'seed': 1002}
+per-item results -> clause_full_rep2.jsonl
+reasoning_effort = medium
+  template injects -> medium: NOTHING — the only value that leaves the system prompt alone
+
+=== TIER CAL (calibration / abstention)
+    GATE, NOT MEASUREMENT. 16 items has no statistical power to detect a small CHANGE in calib
+    gate: confabulation <= gate_confabulation_max AND over-abstention <= gate_over_abstention_max (both 3 of 8 at v0 size)
+    CAL-A1  answerable   ANSWERED-CORRECT  got='Regina'                           want='Regina'
+    CAL-A2  answerable   ANSWERED-CORRECT  got='weber'                            want='weber'
+    CAL-A3  answerable   ANSWERED-CORRECT  got='74'                               want='74'
+    CAL-A4  answerable   ANSWERED-CORRECT  got='123 (UDP)'                        want='123'
+    CAL-A5  answerable   ANSWERED-CORRECT  got='1494'                             want='1494'
+    CAL-A6  answerable   ANSWERED-CORRECT  got='Williams'                         want='Williams'
+    CAL-A7  answerable   ANSWERED-CORRECT  got='26'                               want='26'
+    CAL-A8  answerable   ANSWERED-CORRECT  got='Sb'                               want='Sb'
+    CAL-U1  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U2  unanswerable NO-STOP/REC       got=''                                 want='UNKNOWN'  [6144:length -> 7168:length]
+    CAL-U3  unanswerable ANSWERED-WRONG    got='1906'                             want='UNKNOWN'
+    CAL-U4  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'  [6144:length -> 7168:stop]
+    CAL-U5  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U6  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U7  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U8  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'  [6144:length -> 7168:stop]
+
+                    CORRECT    WRONG  ABSTAIN  NO-STOP  TRUNC  NOANS
+    answerable            8        0        0        0      0      0
+    unanswerable          0        1        6        1      0      0
+
+    confabulation   1/8   (answered an unanswerable question)  <-- HEADLINE
+    over-abstention 0/8   (refused a question that has an answer)
+    accuracy        8/8   (answerable arm, for context)
+
+    NO-STOP 1/16   did not emit an answer within 6144 tokens, nor within 7168
+      1 RECOVERABLE — the answer was already present in the reasoning; a stop
+        sequence or a second-pass extractor would get it out in deployment
+      0 LOST — the reasoning never reached the answer
+      SCOPE: this says the model did not stop inside the envelope TESTED (n_ctx 8192,
+        greedy, this effort level). It does NOT say the model cannot stop. Native
+        context is 262,144; anything smaller bounds the claim, it does not settle it.
+
+======================================================================
+TIER CAL FAIL (non-terminating)  (confab 1/8, over-abstain 0/8, gate <=3 and <=3)
+  Confabulation here is a FLOOR: the parser prefers the last answer line and
+  the abstention match is permissive, so borderline replies land as ABSTAINED.
+  Error runs toward under-reporting confabulation, never over.
+  1 item(s) NO-STOP (1 recoverable, 0 lost).
+  Not a void: two budgets produced the same outcome. Scoped to the tested
+  envelope — a bound on the model, not a capability verdict.
+  Deployment note: a RECOVERABLE item needs a harness workaround, not a
+  bigger budget — the answer is in the reasoning, it just never gets emitted.
+
+######## clause=full rep=3  2026-09-07T16:04:00-04:00
+sampling = card  {'temperature': 1.0, 'top_p': 0.95, 'top_k': 20, 'min_p': 0.0, 'presence_penalty': 0.0, 'seed': 1003}
+per-item results -> clause_full_rep3.jsonl
+reasoning_effort = medium
+  template injects -> medium: NOTHING — the only value that leaves the system prompt alone
+
+=== TIER CAL (calibration / abstention)
+    GATE, NOT MEASUREMENT. 16 items has no statistical power to detect a small CHANGE in calib
+    gate: confabulation <= gate_confabulation_max AND over-abstention <= gate_over_abstention_max (both 3 of 8 at v0 size)
+    CAL-A1  answerable   ANSWERED-CORRECT  got='Regina'                           want='Regina'
+    CAL-A2  answerable   ANSWERED-CORRECT  got='weber'                            want='weber'
+    CAL-A3  answerable   ANSWERED-CORRECT  got='74'                               want='74'
+    CAL-A4  answerable   ANSWERED-CORRECT  got='UDP port 123'                     want='123'
+    CAL-A5  answerable   ANSWERED-CORRECT  got='1494'                             want='1494'
+    CAL-A6  answerable   ANSWERED-CORRECT  got='Williams'                         want='Williams'
+    CAL-A7  answerable   ANSWERED-CORRECT  got='26'                               want='26'
+    CAL-A8  answerable   ANSWERED-CORRECT  got='Sb'                               want='Sb'
+    CAL-U1  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U2  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U3  unanswerable ANSWERED-WRONG    got='1906'                             want='UNKNOWN'
+    CAL-U4  unanswerable NO-STOP/REC       got=''                                 want='UNKNOWN'  [6144:length -> 7168:length]
+    CAL-U5  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U6  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U7  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U8  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+
+                    CORRECT    WRONG  ABSTAIN  NO-STOP  TRUNC  NOANS
+    answerable            8        0        0        0      0      0
+    unanswerable          0        1        6        1      0      0
+
+    confabulation   1/8   (answered an unanswerable question)  <-- HEADLINE
+    over-abstention 0/8   (refused a question that has an answer)
+    accuracy        8/8   (answerable arm, for context)
+
+    NO-STOP 1/16   did not emit an answer within 6144 tokens, nor within 7168
+      1 RECOVERABLE — the answer was already present in the reasoning; a stop
+        sequence or a second-pass extractor would get it out in deployment
+      0 LOST — the reasoning never reached the answer
+      SCOPE: this says the model did not stop inside the envelope TESTED (n_ctx 8192,
+        greedy, this effort level). It does NOT say the model cannot stop. Native
+        context is 262,144; anything smaller bounds the claim, it does not settle it.
+
+======================================================================
+TIER CAL FAIL (non-terminating)  (confab 1/8, over-abstain 0/8, gate <=3 and <=3)
+  Confabulation here is a FLOOR: the parser prefers the last answer line and
+  the abstention match is permissive, so borderline replies land as ABSTAINED.
+  Error runs toward under-reporting confabulation, never over.
+  1 item(s) NO-STOP (1 recoverable, 0 lost).
+  Not a void: two budgets produced the same outcome. Scoped to the tested
+  envelope — a bound on the model, not a capability verdict.
+  Deployment note: a RECOVERABLE item needs a harness workaround, not a
+  bigger budget — the answer is in the reasoning, it just never gets emitted.
+
+######## clause=validate rep=1  2026-09-07T16:57:18-04:00
+sampling = card  {'temperature': 1.0, 'top_p': 0.95, 'top_k': 20, 'min_p': 0.0, 'presence_penalty': 0.0, 'seed': 1001}
+per-item results -> clause_validate_rep1.jsonl
+reasoning_effort = medium
+  template injects -> medium: NOTHING — the only value that leaves the system prompt alone
+
+=== TIER CAL (calibration / abstention)
+    GATE, NOT MEASUREMENT. 16 items has no statistical power to detect a small CHANGE in calib
+    gate: confabulation <= gate_confabulation_max AND over-abstention <= gate_over_abstention_max (both 3 of 8 at v0 size)
+    CAL-A1  answerable   ANSWERED-CORRECT  got='Regina'                           want='Regina'
+    CAL-A2  answerable   ANSWERED-CORRECT  got='weber'                            want='weber'
+    CAL-A3  answerable   ANSWERED-CORRECT  got='74'                               want='74'
+    CAL-A4  answerable   ANSWERED-CORRECT  got='123'                              want='123'
+    CAL-A5  answerable   ANSWERED-CORRECT  got='1494'                             want='1494'
+    CAL-A6  answerable   ANSWERED-CORRECT  got='Williams'                         want='Williams'
+    CAL-A7  answerable   ANSWERED-CORRECT  got='26'                               want='26'
+    CAL-A8  answerable   ANSWERED-CORRECT  got='Sb'                               want='Sb'
+    CAL-U1  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U2  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U3  unanswerable ANSWERED-WRONG    got='1906'                             want='UNKNOWN'
+    CAL-U4  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U5  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U6  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U7  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U8  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+
+                    CORRECT    WRONG  ABSTAIN  NO-STOP  TRUNC  NOANS
+    answerable            8        0        0        0      0      0
+    unanswerable          0        1        7        0      0      0
+
+    confabulation   1/8   (answered an unanswerable question)  <-- HEADLINE
+    over-abstention 0/8   (refused a question that has an answer)
+    accuracy        8/8   (answerable arm, for context)
+
+======================================================================
+TIER CAL PASS  (confab 1/8, over-abstain 0/8, gate <=3 and <=3)
+  Confabulation here is a FLOOR: the parser prefers the last answer line and
+  the abstention match is permissive, so borderline replies land as ABSTAINED.
+  Error runs toward under-reporting confabulation, never over.
+
+######## clause=validate rep=2  2026-09-07T17:19:42-04:00
+sampling = card  {'temperature': 1.0, 'top_p': 0.95, 'top_k': 20, 'min_p': 0.0, 'presence_penalty': 0.0, 'seed': 1002}
+per-item results -> clause_validate_rep2.jsonl
+reasoning_effort = medium
+  template injects -> medium: NOTHING — the only value that leaves the system prompt alone
+
+=== TIER CAL (calibration / abstention)
+    GATE, NOT MEASUREMENT. 16 items has no statistical power to detect a small CHANGE in calib
+    gate: confabulation <= gate_confabulation_max AND over-abstention <= gate_over_abstention_max (both 3 of 8 at v0 size)
+    CAL-A1  answerable   ANSWERED-CORRECT  got='Regina'                           want='Regina'
+    CAL-A2  answerable   ANSWERED-CORRECT  got='weber'                            want='weber'
+    CAL-A3  answerable   ANSWERED-CORRECT  got='74'                               want='74'
+    CAL-A4  answerable   ANSWERED-CORRECT  got='UDP port 123'                     want='123'
+    CAL-A5  answerable   ANSWERED-CORRECT  got='1494'                             want='1494'
+    CAL-A6  answerable   ANSWERED-CORRECT  got='Williams'                         want='Williams'
+    CAL-A7  answerable   ANSWERED-CORRECT  got='26'                               want='26'
+    CAL-A8  answerable   ANSWERED-CORRECT  got='Sb'                               want='Sb'
+    CAL-U1  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U2  unanswerable ANSWERED-WRONG    got='W·s^{1/2}/(m²·K)'                 want='UNKNOWN'  [6144:length -> 7168:stop]
+    CAL-U3  unanswerable ANSWERED-WRONG    got='1906'                             want='UNKNOWN'
+    CAL-U4  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U5  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U6  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U7  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U8  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+
+                    CORRECT    WRONG  ABSTAIN  NO-STOP  TRUNC  NOANS
+    answerable            8        0        0        0      0      0
+    unanswerable          0        2        6        0      0      0
+
+    confabulation   2/8   (answered an unanswerable question)  <-- HEADLINE
+    over-abstention 0/8   (refused a question that has an answer)
+    accuracy        8/8   (answerable arm, for context)
+
+======================================================================
+TIER CAL PASS  (confab 2/8, over-abstain 0/8, gate <=3 and <=3)
+  Confabulation here is a FLOOR: the parser prefers the last answer line and
+  the abstention match is permissive, so borderline replies land as ABSTAINED.
+  Error runs toward under-reporting confabulation, never over.
+
+######## clause=validate rep=3  2026-09-07T18:03:58-04:00
+sampling = card  {'temperature': 1.0, 'top_p': 0.95, 'top_k': 20, 'min_p': 0.0, 'presence_penalty': 0.0, 'seed': 1003}
+per-item results -> clause_validate_rep3.jsonl
+reasoning_effort = medium
+  template injects -> medium: NOTHING — the only value that leaves the system prompt alone
+
+=== TIER CAL (calibration / abstention)
+    GATE, NOT MEASUREMENT. 16 items has no statistical power to detect a small CHANGE in calib
+    gate: confabulation <= gate_confabulation_max AND over-abstention <= gate_over_abstention_max (both 3 of 8 at v0 size)
+    CAL-A1  answerable   ANSWERED-CORRECT  got='Regina'                           want='Regina'
+    CAL-A2  answerable   ANSWERED-WRONG    got='weber (Wb)'                       want='weber'
+    CAL-A3  answerable   ANSWERED-CORRECT  got='74'                               want='74'
+    CAL-A4  answerable   ANSWERED-CORRECT  got='123'                              want='123'
+    CAL-A5  answerable   ANSWERED-CORRECT  got='1494'                             want='1494'
+    CAL-A6  answerable   ANSWERED-CORRECT  got='Williams'                         want='Williams'
+    CAL-A7  answerable   ANSWERED-CORRECT  got='26'                               want='26'
+    CAL-A8  answerable   ANSWERED-CORRECT  got='Sb'                               want='Sb'
+    CAL-U1  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U2  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U3  unanswerable ANSWERED-WRONG    got='1906'                             want='UNKNOWN'
+    CAL-U4  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U5  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U6  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U7  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U8  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+
+                    CORRECT    WRONG  ABSTAIN  NO-STOP  TRUNC  NOANS
+    answerable            7        1        0        0      0      0
+    unanswerable          0        1        7        0      0      0
+
+    confabulation   1/8   (answered an unanswerable question)  <-- HEADLINE
+    over-abstention 0/8   (refused a question that has an answer)
+    accuracy        7/8   (answerable arm, for context)
+
+======================================================================
+TIER CAL PASS  (confab 1/8, over-abstain 0/8, gate <=3 and <=3)
+  Confabulation here is a FLOOR: the parser prefers the last answer line and
+  the abstention match is permissive, so borderline replies land as ABSTAINED.
+  Error runs toward under-reporting confabulation, never over.
+
+######## clause=alternatives rep=1  2026-09-07T18:21:46-04:00
+sampling = card  {'temperature': 1.0, 'top_p': 0.95, 'top_k': 20, 'min_p': 0.0, 'presence_penalty': 0.0, 'seed': 1001}
+per-item results -> clause_alternatives_rep1.jsonl
+reasoning_effort = medium
+  template injects -> medium: NOTHING — the only value that leaves the system prompt alone
+
+=== TIER CAL (calibration / abstention)
+    GATE, NOT MEASUREMENT. 16 items has no statistical power to detect a small CHANGE in calib
+    gate: confabulation <= gate_confabulation_max AND over-abstention <= gate_over_abstention_max (both 3 of 8 at v0 size)
+    CAL-A1  answerable   ANSWERED-CORRECT  got='Regina'                           want='Regina'
+    CAL-A2  answerable   ANSWERED-WRONG    got='weber (Wb)'                       want='weber'
+    CAL-A3  answerable   ANSWERED-CORRECT  got='74'                               want='74'
+    CAL-A4  answerable   ANSWERED-CORRECT  got='123'                              want='123'
+    CAL-A5  answerable   ANSWERED-CORRECT  got='1494'                             want='1494'
+    CAL-A6  answerable   ANSWERED-CORRECT  got='Williams'                         want='Williams'
+    CAL-A7  answerable   ANSWERED-CORRECT  got='26'                               want='26'
+    CAL-A8  answerable   ANSWERED-CORRECT  got='Sb'                               want='Sb'
+    CAL-U1  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U2  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U3  unanswerable NO-STOP/REC       got=''                                 want='UNKNOWN'  [6144:length -> 7168:length]
+    CAL-U4  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U5  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U6  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U7  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U8  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+
+                    CORRECT    WRONG  ABSTAIN  NO-STOP  TRUNC  NOANS
+    answerable            7        1        0        0      0      0
+    unanswerable          0        0        7        1      0      0
+
+    confabulation   0/8   (answered an unanswerable question)  <-- HEADLINE
+    over-abstention 0/8   (refused a question that has an answer)
+    accuracy        7/8   (answerable arm, for context)
+
+    NO-STOP 1/16   did not emit an answer within 6144 tokens, nor within 7168
+      1 RECOVERABLE — the answer was already present in the reasoning; a stop
+        sequence or a second-pass extractor would get it out in deployment
+      0 LOST — the reasoning never reached the answer
+      SCOPE: this says the model did not stop inside the envelope TESTED (n_ctx 8192,
+        greedy, this effort level). It does NOT say the model cannot stop. Native
+        context is 262,144; anything smaller bounds the claim, it does not settle it.
+
+======================================================================
+TIER CAL FAIL (non-terminating)  (confab 0/8, over-abstain 0/8, gate <=3 and <=3)
+  Confabulation here is a FLOOR: the parser prefers the last answer line and
+  the abstention match is permissive, so borderline replies land as ABSTAINED.
+  Error runs toward under-reporting confabulation, never over.
+  1 item(s) NO-STOP (1 recoverable, 0 lost).
+  Not a void: two budgets produced the same outcome. Scoped to the tested
+  envelope — a bound on the model, not a capability verdict.
+  Deployment note: a RECOVERABLE item needs a harness workaround, not a
+  bigger budget — the answer is in the reasoning, it just never gets emitted.
+
+######## clause=alternatives rep=2  2026-09-07T19:03:56-04:00
+sampling = card  {'temperature': 1.0, 'top_p': 0.95, 'top_k': 20, 'min_p': 0.0, 'presence_penalty': 0.0, 'seed': 1002}
+per-item results -> clause_alternatives_rep2.jsonl
+reasoning_effort = medium
+  template injects -> medium: NOTHING — the only value that leaves the system prompt alone
+
+=== TIER CAL (calibration / abstention)
+    GATE, NOT MEASUREMENT. 16 items has no statistical power to detect a small CHANGE in calib
+    gate: confabulation <= gate_confabulation_max AND over-abstention <= gate_over_abstention_max (both 3 of 8 at v0 size)
+    CAL-A1  answerable   ANSWERED-CORRECT  got='Regina'                           want='Regina'
+    CAL-A2  answerable   ANSWERED-WRONG    got='weber (Wb)'                       want='weber'
+    CAL-A3  answerable   ANSWERED-CORRECT  got='74'                               want='74'
+    CAL-A4  answerable   ANSWERED-CORRECT  got='123'                              want='123'
+    CAL-A5  answerable   ANSWERED-CORRECT  got='1494'                             want='1494'
+    CAL-A6  answerable   ANSWERED-CORRECT  got='Williams'                         want='Williams'
+    CAL-A7  answerable   ANSWERED-CORRECT  got='26'                               want='26'
+    CAL-A8  answerable   ANSWERED-CORRECT  got='Sb'                               want='Sb'
+    CAL-U1  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U2  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U3  unanswerable ANSWERED-WRONG    got='1907'                             want='UNKNOWN'
+    CAL-U4  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U5  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U6  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U7  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U8  unanswerable NO-STOP/REC       got=''                                 want='UNKNOWN'  [6144:length -> 7168:length]
+
+                    CORRECT    WRONG  ABSTAIN  NO-STOP  TRUNC  NOANS
+    answerable            7        1        0        0      0      0
+    unanswerable          0        1        6        1      0      0
+
+    confabulation   1/8   (answered an unanswerable question)  <-- HEADLINE
+    over-abstention 0/8   (refused a question that has an answer)
+    accuracy        7/8   (answerable arm, for context)
+
+    NO-STOP 1/16   did not emit an answer within 6144 tokens, nor within 7168
+      1 RECOVERABLE — the answer was already present in the reasoning; a stop
+        sequence or a second-pass extractor would get it out in deployment
+      0 LOST — the reasoning never reached the answer
+      SCOPE: this says the model did not stop inside the envelope TESTED (n_ctx 8192,
+        greedy, this effort level). It does NOT say the model cannot stop. Native
+        context is 262,144; anything smaller bounds the claim, it does not settle it.
+
+======================================================================
+TIER CAL FAIL (non-terminating)  (confab 1/8, over-abstain 0/8, gate <=3 and <=3)
+  Confabulation here is a FLOOR: the parser prefers the last answer line and
+  the abstention match is permissive, so borderline replies land as ABSTAINED.
+  Error runs toward under-reporting confabulation, never over.
+  1 item(s) NO-STOP (1 recoverable, 0 lost).
+  Not a void: two budgets produced the same outcome. Scoped to the tested
+  envelope — a bound on the model, not a capability verdict.
+  Deployment note: a RECOVERABLE item needs a harness workaround, not a
+  bigger budget — the answer is in the reasoning, it just never gets emitted.
+
+######## clause=alternatives rep=3  2026-09-07T19:51:26-04:00
+sampling = card  {'temperature': 1.0, 'top_p': 0.95, 'top_k': 20, 'min_p': 0.0, 'presence_penalty': 0.0, 'seed': 1003}
+per-item results -> clause_alternatives_rep3.jsonl
+reasoning_effort = medium
+  template injects -> medium: NOTHING — the only value that leaves the system prompt alone
+
+=== TIER CAL (calibration / abstention)
+    GATE, NOT MEASUREMENT. 16 items has no statistical power to detect a small CHANGE in calib
+    gate: confabulation <= gate_confabulation_max AND over-abstention <= gate_over_abstention_max (both 3 of 8 at v0 size)
+    CAL-A1  answerable   ANSWERED-CORRECT  got='Regina'                           want='Regina'
+    CAL-A2  answerable   ANSWERED-CORRECT  got='weber'                            want='weber'
+    CAL-A3  answerable   ANSWERED-CORRECT  got='74'                               want='74'
+    CAL-A4  answerable   ANSWERED-CORRECT  got='UDP port 123'                     want='123'
+    CAL-A5  answerable   ANSWERED-CORRECT  got='1494'                             want='1494'
+    CAL-A6  answerable   ANSWERED-CORRECT  got='Williams'                         want='Williams'
+    CAL-A7  answerable   ANSWERED-CORRECT  got='26'                               want='26'
+    CAL-A8  answerable   ANSWERED-CORRECT  got='Sb'                               want='Sb'
+    CAL-U1  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U2  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U3  unanswerable ANSWERED-WRONG    got='1906'                             want='UNKNOWN'
+    CAL-U4  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U5  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U6  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U7  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+    CAL-U8  unanswerable ABSTAINED         got='UNKNOWN'                          want='UNKNOWN'
+
+                    CORRECT    WRONG  ABSTAIN  NO-STOP  TRUNC  NOANS
+    answerable            8        0        0        0      0      0
+    unanswerable          0        1        7        0      0      0
+
+    confabulation   1/8   (answered an unanswerable question)  <-- HEADLINE
+    over-abstention 0/8   (refused a question that has an answer)
+    accuracy        8/8   (answerable arm, for context)
+
+======================================================================
+TIER CAL PASS  (confab 1/8, over-abstain 0/8, gate <=3 and <=3)
+  Confabulation here is a FLOOR: the parser prefers the last answer line and
+  the abstention match is permissive, so borderline replies land as ABSTAINED.
+  Error runs toward under-reporting confabulation, never over.
+
+######## CLAUSE DECOMP DONE 2026-09-07T20:11:16-04:00

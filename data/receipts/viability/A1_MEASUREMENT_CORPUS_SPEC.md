@@ -157,3 +157,114 @@ is measuring templates, not knowledge.
 - **Is the offered hatch the right channel at this size?** It matches AA and it grades cleanly,
   but it measures compliance with an instruction as much as calibration. A volunteered-uncertainty
   variant on a subset would show how much of the score is the hatch.
+
+---
+
+## AMENDMENT 2026-09-07 — the two-arm design has a blind spot; add a third arm
+
+**The two-arm design cannot measure the failure mode that matters most in practice.**
+
+`tier_cal` as specified has an **easy-answerable** arm and an **unanswerable** arm. Measured
+2026-09-07 across three effort levels at card sampling (`RESULT_A6_LOW_RUNG.md`), the
+answerable arm scored **24/24 at every effort**. A cell that never moves carries no
+information: the arm is functioning as a stack-health gate, not as a measurement.
+
+The missing arm is **hard-but-answerable** — questions with a real answer the model may or may
+not know. That is the case a user's actual question resembles, and it isolates a distinct
+capability:
+
+| arm | the model must judge | our coverage |
+|---|---|---|
+| easy-answerable | (nothing — it knows) | 24/24, saturated |
+| **hard-answerable** | **"do I know this?"** | **ABSENT** |
+| unanswerable | "is this question valid?" | measured |
+
+Those last two are different judgements. Our own data shows the effort ladder moves the third
+sharply — abstention 13/24 at `xhigh` vs 21/24 at `medium` — while the first is invisible to us.
+
+### Why this amendment exists
+
+Artificial Analysis's AA-Omniscience reports Qwen3.8-27B hallucination as **xhigh 30 %,
+low 53 %, medium 67 %** — `xhigh` *best*. Our fixture finds `xhigh` **worst** (confabulation
+6/24 vs 3/24). Two checks failed to reconcile them:
+
+- **Split by failure mechanism.** `medium` beats `xhigh` on *both* of our mechanisms
+  (fabricated entity 18/18 vs 12/18; false-premise-real-entities 3/6 vs 1/6). Not the cause.
+- **NO-STOP scored as "not attempted".** Applying AA's own formula
+  (`incorrect / (incorrect + partial + not attempted)`) to our unanswerable arm with the 5/24
+  non-terminations counted as abstentions still gives `medium` 12.5 % against `xhigh` 25 %.
+  Not the cause either.
+
+The remaining explanation is that **the two instruments measure different capabilities**:
+AA-Omniscience is entirely "do I know this?" (every question has an answer, accuracy 16–21 %),
+while our unanswerable arm is entirely "is this question valid?". Deliberation plausibly helps
+the former and hurts the latter — but our fixture **cannot test that**, because it has no
+hard-answerable items.
+
+This is not a claim that AA is wrong. It is a claim that our corpus cannot currently speak to
+their axis, and that the disagreement is unresolvable with the instrument as specified.
+
+### Spec change
+
+**Three arms, sized independently.** The hard-answerable arm needs items where the model's
+knowledge is genuinely marginal — target ~50 % accuracy at Q6_K/`medium`, since an arm at
+100 % or 0 % has no discriminating power (`AFM-15`, and the saturation that killed
+`qwen38-lowbit/RESULT_2x2.md`).
+
+Grading needs a third outcome class beyond CORRECT/WRONG: **appropriate abstention on an
+answerable item is a distinct outcome from a wrong answer**, and conflating them is what
+makes over-abstention invisible. The existing `gate_over_abstention_max` was written for the
+easy arm, where it can never fire.
+
+Costing: unmeasured. The A5 ratio (4–9×, and see the units caveat in
+`RESULT_A6_EFFORT_NOT_SAMPLING.md` — those figures are characters, not tokens) was measured on
+easy-answerable vs unanswerable. A hard-answerable item's cost is between them and has not
+been sampled.
+
+**Authoring difficulty is the real cost.** An item at ~50 % model accuracy that is also
+verifiable, unambiguous, and not in a training set is much harder to write than either
+existing arm — and `A2` (gold verification) applies to every one of them.
+
+---
+
+## DESIGN RULE 2026-09-07 — every item must be satisfiable as RENDERED, not as authored
+
+`AFM-31`: `tier_struct` told the model *"Reply with ONLY a JSON object"* and then appended
+*"end your reply with exactly one line: Exact Answer: <your answer>"*. Those cannot both hold.
+The defect survived three dry runs because Qwen resolved it silently and passed; it surfaced
+only when a model that treats "ONLY" as binding spent 28k characters trying to obey both.
+
+**The rule:** an item is checked against the **rendered** prompt — item text **plus** harness
+wrapper **plus** whatever the chat template injects — not against the item text as authored.
+`run_tier` honoured `tier.get("prompt")`; `run_struct` did not, and no item-level review could
+have caught that because the contradiction did not exist in the fixture file.
+
+### The distinction that keeps this from deleting real findings
+
+| kind | example | verdict |
+|---|---|---|
+| **Incoherent** — jointly unsatisfiable | "reply with ONLY JSON" + "append a non-JSON line" | **fixture bug**; the model failing is correct |
+| **Adversarial** — satisfiable but hostile | `xhigh`'s *"consider plausible alternatives"* on a false-premise item | **the measurement**; do not remove |
+
+The test is **satisfiability, not difficulty**. `RESULT_CLAUSE_DECOMP.md` exists precisely
+because the second kind was left in place — it measured *"consider plausible alternatives"*
+producing 2/24 NO-STOP against 0/24 for *"validate key assumptions"*.
+
+### Enforcement — structural, not procedural
+
+A rule people must remember failed twice in the same function. Three mechanical checks:
+
+1. **Every tier declares its own `prompt`.** Make it required rather than defaulting to a
+   module-level constant. A tier whose items carry full instructions declares `"{q}"`. The
+   module default is what silently contradicted the struct items.
+2. **Every grader passes it.** `run_struct` did not. When one grader is patched, diff it
+   against its siblings — this is the second defect of exactly that shape.
+3. **Preflight assertion:** if an item's text contains exclusivity language (`ONLY`,
+   `nothing but`, `exactly one`) and the rendered prompt appends any further instruction,
+   fail the fixture at load rather than at grading time.
+
+Check 3 is cheap, catches this specific class completely, and needs no semantic reasoning
+about the prompt.
+
+**Status:** not implemented. The one-line grader fix lives in `run_fixture_structfix.py` so
+historical runs stay reproducible; promoting it is a fixture-version decision.

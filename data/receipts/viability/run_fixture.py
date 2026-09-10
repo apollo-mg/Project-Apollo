@@ -27,7 +27,11 @@ _FRAC  = re.compile(r"(?<![\d./])(\d+)\s*/\s*(\d+)(?![\d./])")
 _NUM   = re.compile(r"[-+]?\d*\.?\d+")
 
 def numeric_values(text):
-    """Every distinct number in `text`, understanding mixed numbers and fractions.
+    """Every number in `text`, in order, understanding mixed numbers and fractions.
+
+    NOT deduplicated — callers that need distinctness apply `set()` themselves (see
+    answer_matches). The docstring previously said "distinct" and was wrong; caught by the
+    review probe on an item that was supposed to be a clean control.
 
     Returns None if there are none. Mixed/fraction spans are consumed first so
     '66 2/3' reads as one value (66.667), not three.
@@ -128,6 +132,17 @@ def ask(host, q, n_predict=512, timeout=None, prompt=None):
         d = json.loads(r.read())
     m = d["choices"][0]["message"]
     fin = d["choices"][0].get("finish_reason", "")
+    # A5: token cost per item, stashed for the caller. The abstention arm is expected to be
+    # the expensive one -- proving "no such thing exists" exhausts a search where answering
+    # terminates on a hit -- and a fixed n_predict therefore kills that arm preferentially,
+    # biasing the headline toward UNDER-reporting confabulation. Cannot size the A1 corpus
+    # without this ratio, so capture it on every item rather than inferring it later.
+    u = d.get("usage") or {}
+    t = d.get("timings") or {}
+    ask.last_cost = {"prompt_tokens": u.get("prompt_tokens"),
+                     "completion_tokens": u.get("completion_tokens"),
+                     "predicted_n": t.get("predicted_n"),
+                     "predicted_per_second": t.get("predicted_per_second")}
     return (m.get("content") or ""), (m.get("reasoning_content") or ""), fin
 
 def pick_answer(content, reasoning, fin):
@@ -206,6 +221,8 @@ def record(**row):
     if JSONL is None:
         return
     row.setdefault("sampling", SAMPLING_NAME)
+    for k, v in (getattr(ask, "last_cost", None) or {}).items():
+        row.setdefault(k, v)
     JSONL.write(json.dumps(row, ensure_ascii=False) + "\n")
     JSONL.flush()
     os.fsync(JSONL.fileno())
@@ -263,7 +280,12 @@ def run_struct(host, tier, label):
     ok = trunc = 0
     for it in tier["items"]:
         content, reasoning, fin = ask(host, it["q"], n_predict=tier.get("n_predict", 512))
-        obj = extract_json(content) or (extract_json(reasoning) if fin != "length" else None)
+        # `or` would discard a VALID falsy parse — [] and {} are legitimate JSON and both
+        # are falsy, so a correct empty-array answer fell through to "unparseable".
+        # Found by the xhigh-as-advisor review probe, on an item asking about something else.
+        obj = extract_json(content)
+        if obj is None and fin != "length":
+            obj = extract_json(reasoning)
         good, why = check_struct(obj, it["check"])
         # A reply that ran out of budget produced no JSON because it never finished, not
         # because the model cannot emit JSON. Dry run 01 scored three of these FAIL and then
