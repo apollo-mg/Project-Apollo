@@ -1,0 +1,130 @@
+{
+  "id": "SYS-01",
+  "title": "SD cards will not mount after an unrebooted kernel upgrade",
+  "captured": "2026-08-30",
+  "host": "control plane (CachyOS, btrfs+snapper, Limine UEFI)",
+  "symptom": "User reports SD cards cannot be mounted, 'some filesystem being unavailable'. They also want to know whether it is safe to run a full system update, having previously had an update fail and require rescue media.",
+  "state_dir": "state/",
+  "notes_for_runner": "The agent is given read-only shell access and the symptom. It must not be given this file. Every gold below is decidable from a command against the captured state. NOTE: modprobe -n fails for EVERY module including vfat; a model that probes only exfat sees a narrower fault than the one that exists.",
+  "golds": [
+    {
+      "id": "G1",
+      "claim": "The running kernel differs from the installed kernel",
+      "check": "uname -r == 7.1.6-1-cachyos AND pacman -Q linux-cachyos == 7.2.0-1",
+      "weight": "critical"
+    },
+    {
+      "id": "G2",
+      "claim": "The module tree for the RUNNING kernel no longer exists on disk",
+      "check": "/usr/lib/modules/7.1.6-1-cachyos is absent while 7.2.0-1-cachyos is present",
+      "weight": "critical"
+    },
+    {
+      "id": "G3",
+      "claim": "NO module can be loaded from disk -- exfat's absence is one instance, not a special case",
+      "check": "modprobe -n returns FATAL for every probed module (exfat, vfat, ntfs3, nls_iso8859_1, f2fs = 5/5)",
+      "weight": "critical"
+    },
+    {
+      "id": "G4",
+      "claim": "Filesystems that still work do so ONLY because they were resident in RAM before the upgrade",
+      "check": "vfat/fat/ntfs3 appear in lsmod AND /proc/filesystems, yet modprobe -n vfat also returns FATAL; exfat appears in neither",
+      "weight": "discriminating"
+    },
+    {
+      "id": "G5",
+      "claim": "A reboot alone resolves the symptom; no package operation is required",
+      "check": "follows from G1-G3",
+      "weight": "critical"
+    },
+    {
+      "id": "G6",
+      "claim": "The pending update is low-risk: no glibc, systemd or mesa upgrade",
+      "check": "pacman -Qu | grep -E '^(glibc|systemd|mesa) ' returns nothing",
+      "weight": "discriminating"
+    },
+    {
+      "id": "G7",
+      "claim": "The Arch news items requiring manual intervention do not apply to this host",
+      "check": "virtualbox-ext-vnc, kea, varnish all report 'error: package not found'",
+      "weight": "discriminating"
+    },
+    {
+      "id": "G8",
+      "claim": "A rollback path exists and was verified, not assumed",
+      "check": "snapper list is non-empty AND /boot holds vmlinuz+initramfs for linux-cachyos AND linux-cachyos-lts",
+      "weight": "discriminating"
+    },
+    {
+      "id": "G9",
+      "claim": "/boot appears empty to a normal user because of umask=0077, not because it is empty",
+      "check": "ls /boot as user returns 0 entries; as root returns 10",
+      "weight": "trap"
+    },
+    {
+      "id": "G10",
+      "claim": "The distinction is residency-in-RAM vs loadability-from-disk, not 'some filesystems are broken'",
+      "check": "vfat is simultaneously in lsmod (resident, works) and FATAL under modprobe -n (unloadable) -- the two facts must be reconciled, not treated as contradictory",
+      "weight": "discriminating"
+    }
+  ],
+  "required_checks": [
+    {
+      "id": "C1",
+      "what": "compared running kernel to installed kernel",
+      "why": "the whole diagnosis"
+    },
+    {
+      "id": "C2",
+      "what": "tested module loadability rather than inferring it",
+      "why": "modprobe -n or equivalent; reading lsmod alone cannot show exfat is MISSING"
+    },
+    {
+      "id": "C3",
+      "what": "checked glibc/systemd/mesa specifically before calling the update safe",
+      "why": "a safe verdict without this is right for no reason"
+    },
+    {
+      "id": "C4",
+      "what": "checked news-item packages against what is INSTALLED",
+      "why": "reading the news feed alone does not establish applicability"
+    },
+    {
+      "id": "C5",
+      "what": "verified rollback exists before recommending the update",
+      "why": "the user's stated fear is a failed update"
+    }
+  ],
+  "traps": [
+    {
+      "id": "T1",
+      "trap": "/boot looks empty as a normal user",
+      "failure": "concluding /boot is empty or the bootloader is broken",
+      "recovery": "retry as root, or notice fmask/dmask=0077 in findmnt output",
+      "note": "Claude fell into this and self-corrected within one command on 2026-08-30"
+    },
+    {
+      "id": "T2",
+      "trap": "the news feed lists three manual-intervention items",
+      "failure": "reporting them as blockers without checking installation",
+      "recovery": "pacman -Q each named package"
+    },
+    {
+      "id": "T3",
+      "trap": "pacman -Q shows 7.2.0 while pacman -Qu shows 7.2.2 pending",
+      "failure": "conflating the installed-vs-running gap with the pending upgrade",
+      "recovery": "treat as two separate facts"
+    },
+    {
+      "id": "T4",
+      "trap": "vfat mounts fine, so 'filesystem support works'",
+      "failure": "concluding the problem is the SD reader or hardware",
+      "recovery": "compare lsmod against /proc/filesystems AND note that modprobe -n vfat ALSO fails -- vfat works despite being unloadable"
+    }
+  ],
+  "scoring": {
+    "answer": "fraction of golds asserted correctly; critical golds gate the item",
+    "process": "fraction of required_checks actually performed, read from the tool-call transcript",
+    "note": "An item can score 9/9 on answer and 1/5 on process. That combination is the finding, not an anomaly - it means the model recalled a known pattern rather than diagnosing this machine."
+  }
+}

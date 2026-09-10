@@ -1,0 +1,40 @@
+=== ARM iq3_f16  model=Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf  flags: -ctk f16 -ctv f16 ===
+  ready 12s  serving=Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf  vram=86%
+  schema_copy/r1 stop ctok=277 clen=176 long1500/r1 stop ctok=495 clen=489 schema_copy/r2 stop ctok=277 clen=176 long1500/r2 stop ctok=495 clen=489 schema_copy/r3 stop ctok=277 clen=176 long1500/r3 stop ctok=495 clen=489 
+=== ARM iq3_vbr_auto  model=Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf  flags: -ctk vbr -ctv vbr --vbr-vram auto ===
+  ready 4s  serving=Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf  vram=74%
+  | 0.00.037.623 I VBR dynamic runtime controller: KV budget auto (remaining VRAM, resolved by fit), entry tier f16, floor 1.25 bits/value, price-ordered decode-time degrades
+  | 0.00.039.997 I common_fit_params: VBR dynamic: fitting with KV priced at the turbo1_tcq floor tier
+  | 0.00.394.854 I operator(): VBR dynamic: KV VRAM budget 5480 MiB (auto, from remaining memory) — decode-time degrade controller armed
+  schema_copy/r1 stop ctok=277 clen=176 long1500/r1 stop ctok=495 clen=489 schema_copy/r2 stop ctok=277 clen=176 long1500/r2 stop ctok=501 clen=544 schema_copy/r3 stop ctok=277 clen=176 long1500/r3 length ctok=1200 clen=0 
+=== ARM iq3_vbr_512  model=Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf  flags: -ctk vbr -ctv vbr --vbr-vram 512MiB ===
+  ready 3s  serving=Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf  vram=74%
+  | 0.00.020.438 I VBR dynamic runtime controller: KV budget 512 MiB (explicit), entry tier f16, floor 1.25 bits/value, price-ordered decode-time degrades
+  | 0.00.022.233 I common_fit_params: VBR dynamic: fitting with KV priced at the turbo1_tcq floor tier
+  | 0.00.356.458 I operator(): VBR dynamic: KV VRAM budget 512 MiB (explicit) — decode-time degrade controller armed
+  schema_copy/r1 stop ctok=277 clen=176 long1500/r1 stop ctok=495 clen=489 schema_copy/r2 stop ctok=277 clen=176 long1500/r2 stop ctok=495 clen=489 schema_copy/r3 stop ctok=277 clen=176 long1500/r3 stop ctok=501 clen=544 
+=== ARM iq3_vbr_256  model=Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf  flags: -ctk vbr -ctv vbr --vbr-vram 256MiB ===
+  ready 3s  serving=Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf  vram=74%
+  | 0.00.019.490 I VBR dynamic runtime controller: KV budget 256 MiB (explicit), entry tier f16, floor 1.25 bits/value, price-ordered decode-time degrades
+  | 0.00.021.182 I common_fit_params: VBR dynamic: fitting with KV priced at the turbo1_tcq floor tier
+  | 0.00.341.914 I operator(): VBR dynamic: KV VRAM budget 256 MiB (explicit) — decode-time degrade controller armed
+  schema_copy/r1 stop ctok=277 clen=176 long1500/r1 stop ctok=495 clen=489 schema_copy/r2 stop ctok=277 clen=176 long1500/r2 stop ctok=495 clen=489 schema_copy/r3 stop ctok=277 clen=176 long1500/r3 stop ctok=495 clen=489 
+=== ARM iq2_vbr_512  model=Qwen3.8-27B-GSQ-RCO-IQ2_XS-mtp.gguf  flags: -ctk vbr -ctv vbr --vbr-vram 512MiB ===
+  ready 21s  serving=Qwen3.8-27B-GSQ-RCO-IQ2_XS-mtp.gguf  vram=65%
+  | 0.00.019.235 I VBR dynamic runtime controller: KV budget 512 MiB (explicit), entry tier f16, floor 1.25 bits/value, price-ordered decode-time degrades
+  | 0.00.020.965 I common_fit_params: VBR dynamic: fitting with KV priced at the turbo1_tcq floor tier
+  | 0.00.373.065 I operator(): VBR dynamic: KV VRAM budget 512 MiB (explicit) — decode-time degrade controller armed
+  schema_copy/r1 stop ctok=122 clen=166 long1500/r1 stop ctok=430 clen=559 schema_copy/r2 stop ctok=122 clen=166 long1500/r2 stop ctok=430 clen=559 schema_copy/r3 stop ctok=122 clen=166 long1500/r3 stop ctok=430 clen=559 
+
+=== SCORE (K=3) ===
+  iq2_vbr_512    long1500     clean 3/3  ctok=[430, 430, 430]
+  iq2_vbr_512    schema_copy  clean 3/3  ctok=[122, 122, 122]
+  iq3_f16        long1500     clean 3/3  ctok=[495, 495, 495]
+  iq3_f16        schema_copy  clean 3/3  ctok=[277, 277, 277]
+  iq3_vbr_256    long1500     clean 3/3  ctok=[495, 495, 495]
+  iq3_vbr_256    schema_copy  clean 3/3  ctok=[277, 277, 277]
+  iq3_vbr_512    long1500     clean 3/3  ctok=[495, 495, 501]
+  iq3_vbr_512    schema_copy  clean 3/3  ctok=[277, 277, 277]
+  iq3_vbr_auto   long1500     clean 2/3  ctok=[495, 501, 1200]
+  iq3_vbr_auto   schema_copy  clean 3/3  ctok=[277, 277, 277]
+######## VBR QWEN38 DONE

@@ -1,0 +1,19 @@
+70:ssize_t sized_strscpy(char *, const char *, size_t);
+76:#define __strscpy0(dst, src, ...)	\
+77:	sized_strscpy(dst, src, sizeof(dst) + __must_be_array(dst) +	\
+79:#define __strscpy1(dst, src, size)	\
+80:	sized_strscpy(dst, src, size + __must_be_cstr(dst) + __must_be_cstr(src))
+82:#define __strscpy_pad0(dst, src, ...)	\
+83:	sized_strscpy_pad(dst, src, sizeof(dst) + __must_be_array(dst) +	\
+85:#define __strscpy_pad1(dst, src, size)	\
+86:	sized_strscpy_pad(dst, src, size + __must_be_cstr(dst) + __must_be_cstr(src))
+89: * strscpy - Copy a C-string into a sized buffer
+104: * zero padded. If padding is desired please use strscpy_pad().
+110:#define strscpy(dst, src, ...)	\
+111:	CONCATENATE(__strscpy, COUNT_ARGS(__VA_ARGS__))(dst, src, __VA_ARGS__)
+113:#define sized_strscpy_pad(dest, src, count)	({			\
+119:	__wrote = sized_strscpy(__dst, __src, __count);			\
+126: * strscpy_pad() - Copy a C-string into a sized buffer
+139: * 'strscpy' functions please see the function docstring for strscpy().
+145:#define strscpy_pad(dst, src, ...)	\
+146:	CONCATENATE(__strscpy_pad, COUNT_ARGS(__VA_ARGS__))(dst, src, __VA_ARGS__)

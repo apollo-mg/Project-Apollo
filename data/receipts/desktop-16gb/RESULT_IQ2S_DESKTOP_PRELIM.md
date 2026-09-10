@@ -20,6 +20,31 @@ K/V vectors, linear growth in sequence length, and the batch/heads/dim factors. 
 word problem it computed the net fill rate correctly at every KV setting. **This is not a
 model degraded into uselessness by IQ2.**
 
+> ## ⚠️ SECTION 2 IS RETRACTED — the K cache was never turbo (2026-08-28)
+>
+> **Verified by re-running this exact build and model:** `moe-cache-test/src/build-hip`
+> (`giveen/llama-cpp-turboquant`, guard present) with
+> `-m Qwen3.8-27B-AD-IQ2_S.gguf -ctk turbo3 -ctv turbo3` emits:
+>
+> ```
+> W llama_kv_cache: auto-asymmetric: GQA ratio 6:1 (n_head=24, n_head_kv=4)
+>   — upgrading K from turbo3 to q8_0 to prevent quality degradation.
+> ```
+>
+> Qwen3.8-27B is `n_head 24 / n_head_kv 4` = **GQA 6:1**, exactly the guard's threshold, and
+> **all three of `turbo2/3/4` are trigger types**. Every row of the section-2 table therefore
+> measured **`q8_0` K + turboN V**, not symmetric turboN.
+>
+> The paper's catastrophic pairing puts the lossy codec on **K** — the side the GQA broadcast
+> amplifies — which is precisely the arm the guard removes. **The registered 0.75 prediction is
+> therefore NOT falsified; the test did not exercise the mechanism it was designed to test.**
+>
+> Sections 1, 3 and 4 (coherence, KV arithmetic, ROCm `hipMemGetInfo`) are **unaffected** —
+> none depends on the K codec.
+>
+> To redo it: set `TURBO_AUTO_ASYMMETRIC=0` and capture the server log.
+> Audit: `kv-tensor-split/RESULT_N9_TURBO3_AUDIT.md`.
+
 ## 2. No stacking collapse — the prediction failed
 
 `TheTom/turboquant_plus/docs/papers/asymmetric-kv-compression.md` proposes **quantization

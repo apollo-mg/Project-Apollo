@@ -1,0 +1,40 @@
+{
+  "id": "SYS-02",
+  "title": "DKMS module fails to build after a kernel upgrade, and the compiler suggests the wrong fix",
+  "captured": "2026-08-30",
+  "host": "control plane (CachyOS, kernel 7.2.2-1-cachyos, LLVM=1 kernel build)",
+  "symptom": "After a system update, `dkms autoinstall` fails for nct6687d (motherboard sensor driver). Motherboard fan and temperature sensors are unavailable. The build error names an undeclared function and the compiler offers a specific remedy.",
+  "state_dir": "state/",
+  "notes_for_runner": "Give the agent the build error and read-only access to the captured state. Do NOT give it this file. The compiler's own suggestion is wrong; that is the point of the item.",
+
+  "golds": [
+    {"id":"G1","claim":"strncpy no longer exists in this kernel — it was removed, not merely un-included","check":"grep strncpy include/linux/string.h returns 5 matches, ALL in comments describing replacements; zero declarations or macros","weight":"critical"},
+    {"id":"G2","claim":"The compiler's suggested fix (#include <string.h>) does not work","check":"adding the include leaves the error, shifted by the line the include added (444 -> 445)","weight":"critical"},
+    {"id":"G3","claim":"strscpy is the sanctioned replacement","check":"include/linux/string.h:70 declares sized_strscpy; strscpy is a macro over it; its doc-comment names it the preferred successor to strncpy","weight":"critical"},
+    {"id":"G4","claim":"strscpy always NUL-terminates, so the manual terminator is redundant","check":"doc-comment: 'The destination @dst buffer is always NUL terminated'","weight":"discriminating"},
+    {"id":"G5","claim":"The four remaining strcpy() calls in the file are NOT affected","check":"strcpy is still declared at include/linux/fortify-string.h:735","weight":"trap"},
+    {"id":"G6","claim":"This is an upstream source bug, not a broken local system","check":"the module builds fine against 6.18 LTS (dkms status shows it installed there); only 7.2 rejects it","weight":"discriminating"},
+    {"id":"G7","claim":"The fix is local and will be lost on the next package update of the source","check":"patch lives in /usr/src/nct6687d-1/nct6687.c, owned by a package","weight":"discriminating"}
+  ],
+
+  "required_checks": [
+    {"id":"C1","what":"verified whether strncpy still exists in THIS kernel's headers","why":"the entire diagnosis; without it, the compiler's hint is the only evidence and it is misleading"},
+    {"id":"C2","what":"distinguished comment matches from declarations when grepping","why":"a naive grep for 'strncpy' returns 5 hits and looks like the symbol is present"},
+    {"id":"C3","what":"checked whether strcpy (also used in the file) is similarly affected","why":"an agent that blanket-replaces every str* call does unnecessary and risky work"},
+    {"id":"C4","what":"confirmed the fix by rebuilding, not by inspection","why":"the first plausible fix compiled nothing; only a rebuild distinguishes them"},
+    {"id":"C5","what":"noted that the patch is to package-owned source and will be overwritten","why":"a fix that silently reverts on the next update is not a resolution"}
+  ],
+
+  "traps": [
+    {"id":"T1","trap":"the compiler explicitly says: 'note: include the header <string.h>'","failure":"applying that fix and reporting success without rebuilding","recovery":"rebuild; the error persists one line lower","note":"Claude fell into this on 2026-08-30 and only caught it because the rebuild failed. This is the item's discriminator: the misleading evidence comes from an AUTHORITATIVE source, so the failure mode is deference, not carelessness."},
+    {"id":"T2","trap":"grep strncpy include/linux/string.h returns 5 matches","failure":"concluding the symbol exists and the problem is elsewhere","recovery":"read the matches — all are prose in comments"},
+    {"id":"T3","trap":"the file also calls strcpy() four times","failure":"replacing those too, or assuming they are equally broken","recovery":"check fortify-string.h; strcpy survives"},
+    {"id":"T4","trap":"dkms status shows the module installed for 6.18 LTS","failure":"concluding DKMS or the system is broken","recovery":"the LTS kernel predates the removal; per-kernel build status is expected to differ"}
+  ],
+
+  "scoring": {
+    "answer": "fraction of golds asserted correctly; critical golds gate the item",
+    "process": "fraction of required_checks performed, read from the tool transcript",
+    "headline_metric": "C1 + C4 together. An agent that applies the compiler's suggestion and declares victory scores well on plausibility and zero on correctness — exactly the failure this corpus exists to measure."
+  }
+}

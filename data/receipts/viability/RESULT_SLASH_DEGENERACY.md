@@ -1,4 +1,30 @@
-# Result — the runaway is 4096 `/` characters, and it latches permanently
+# ⚠️ HEAVILY CAVEATED — the runaway is 4096 `/`, but the PROXY is implicated in causing it
+
+> **Read this first (added 2026-09-09, 22:26, after the no-proxy control).**
+> The no-proxy control ran **20 tasks, 18 PASS / 2 FAIL, zero INFRA_ERROR, in 11 minutes** —
+> **no latch at all**. Pre-registered P-N1 (70%) is **FALSIFIED**.
+>
+> | run | proxy | clean tasks before latch |
+> |---|---|---|
+> | bitdepth_iq3xxs_v5 | no | 16 |
+> | cacheab_ctrl | **yes** | **2** |
+> | cacheab_treat | **yes** | **8** |
+> | noproxy_ctl | no | **20/20, never latched** |
+>
+> **`tools/llmproxy` is now the leading suspect for the latch rate**, exactly as the
+> pre-registration said it would become if this control came back clean. Everything below was
+> measured through the proxy and must be read as conditional on it.
+>
+> **What survives:** the latch is real without the proxy — v5 latched at task 16 unproxied and
+> stayed latched for 13 tasks. So the phenomenon exists; the proxy appears to raise its rate.
+>
+> **What does NOT survive:** the `/` character finding is established **only under the proxy**.
+> We have never captured the text of an unproxied runaway — v5's 13 runaways left empty traces,
+> which is why the proxy was built. **It is unknown whether v5's unproxied runaways were slashes.**
+>
+> **Not reportable to buun or Tom** until the proxy is either cleared or the mechanism identified.
+
+# Original result (proxied runs only)
 
 **Date:** 2026-09-09. **Arm:** `cacheab_ctrl` (`--ctx-checkpoints 32`, the default).
 **Model:** Qwen3.8-27B-GSQ-RCO-IQ3_XXS, VBR (`-ctk vbr -ctv vbr --vbr-floor t2`), `-np 1`, no MTP.
@@ -75,3 +101,41 @@ conditional on the proxy being transparent.
 "An agentic benchmark times out" is a harness story. "This model on this build emits 4096 `/`
 tokens and never recovers until restart" is a concrete inference bug, and it is the kind of thing
 worth reporting to buun/turboquant once the proxy is excluded and the TREAT arm is in.
+
+---
+
+## Addendum — no-proxy control, 2026-09-09 22:25
+
+`noproxy_ctl`: VBR identical, harness → `:8090` directly, 20 tasks, fresh server.
+**18 PASS / 2 FAIL / 0 INFRA_ERROR in 11 minutes (~34 s/task).** A latched task costs 300 s, so
+20 latched tasks would have taken ~100 minutes; the wall time alone rules out a latch.
+
+It tracked v5 **exactly** through task 16 — the same two tasks failed
+(`t02_file_read/t03_read_paginated`, `t03_patch_edit/t05_v4a`) — then diverged precisely at v5's
+latch point, passing task 17 and running clean to 20.
+
+### Two consequences
+
+**1. A usable bit-depth number, finally.** IQ3_XXS on the first 20 tasks: **18/20 = 90.0% valid
+pass rate**, 0% infra. The first gradeable agentic result of the day, and it came from removing
+our own instrumentation.
+
+**2. The proxy has to be cleared before any of this is reportable.** Latch positions 2 and 8
+(proxied) against 16 and never (unproxied) is suggestive, but n=2 per condition and the trigger
+is stochastic — this is not yet proof.
+
+### Candidate mechanisms (none tested)
+
+- **Not client disconnect.** `ctrl` latched at task 3 with no prior timeout, so no disconnect had
+  occurred. Orphaned upstream generations cannot explain onset.
+- **Socket drain timing.** The proxy adds a hop and drains with `iter_any()`; if it drains slower
+  than a direct client, the server's send path stalls differently, and VBR re-tiers on timing.
+- **Connection churn.** A fresh `ClientSession` per request means no keep-alive reuse, so the
+  server sees a new connection for every call.
+- **Plain chance.** n=2 per condition.
+
+### Next test
+
+Repeat the proxied arm on the same 20 tasks. Latch again → 3/3 proxied vs 0/2 unproxied, strong.
+Run clean → chance, and the earlier arms were unlucky. This must run before the probe matrix,
+because the probe matrix assumes a latched server is a *model* state rather than a proxy artifact.

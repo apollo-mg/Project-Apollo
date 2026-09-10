@@ -1,0 +1,40 @@
+=== ARM f16 : -ctk f16 -ctv f16 ===
+  ready 8s
+  [f16/schema_copy] finish=stop ptok=71 ctok=114 think=312 clen=159
+  [f16/long1500] finish=stop ptok=2133 ctok=618 think=2287 clen=905
+  [f16/long3000] finish=ERR ptok=0 ctok=0 think=0 clen=0
+=== ARM turbo4 : -ctk turbo4 -ctv turbo4 ===
+  ready 4s
+  [turbo4/schema_copy] finish=length ptok=71 ctok=1200 think=1200 clen=0
+  [turbo4/long1500] finish=length ptok=2133 ctok=1200 think=1200 clen=0
+  [turbo4/long3000] finish=ERR ptok=0 ctok=0 think=0 clen=0
+=== ARM turbo3 : -ctk turbo3 -ctv turbo3 ===
+  ready 3s
+  [turbo3/schema_copy] finish=length ptok=71 ctok=1200 think=1200 clen=0
+  [turbo3/long1500] finish=length ptok=2133 ctok=1200 think=1200 clen=0
+  [turbo3/long3000] finish=ERR ptok=0 ctok=0 think=0 clen=0
+=== ARM q8turbo4 : -ctk q8_0 -ctv turbo4 ===
+  ready 3s
+  [q8turbo4/schema_copy] finish=stop ptok=71 ctok=256 think=584 clen=176
+  [q8turbo4/long1500] finish=length ptok=2133 ctok=1200 think=1200 clen=0
+  [q8turbo4/long3000] finish=ERR ptok=0 ctok=0 think=0 clen=0
+=== ARM turbo8 : -ctk turbo8 -ctv turbo8 ===
+  ready 3s
+  [turbo8/schema_copy] finish=stop ptok=71 ctok=256 think=584 clen=176
+  [turbo8/long1500] finish=length ptok=2133 ctok=1200 think=1200 clen=0
+  [turbo8/long3000] finish=ERR ptok=0 ctok=0 think=0 clen=0
+
+=== temp-0 divergence vs f16 ===
+  turbo4    schema_copy  identical=False  first_diff_char=0  len f16=159 vs 0
+  turbo4    long1500     identical=False  first_diff_char=0  len f16=905 vs 0
+  turbo4    long3000     identical=True  first_diff_char=-  len f16=0 vs 0
+  turbo3    schema_copy  identical=False  first_diff_char=0  len f16=159 vs 0
+  turbo3    long1500     identical=False  first_diff_char=0  len f16=905 vs 0
+  turbo3    long3000     identical=True  first_diff_char=-  len f16=0 vs 0
+  q8turbo4  schema_copy  identical=False  first_diff_char=1  len f16=159 vs 176
+  q8turbo4  long1500     identical=False  first_diff_char=0  len f16=905 vs 0
+  q8turbo4  long3000     identical=True  first_diff_char=-  len f16=0 vs 0
+  turbo8    schema_copy  identical=False  first_diff_char=1  len f16=159 vs 176
+  turbo8    long1500     identical=False  first_diff_char=0  len f16=905 vs 0
+  turbo8    long3000     identical=True  first_diff_char=-  len f16=0 vs 0
+######## REPRO V2 DONE

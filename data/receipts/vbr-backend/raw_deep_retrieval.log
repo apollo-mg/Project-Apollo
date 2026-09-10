@@ -1,0 +1,43 @@
+=== ARM A_f16_64k  ctx=65536  hay=hay_64k.json  -ctk f16 -ctv f16 ===
+  ready 4s vram=97%
+  | 0.02.130.090 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 65536, kv_unified = 'true'
+  depth=10% r1 ptok=42241 finish=stop got="47.3 kelvin-seconds"
+  depth=10% r2 ptok=42241 finish=stop got="47.3 kelvin-seconds"
+  depth=50% r1 ptok=42241 finish=stop got="812 milliamperes"
+  depth=50% r2 ptok=42241 finish=stop got="812 milliamperes"
+  depth=90% r1 ptok=42242 finish=stop got="1,596 microseconds"
+  depth=90% r2 ptok=42242 finish=stop got="1,596 microseconds"
+=== ARM B_vbr_64k  ctx=65536  hay=hay_64k.json  -ctk vbr -ctv vbr --vbr-floor t4 ===
+  ready 4s vram=72%
+  | 0.00.353.561 I common_params_fit_impl: VBR dynamic: floor mix costs 1.382e+05 bits/token vs 1.352e+05 at the pricing tier — scaling KV capacity math by 1.023
+  | 0.00.353.567 I operator(): VBR dynamic: KV VRAM budget 5448 MiB (auto, from remaining memory) — decode-time degrade controller armed
+  | 0.02.114.272 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 65536, kv_unified = 'true'
+  depth=10% r1 ptok=42241 finish=stop got="47.3 kelvin-seconds"
+  depth=10% r2 ptok=42241 finish=stop got="47.3 kelvin-seconds"
+  depth=50% r1 ptok=42241 finish=stop got="812 milliamperes"
+  depth=50% r2 ptok=42241 finish=stop got="812 milliamperes"
+  depth=90% r1 ptok=42242 finish=stop got="1,596 microseconds"
+  depth=90% r2 ptok=42242 finish=stop got="1,596 microseconds"
+=== ARM C_vbr_262k  ctx=262144  hay=hay_200k.json  -ctk vbr -ctv vbr --vbr-floor t4 ===
+  ready 20s vram=73%
+  | 0.00.349.452 I common_params_fit_impl: VBR dynamic: floor mix costs 1.382e+05 bits/token vs 1.352e+05 at the pricing tier — scaling KV capacity math by 1.023
+  | 0.00.349.457 I operator(): VBR dynamic: KV VRAM budget 5248 MiB (auto, from remaining memory) — decode-time degrade controller armed
+  | 0.18.326.774 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 262144, kv_unified = 'true'
+  depth=10% r1 ptok=147772 finish=stop got="47.3 kelvin-seconds"
+  depth=10% r2 ptok=147772 finish=stop got="47.3 kelvin-seconds"
+  depth=50% r1 ptok=147772 finish=stop got="812 milliamperes"
+  depth=50% r2 ptok=147772 finish=stop got="812 milliamperes"
+  depth=90% r1 ptok=147773 finish=stop got="1,596 microseconds"
+  depth=90% r2 ptok=147773 finish=stop got="1,596 microseconds"
+
+=== RETRIEVAL SCORE ===
+  A_f16_64k    depth 10%  2/2  ptok= 42,241  expect='47.3 kelvin-seconds'
+  A_f16_64k    depth 50%  2/2  ptok= 42,241  expect='812 milliamperes'
+  A_f16_64k    depth 90%  2/2  ptok= 42,242  expect='1,596 microseconds'
+  B_vbr_64k    depth 10%  2/2  ptok= 42,241  expect='47.3 kelvin-seconds'
+  B_vbr_64k    depth 50%  2/2  ptok= 42,241  expect='812 milliamperes'
+  B_vbr_64k    depth 90%  2/2  ptok= 42,242  expect='1,596 microseconds'
+  C_vbr_262k   depth 10%  2/2  ptok=147,772  expect='47.3 kelvin-seconds'
+  C_vbr_262k   depth 50%  2/2  ptok=147,772  expect='812 milliamperes'
+  C_vbr_262k   depth 90%  2/2  ptok=147,773  expect='1,596 microseconds'
+######## DEEP RETRIEVAL DONE

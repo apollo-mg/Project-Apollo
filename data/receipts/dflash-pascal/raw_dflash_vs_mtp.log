@@ -1,0 +1,20 @@
+=== ARM none : --spec-type none ===
+  ready 33s  vram=76%
+  p1r1 length ctok=400 tg=30 p1r2 length ctok=400 tg=30 p1r3 length ctok=400 tg=30 p2r1 length ctok=400 tg=30 p2r2 length ctok=400 tg=30 p2r3 length ctok=400 tg=30 p3r1 length ctok=400 tg=30 p3r2 length ctok=400 tg=30 p3r3 length ctok=400 tg=30 
+  | 1.39.381.301 I slot   operator(): id  0 | task 2007 | CHECKPOINT_ATTN_ONLY_TRIM p0=39 target=1 draft=0
+  | 2.06.315.890 I slot   operator(): id  0 | task 2810 | CHECKPOINT_ATTN_ONLY_TRIM p0=34 target=1 draft=0
+  | 2.19.648.721 I slot   operator(): id  0 | task 3211 | CHECKPOINT_ATTN_ONLY_TRIM p0=34 target=1 draft=0
+=== ARM mtp : --spec-type draft-mtp ===
+  ready 15s  vram=83%
+  p1r1 length ctok=400 tg=50 p1r2 length ctok=400 tg=50 p1r3 length ctok=400 tg=50 p2r1 length ctok=400 tg=51 p2r2 length ctok=400 tg=51 p2r3 length ctok=400 tg=52 p3r1 length ctok=400 tg=48 p3r2 length ctok=400 tg=48 p3r3 length ctok=400 tg=48 
+  | 1.18.963.329 I slot   operator(): id  0 | task 1373 | CHECKPOINT_ATTN_ONLY_TRIM p0=34 target=1 draft=0
+  | 1.27.268.517 I slot print_timing: id  0 | task 1373 | draft acceptance = 0.61453 (  220 accepted /   358 generated), mean len =  2.23
+  | 1.27.268.519 I slot print_timing: id  0 | task 1373 | verify/rollback histogram (draft/rejected:cycles) = (2/0:89, 2/1:42, 2/2:48)
+=== ARM dflash : --spec-type draft-dflash -md /mnt/TG_2TB/AI/Models/Qwen3.8-27B-DFlash2-BF16.gguf ===
+  SERVER DIED: 0.02.931.168 E srv    load_model: failed to load draft model, '/mnt/TG_2TB/AI/Models/Qwen3.8-27B-DFlash2-BF16.gguf' 0.02.931.576 E srv  llama_server: exiting due to model loading error 
+
+=== SUMMARY: median decode t/s per arm ===
+  none    median tg   30.19 t/s    1.00x vs none   vram=76%   n=9
+  mtp     median tg   50.88 t/s    1.69x vs none   vram=83%   n=9
+  dflash  (no data)
+######## DFLASH VS MTP DONE

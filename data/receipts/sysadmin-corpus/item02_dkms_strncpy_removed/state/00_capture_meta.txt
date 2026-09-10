@@ -1,0 +1,11 @@
+# captured 2026-08-30T15:33:42-04:00 — after the fix; pre-patch evidence preserved from backups
+
+RECONSTRUCTION NOTE — read before trusting these files.
+The fault was already repaired when this item was captured, so two files are reconstructed to
+the FAILING moment rather than copied live:
+  * dkms_status.txt  — the 7.2.2 line removed. At failure time the module was built for the LTS
+                       kernel ONLY; that line is the post-fix state and would hand the agent the
+                       answer. Post-fix copy kept as dkms_status_postfix.txt.
+  * nct6687.c.prepatch — the genuine pre-patch source, from the backup taken before any edit.
+Everything else (make.log, the kernel headers, the build error) is unmodified: the headers are
+identical before and after, since the fix touched only the module source.

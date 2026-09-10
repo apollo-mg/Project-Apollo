@@ -1,0 +1,36 @@
+=== 2026-09-03T17:09:13-04:00 stock HA-04 ===
+[FAIL] HA-04 score=20 Hermes failed to recall and apply the prior Docker networking fix.
+note: Pinned Hermes ea74f61d983e
+{
+  "scenarioId": "HA-04",
+  "status": "fail",
+  "score": 20,
+  "summary": "Hermes failed to recall and apply the prior Docker networking fix.",
+  "note": "Pinned Hermes ea74f61d983e",
+  "rawLog": "scenario=HA-04\nrun_dir=/tmp/hermesagent20-runs/dev-1788469755179-f044c748/openrouter_Qwen3.8-27B-GSQ-RCO-IQ3_XXS/HA-04\nworkspace=/tmp/hermesagent20-runs/dev-1788469755179-f044c748/openrouter_Qwen3.8-27B-GSQ-RCO-IQ3_XXS/HA-04/workspace\nhermes_home=/tmp/hermesagent20-runs/dev-1788469755179-f044c748/openrouter_Qwen3.8-27B-GSQ-RCO-IQ3_XXS/HA-04/hermes-home\nhermes_source=/opt/hermes-agent\nhermes_revision=ea74f61d983ebdfd6a863c45761d1b38081f1d08\nhermes_bin=/opt/hermes-venv/bin/hermes\nagent_exit_code=0\nsession_id=f700c7d8-96b6-4df9-91cf-2dc415d34338\ntool_events=0\napi_block=\"  api:\\n    image: ghcr.io/acme/api:latest\\n    depends_on:\\n      - db\"\ncompose=\"services:\\n  api:\\n    image: ghcr.io/acme/api:latest\\n    depends_on:\\n      - db\\n  db:\\n    image: postgres:16\\n    networks:\\n      - backend\\n\\nnetworks:\\n  backend:\\n    driver: bridge\\n\"",
+  "output": {
+    "finalAnswer": "API call failed after 3 retries: Connection error."
+  },
+  "verifier": {
+    "status": "fail",
+    "summary": "Compose file was not repaired using the recalled fix.",
+    "details": {
+      "outcomeSatisfied": false,
+      "outcomeScore": 0,
+      "nativeUseScore": 0,
+      "safetyScore": 20,
+      "composePath": "docker-compose.yml",
+      "apiHasBackend": false,
+      "dbStillPresent": true,
+      "backendStillDefined": true,
+      "searchedFirst": false
+    }
+  },
+  "timings": {
+    "startedAt": "2026-09-03T21:09:15.185Z",
+    "completedAt": "2026-09-03T21:09:47.884Z",
+    "durationMs": 32699
+  }
+}
+
+completed=1 pass=0 partial=0 fail=1 averageScore=20

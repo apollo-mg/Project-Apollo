@@ -117,3 +117,23 @@ cleared by a server restart.** No mechanism identified.
 2. **`-ctk f16 -ctv f16` control** — gates *whose* bug it is. Every run so far has been on
    `-ctk vbr -ctv vbr --vbr-floor t2`. If the latch vanishes without VBR it is buun's KV path;
    if it survives it is upstream or the quantisation.
+
+---
+
+## Pre-registration — no-proxy control (logged before running)
+
+**Design:** VBR exactly as before, **no proxy** (harness → `:8090` directly), fresh server,
+**20 tasks** in the same order. Sized at 20 rather than 14 deliberately: the only unproxied run we
+have latched at task 16, so a 14-task probe could miss the latch and produce a false exoneration
+of the proxy.
+
+Detection without the proxy relies on harness status alone — a latch shows as consecutive
+`INFRA_ERROR` timeouts. That is sufficient for this question; we do not need the text again.
+
+**P-N1: the latch occurs within 20 tasks with no proxy in the path. 70%.**
+v5 latched at 16 unproxied, so the phenomenon clearly does not require the proxy; the uncertainty
+is whether 20 tasks is enough given a stochastic trigger (observed latch points 2, 8, 16).
+*If CONFIRMED:* the proxy is cleared and the finding is reportable.
+*If FALSIFIED* (20 clean tasks unproxied): the proxy becomes a prime suspect, since proxied runs
+latched at 2 and 8. That would invalidate the wire captures and make `RESULT_SLASH_DEGENERACY.md`
+a finding about my own tooling rather than about the model.

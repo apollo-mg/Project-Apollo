@@ -33,6 +33,32 @@ Reply with ONLY a JSON object:
 {{"defects": [{{"summary": "<one sentence>", "evidence": "<the line or construct>"}}]}}
 An empty list means you found nothing wrong."""
 
+def last_schema_object(text):
+    """Scan for balanced {...} spans and return the LAST one that parses AND carries the
+    expected key. txt.find('{')..txt.rfind('}') spanned the entire reasoning trace — the bug
+    that corrupted this probe's xhigh arm and the hard probe before it."""
+    best, depth, start, in_str, esc = None, 0, None, False, False
+    for i, ch in enumerate(text):
+        if in_str:                      # braces inside string VALUES are not structure —
+            if esc: esc = False         # the exact defect the model reported in run 1, which
+            elif ch == "\\": esc = True # I then reproduced in the scorer that reads its report
+            elif ch == '"': in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch == "{":
+            if depth == 0: start = i
+            depth += 1
+        elif ch == "}" and depth:
+            depth -= 1
+            if depth == 0:
+                try:
+                    o = json.loads(text[start:i+1])
+                    if isinstance(o, dict) and "defects" in o: best = o
+                except Exception:
+                    pass
+    return best
+
 def ask(code, effort, seed):
     body = {"messages": [{"role": "user", "content": PROMPT.format(code=code)}],
             "n_predict": 6144, "temperature": 1.0, "top_p": 0.95, "top_k": 20,
@@ -45,12 +71,10 @@ def ask(code, effort, seed):
     m = d["choices"][0]["message"]
     txt = (m.get("content") or "") or (m.get("reasoning_content") or "")
     fin = d["choices"][0].get("finish_reason")
-    i, j = txt.find("{"), txt.rfind("}")
-    try:
-        obj = json.loads(txt[i:j+1]) if i >= 0 else {}
-    except Exception:
-        obj = {}
-    return obj.get("defects", []) if isinstance(obj, dict) else [], fin, len(txt)
+    obj = last_schema_object(m.get("content") or "") 
+    if obj is None and fin != "length":
+        obj = last_schema_object(m.get("reasoning_content") or "")
+    return (obj or {}).get("defects", []), fin, len(txt)
 
 def hit(defects, hints):
     """Did any reported defect name the known one? Keyword match on the item's own hint set."""
@@ -93,5 +117,5 @@ for effort in ("medium", "xhigh"):
     rd = [r for r in rows if r["is_defect"]]; cc = [r for r in rows if not r["is_defect"]]
     found = sum(1 for r in rd if r["verdict"] == "FOUND")
     inv = sum(r["n_claims"] for r in cc)
-    print(f"  {effort:<7} recall {found}/{len(rd)}   invented claims on controls: {inv}"
+    print(f"  {effort:<7} planted-defect recall {found}/{len(rd)}   claims on controls: {inv}"
           f"   mean chars {sum(r['chars'] for r in rows)//max(len(rows),1):,}")
