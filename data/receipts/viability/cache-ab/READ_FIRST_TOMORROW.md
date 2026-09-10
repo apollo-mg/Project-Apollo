@@ -1,5 +1,15 @@
 # Overnight 2026-09-09 → 09-10: what is running and how to read it
 
+> ## INTERIM (00:47) — Arm A came back CLEAN
+> `pd2_novbrcache` (`--no-vbr-prompt-cache`, **inline** proxy): **20/20, 19 PASS / 1 FAIL,
+> 0 INFRA_ERROR**, 15 min. Wire: 63 responses, **0 slashes, 0 `finish_reason=length`**.
+> The single FAIL is `t03_patch_edit/t05_v4a`, the same content failure as every clean run.
+> (`rc=1` in the driver log is benign — hermesbench exits nonzero when any task FAILs.)
+>
+> This is the inline drain mode that latched 3/3 previously. **Do not conclude anything yet**:
+> Arm B (`pd2_control`) is the positive control and started 00:47:59. If B also comes back clean,
+> both arms are void and the proxy edit broke the repro.
+
 Launched 00:32. Two arms, unattended, each capped at 2.5 h (`timeout 9000`). Worst case ~5 h.
 Full design and predictions: `../PREREG_CACHE_REUSE_AB.md` (logged before the run).
 
