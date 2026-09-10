@@ -27,13 +27,40 @@ def render(svg, png, w=512, h=384):
     return r.returncode == 0, r.stderr.decode("utf-8", "replace")[:400]
 
 
+FRAG_MIN = 0.05    # a fragment must be >= 5% of the main subject's size
+FRAG_MARGIN = 6     # ...and within 6 component cells (~24 px at 512 wide) of it
+BG_TOL = 24   # sum of |dRGB| within which a pixel counts as backdrop
+EDGE_K = 3    # how many pixels in from each canvas edge supply backdrop candidates
+
+
 def _ink(png):
-    """Boolean ink mask: True where the pixel differs from the dominant (background) colour."""
-    im = Image.open(png).convert("RGB")
-    a = np.asarray(im).astype(np.int16)
-    corners = np.concatenate([a[0, 0], a[0, -1], a[-1, 0], a[-1, -1]]).reshape(4, 3)
-    bg = np.median(corners, axis=0)
-    return (np.abs(a - bg).sum(axis=2) > 40), a
+    """Boolean ink mask (True = drawn content) and the RGB array.
+
+    REVISED 2026-09-10 after the ladder's first rep. The original took the median of the four
+    corner pixels as the single background colour. A sky-over-ground scene has two backdrop
+    colours; the median fell between them, matched neither, and 99.7% of the canvas registered
+    as ink -- the model was fed a solid block of '@' as "feedback" and correctly said so.
+    All three validation references had one plain backdrop, which is why it was never caught.
+
+    Now: composite onto white first (so a transparent backdrop cannot read as black and swallow
+    black strokes). Then each pixel is backdrop if it is close to the colour at the ENDS OF ITS
+    OWN ROW (left/right canvas edge) or the ends of its own column (top/bottom edge). That follows
+    horizontal bands (sky/ground), vertical and horizontal gradients, and the blended horizon row,
+    and it still classifies ENCLOSED backdrop -- inside a wheel rim, inside a frame triangle -- as
+    backdrop, which a border-connected flood fill would get wrong.
+    Known limit: an object touching a canvas edge is partly erased in the rows/columns it touches.
+    """
+    im = Image.open(png).convert("RGBA")
+    white = Image.new("RGBA", im.size, (255, 255, 255, 255))
+    a = np.asarray(Image.alpha_composite(white, im).convert("RGB")).astype(np.int16)
+    H, W, _ = a.shape
+    k = min(EDGE_K, W // 2, H // 2)
+    row_c = np.concatenate([a[:, :k, :], a[:, W - k:, :]], axis=1)             # H x 2k x 3
+    col_c = np.concatenate([a[:k, :, :], a[H - k:, :, :]], axis=0)             # 2k x W x 3
+    d_row = np.abs(a[:, :, None, :] - row_c[:, None, :, :]).sum(axis=3).min(axis=2)
+    d_col = np.abs(a[:, :, None, :] - col_c.transpose(1, 0, 2)[None, :, :, :]).sum(axis=3).min(axis=2)
+    backdrop = (d_row < BG_TOL) | (d_col < BG_TOL)
+    return ~backdrop, a
 
 
 def grid(png, cols=64, rows=32):
@@ -129,7 +156,11 @@ def structural(svg, png):
         runs = sorted(runs, key=lambda r: (r[1] - r[0]), reverse=True)[:2]
         runs = sorted(runs, key=lambda r: r[0])
         w0, w1 = (runs[0][1] - runs[0][0]), (runs[1][1] - runs[1][0])
-        c["clusters_similar_width"] = min(w0, w1) / max(w0, w1) >= 0.6
+        # NOT SCORED since 2026-09-10: column-projection runs merge the frame and crank into the
+        # rear-wheel run, so this was marginal on a known-good reference (0.63 vs 0.60) before any
+        # data and then failed a correct real drawing. It penalises detail -- a bias against
+        # exactly the models that draw more. Kept as a note.
+        notes["cluster_width_ratio"] = round(min(w0, w1) / max(w0, w1), 3)
         gap = runs[1][0] - runs[0][1]
         c["clusters_separated"] = gap > 0
         notes["cluster_widths"] = [int(w0), int(w1)]
@@ -137,7 +168,7 @@ def structural(svg, png):
         midband = mask[int(0.35 * H):int(0.70 * H), min(mid0, mid1):max(mid0, mid1)]
         c["structure_between"] = bool(midband.size and midband.mean() > 0.02)
     else:
-        c["clusters_similar_width"] = c["clusters_separated"] = c["structure_between"] = False
+        c["clusters_separated"] = c["structure_between"] = False
 
     upper = mask[:int(0.40 * H), :]
     c["mass_above"] = bool(upper.size and upper.mean() > 0.01)
@@ -164,7 +195,29 @@ def structural(svg, png):
     # to the bike by its legs, so subject_attached passes while the head floats free.
     # THRESHOLD IS PROVISIONAL -- calibrated on n=4 (good 1.00, blob 1.00, pass1 0.762, blank 0.0).
     # Recalibrate as samples accumulate; a legitimate separate ground line costs a few points.
-    c["assembly_coherent"] = notes["largest_component_frac"] >= 0.85
+    # REVISED 2026-09-10: the old scalar test (largest_component_frac >= 0.85) moved whenever
+    # unrelated scenery merged or split. After backdrop detection was fixed, pass1's wheel
+    # shadows joined its ground line to the bicycle, the fraction rose 0.762 -> 0.889, and the
+    # DETACHED HEAD passed. Ask the actual question instead: is there a piece of at least
+    # FRAG_MIN of the main subject's size lying within FRAG_MARGIN cells of it? A detached head
+    # is big and close; the sun and clouds are far; speed lines are small.
+    if comps:
+        main = comps[0]
+        near = np.zeros((ch, cw), dtype=bool)
+        for yy, xx in main:
+            near[yy, xx] = True
+        for _ in range(FRAG_MARGIN):
+            d = near.copy()
+            d[1:, :] |= near[:-1, :]; d[:-1, :] |= near[1:, :]
+            d[:, 1:] |= near[:, :-1]; d[:, :-1] |= near[:, 1:]
+            near = d
+        frags = [len(cells) for cells in comps[1:]
+                 if len(cells) >= FRAG_MIN * len(main) and any(near[yy, xx] for yy, xx in cells)]
+        notes["near_fragments"] = frags
+        c["assembly_coherent"] = not frags
+    else:
+        notes["near_fragments"] = []
+        c["assembly_coherent"] = False
 
     try:
         root = ET.parse(svg).getroot()

@@ -1,0 +1,130 @@
+Looking at the rendering, the image is essentially a uniform field (all `@`) with only two `#` marks. The faults:
+
+1. **Content too small/sparse for the canvas** – the pelican and bicycle occupy a narrow band; at 64×30 the 800×600 field reads as one flat color.
+2. **Pelican not clearly "on" the saddle** – body center (365,235) is 50 px above and 40 px right of the saddle (325,288); it looks like it's floating above the frame.
+3. **Second leg/foot floats** with no corresponding pedal; only one pedal is drawn.
+4. **Beak overlong and off-center** – it extends to x≈592, making the composition lopsided and the head nearly overlap the handlebar.
+5. **Low contrast everywhere** – pale body on pale sky, thin dark lines on light background; almost no tonal separation.
+6. **Wing-to-handlebar connection** is a thin 18 px stroke with a small circle; it reads as a dangling thread rather than a gripping wing.
+
+Here's a corrected SVG with a tighter composition, the pelican clearly seated on the saddle, both pedals drawn, a more prominent throat pouch, and stronger color contrast:
+
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+  <!-- Sky -->
+  <rect width="800" height="600" fill="#b8dff5"/>
+
+  <!-- Sun -->
+  <circle cx="700" cy="75" r="38" fill="#ffd54d"/>
+
+  <!-- Clouds -->
+  <g fill="#ffffff" opacity="0.85">
+    <ellipse cx="140" cy="95" rx="50" ry="18"/>
+    <ellipse cx="180" cy="85" rx="38" ry="15"/>
+    <ellipse cx="620" cy="65" rx="42" ry="16"/>
+    <ellipse cx="660" cy="74" rx="30" ry="13"/>
+  </g>
+
+  <!-- Ground -->
+  <rect x="0" y="520" width="800" height="80" fill="#6b9e3e"/>
+  <rect x="0" y="518" width="800" height="4" fill="#557a30"/>
+
+  <!-- ============ BICYCLE ============ -->
+  <!-- Rear wheel -->
+  <g stroke="#444" stroke-width="3">
+    <line x1="270" y1="460" x2="270" y2="395"/>
+    <line x1="270" y1="460" x2="335" y2="460"/>
+    <line x1="270" y1="460" x2="215" y2="460"/>
+    <line x1="270" y1="460" x2="317" y2="413"/>
+    <line x1="270" y1="460" x2="223" y2="413"/>
+    <line x1="270" y1="460" x2="317" y2="507"/>
+    <line x1="270" y1="460" x2="223" y2="507"/>
+  </g>
+  <circle cx="270" cy="460" r="58" fill="none" stroke="#2a2a2a" stroke-width="8"/>
+  <circle cx="270" cy="460" r="52" fill="none" stroke="#777" stroke-width="2"/>
+  <circle cx="270" cy="460" r="5" fill="#2a2a2a"/>
+
+  <!-- Front wheel -->
+  <g stroke="#444" stroke-width="3">
+    <line x1="555" y1="460" x2="555" y2="395"/>
+    <line x1="555" y1="460" x2="620" y2="460"/>
+    <line x1="555" y1="460" x2="490" y2="460"/>
+    <line x1="555" y1="460" x2="602" y2="413"/>
+    <line x1="555" y1="460" x2="508" y2="413"/>
+    <line x1="555" y1="460" x2="602" y2="507"/>
+    <line x1="555" y1="460" x2="508" y2="507"/>
+  </g>
+  <circle cx="555" cy="460" r="58" fill="none" stroke="#2a2a2a" stroke-width="8"/>
+  <circle cx="555" cy="460" r="52" fill="none" stroke="#777" stroke-width="2"/>
+  <circle cx="555" cy="460" r="5" fill="#2a2a2a"/>
+
+  <!-- Frame -->
+  <g stroke="#cc2222" stroke-width="8" stroke-linecap="round">
+    <line x1="270" y1="460" x2="420" y2="460"/>
+    <line x1="270" y1="460" x2="305" y2="300"/>
+    <line x1="420" y1="460" x2="305" y2="300"/>
+    <line x1="305" y1="300" x2="525" y2="292"/>
+    <line x1="525" y1="292" x2="420" y2="460"/>
+    <line x1="525" y1="292" x2="555" y2="460"/>
+  </g>
+
+  <!-- Handlebar -->
+  <path d="M525 292 L518 268 Q512 260 495 264" fill="none" stroke="#2a2a2a" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- Saddle -->
+  <ellipse cx="300" cy="292" rx="26" ry="9" fill="#2a2a2a" transform="rotate(-5 300 292)"/>
+
+  <!-- Crank & pedals -->
+  <circle cx="420" cy="460" r="8" fill="#2a2a2a"/>
+  <line x1="420" y1="460" x2="420" y2="492" stroke="#2a2a2a" stroke-width="5" stroke-linecap="round"/>
+  <rect x="406" y="488" width="28" height="7" rx="2" fill="#2a2a2a"/>
+  <line x1="420" y1="460" x2="420" y2="428" stroke="#2a2a2a" stroke-width="5" stroke-linecap="round"/>
+  <rect x="406" y="424" width="28" height="7" rx="2" fill="#2a2a2a"/>
+
+  <!-- ============ PELICAN ============ -->
+  <!-- Tail (pointing back-left) -->
+  <polygon points="275,230 240,275 290,280" fill="#e0ddd0"/>
+  <polygon points="275,235 245,265 285,270" fill="#d4d1c4"/>
+
+  <!-- Legs (orange, down to pedals) -->
+  <path d="M335 285 L400 390 L420 490" fill="none" stroke="#e8920a" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M350 282 L390 370 L420 428" fill="none" stroke="#e8920a" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Feet on pedals -->
+  <ellipse cx="420" cy="492" rx="15" ry="6" fill="#e8920a"/>
+  <ellipse cx="420" cy="428" rx="15" ry="6" fill="#e8920a"/>
+
+  <!-- Body -->
+  <ellipse cx="325" cy="242" rx="62" ry="48" fill="#f5f3ea"/>
+
+  <!-- Wing on body -->
+  <ellipse cx="305" cy="248" rx="40" ry="30" fill="#ddd9cc" transform="rotate(-12 305 248)"/>
+
+  <!-- Head -->
+  <circle cx="408" cy="172" r="30" fill="#f5f3ea"/>
+
+  <!-- Throat pouch (big, orange-yellow, signature pelican feature) -->
+  <path d="M430 178 Q500 170 540 180 Q530 235 475 245 Q440 238 430 178 Z" fill="#e8920a"/>
+  <!-- Pouch shading -->
+  <path d="M435 185 Q480 178 520 185 Q515 220 470 228 Q445 222 435 185 Z" fill="#d47d06" opacity="0.5"/>
+
+  <!-- Upper beak -->
+  <path d="M430 162 L555 172 L430 178 Z" fill="#f0a020"/>
+
+  <!-- Eye -->
+  <circle cx="412" cy="164" r="4" fill="#1a1a1a"/>
+  <circle cx="411" cy="163" r="1.5" fill="#ffffff"/>
+
+  <!-- Forewing gripping handlebar -->
+  <path d="M380 210 Q440 230 495 266" fill="none" stroke="#f5f3ea" stroke-width="16" stroke-linecap="round"/>
+  <path d="M380 210 Q440 230 495 266" fill="none" stroke="#ddd9cc" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="495" cy="266" r="9" fill="#8a8f94"/>
+
+  <!-- Motion lines -->
+  <g stroke="#6aafdb" stroke-width="3" stroke-linecap="round">
+    <line x1="100" y1="430" x2="195" y2="430"/>
+    <line x1="115" y1="460" x2="195" y2="460"/>
+    <line x1="130" y1="490" x2="195" y2="490"/>
+  </g>
+</svg>
+```

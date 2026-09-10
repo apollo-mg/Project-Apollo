@@ -79,3 +79,55 @@ reference-point conclusion is confounded. This design varies **only** the review
 Three reps per quant, one prompt, one model family, one structural scorer with a provisional
 threshold. This is a pilot that sizes effects; it does not establish rates. The scorer measures
 assembly and structure, not whether it is a good pelican — that judgement stays with the viewer.
+
+---
+
+## PROTOCOL CHANGE (2026-09-10, 19:05–19:30) — instrument revised after the first rep; first run quarantined
+
+Made **before any valid outcome was observed.** The first run's data is garbage (below) and informed
+only the diagnosis.
+
+**1. Backdrop detection** (`svg_probe._ink`): corner-median → per-pixel comparison against the
+colours at the ends of its own row and column, after compositing onto white.
+*Cause:* rep 1's drawing had sky over ground; the corner median, rgb(186,208,203), matched neither;
+**99.7% of the canvas registered as ink** and every correction step was fed a solid block of `@`.
+Both fault lists said so. All four steps invalid → `invalid_bg_run/` with `CONTAMINATED.md`.
+
+**2. `assembly_coherent` redefined:** `largest_component_frac >= 0.85` → *no component of at least
+5% of the main subject's size lies within 6 cells (~24 px) of it.*
+*Cause:* once (1) was fixed, pass1's wheel shadows joined its ground line to the bicycle, the
+fraction rose 0.762 → 0.889, and the **detached head passed** — the exact fault the check exists
+to catch. A threshold on "fraction in the biggest piece" moves whenever unrelated scenery merges.
+
+**3. `clusters_similar_width` removed from scoring** (kept as note `cluster_width_ratio`).
+*Cause:* column-projection runs merge frame and crank into the rear-wheel run. It was already marginal
+on a known-good reference **before any data** (0.63 vs 0.60, recorded in the README at creation), then
+failed a correct real drawing. It penalises added detail — a bias that would fall on the higher-bit
+quants. **Scored max is now 10.**
+
+### Validation after the change — every case matched expectations written before the run
+
+| case | expected | got | note |
+|---|---|---|---|
+| good (plain backdrop) | 10/10 | 10/10 | 1 component, 1440 cells |
+| good_transparent | 10/10 | 10/10 | backdrop invariance |
+| good_vgradient | 10/10 | 10/10 | backdrop invariance |
+| good_hgradient | 10/10 | 10/10 | backdrop invariance |
+| good_skyground | 10/10 | 10/10 | the failure mode; wheels straddle the horizon |
+| blob | 7/10 | 7/10 | |
+| blank | 1/10 | 1/10 | |
+| pass1 (detached head) | 9/10, assembly FAIL | 9/10 | near fragment 213 cells = the head |
+| pass2b (neck fixed) | 10/10 | 10/10 | one component |
+| real_q2_skyground | 10/10 | 10/10 | sun + cloud (188, 102 cells) correctly ignored as distant |
+
+Backdrop invariance: the same subject on five backdrops yields component sizes 1432–1444 and grids
+differing by 1–10 of 2048 cells.
+
+### Disclosed researcher degree of freedom
+
+Changes 2 and 3 were made **after seeing specific drawings** (pass1, real_q2). Mitigation: each is
+motivated by a mechanism (threshold drift from unrelated merges; projection merging), not tuned to a
+target number, and pass criteria were written before re-validating. It is still a choice made with
+data in view and is disclosed as one.
+
+**Predictions P-L1–P-L5 and all metric definitions are unchanged.** The ladder restarts from scratch.

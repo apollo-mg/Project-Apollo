@@ -51,3 +51,24 @@ python3 svg_probe.py drawing.svg --grid-only --cols 64  # just the feedback chan
 ```
 
 Requires `rsvg-convert`, PIL, numpy.
+
+## Revision 2026-09-10 — the first live run broke the instrument three ways
+
+The original validation used three SVGs that shared one plain backdrop. Real drawings do not.
+
+1. **Backdrop detection** was a corner median. A sky-over-ground scene put the "background" between
+   the two colours: 99.7% ink, and the model was fed a solid block of `@`. Now each pixel is compared
+   with the colours at the ends of its own row and column, after compositing onto white — which
+   follows bands, both gradient directions and the horizon blend, and still treats enclosed backdrop
+   (inside a wheel rim) as backdrop.
+2. **`assembly_coherent`** was a threshold on the largest-component fraction, which drifted when
+   unrelated scenery merged; the detached-head case started passing. It now asks directly: is any
+   piece ≥ 5% of the subject's size within ~24 px of it?
+3. **`clusters_similar_width`** is no longer scored (note only) — it merged frame into wheel and
+   penalised detail. **Scored max is now 10.**
+
+**The test that should have existed from the start is invariance:** the same subject on different
+backdrops must score identically. `reference/good_{transparent,vgradient,hgradient,skyground}.svg`
+do that, plus `real_q2_skyground.svg` — the real drawing that exposed the bug. Ten references, all
+matching expectations written before running. Lesson: validate an instrument on the distribution it
+will actually see, not on the one that was convenient to draw.
