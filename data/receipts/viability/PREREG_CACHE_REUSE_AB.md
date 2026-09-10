@@ -70,3 +70,50 @@ Genuinely a coin flip; nobody has ever looked at this output. It matters because
 If TREAT suppresses the runaways, that shows checkpoints are *implicated*, not that the rewind is
 incorrect. Demonstrating the latter needs a prompt-level diff of what the model actually attended
 to, which this design does not provide.
+
+---
+
+## SCORING (2026-09-09, both arms complete)
+
+| pred | conf | result |
+|---|---|---|
+| P-C1 CTRL reproduces onset | 75% | **CONFIRMED** — 6/6 past #17, 20/22 overall |
+| P-C2 TREAT suppresses it | 45% | **FALSIFIED** — 6/6 past #17, 14/22 overall |
+| P-C3 sys_sha stable | 80% | **FALSIFIED** — 22 distinct hashes per arm |
+| P-C4 text is degenerate | 50% | **CONFIRMED** — 4096 `/`, 99.1% shingle share |
+
+### P-C2 falsified: checkpoints are not the cause
+
+`--ctx-checkpoints 0` did not suppress the latch. It moved it (task 9 vs task 3) and produced
+**byte-identically shaped output** — 4096 `/`, 99.1% top-shingle share, same tail.
+
+Latch position across three runs:
+
+| run | `--ctx-checkpoints` | proxy | clean tasks before latch |
+|---|---|---|---|
+| bitdepth_iq3xxs_v5 | 32 (default) | no | 16 |
+| cacheab_ctrl | 32 | yes | 2 |
+| cacheab_treat | **0** | yes | 8 |
+
+16 / 2 / 8 does not order by the flag. The trigger is stochastic and independent of context
+checkpoints. **The cross-task checkpoint-reuse mechanism is withdrawn.** The `restored context
+checkpoint` log line that motivated it is real but incidental — it still appears in runs that
+latch and in tasks that pass.
+
+This also retires the mechanism P-C3 was shoring up. The system prompt does drift per task
+(~28 chars of ~17,660) and `f_sim_best` is genuinely 0.992-0.997, but since disabling checkpoints
+changes nothing, foreign-slot selection is no longer a candidate explanation for the degeneracy.
+
+### What survives
+
+Only the shape of the fault: **a stochastic trigger producing persistent corrupt decode state,
+cleared by a server restart.** No mechanism identified.
+
+### Next, in order of what they gate
+
+1. **No-proxy control** — VBR, no proxy, 14 tasks. Gates whether any of this is reportable.
+   Proxied runs latched at 2 and 8; the single unproxied run latched at 16. n=1 is not enough
+   to clear the proxy.
+2. **`-ctk f16 -ctv f16` control** — gates *whose* bug it is. Every run so far has been on
+   `-ctk vbr -ctv vbr --vbr-floor t2`. If the latch vanishes without VBR it is buun's KV path;
+   if it survives it is upstream or the quantisation.
