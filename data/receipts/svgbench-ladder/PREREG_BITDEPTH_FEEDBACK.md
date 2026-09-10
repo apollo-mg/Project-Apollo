@@ -131,3 +131,22 @@ target number, and pass criteria were written before re-validating. It is still 
 data in view and is disclosed as one.
 
 **Predictions P-L1–P-L5 and all metric definitions are unchanged.** The ladder restarts from scratch.
+
+---
+
+## COMMITMENT added after rep 1 of 12 (2026-09-10 ~19:25), before the remaining 11 reps
+
+Rep 1 (UD-Q2_K_XL) scored **10/10 on its first drawing** — at ceiling. Both corrections changed the
+drawing (neither identical to its parent) but could only hold or regress, so under the pre-specified
+ceiling rule neither framing gain is defined for that rep. Recording now, before further data, what
+happens if that turns out to be typical:
+
+- If **≥ 8 of 12 reps are at ceiling on p1**, P-L1 and P-L4 are reported **NOT EVALUABLE**, and the
+  run is reported as a **scorer-resolution finding**: a 10-check structural scorer saturates on
+  competent first drawings, so it cannot measure feedback utilization for them.
+- **No scorer change will be applied retroactively to this run's data** to rescue evaluability.
+  A harder or graded scorer is a new experiment with its own pre-registration.
+- **Exploratory only, labelled as such in any write-up:** pixel-level change between parent and
+  child renders. Rep 1's corrections were aesthetic (neck thickness, beak proportion, tail
+  feathers) — real changes the structural checks deliberately ignore, by design of the
+  engineering/art split.
