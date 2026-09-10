@@ -206,3 +206,54 @@ per request means no keep-alive) next.
 **Unproxied latch is still unexplained.** v5 latched at 16 with no proxy. Whatever the proxy
 aggravates, something else can trigger it too — and we still have never seen the text of an
 unproxied runaway.
+
+---
+
+## Pre-registration — decoupled-drain test (logged before running)
+
+### Mechanism being tested
+
+`llm_proxy.py --drain-mode inline` awaits the downstream write for every chunk, so the server's
+socket sink drains at Python speed across an extra hop. When that sink stalls, llama.cpp's
+generation loop stalls between tokens.
+
+**The proposed corruption path:** this build publishes idle dynamic-VBR slots as prompt-cache
+artifacts — the server log carries
+`publish_idle: VBR_IDLE_CAPTURE manifests=1 published=1 ... transfers=32` and repeated
+`VBR_RETIER_PREFLIGHT owner=server_checkpoint_restore`. If a slot that is stalled *mid-generation*
+is classified idle and its KV is re-tiered (re-quantised in place), the in-flight decode continues
+against KV that changed underneath it. That would produce exactly what we see:
+
+- degenerate output, because the attended KV no longer means what the logits were built from
+- **latching**, because the KV stays re-tiered
+- cleared by restart, because that rebuilds the cache
+- **rate proportional to how slow the consumer is** — 3/3 with the inline proxy, 1/2 direct
+- and it explains the unproxied v5 latch at task 16: a direct client can stall too, just rarely
+
+This is a hypothesis. It has not been tested and no code path has been traced end-to-end.
+
+### Design
+
+Identical to the proxied repeat — same 20 tasks, VBR, fresh server, `--timeout-overhead 300` —
+with `--drain-mode decoupled`: upstream is drained at full speed into a queue and a separate task
+writes downstream, so the client can never backpressure the server.
+
+Client-disconnect propagation was added and verified first (killed client at 0.8 s of a 2.0 s
+stream → `aborted` at 17 chunks, upstream closed). Without it the server would keep generating for
+a dead client and still be busy when the next task starts — a worse confound than the one being fixed.
+
+### Predictions
+
+**P-D1: the decoupled proxy does not latch within 20 tasks. 55%.**
+Barely above a coin flip on purpose. Inline latched 3/3 at positions 2, 8, 2, so the trigger is
+strongly proxy-linked, but "proxy-linked" does not confirm *backpressure* specifically —
+connection churn (a fresh `ClientSession`, hence no keep-alive, per request) is untested and would
+survive this change.
+*CONFIRMED:* backpressure is the trigger, "a slow stream consumer corrupts decode on VBR" becomes a
+real and reportable server bug, and the proxy is rehabilitated as an observation tool.
+*FALSIFIED:* backpressure is not it; connection churn is next, then header/framing differences.
+
+**P-D2: if P-D1 confirms, `--no-vbr-prompt-cache` with the INLINE proxy also suppresses the latch. 50%.**
+Logged now so it cannot be invented later. This is the direct test of the idle-capture path above:
+if disabling idle-slot publication fixes an inline run, the mechanism is identified rather than
+merely correlated.

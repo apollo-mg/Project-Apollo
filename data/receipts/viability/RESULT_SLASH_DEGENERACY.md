@@ -1,4 +1,25 @@
-# ⚠️ HEAVILY CAVEATED — the runaway is 4096 `/`, but the PROXY is implicated in causing it
+# RESOLVED — a slow stream consumer makes llama-server latch into degenerate `/` output
+
+> **Final status (2026-09-10 00:08).** The trigger is **consumer backpressure**, isolated by a
+> single-variable experiment. The caveat block below is kept for the record; it was correct when
+> written and the proxy is now rehabilitated as an observation tool.
+>
+> | drain mode | latch | responses >90% `/` | result | wall |
+> |---|---|---|---|---|
+> | **inline** (awaits client per chunk) | task 2, **3/3 runs** | 24/28 | 2 PASS, 11 INFRA | ~90 min |
+> | **decoupled** (client cannot backpressure) | **none** | **0/54** | **19 PASS, 1 FAIL, 0 INFRA** | 11 min |
+>
+> Same proxy binary, same server flags, same 20 tasks, same order. Only `--drain-mode` differed.
+>
+> **Claim now supported:** *when the HTTP client drains the SSE stream slowly, llama-server
+> (VBR `-ctk vbr -ctv vbr --vbr-floor t2`, IQ3_XXS, gfx1201) latches into degenerate output and
+> stays degenerate until restart.* This is a real server-side fault with a controllable trigger,
+> not an artefact of logging — the proxy only reads `delta.content` and cannot manufacture 4096
+> clean `/`.
+>
+> **P-D1 (55%) CONFIRMED.** **Mechanism still unproven** — see P-D2.
+
+# Superseded caveat (kept for the record)
 
 > **Read this first (added 2026-09-09, 22:26, after the no-proxy control).**
 > The no-proxy control ran **20 tasks, 18 PASS / 2 FAIL, zero INFRA_ERROR, in 11 minutes** —
@@ -139,3 +160,45 @@ is stochastic — this is not yet proof.
 Repeat the proxied arm on the same 20 tasks. Latch again → 3/3 proxied vs 0/2 unproxied, strong.
 Run clean → chance, and the earlier arms were unlucky. This must run before the probe matrix,
 because the probe matrix assumes a latched server is a *model* state rather than a proxy artifact.
+
+---
+
+## Final — backpressure isolated (2026-09-10)
+
+**`decoupled_run`:** 20/20 tasks, **19 PASS / 1 FAIL / 0 INFRA_ERROR**, 11 minutes.
+54 responses captured, **zero** above 90% slashes, **zero** `finish_reason=length`.
+The only difference from `proxy_repeat` (which latched at task 2) is that the upstream read no
+longer waits on the downstream write.
+
+### Full run ledger
+
+| run | client | latch at | result |
+|---|---|---|---|
+| bitdepth_iq3xxs_v5 | direct | 16 | 14 PASS / 2 FAIL / 13 INFRA |
+| cacheab_ctrl | proxy inline | 2 | 2 PASS / 20 INFRA |
+| cacheab_treat | proxy inline, ckpt 0 | 8 | 8 PASS / 14 INFRA |
+| noproxy_ctl | direct | none | **18 PASS / 2 FAIL / 0 INFRA** |
+| proxy_repeat | proxy inline | 2 | 2 PASS / 11 INFRA (stopped early) |
+| **decoupled_run** | **proxy decoupled** | **none** | **19 PASS / 1 FAIL / 0 INFRA** |
+
+Direct 1/2, inline 3/3, decoupled 0/1. The dose-response tracks consumer speed.
+
+### What is established vs hypothesised
+
+**Established:** slow SSE consumption triggers a latching degenerate-output state on this build;
+a restart clears it; the harness's token ladder and 960 s timeout were amplifiers, not causes.
+
+**Hypothesised, untested:** that the corruption path is idle-slot VBR re-tiering — a slot stalled
+mid-generation being classified idle and having its KV re-quantised in place. The log lines exist
+(`publish_idle: VBR_IDLE_CAPTURE`, `VBR_RETIER_PREFLIGHT`) but nothing has been traced.
+**P-D2 (50%, pre-logged): `--no-vbr-prompt-cache` on an INLINE run also suppresses the latch.**
+That converts correlation into an identified mechanism and is the next test.
+
+**Still unexplained:** v5 latched at 16 with a direct client. Consistent with a direct client
+occasionally stalling, but not shown.
+
+### Corpus note
+
+`t03_patch_edit/t05_v4a` failed in every clean run (v5, noproxy, decoupled) — a genuine content
+failure. `t02_file_read/t03_read_paginated` failed in v5 and noproxy but passed decoupled, so it
+is borderline. Best clean estimate for IQ3_XXS on tasks 1-20: **18-19/20**.

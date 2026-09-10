@@ -95,8 +95,9 @@ def parse_sse_delta(raw):
 
 
 class Proxy:
-    def __init__(self, upstream, log):
+    def __init__(self, upstream, log, drain_mode="decoupled"):
         self.upstream, self.log = upstream.rstrip("/"), log
+        self.drain_mode = drain_mode
         self.n = 0
 
     async def handle(self, request):
@@ -132,10 +133,41 @@ class Proxy:
                     await out.prepare(request)
 
                     text, finish, nchunks, ttft, aborted = "", None, 0, None, False
+
+                    # decoupled: a writer task owns the downstream socket so that a slow client
+                    # cannot backpressure the upstream read (and thus the server's decode loop).
+                    q = None
+                    writer = None
+                    if self.drain_mode == "decoupled":
+                        q = asyncio.Queue()
+
+                        # If the client goes away, stop reading upstream too. Without this the
+                        # server keeps generating for a dead client and is still busy when the
+                        # harness starts the next task -- a worse confound than the one
+                        # decoupling fixes.
+                        client_gone = asyncio.Event()
+
+                        async def _writer():
+                            while True:
+                                item = await q.get()
+                                if item is None:
+                                    return
+                                try:
+                                    await out.write(item)
+                                except Exception:
+                                    client_gone.set()
+                                    return
+                        writer = asyncio.ensure_future(_writer())
+
                     try:
                         async for chunk in up.content.iter_any():
-                            # forward FIRST -- observation must not delay the harness
-                            await out.write(chunk)
+                            if q is not None:
+                                if client_gone.is_set():
+                                    aborted = True
+                                    break                    # closes upstream, frees the slot
+                                q.put_nowait(chunk)          # never blocks the upstream read
+                            else:
+                                await out.write(chunk)       # inline: blocks on the client
                             nchunks += 1
                             if ttft is None:
                                 ttft = time.time() - t0
@@ -163,8 +195,16 @@ class Proxy:
                     if finish is None and not meta.get("stream") and text == "" and nchunks:
                         pass
 
+                    if writer is not None:
+                        q.put_nowait(None)
+                        try:
+                            await asyncio.wait_for(writer, timeout=30)
+                        except Exception:
+                            writer.cancel()
+
                     self.log.write({"t": time.time(),
                                     "ev": "aborted" if aborted else "response",
+                                    "drain_mode": self.drain_mode,
                                     "id": cid, "status": up.status, "finish_reason": finish,
                                     "chunks": nchunks, "ttft": ttft,
                                     "elapsed": time.time() - t0,
@@ -189,6 +229,14 @@ def main():
     # Bracketing the pattern ([l]lm_proxy.py) does NOT save you when the literal string appears
     # elsewhere in the same block -- that is how this was learned, twice. See AFM-37.
     ap.add_argument("--pidfile", default=None)
+    # inline    : await the downstream write for every chunk before reading the next.
+    #             Each token costs a Python round-trip + a second socket hop, so the server
+    #             sees a much slower consumer than a direct client. This mode was measured to
+    #             INDUCE degenerate '/' output on VBR builds (3/3 runs). See
+    #             data/receipts/viability/PREREG_CACHE_REUSE_AB.md.
+    # decoupled : drain upstream at full speed into a queue; a separate task writes downstream.
+    #             Upstream is never blocked by the client.
+    ap.add_argument("--drain-mode", choices=("inline", "decoupled"), default="decoupled")
     a = ap.parse_args()
 
     if a.pidfile:
@@ -196,8 +244,9 @@ def main():
             f.write(str(os.getpid()))
     log = Log(a.log)
     log.write({"t": time.time(), "ev": "proxy_start", "listen": a.listen,
-               "upstream": a.upstream, "pid": os.getpid()}, sync=True)
-    p = Proxy(a.upstream, log)
+               "upstream": a.upstream, "pid": os.getpid(),
+               "drain_mode": a.drain_mode}, sync=True)
+    p = Proxy(a.upstream, log, a.drain_mode)
     app = web.Application(client_max_size=1024**3)
     app.router.add_route("*", "/{tail:.*}", p.handle)
     print(f"[proxy] {a.host}:{a.listen} -> {a.upstream}  log={a.log}", flush=True)
