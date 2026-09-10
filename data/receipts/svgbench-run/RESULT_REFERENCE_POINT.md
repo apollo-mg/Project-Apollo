@@ -75,3 +75,28 @@ that it was wrong, which is the property that matters in agentic deployment.
   total tokens in multi-turn work — the prompt appears to move it more than the effort dial might.
 - A 3-bit 27B drew a structurally correct bicycle — spoked wheels, frame geometry, handlebars,
   chainring, legs reaching the pedals — blind, first attempt.
+
+---
+
+## CORRECTION (2026-09-10, same day) — the comparison varied three things, not one
+
+Passes 2a and 2b did not differ only in the reference point of the review instruction:
+
+| | 2a (output unchanged) | 2b (diagnosed and fixed the neck) |
+|---|---|---|
+| review clause | "compare the rendering **to what you intended**" | "**what is wrong** with this drawing" |
+| output format | "Reply with the SVG only" | "**Reply with a short list of faults**, then the SVG" |
+| extra instruction | "Do not overthink this" | — |
+
+So the improvement in 2b **cannot be attributed to reference point alone**. An explicit request to
+enumerate faults is at least as plausible a cause as the change of reference point, and the ~40%
+difference in reasoning length is confounded by "do not overthink this," present only in 2a.
+
+**The headline "feedback utilization depends on the prompt's reference point" is withdrawn as a
+causal claim.** What stands is narrower: identical feedback, different instructions, one run
+returned its input unchanged and the other produced a correct diagnosis and repair — and 2a's
+reasoning trace shows it located the head correctly and then verified against its own plan.
+The trace supports the reference-point *mechanism* as a hypothesis; the design did not isolate it.
+
+The follow-up in `../svgbench-ladder/` holds scaffold, output format and every other word fixed,
+and varies only the review clause (verified by a character-level diff before launch).
