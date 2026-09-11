@@ -39,3 +39,33 @@ artifacts.** P-L1 and P-L4 are computed only on non-ceiling reps, so they are cu
 entirely on artifact-driven reps. **The final report will print the arithmetic verdicts as
 pre-registered, and state beside them how many of the reps underneath are artifact-driven.** If all of
 them are, the verdicts carry no information about feedback utilization, and the report will say so.
+
+## IQ4_XS rep 2 — p1 9/10: REAL — the first non-artifact, non-ceiling rep
+
+Backdrop pure white (255,255,255). The neck is
+`<path d="M292 142 Q 332 122 348 82" stroke="#ffffff" stroke-width="24" …>` — **a white stroke on a
+white canvas, invisible in the render.** The head (189 cells) genuinely floats with no visible
+connection to the body; the scorer's `assembly_coherent` failure matches what a viewer sees.
+
+- **`intent2` → 10/10.** Diagnosed *"Neck has no outline — it's drawn as a plain white stroke with no
+  border, so it looks like a floating white tube rather than a defined neck"* and gave it a border
+  (white stroke 24 → 23 over a darker outline). The neck becomes visible and joins head to body:
+  **3 components → 1.**
+- **`goal2` and `goal3` → 9/10.** Both pursued other faults (*"Legs too thin / unclear — the feet don't
+  visually 'grip' the pedals"*) and never addressed the invisible neck.
+- **Framing effect −1: intent beat goal**, the opposite of P-L1's predicted direction. One clean data
+  point.
+
+## Rule used to call a failure real or artifact (stated so it can be checked)
+
+A failed check is **real** if the element responsible is *not visible in the render* — e.g. drawn in
+the backdrop colour — so a viewer sees the same fault the scorer reports. It is an **artifact** if the
+element *is* visible and the scorer mis-segments it: grass-ellipse tips counted as ink; a visible grey
+neck broken apart by 4-connectivity; a wing inside a visibly outlined body. Applied so far:
+Q2_K_XL r2 artifact, IQ2_M r2 artifact, IQ4_XS r2 real. **This is still my judgement from looking at
+renders, and is disclosed as such**; the colour test (element colour vs backdrop colour) is the part
+anyone can re-check from the saved SVGs.
+
+## Tally, updated before the remainder of rep 3
+
+Non-ceiling first drawings: **3 — two artifact-driven (framing effect 0, 0), one real (effect −1).**
