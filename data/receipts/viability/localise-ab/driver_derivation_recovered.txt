@@ -1,0 +1,42 @@
+# Recovered 2026-09-11 from the session transcript. The localise-ab driver was DERIVED from
+# ../master-ab/driver_recovered.sh by the sed/python edits below (arms, env vars, run-id prefix),
+# not written as its own file; the derived script lived in the scratchpad and was lost.
+
+S=/tmp/claude-1000/-mnt-TG-2TB-Projects-Apollo/9457b3f4-5754-4ef0-902f-d30c8f5f3912/scratchpad
+sed -e 's|^say "### interleaved OLD/NEW VBR, 3 reps each ###"|say "### interleaved OLD/NEW/FUSED0/HOT, 3 reps each ###"|' \
+    -e 's|^for rep in 1 2 3; do run_one OLD "\$rep"; run_one NEW "\$rep"; done|for rep in 1 2 3; do for a in OLD NEW FUSED0 HOT; do run_one "$a" "$rep"; done; done|' \
+    $S/master_ab.sh > $S/localise_ab.sh
+python3 - <<'PY'
+p='/tmp/claude-1000/-mnt-TG-2TB-Projects-Apollo/9457b3f4-5754-4ef0-902f-d30c8f5f3912/scratchpad/localise_ab.sh'
+s=open(p).read()
+old='''  local B; [ "$which" = OLD ] && B=$OLDB || B=$NEWB'''
+new='''  local B=$OLDB ENVS=""
+  case "$which" in
+    NEW)    B=$NEWB ;;
+    FUSED0) ENVS="GGML_TURBO_MMA_FUSED=0" ;;
+    HOT)    ENVS="TURBO_TCQ_HOTSWAP=1" ;;
+  esac'''
+assert s.count(old)==1, s.count(old)
+s=s.replace(old,new,1)
+old2='''  setsid nohup stdbuf -oL -eL "$B" -m "$M"'''
+new2='''  setsid nohup env $ENVS stdbuf -oL -eL "$B" -m "$M"'''
+assert s.count(old2)==1
+s=s.replace(old2,new2,1)
+s=s.replace('OUT=/mnt/TG_2TB/Projects/Apollo/data/receipts/viability/master-ab',
+            'OUT=/mnt/TG_2TB/Projects/Apollo/data/receipts/viability/localise-ab')
+s=s.replace('mab_','lab_')
+# skip the rebuild: binaries already exist
+s=s.replace('cmake --build "$NEWR/build_rocm" -j 12 --target llama-server >> "$LOG" 2>&1 || { say "BUILD FAILED"; exit 1; }',
+            '[ -x "$NEWB" ] || cmake --build "$NEWR/build_rocm" -j 12 --target llama-server >> "$LOG" 2>&1 || { say "BUILD FAILED"; exit 1; }')
+open(p,'w').write(s)
+print("4-arm runner written")
+PY
+chmod +x $S/localise_ab.sh
+bash -n $S/localise_ab.sh && echo "syntax OK"
+mkdir -p /mnt/TG_2TB/Projects/Apollo/data/receipts/viability/localise-ab
+setsid nohup $S/localise_ab.sh > /mnt/TG_2TB/Projects/Apollo/data/receipts/viability/localise-ab/stderr.log 2>&1 &
+echo "  launched (pid $!) — stderr captured this time"
+sleep 40
+tail -6 /mnt/TG_2TB/Projects/Apollo/data/receipts/viability/localise-ab/driver.log 2>/dev/null | cut -c1-140 | sed 's/^/  /'
+echo "  --- stderr ---"
+tail -5 /mnt/TG_2TB/Projects/Apollo/data/receipts/viability/localise-ab/stderr.log 2>/dev/null | cut -c1-140 | sed 's/^/  /'
