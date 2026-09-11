@@ -79,8 +79,9 @@ sees a label.
 
 `MAPPING_SEALED.json` SHA-256: `cd1d4f46a6b160ab45461f1875e2f4e2bd187838153551c1a978bb03158764e9`
 
-The mapping was built from the OS RNG before any pick existed. It is kept out of git through
-`.git/info/exclude` until Mark says he is done.
+The mapping was built from the OS RNG before any pick existed. It is kept out of git by the last
+line of `.gitignore` until Mark says he is done. `.git/info/exclude` was tried first and does not
+work in this repo, because `.gitignore`'s `!data/receipts/**` overrides it.
 
 **Noted at build, before any pick: all 8 repeats fell on first-drawing pairs.**
 - **Not a shuffle fault.** The first 45 positions held 30 first-drawing and 15 revision pairs, which
