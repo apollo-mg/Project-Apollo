@@ -291,3 +291,27 @@ the other 175 commits do not fix it on their own.
 **Reporting a clean arm.** A clean arm is reported with its reset count and the chance of zero bad
 resets at the stock rate (11 of 60 = 18.3%). For example, 0 of 30 would happen by luck about 1 time
 in 400.
+
+### Amendment — a second counting rule, registered before reps 2–3 are read (2026-09-11)
+
+**What broke.**
+- **The assumption:** the counting rule above counts generations that *finish* at the `-n 4096` cap.
+  That assumes a runaway reaches the cap before the harness's 180 s task timeout.
+- **What happened:** PARENT1 latched (`..III`) with **zero** cap-hitting generations. Its timed-out
+  tasks end in requests the harness cancelled while they were still generating. After a `vbr reset`,
+  one generation was still running past 700 tokens, and no completion line was ever logged.
+- **Why the timing matters:** at PARENT's decode speed (~25 t/s against OLD's ~27), a runaway plus
+  the 13k-token re-prefill takes about 180 s. The timeout cuts it off just short of the cap, and the
+  rule scores it clean.
+
+**Secondary rule.** A *runaway* is any generation whose logged `n_gen` reaches 1,000 tokens, whether
+it completes at the cap or is cancelled. Normal generations in OLD1 and FIX1 peaked at 427 tokens.
+
+- **Timing:** registered while PARENT2 is running, before any rep-2 or rep-3 result is read. For
+  rep 1 it is post hoc, and is reported as such.
+- **Reporting:** both rules are reported, and P-X1..P-X3 are scored under each. Where they disagree,
+  the secondary rule is the valid one, because the primary is known to miss cancelled runaways; for
+  rep 1 it is also the post-hoc one.
+- **Retroactive check:** the secondary rule is also applied to the `localise-ab/` and
+  `latch-interleaved/` logs, to check whether arms reported clean (FUSED0, HOT, q8_0, f16) hid
+  cancelled runaways.
