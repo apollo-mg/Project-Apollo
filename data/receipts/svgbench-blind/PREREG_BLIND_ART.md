@@ -153,3 +153,33 @@ drawings. The bit-depth comparison stays 6 v 4, and its best possible p stays ab
 |---|---|---|
 | P-B6 | Each outside rater agrees with Mark on more than 60% of decisive first-drawing pairs | 55% |
 | P-B7 | The pooled ranking does not separate Q2 from Q4 either (p ≥ 0.05) | 75% |
+
+## Addendum 2 (2026-09-11, before any pick was read and before the mapping was unsealed)
+
+Two things arrived that the first addendum did not anticipate. Both are fixed here, before any
+analysis.
+
+**Machine raters.**
+- **What happened:** the first outside result (rater R1: 75/75, median 2.9 s per pair) may have
+  been produced by the rater's AI agent rather than by the rater. Mark cannot tell which. The first
+  addendum assumed people.
+- **The rule:** an outside result is pooled with Mark's (P-B6, P-B7) only if the rater confirms a
+  person made the choices.
+- **An AI-made result** is reported separately as a machine rater, with its own P-B1..P-B5 and its
+  agreement with Mark. It is never pooled.
+- **Unconfirmed results** are reported under both readings until confirmed.
+
+**How "agreement" and "pooled" are computed.** The first addendum left both loose.
+- **Agreement** uses the 45 distinct first-drawing pairs.
+  - **Each rater's value for a pair:** 1 or 0 for a decisive pick and 0.5 for "too close". For a
+    repeated pair, the value is the mean of both judgments, exactly as in the win-rate rule.
+  - **Decisive:** a pair is decisive for a rater when its value is not 0.5.
+  - **Agreement** is the fraction of pairs decisive for both raters in which both favour the same
+    drawing.
+- **Pooling.** The pooled ranking averages per-drawing win rates over Mark and every eligible human
+  outside rater. It needs at least two eligible raters; with fewer, it is NOT EVALUABLE.
+- **Data integrity.** Every exported winner must be one of the two drawings in its pair, and every
+  pair id must exist. A result that fails either check is set aside, and the reason is reported.
+
+**Mark's completion.** Mark said his rating is finished (2026-09-11). His picks are read once, for
+this analysis only.
