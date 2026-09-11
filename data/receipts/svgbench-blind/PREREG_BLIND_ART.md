@@ -115,3 +115,41 @@ work in this repo, because `.gitignore`'s `!data/receipts/**` overrides it.
 - Outside the embedded image data, the page contains no quant, rep, step or pair-kind strings. The
   only hit was `e.repeat` in the key handler.
 - The 12 `IQ2`/`IQ4` hits all fall inside the base64 image data.
+
+## Addendum 2026-09-11 — outside raters (logged before any outside pick exists)
+
+Mark will invite one or two people from Discord. They rate on a separate page, "Pelican Judging
+Panel" (`tools/svgbench/build_share_page.py`). It is built from the same sealed mapping: the same 32
+renders, codes and 75 pairs, in the same order.
+
+**What differs from Mark's page.**
+- **Storage:** progress stays in the rater's own browser. Results leave the page only when the rater
+  copies them to Mark.
+- **Sides:** each rater gets random left/right flips. They are keyed so that a repeat still appears
+  swapped relative to its original.
+- **Recording:** a pick is recorded as the winning drawing's code.
+- **Flag:** it reads "I've seen one of these outside this page", because an outside rater cannot know
+  which quant drew anything.
+
+**Mark's analysis is unchanged.** P-B1..P-B5 are his, scored exactly as registered above.
+
+**Outside raters form a separate, secondary analysis.**
+1. Each rater's own P-B1..P-B5, under the same rules and completion minimums.
+2. **Agreement with Mark.** On pairs both judged decisively (no tie, no flag), the fraction where
+   they picked the same drawing. Reported per rater, with the pair count.
+3. **Pooled first-drawing scores.** Each drawing's win rate is averaged across all raters with at
+   least 40 usable first-drawing pairs, then put through the same permutation test as P-B1. This is
+   secondary; it does not replace Mark's P-B1.
+
+**Exclusions, fixed now.**
+- A rater whose exported median decision time is under 1.5 s is treated as clicking through, and
+  excluded.
+- Results count only if they arrive as the page's exported text. Nothing is transcribed by hand.
+
+**Power, stated plainly.** More raters make each drawing's score more reliable; they do not add
+drawings. The bit-depth comparison stays 6 v 4, and its best possible p stays about 0.01.
+
+| id | prediction | conf |
+|---|---|---|
+| P-B6 | Each outside rater agrees with Mark on more than 60% of decisive first-drawing pairs | 55% |
+| P-B7 | The pooled ranking does not separate Q2 from Q4 either (p ≥ 0.05) | 75% |
