@@ -53,8 +53,9 @@ Each cell is the mean of the two rounds, in t/s; the round values are in bracket
 
 ## Also found: master `aad850104` does not compile for Pascal (sm_60)
 
-Building the same commit for `.73` (CUDA 12.4, `CMAKE_CUDA_ARCHITECTURES=60`) fails in two groups of
-new code. All of it arrived after `.73`'s last good build (`a56eeef5`, 09-07).
+Building the same commit for `.73` (CUDA 12.4, `CMAKE_CUDA_ARCHITECTURES=60`) fails in three groups of
+new code. All of it arrived after `.73`'s last good build (`a56eeef5`, 09-07). The complete list comes
+from a keep-going build (`make -k`) of the CUDA backend; see the end of this section.
 
 **1. One-shot all-reduce: `allreduce-oneshot.cu`, from `e5d5ea9d5` (09-08).**
 - **The constructs.** It uses three sm_70-only constructs: `__nanosleep` (line 70) and inline PTX
@@ -84,8 +85,30 @@ architecture guard.
   `mma.sync.aligned.m16n8k16…f16`, and `exl3-gemv-int8.cuh:34–38` uses `cp.async`. Both require sm_80+
   per the PTX ISA.
   - If that holds, this code also breaks sm_70 and sm_75 builds. **Not compile-tested here.**
-- **Status:** a keep-going build of the CUDA backend on `.73` is enumerating the complete list of
-  sm_60 errors.
+  - **Not yet reported by the compiler.** nvcc stops at the front-end `__dp4a` errors in the same
+    translation unit, before ptxas sees the `mma`, so these are expected to fail next.
+
+**3. Vendored "humming" FP8 kernels: `humming-fp8.cu` and `humming-fp8-block.cu`, from `c5a534a52`.**
+- **The error.** Both include `humming/kernel/humming.cuh` → `humming/memory/g2s_pipeline.cuh:4` →
+  CUDA's `cuda_awbarrier_primitives.h`, which fails with `#error This file requires compute
+  capability 7.0 or greater`.
+- **No arch guard.** The only guard in either file is `#if !defined(GGML_USE_HIP)`.
+- **The fix is compile-only.** Both `…_supports_shape()` functions already return false unless
+  `cc >= GGML_CUDA_CC_AMPERE && cc < GGML_CUDA_CC_ADA_LOVELACE`, so a guard at the translation-unit
+  level, or a CMake exclusion when no targeted arch is ≥ sm_80, does not change Pascal's behaviour.
+
+**The complete list.** The keep-going build (`make -k`, `~/buun-aad85/build_sm60_k.log`, finished
+19:34) was run with the `allreduce-oneshot.cu` guards in place. Exactly four objects fail:
+
+| object | cause |
+|---|---|
+| `exl3.cu.o` | `__dp4a` |
+| `int8-channel.cu.o` | `__dp4a` |
+| `humming-fp8.cu.o` | awbarrier `#error` |
+| `humming-fp8-block.cu.o` | awbarrier `#error` |
+
+Every other CUDA source in the backend compiles for sm_60. Not checked: whether EXL3 and
+int8-channel are gated by compute capability at runtime.
 
 `.73`'s daily-driver binary is untouched. Nothing has been pushed upstream.
 

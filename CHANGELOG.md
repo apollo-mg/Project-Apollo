@@ -35,7 +35,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Afterwards it reads `power_cap: 330.0`, and sysfs `power1_cap` reads 330 W. **Record the cap in
   every receipt from this card.**
 
-### Added
+- **`.73` NVIDIA and CUDA packages held (Mark, 2026-09-11 ~19:35):**
+  - **What went wrong.** On **2026-09-10 at 12:05:49**, unattended-upgrades moved the NVIDIA 580
+    user-space libraries from 580.173.02 to 580.178.04 while the 580.173 kernel module stayed loaded.
+    `nvidia-smi` then failed with *"Driver/library version mismatch"*.
+  - **Effect.** No CUDA program could start on `.73` until a reboot. That includes the wake proxy's
+    daily-driver llama-server.
+  - **The hold.** Mark ran `apt-mark hold` on all 34 installed NVIDIA, CUDA and firmware packages, the
+    same families `.194` holds.
+  - **Kernels are not held.** DKMS rebuilds the held 580.178.04 module for any new kernel; the fault
+    was the user-space libraries moving under a loaded module.
+  - **Deliberate driver updates:** `apt-mark unhold`, upgrade, and reboot in one sitting.
+  - **Pending:** the reboot that loads 580.178.04. It is safe: the default kernel is 7.0.0-31, and
+    DKMS has built the module for it.
+
 - **`tools/llmproxy/llm_proxy.py` — transparent OpenAI-compatible logging proxy (Claude,
   2026-09-09):** sits between a harness and llama-server
   (`--listen 8091 --upstream http://127.0.0.1:8090 --log run.jsonl`) and records what crossed the
