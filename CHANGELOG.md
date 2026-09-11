@@ -30,7 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   see `data/receipts/viability/RESULT_POWER_CAP_LATCH.md`. That receipt is superseded, but the
   timestamp split stands.
 
-  **The config was modified again at 2026-09-10 18:30:34.** What changed then is not recorded.
+  **The config was modified again at 2026-09-10 18:30:34.** Mark doesn't recall changing anything.
+  Most likely he re-checked the settings and clicked Apply out of habit, which rewrites the file.
   Afterwards it reads `power_cap: 330.0`, and sysfs `power1_cap` reads 330 W. **Record the cap in
   every receipt from this card.**
 
