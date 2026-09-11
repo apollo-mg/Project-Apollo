@@ -216,3 +216,78 @@ rep-3 conditions were quiet. Interleaving is what preserves the comparison: with
 OLD and NEW failed while FUSED0 and HOT did not, under identical conditions minutes apart. A
 blocked design run OLD-OLD-OLD then FUSED0-FUSED0-FUSED0 would have produced the same numbers and
 been uninterpretable.
+
+---
+
+## Pre-registration — does `a334fc01e` fix it? (logged 2026-09-11, before either new binary ran)
+
+buun: *"pls try new master. a334fc01e - hip: invalidate VBR remaps and clear nonfinite recurrent
+state."* I read the diff before building. The commit does two things.
+
+1. **Remaps (HIP on Linux, VMM builds).**
+   - **What changed:** after mapping or unmapping VBR pool pages, the code frees and re-allocates a
+     4 KiB *uncached* KFD allocation. Its comment says a KFD allocation "waits for page-table updates
+     and invalidates the compute TLB". Fresh pages are now zeroed only after that point.
+   - **What it targets:** stale address translations after same-address remaps, the mechanism buun
+     reported this morning.
+   - **It is live here.** Both our CMake caches have HIP VMM compiled in (`GGML_HIP_NO_VMM=OFF`, the
+     fork's default).
+   - **On this card the CPU updates the compute page tables.** `vm_update_mode=-1` resolves to
+     "compute only" for large BAR, and all 16,304 MiB of VRAM is CPU-visible.
+2. **Recurrent reset.** `build_rs` cleared a reset recurrent state with `ggml_scale_inplace(…, 0)`.
+   That leaves NaN/Inf in place, because 0 × NaN = NaN, so a poisoned state survived every reset. It
+   now writes zeros with `ggml_fill_inplace`.
+
+**The confound.** Master is 176 commits past `d0f82fd41`, mostly the safetensors merge (1,084
+files), and several of those commits touch KV. A clean result on master alone would not show that
+*this commit* fixed it.
+
+### Arms, interleaved ×3
+
+All arms use stock flags, with fused turbo MMA on, no env vars and no boot flags.
+
+| arm | binary |
+|---|---|
+| OLD | `3823c9eb6`, the positive control: 6 degenerate generations over 27 resets in the localisation runs |
+| PARENT | `2fd7e523b`, master immediately before the fix |
+| FIX | `a334fc01e`, master with the fix |
+
+**Order.** Arm order rotates each rep (OLD-PARENT-FIX, then PARENT-FIX-OLD, then FIX-OLD-PARENT), so
+no arm always runs first.
+
+**Everything else matches the localisation runs:**
+- same model and flags
+- the same 12 tasks, 180 s per task
+- abort on 3 consecutive INFRA_ERROR
+- fresh server per run, no proxy, 330 W cap
+
+The driver is `fix-ab/fix_ab.sh`; the earlier drivers are preserved as `*/driver_recovered.sh`.
+
+**Counting rule.**
+- **Resets:** lines matching `vbr reset:` in the server log.
+- **Degenerate generations:** lines matching `eval time = … / 4096 tokens`, i.e. generations that hit
+  the `-n 4096` cap.
+- **Checked before registering:** the rule reproduces the localisation table exactly (27/6, 33/5,
+  33/0, 33/0).
+
+### Predictions
+
+**P-X1 (positive control): OLD produces at least one degenerate generation across its three runs.
+85%.** If it doesn't, the repro is lost and nothing below is read.
+
+**P-X2: FIX produces zero degenerate generations across its three runs. 70%.** The commit targets
+exactly the mechanism our reset correlation points at. It is held at 70% because master `d0f82fd41`
+was also expected to fix it, and did not.
+
+**P-X3: PARENT produces at least one degenerate generation across its three runs. 70%.** That is,
+the other 175 commits do not fix it on their own.
+
+**Joint readings.**
+- OLD fails, PARENT fails, FIX clean → the fix commit cures it on gfx1201.
+- OLD fails, PARENT clean, FIX clean → master cures it, but the fix commit is not isolated.
+- OLD fails, FIX fails → not fixed on this card.
+- OLD clean → the repro is lost, and the experiment is void.
+
+**Reporting a clean arm.** A clean arm is reported with its reset count and the chance of zero bad
+resets at the stock rate (11 of 60 = 18.3%). For example, 0 of 30 would happen by luck about 1 time
+in 400.
