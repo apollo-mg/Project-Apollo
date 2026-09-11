@@ -1,5 +1,8 @@
 # Result — blind judging: Mark's eye leaned 4-bit, just short of the line; a second rater saw no lean
 
+> **Updated the same afternoon with a third rater (R2).** See the last section. The pooled
+> three-rater ranking does not separate either, and the three raters agree only weakly with each other.
+
 **Date:** 2026-09-11.
 - **Prereg:** `PREREG_BLIND_ART.md` and its two addenda, all committed before any pick was read.
 - **Data:** `picks_mark/` (75 picks, exported to files without being viewed) and `raters/R1_export.txt`
@@ -130,3 +133,59 @@ saw no lean at all. The structural result was that 2-bit first drawings are as s
 Together, there is still no evidence that 2-bit costs this model anything on this task that holds up
 across two raters. There is a hint, from one rater, that it might cost some polish. That hint is what
 a larger set of fresh drawings would test.
+
+## Update — a third rater (R2), same day
+
+**Who R2 is.** A second outside rater found the panel through another Discord and sent results. They
+chose "anonymous" as their handle, so here they are R2.
+- **Data:** the export is saved verbatim (`raters/R2_export.txt`) and scored by the unchanged
+  `score_blind.py` (`score_output_with_R2.txt`).
+- **Descriptive extras:** `tools/svgbench/blind_raters_descriptive.py`.
+- **Human or agent: not yet confirmed,** so under addendum 2 R2's P-B6 and the three-rater pool are
+  reported both ways.
+
+**R2's results.**
+- **Integrity:** clean, 75/75 picks, median 1.9 s per pair (just above the 1.5 s line), 57 decisive
+  picks, 18 ties.
+- **R2's own predictions:**
+  - P-B1 CONFIRMED (12.5/24, p = 0.971).
+  - P-B2 CONFIRMED on a coin flip (12.5).
+  - P-B3 FALSIFIED (3/7, 15 ties).
+  - P-B4 FALSIFIED (goal 1/4 vs intent 2/3).
+  - P-B5 FALSIFIED (5/8).
+- **P-B6, agreement with Mark:** 18 of 31 = 0.58, just under the 0.60 line. FALSIFIED if R2 is a
+  person.
+- **P-B7, pooled:**
+  - Mark + R1 + R2: 17 of 24, p = 0.352. CONFIRMED if R2 is a person.
+  - Mark + R1 (already final): 18 of 24, p = 0.257, CONFIRMED.
+
+**Who agrees with whom** (descriptive):
+
+| raters | agree on decisive first-drawing pairs | rank correlation |
+|---|---|---|
+| Mark – R1 | 21 of 32 = 0.66 | +0.28 |
+| Mark – R2 | 18 of 31 = 0.58 | +0.34 |
+| R1 – R2 | 23 of 39 = 0.59 | +0.26 |
+
+- **No rater is sided with more than the others.** Across three raters, "which is the better picture"
+  behaves like taste.
+- **Mark's 4-bit lean appears only in his ratings.**
+
+**R2's ratings look noisier** (descriptive; no exclusion, since none was pre-registered):
+- **Left-side preference:** R2 picked the left drawing in 38 of 57 decisive picks (exact two-sided
+  binomial p = 0.016). Mark: 25 of 47, p = 0.77. R1: 36 of 66, p = 0.54.
+- **Self-consistency:** 5 of 8 repeats agreed, against 8 of 8 for Mark and 7 of 8 for R1.
+
+**"It sometimes shows the same picture twice."** R2 reported this as a possible design flaw. It isn't
+one:
+- **No pair is pixel-identical** (0 of 75).
+- **The pairs that look identical are before/after pairs** whose correction barely changed the
+  drawing. The closest differ in 0.60%, 0.84% and 0.94% of their pixels.
+- **R2's 18 ties** fell on 15 revision pairs and 3 first-drawing pairs.
+- **The 0.84% pair is the neck fix** (IQ4_XS r2 `intent2`). All three raters picked the corrected
+  version, though the change touched under 1% of the pixels.
+
+**The four singled-out corrections, with R2 added.** Mark and R1 chose the child in all four. R2 chose:
+- the child in two: the wing on the bars, and the neck
+- too close on one: the wing-arm
+- the parent on one: the dangling-foot step
