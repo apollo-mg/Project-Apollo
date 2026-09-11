@@ -1205,6 +1205,8 @@ were discarded, and nothing from them was scored (`nex-mini-ab/PREREG_THREE_WAY.
   it. A launch command records what was intended, not what happened.
 - **Add the KV type to every launch guard,** next to the model path and context size. In v2 the driver
   aborts an arm whose server logs VBR.
+- **The check that works on buun builds:** `/slots` reports `kv_bpv`, and f16 reads exactly `16.0`.
+  After the restart both servers read 16.0, and each card held about 300 MiB more than under VBR.
 
 Related: [[readiness-probes-lie]]; `kv-tensor-split/RESULT_KV_VALIDITY.md` (check quantized arms for a
 silent f16 fallback). This case is the reverse: a silent quantized default.
