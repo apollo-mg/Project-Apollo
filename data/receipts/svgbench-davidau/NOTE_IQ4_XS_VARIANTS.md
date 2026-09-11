@@ -68,8 +68,19 @@
 - **What is loaded.** The head's attention and FFN block is created as a normal layer, because the
   layer loop runs to `n_layer_all` = 65. It is therefore allocated in VRAM.
 - **Cost without an MTP draft configured:** the MTP IQ4_XS keeps **+190 MiB** of GPU weights that
-  do nothing. buun's source has an MTP draft context (`LLAMA_CONTEXT_TYPE_MTP`); it has not been
-  tested here.
+  do nothing. It is already known that the head loads even when never requested
+  (`battle16gb/MTP_UPSTREAM_ROOT_CAUSE.md`).
+- **With `--spec-type draft-mtp`, the head pays its way, at a VRAM price.** *Corrected 2026-09-11:
+  an earlier version of this note said MTP was untested here. It is tested.*
+  - **Speed:** 2.05× on Qwen3.8-27B on the 9070 (`qwen38-mtp/RESULT_RDNA4.md`). `.73` serves with
+    `--draft-max 3` daily.
+  - **VRAM:** turning it on costs 1.2–2.1 GB, scaling with context
+    (`viability/RESULT_MTP_VRAM_COST.md`). The 9070 is already short at 24k, so that rules MTP out
+    for this file size there.
+  - **Head precision:** packagers quantize the head without imatrix coverage
+    (`qwen38-packagers/RESULT_MTP_HEAD_QUANT.md`). DavidAU's Q8_0 head is a sensible answer to
+    that, but only MAX has it.
+  - **Untested:** draft acceptance on this tuned trunk.
 
 ## Fit on the RX 9070 XT — a prediction, not a measurement
 
