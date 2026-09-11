@@ -58,6 +58,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     to drain.
   - `score_ladder.py` does the pre-registered grading. `explore_ladder.py` is exploratory only.
     `sensitivity_ladder.py` checks how the verdicts depend on artifact reps.
+  - **Blind judging (2026-09-11):** `build_blind_page.py` builds Mark's rating page, with a sealed
+    code-to-drawing mapping whose hash is committed in the prereg. `build_share_page.py` builds a
+    public page for outside raters. `score_blind.py` does the pre-registered scoring.
+    Result: `data/receipts/svgbench-blind/RESULT_BLIND_ART.md`.
 
   Result: `data/receipts/svgbench-ladder/RESULT_LADDER.md`. The scorer saturates (7/10 first drawings
   at ceiling). P-L2's bit-depth "confirmation" comes from scorer artifacts however they are handled;

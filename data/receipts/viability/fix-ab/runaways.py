@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Runaway generations in llama-server logs -- the secondary rule from the fix-ab amendment.
-A runaway: a generation whose n_gen reaches THRESH tokens, whether it completes or is cancelled.
-Also prints the primary rule (completions at the 4096 cap) so the two can be compared per log."""
+Registered wording: a runaway is a generation whose n_gen reaches THRESH tokens and that either
+completes at the -n 4096 cap or is cancelled while generating. A long generation that stops by
+itself below the cap is NOT a runaway; it is reported separately as 'self-terminated', so every
+reading of the rule can be checked. The primary rule (completions at the cap) is printed too."""
 import glob, os, re, sys
-THRESH = 1000
+THRESH, CAP = 1000, 4096
 PROG = re.compile(r"task (\d+) \| n_gen = +(\d+)")
 DONE = re.compile(r"task (\d+) \| +eval time = +[\d.]+ ms / +(\d+) tokens")
 CANCEL = re.compile(r"cancel task, id_task = (\d+)")
@@ -20,21 +22,28 @@ def scan(path):
             canc.add(m[1])
         elif (m := RESET.search(l)):
             resets.add(m[1])
-    run = [t for t, n in mx.items() if n >= THRESH]
-    return {"resets": len(resets), "primary": sum(n == 4096 for n in comp.values()), "runaway": len(run),
-            "cancelled": sum(t in canc and t not in comp for t in run), "after_reset": sum(t in resets for t in run),
-            "grey_500_999": sum(500 <= n < THRESH for n in mx.values()),
-            "normal_max": max([n for n in mx.values() if n < THRESH] or [0])}
+    long_ = [t for t, n in mx.items() if n >= THRESH]
+    at_cap = [t for t in long_ if comp.get(t) == CAP]
+    cut = [t for t in long_ if t not in comp and t in canc]
+    selfterm = [t for t in long_ if t in comp and comp[t] < CAP]
+    run = at_cap + cut
+    return {"resets": len(resets), "primary": sum(n == CAP for n in comp.values()), "runaway": len(run),
+            "at_cap": len(at_cap), "cancelled": len(cut), "after_reset": sum(t in resets for t in run),
+            "selfterm_long": len(selfterm), "normal_max": max([n for n in mx.values() if n < THRESH] or [0])}
 
+KEYS = ("resets", "primary", "runaway", "at_cap", "cancelled", "after_reset", "selfterm_long")
 for d in sys.argv[1:]:
     print(f"== {d}")
     arms = {}
     for f in sorted(glob.glob(os.path.join(d, "server_*.log"))):
         tag = os.path.basename(f)[7:-4]; r = scan(f)
-        arm = re.sub(r"\d+$", "", tag); a = arms.setdefault(arm, {k: 0 for k in r}); a["normal_max"] = max(a["normal_max"], r["normal_max"])
-        for k in r:
-            if k != "normal_max": a[k] += r[k]
-        print(f"   {tag:9s} resets {r['resets']:3d}  primary(4096) {r['primary']}  runaway(>=1000) {r['runaway']} "
-              f"[cancelled {r['cancelled']}, after reset {r['after_reset']}]  grey 500-999: {r['grey_500_999']}  normal max {r['normal_max']}")
+        a = arms.setdefault(re.sub(r"\d+$", "", tag), {k: 0 for k in KEYS} | {"runs": 0})
+        a["runs"] += 1
+        for k in KEYS:
+            a[k] += r[k]
+        print(f"   {tag:9s} resets {r['resets']:3d}  primary {r['primary']}  runaway {r['runaway']} "
+              f"(at cap {r['at_cap']}, cancelled {r['cancelled']}; after a reset {r['after_reset']})  "
+              f"self-terminated >=1000: {r['selfterm_long']}  normal max {r['normal_max']}")
     for arm, a in arms.items():
-        print(f"   -> {arm:7s} resets {a['resets']:3d}  primary {a['primary']}  runaway {a['runaway']} (cancelled {a['cancelled']}, after reset {a['after_reset']})  normal max {a['normal_max']}")
+        print(f"   -> {arm:7s} {a['runs']} runs, resets {a['resets']:3d}, runaways {a['runaway']} "
+              f"(after a reset {a['after_reset']}, cancelled {a['cancelled']}), self-terminated long {a['selfterm_long']}")
