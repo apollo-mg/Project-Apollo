@@ -87,6 +87,14 @@ server running.
 **Cross-check.** The same arithmetic applied to the ladder's measured UD-IQ4_XS fit probe (15.29
 GiB) implies a 1,260 MiB desktop that day. That is consistent to within ~200 MiB.
 
+**Direct comparison, with no overhead model.** The plain file carries 709 MiB more GPU-resident
+weight than UD-IQ4_XS (13,729 vs 13,020 MiB). The fit probe loaded UD-IQ4_XS with 647 MiB free, so
+the plain file is ~60 MiB over even on that day's lighter desktop.
+- **The margin band at `-c 24576` q8_0 is about −60 to −270 MiB,** negative throughout.
+- **Shortening the context changes the instrument.** `PREREG_TOKENS.md` runs at `-c 24576 -n 20000`,
+  and stock first drawings reached 10,503 tokens. A run at shorter context is not comparable to
+  `RESULT_TOKENS.md`.
+
 | file | GPU weights | predicted peak at `-c 24576` q8_0 | margin |
 |---|---|---|---|
 | NEO-IQ4_XS | 13,729 MiB | 16,573 MiB | **−269** |
