@@ -136,12 +136,6 @@ h1{margin:0;font-weight:800;font-size:clamp(1.35rem,2.6vw,1.8rem);letter-spacing
 .question{margin:0;font-size:clamp(1.1rem,2.2vw,1.35rem);font-weight:600;line-height:1.3;text-wrap:balance}
 .question small{display:block;margin-top:4px;font-size:0.9rem;font-weight:400;color:var(--ink-2)}
 .pair{display:grid;grid-template-columns:1fr 1fr;gap:clamp(12px,2.5vw,28px)}
-@media (max-width:520px){
-  .wrap{gap:12px}
-  .pair{grid-template-columns:1fr;gap:10px}
-  .frame{padding:6px}
-  .frame img{width:auto;height:auto;max-height:30vh;margin-inline:auto}   /* both drawings on one phone screen */
-}
 .card{appearance:none;border:0;margin:0;padding:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;display:grid;gap:8px}
 .frame{display:block;background:var(--paper);border:1px solid var(--rule);border-radius:3px;padding:10px;transition:border-color .12s,box-shadow .12s,background-color .12s}
 .frame img{display:block;width:100%;max-width:100%;height:auto;aspect-ratio:4/3;border:1px solid var(--rule)}
@@ -172,6 +166,13 @@ h1{margin:0;font-weight:800;font-size:clamp(1.35rem,2.6vw,1.8rem);letter-spacing
 .done p{margin:0;max-width:62ch}
 footer{padding-block:12px 0;border-top:1px solid var(--rule);font-size:0.85rem;color:var(--ink-2)}
 footer p{margin:0;max-width:72ch}
+/* after the base rules it overrides -- equal specificity, so order decides */
+@media (max-width:520px){
+  .wrap{gap:12px}
+  .pair{grid-template-columns:1fr;gap:10px}
+  .frame{padding:6px}
+  .frame img{width:auto;height:auto;max-height:30vh;margin-inline:auto}   /* both drawings on one phone screen */
+}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 </style>
 
