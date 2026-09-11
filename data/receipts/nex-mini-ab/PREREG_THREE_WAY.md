@@ -149,3 +149,29 @@ Waiting would leave slot A idle for about 7 h and push completion to midday tomo
   moves to slot B in R2, which separates slot from model.
 
 No pass@1 was computed and no arm-to-arm comparison of correctness was made.
+
+## Amendment 2 — KV cache: v1 ran on buun's default VBR, not f16 (2026-09-11)
+
+**What happened.**
+- **The flags.** The v1 driver passed no `-ctk`/`-ctv`, on the assumption that llama.cpp's f16
+  default applied. In buun's fork it does not.
+- **What the servers logged.** Both logged `VBR dynamic: KV VRAM budget … (auto, from remaining
+  memory) — decode-time degrade controller armed`, with 8,643 MiB for NEX and 9,290 MiB for QWEN.
+- **So R1 was running on dynamic VBR KV:** a compressed cache, a different budget per arm, and a
+  controller that can lower precision mid-run.
+- **On an unfixed build.** `3823c9eb6` predates buun's reset fix. That fix's NaN-safe recurrent reset
+  applies to every backend, and these models have recurrent layers.
+- **This contradicts the registered "f16 KV"** and the reason given for it.
+- **How it was caught.** Mark's question ("How did we set up the KV for these tests?") prompted the
+  check. My first answer, "f16", came from reading the command line, and was wrong.
+
+**What was done.**
+- **Stopped** at NEX 24/164 and QWEN 5/164, about 13 minutes in.
+- **Archived** the partial outputs, unscored, in `.194:~/hep/out/nex3/invalid_vbr_default/`.
+- **Restarted from scratch** with `three_way_v2.sh`, which makes `-ctk f16 -ctv f16` explicit and
+  includes a guard that aborts any arm whose server still logs VBR.
+- **Unchanged:** the design, the schedule (Amendment 1), sampling, predictions and analysis.
+
+**Correction to Amendment 1.** Its early figures came from this VBR run (226 vs 2,536 tokens per
+answer; 47.6 vs 42.5 t/s). They are not evidence about f16, and P-T6 will be judged on the v2 run
+only. Nothing from the invalid run is scored.
