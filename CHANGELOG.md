@@ -26,10 +26,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **RX 9070 XT power cap lowered 374 → 330 W in LACT (Mark, 2026-09-09 22:55:55):** the timestamp
   is the `/etc/lact/config.yaml` mtime. Mark had seen transient draws above 375 W and capped the card
-  at about factory level. **Every 9070 receipt from 2026-09-09 23:00 on ran at 330 W; earlier ones
-  ran at 374 W.** The change went unlogged mid-experiment and confounded a night of VBR runs; see
-  `data/receipts/viability/RESULT_POWER_CAP_LATCH.md`. That receipt is superseded, but the timestamp
-  split stands.
+  at about factory level. The change went unlogged mid-experiment and confounded a night of VBR runs;
+  see `data/receipts/viability/RESULT_POWER_CAP_LATCH.md`. That receipt is superseded, but the
+  timestamp split stands.
+
+  **The config was modified again at 2026-09-10 18:30:34.** What changed then is not recorded.
+  Afterwards it reads `power_cap: 330.0`, and sysfs `power1_cap` reads 330 W. **Record the cap in
+  every receipt from this card.**
 
 ### Added
 - **`tools/llmproxy/llm_proxy.py` — transparent OpenAI-compatible logging proxy (Claude,
@@ -56,7 +59,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     `sensitivity_ladder.py` checks how the verdicts depend on artifact reps.
 
   Result: `data/receipts/svgbench-ladder/RESULT_LADDER.md`. The scorer saturates (7/10 first drawings
-  at ceiling), and both bit-depth "confirmations" come from scorer artifacts. v2 requirements are in
+  at ceiling). P-L2's bit-depth "confirmation" comes from scorer artifacts however they are handled;
+  P-L3's depends on an unregistered choice of how to handle them. v2 requirements are in
   `tools/svgbench/V2_NOTES.md`.
 
   ⚠ **Qwen3.8-27B UD-Q4_K_M at `-c 24576` on the 9070 spills into *pinned* host RAM.** It caused a
