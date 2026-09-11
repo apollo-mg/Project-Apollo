@@ -141,8 +141,9 @@ chose "anonymous" as their handle, so here they are R2.
 - **Data:** the export is saved verbatim (`raters/R2_export.txt`) and scored by the unchanged
   `score_blind.py` (`score_output_with_R2.txt`).
 - **Descriptive extras:** `tools/svgbench/blind_raters_descriptive.py`.
-- **Human or agent: not yet confirmed,** so under addendum 2 R2's P-B6 and the three-rater pool are
-  reported both ways.
+- **Hand-rated, by their own account.** Mark asked on Discord (14:09) whether they had scored without
+  any AI assistance, and the answer was *"correct"*. Under addendum 2, R2 therefore counts as a human
+  rater, and P-B6 and the three-rater pool are final.
 
 **R2's results.**
 - **Integrity:** clean, 75/75 picks, median 1.9 s per pair (just above the 1.5 s line), 57 decisive
@@ -153,10 +154,9 @@ chose "anonymous" as their handle, so here they are R2.
   - P-B3 FALSIFIED (3/7, 15 ties).
   - P-B4 FALSIFIED (goal 1/4 vs intent 2/3).
   - P-B5 FALSIFIED (5/8).
-- **P-B6, agreement with Mark:** 18 of 31 = 0.58, just under the 0.60 line. FALSIFIED if R2 is a
-  person.
+- **P-B6, agreement with Mark:** 18 of 31 = 0.58, just under the 0.60 line. **FALSIFIED.**
 - **P-B7, pooled:**
-  - Mark + R1 + R2: 17 of 24, p = 0.352. CONFIRMED if R2 is a person.
+  - Mark + R1 + R2: 17 of 24, p = 0.352. **CONFIRMED.**
   - Mark + R1 (already final): 18 of 24, p = 0.257, CONFIRMED.
 
 **Who agrees with whom** (descriptive):
