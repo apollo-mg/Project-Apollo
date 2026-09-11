@@ -46,8 +46,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Kernels are not held.** DKMS rebuilds the held 580.178.04 module for any new kernel; the fault
     was the user-space libraries moving under a loaded module.
   - **Deliberate driver updates:** `apt-mark unhold`, upgrade, and reboot in one sitting.
-  - **Pending:** the reboot that loads 580.178.04. It is safe: the default kernel is 7.0.0-31, and
-    DKMS has built the module for it.
+  - **Rebooted and verified 19:45.** Loaded module 580.178.04 matches the on-disk version, both P100s
+    enumerate with persistence on, and the 34 holds survived.
+  - **Daily driver proven, not assumed.** One real request through the proxy: model loaded in 25.4 s,
+    served in 31 s end to end, `-ctk vbr -ctv vbr --vbr-floor t2 -sm tensor --spec-type draft-mtp`,
+    `n_ctx` 262144, 13,839 and 12,703 MiB across the two cards.
+  - **`/slots` reads `kv_bpv` 16.0 there, and that is correct for VBR.** VBR's entry tier *is* f16
+    and only degrades under real VRAM pressure, so a fresh cache reads 16.0. AFM-38's `kv_bpv` check
+    verifies an *explicit* KV flag; it cannot distinguish VBR-at-entry from f16. Read the launch
+    command or the `VBR dynamic runtime controller` log line instead.
 
 - **`tools/llmproxy/llm_proxy.py` — transparent OpenAI-compatible logging proxy (Claude,
   2026-09-09):** sits between a harness and llama-server
