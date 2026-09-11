@@ -62,6 +62,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     code-to-drawing mapping whose hash is committed in the prereg. `build_share_page.py` builds a
     public page for outside raters. `score_blind.py` does the pre-registered scoring.
     Result: `data/receipts/svgbench-blind/RESULT_BLIND_ART.md`.
+  - **Pelican three-way (2026-09-11):** `run_one_p1.py` runs one first drawing per call.
+    - It caps generation at 480 s, so each rep fits a 10-minute foreground job.
+    - It logs the prompt the server renders (`/apply-template`) and the live `kv_bpv`.
+    - `pelican3_rep.sh` wraps it with a 2 s memory trace and a 585 s backstop.
+    - `score_pelican3.py` was committed before any data.
+    - Prereg: `data/receipts/svgbench-pelican3/PREREG_PELICAN3.md`.
 
   Result: `data/receipts/svgbench-ladder/RESULT_LADDER.md`. The scorer saturates (7/10 first drawings
   at ceiling). P-L2's bit-depth "confirmation" comes from scorer artifacts however they are handled;
