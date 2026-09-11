@@ -150,3 +150,41 @@ happens if that turns out to be typical:
   child renders. Rep 1's corrections were aesthetic (neck thickness, beak proportion, tail
   feathers) — real changes the structural checks deliberately ignore, by design of the
   engineering/art split.
+
+---
+
+## PROTOCOL CHANGE (2026-09-10 ~20:17) — Q4_K_M dropped after it OOM-killed the host; memory safeguards added
+
+**What happened.** At **20:09:53** the kernel OOM killer killed the Q4_K_M llama-server mid-generation
+(rep 1 `goal2` → `RemoteDisconnected`), two seconds after killing Chrome. At **20:10:22**, as the runner
+started the next server, a second wave killed **`kwin_wayland` (the desktop compositor)**, Discord, a
+node process and a python3 process. It was a *global* OOM with ~30 GB of swap free: Q4_K_M did not fit
+VRAM at `-c 24576` — the server itself logged *"failed to fit params to free device memory:
+n_gpu_layers already set by user to 99, abort"* at startup — and its overflow went to **pinned** host
+memory, which cannot be swapped. The fit probe had measured a 1.08 GB spill; under long generations it
+grew until RAM ran out. Mark noticed the OOM before I did.
+
+**A wrong diagnosis, retracted.** I first attributed the disconnect to llama-server's HTTP write
+timeout, believing it defaulted to 600 s. This build's default is **3600 s**, and the request had run
+**491 s**. It was the OOM.
+
+**Changes.**
+1. **UD-Q4_K_M removed from reps 2 and 3.** Its rep-1 `p1` (10/10) and `intent2` are valid and kept;
+   `goal2` is lost. Q4-class comparisons (P-L2, P-L3, P-L4) now rest on **IQ4_XS × 3 reps plus
+   Q4_K_M's single partial rep**, and are weaker for it.
+2. **Runner safeguards:** no server starts with MemAvailable < 8 GB; a watchdog **SIGKILLs the server if
+   MemAvailable falls below 2.5 GB** (the desktop outranks the benchmark); after every stop, a
+   cooldown waits until GTT < 1 GB and memory has recovered — the second wave struck as the next
+   server started into memory the killed one had not yet released.
+3. Runner stopped at 20:17 mid-way through Q2_K_XL rep 2 (its `p1` kept; the in-flight correction
+   re-runs on resume).
+
+## Known false positive — recorded, NOT fixed (per the pre-rep-2 commitment)
+
+**Q2_K_XL rep 2 `p1` scored 9/10, failing `assembly_coherent`** on two near fragments of 114 and 113
+cells at (4–92, 352–384) and (420–508, 352–384). They are **the curved tips of a grass ellipse** in the
+bottom corners: where the ellipse curves up away from the canvas edge, those columns end in sky rather
+than grass, so the backdrop detector counts the tips as ink sitting next to the wheels. The drawing's
+assembly is sound — both rims belong to the main component. Per the commitment made before rep 2, the
+scorer is **not** changed mid-run; affected reps will be annotated in the analysis and the pre-registered
+score reported alongside.

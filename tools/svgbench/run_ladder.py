@@ -5,7 +5,7 @@ Pre-registered in data/receipts/svgbench-ladder/PREREG_BITDEPTH_FEEDBACK.md.
 One JSON line per generation (flush+fsync); resumes from results.jsonl if interrupted.
 Servers are started and stopped by process group from our own Popen -- never by name (AFM-37).
 """
-import argparse, json, os, re, signal, subprocess, sys, time, urllib.request
+import argparse, json, os, re, signal, subprocess, sys, threading, time, urllib.request
 from pathlib import Path
 
 ROOT = Path("/mnt/TG_2TB/Projects/Apollo")
@@ -17,7 +17,9 @@ QUANTS = [
     ("UD-Q2_K_XL", "/mnt/TG_2TB/AI/Models/Qwen3.8-27B-UD-Q2_K_XL.gguf"),
     ("UD-IQ2_M",   "/mnt/TG_2TB/AI/Models/Qwen3.8-27B-UD-IQ2_M.gguf"),
     ("UD-IQ4_XS",  "/mnt/TG_2TB/AI/Models/unsloth-v3/Qwen3.8-27B-UD-IQ4_XS.gguf"),
-    ("UD-Q4_K_M",  "/mnt/TG_2TB/AI/Models/unsloth-v3/Qwen3.8-27B-UD-Q4_K_M.gguf"),
+    # ("UD-Q4_K_M", ...) REMOVED 2026-09-10 20:17: at -c 24576 it overflowed VRAM into PINNED host
+    # memory and triggered a global OOM that killed the server, Chrome, Discord and kwin_wayland.
+    # See PREREG_BITDEPTH_FEEDBACK.md. Its valid rep-1 records are kept.
 ]
 TASK = "Generate an SVG of a pelican riding a bicycle."
 # The ONLY difference between arms. Every other word of the scaffold is shared.
@@ -55,6 +57,68 @@ def gpu_snapshot():
     return {"junction_c": q(["--showtemp"], r"(?i)junction.*?:\s*([0-9.]+)"),
             "sclk_mhz": q(["--showclocks"], r"sclk.*?\((\d+)Mhz\)"),
             "power_w": q(["--showpower"], r"Average Graphics Package Power \(W\):\s*([0-9.]+)")}
+
+
+MEM_START_GB = 8.0   # never start a server with less than this available
+MEM_FLOOR_GB = 2.5   # watchdog SIGKILLs the server below this -- the desktop outranks the benchmark
+
+
+def mem_available_gb():
+    try:
+        for line in open("/proc/meminfo"):
+            if line.startswith("MemAvailable:"):
+                return int(line.split()[1]) / 1048576
+    except OSError:
+        pass
+    return None
+
+
+def gtt_used_gb():
+    o = subprocess.run(["rocm-smi", "--showmeminfo", "gtt"], capture_output=True, text=True).stdout
+    m = re.search(r"GTT Total Used Memory \(B\):\s*(\d+)", o)
+    return int(m.group(1)) / 2**30 if m else None
+
+
+def wait_for_memory(label, limit_s=180):
+    t0 = time.time()
+    while time.time() - t0 < limit_s:
+        a = mem_available_gb()
+        if a is None or a >= MEM_START_GB:
+            return True
+        print(f"{time.strftime('%H:%M:%S')}   waiting for memory before {label}: {a:.1f} GB", flush=True)
+        time.sleep(10)
+    return False
+
+
+def cooldown(limit_s=90):
+    """After a stop, wait for the dead server's pinned memory to come back. The second OOM wave on
+    2026-09-10 hit as the next server started into memory the killed one had not yet released."""
+    t0 = time.time()
+    while time.time() - t0 < limit_s:
+        g, a = gtt_used_gb(), mem_available_gb()
+        if (g is None or g < 1.0) and (a is None or a >= MEM_START_GB):
+            return
+        time.sleep(3)
+
+
+class MemWatchdog(threading.Thread):
+    def __init__(self, proc):
+        super().__init__(daemon=True)
+        self.proc, self.tripped, self.halt = proc, False, threading.Event()
+
+    def run(self):
+        while not self.halt.is_set():
+            a = mem_available_gb()
+            if a is not None and a < MEM_FLOOR_GB:
+                self.tripped = True
+                print(f"{time.strftime('%H:%M:%S')} WATCHDOG Error: MemAvailable {a:.1f} GB < "
+                      f"{MEM_FLOOR_GB} -- killing server", flush=True)
+                try:
+                    os.killpg(os.getpgid(self.proc.pid), signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                return
+            self.halt.wait(2)
 
 
 def post(body, timeout=1800):
@@ -242,17 +306,29 @@ def main():
         for quant, model in QUANTS:
             if not needs_work(quant, rep):
                 continue
+            if not wait_for_memory(f"{quant} rep {rep}"):
+                record({"quant": quant, "rep": rep, "step": "server",
+                        "error": f"skipped: MemAvailable never reached {MEM_START_GB} GB", "ts": time.time()})
+                continue
             print(f"{time.strftime('%H:%M:%S')} === {quant} rep {rep} ===", flush=True)
             p, ok = start_server(model, OUT / f"server_{quant}_r{rep}.log")
             if not ok:
                 record({"quant": quant, "rep": rep, "step": "server", "error": "server never ready",
                         "ts": time.time()})
                 stop_server(p)
+                cooldown()
                 continue
+            wd = MemWatchdog(p)
+            wd.start()
             try:
                 run_rep(quant, rep)
             finally:
+                wd.halt.set()
                 stop_server(p)
+                if wd.tripped:
+                    record({"quant": quant, "rep": rep, "step": "watchdog", "ts": time.time(),
+                            "error": f"memory watchdog SIGKILLed the server: MemAvailable < {MEM_FLOOR_GB} GB"})
+                cooldown()
     print(f"{time.strftime('%H:%M:%S')} === LADDER COMPLETE ===", flush=True)
 
 
