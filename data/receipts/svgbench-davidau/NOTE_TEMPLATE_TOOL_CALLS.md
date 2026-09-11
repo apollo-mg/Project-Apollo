@@ -52,7 +52,15 @@ Keep untagged messages whole in the parser's `else` branch:
   assistant message would still lose its tool calls. Tags normally appear in user messages.
 - **Patched copy:** saved as `twin_turbo_template_fixed.jinja`. Use it with `--chat-template-file`.
 
-## Limits
+## Verification and limits
 
-- **Renderer:** jinja2, not llama.cpp's minja, and not re-run through llama-server's probe.
-- **Agent testing:** none yet with the fixed template.
+- **llama-server's own probe agrees.** This is `/props` → `chat_template_caps`, on buun `3823c9eb6`:
+
+  | template | `supports_tool_calls` | `supports_parallel_tool_calls` |
+  |---|---|---|
+  | as shipped (16,850 chars) | false | false |
+  | with the one-line fix (16,819 chars) | **true** | **true** |
+
+  The raw output is in `props_embedded.json` and `props_fixed.json`, with server logs in `probe_*.log`.
+- **Agent testing:** none yet with the fixed template. Whether the shorter thinking costs agentic
+  performance on its own is untested.
