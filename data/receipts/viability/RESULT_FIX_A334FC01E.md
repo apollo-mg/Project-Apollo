@@ -103,3 +103,30 @@ before it. HOT's "0 bad resets" stands. OLD2 in this session has one case of the
 - **Scope:** one card, one model, one quant, one session.
 - **Per-run evidence is weak** (P = 0.24), and the per-reset figure assumes independence.
 - **The runaway rule was registered after rep 1.**
+
+## Speed follow-up (llama-bench, 2026-09-11)
+
+**Setup.** Same model (`Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf`), same card (9070, 330 W).
+`llama-bench -ngl 99 -fa 1 -ctk X -ctv X`, with the old and fix builds alternating twice. Raw output
+is in `fix-ab/bench_f16/`.
+
+| decode | OLD `3823c9eb6` | FIX `a334fc01e` | change |
+|---|---|---|---|
+| f16, empty context (tg128) | 29.72 / 29.65 t/s | 30.77 / 30.52 t/s | **+3%** |
+| f16 at 13k depth | 28.54 / 28.34 t/s | 29.30 / 29.27 t/s | **+3%** |
+| VBR at 13k depth | 26.94 / 27.05 t/s | 24.81 / 25.27 t/s | **−7%** |
+
+**Prefill** (pp512, f16) is about equal: OLD 834 then 948 t/s (the first round was cold), FIX 967
+then 958 t/s.
+
+**Findings.**
+- **The regression is on the VBR path only.** With f16 the new build is slightly faster at both
+  depths.
+- **llama-bench reproduces the serving measurement:** VBR drops from 27.0 to 25.0 t/s here, against
+  26.8 to 24.5 t/s in the hermesbench server logs.
+- **Codec or tier policy: can't tell.** Both builds report `vbr_entry = f16`. The new build's
+  llama-bench adds a `vbr_codec = turbo` field that the old one does not print, so these runs cannot
+  show whether the codec or tier policy changed — only that the VBR path is slower.
+
+**Repro:** `llama-bench -m <model> -ngl 99 -fa 1 -ctk vbr -ctv vbr -p 0 -n 128 -d 13000 -r 2` on each
+build.
