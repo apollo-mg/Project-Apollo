@@ -197,11 +197,11 @@ footer p{margin:0;max-width:72ch}
     </div>
     <div class="controls">
       <button class="btn" id="tie" type="button">Too close to call</button>
-      <label class="toggle" for="seen"><input type="checkbox" id="seen"><span>I've seen one of these before</span></label>
+      <label class="toggle" for="seen"><input type="checkbox" id="seen"><span>I know which quant made one of these</span></label>
       <button class="link" id="back" type="button">Back one pair</button>
       <span class="prevpick" id="prev"></span>
     </div>
-    <p class="keys">Keys: 1 or &larr; picks A &middot; 2 or &rarr; picks B &middot; T too close &middot; S seen before &middot; U back</p>
+    <p class="keys">Keys: 1 or &larr; picks A &middot; 2 or &rarr; picks B &middot; T too close &middot; S I know the quant &middot; U back</p>
     <div class="status" id="status" role="status" aria-live="polite"></div>
   </main>
 
@@ -255,7 +255,7 @@ footer p{margin:0;max-width:72ch}
       let ties = 0, seen = 0;
       for (const p of PAIRS) { const r = picks[p.id]; if (!r) continue; if (r.choice === "tie") ties++; if (r.seen) seen++; }
       $("n").textContent = TOTAL;
-      $("doneText").textContent = ties + " called too close to call, " + seen + " flagged as seen before.";
+      $("doneText").textContent = ties + " called too close to call, " + seen + " flagged as knowing the quant.";
       return;
     }
     $("judge").hidden = false; $("done").hidden = true;

@@ -26,7 +26,7 @@ sees a label.
 - **Shuffling:** sides and order were shuffled once, from the OS RNG, at build time. The page never
   says which kind a pair is.
 - **Question, verbatim:** *"Which is the better picture of a pelican riding a bicycle?"* The answers are
-  A, B, or "Too close to call". Each pick can also be flagged "I've seen one of these before".
+  A, B, or "Too close to call". Each pick can also be flagged "I know which quant made one of these".
 - **The question is the goal arm's own instruction, word for word.** P-B4 therefore partly tests whether
   goal framing achieved its stated aim. This is disclosed, and intended.
 
@@ -37,8 +37,11 @@ sees a label.
   below, so it cannot be changed afterwards without detection.
 - **I will not read the picks until Mark says he has finished.**
 - **Known leak:** Mark saw at least one render during the run (the colourful one with a cloud and a
-  sun) and may remember others. Picks flagged "seen before" are excluded from the primary analyses
-  and reported separately.
+  sun) and may remember others. Picks flagged "I know which quant made one of these" are excluded from the
+  primary analyses and reported separately.
+- **Flag reworded before any pick.** It first read "I've seen one of these before". After the first
+  few pairs every pair would qualify, since each first drawing appears in nine pairs. Blinding only
+  needs to know whether the label is known, so that is what it now asks.
 
 ## Analysis (fixed now)
 
