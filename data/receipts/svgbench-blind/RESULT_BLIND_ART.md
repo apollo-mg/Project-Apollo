@@ -15,8 +15,9 @@
   Mark put the 4-bit drawing ahead in 21 of 24 cross pairings; the exact permutation p is 0.057
   against α = 0.05. P-B1 (no separation) is CONFIRMED, and P-B2 (direction favours 4-bit) is
   CONFIRMED.
-- **The second rater saw no lean at all:** 12.5 of 24, p = 0.96. The two rankings barely correlate
-  (Spearman +0.28, n = 10), and they disagree most about Mark's favourite drawing.
+- **The second rater, JabbaTheDuck, saw no lean at all:** 12.5 of 24, p = 0.96. The two rankings
+  barely correlate (Spearman +0.28, n = 10), and they disagree most about Mark's favourite drawing.
+- **Pooled, the two raters do not separate either:** 18 of 24, p = 0.26 (P-B7 CONFIRMED).
 - **Mark's judgments are reliable.** All 8 repeats agreed, with the sides swapped.
 - **Most corrections didn't change the picture enough to matter.** Mark called 15 of the 22
   before/after pairs too close to call. When he did decide, the correction won 6 of 7 (sign test
@@ -77,21 +78,21 @@ first guess was UVR7, but UVR7 was never displayed in this session, so that gues
 - **So the lean does not depend on the drawings he could have seen labelled,** though it is not
   significant either way.
 
-## Outside rater R1 — secondary
+## Outside rater R1 (JabbaTheDuck) — secondary
 
 - **Integrity:** 75/75 picks, integrity clean, median 2.9 s per pair (the click-through line is 1.5
   s), 66 decisive picks.
-- **Human or agent: unconfirmed.** Addendum 2 applies, so everything below is reported both ways.
+- **Hand-rated, by his own account.** Mark asked him on Discord (2026-09-11, 11:32). His answer:
+  *"I hand rated it and looked at each image and decided."* Under addendum 2 this counts him as a
+  human rater, which makes P-B6 and P-B7 final. He agreed to be named.
 - **R1's own predictions:**
   - P-B1 CONFIRMED (12.5/24, p = 0.957).
   - P-B2 CONFIRMED on a coin flip (12.5 > 12).
   - P-B3 CONFIRMED (10/14, p = 0.18).
   - P-B4 FALSIFIED (goal 5/8 vs intent 5/6).
   - P-B5 CONFIRMED (7/8).
-- **P-B6, agreement with Mark** on decisive first-drawing pairs: 21 of 32 = 0.66. CONFIRMED if R1 is
-  a person.
-- **P-B7, pooled ranking** (Mark + R1): 18 of 24, p = 0.257. CONFIRMED if R1 is a person; NOT
-  EVALUABLE if not, because there would be only one eligible rater.
+- **P-B6, agreement with Mark** on decisive first-drawing pairs: 21 of 32 = 0.66. **CONFIRMED.**
+- **P-B7, pooled ranking** (Mark + R1): 18 of 24, p = 0.257. **CONFIRMED.**
 
 ## Descriptive
 
@@ -120,8 +121,7 @@ first guess was UVR7, but UVR7 was never displayed in this session, so that gues
 - **Sample:** one primary rater and ten first drawings (6 v 4). The test's best possible p is 0.01.
 - **What is registered:** scoring follows the prereg. The leak sensitivity, the four-corrections
   observation and everything under Descriptive are not pre-registered.
-- **R1:** R1's status is unconfirmed, and R1 is identified by handle in the raw export. That should be
-  redacted before anything is published, unless he agrees.
+- **R1:** "hand-rated" is his own account and cannot be checked independently. He agreed to be named.
 
 ## For the Q6 question
 
