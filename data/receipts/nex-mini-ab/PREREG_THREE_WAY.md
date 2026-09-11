@@ -1,6 +1,8 @@
 # Pre-registration — three finetunes of one 35B-A3B shape on HumanEval+
 
-**Logged 2026-09-11, before any model was downloaded to the test box and before any run.**
+**Logged 2026-09-11, before any run.** Committed at 12:11:45, 28 s after the downloads to `.194`
+started and before any file had finished. (The first version of this line said "before any model
+was downloaded", which was not quite true.)
 
 ## Why
 
