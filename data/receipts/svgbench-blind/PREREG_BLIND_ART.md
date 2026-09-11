@@ -61,6 +61,24 @@ sees a label.
 5. **Descriptive only:** Mark's revision preferences, set against the structural score changes and
    against the exploratory change magnitude.
 
+**Rules pinned before any pick (added after review, before the link was sent):**
+- **Repeated pairs.** A repeated first-drawing pair enters the win rate once, at the mean of its two
+  judgments (win 1, too close 0.5, loss 0, after un-swapping the sides). A pair judged one way and
+  then the other therefore enters as 0.5. Both judgments are used for P-B5.
+- **Flagged judgments.** A judgment flagged "I know which quant made one of these" is dropped. If both
+  judgments of a repeated pair are flagged, the pair is dropped.
+- **Changed picks.** The page overwrites a changed pick. The last pick counts, and its stored `at`
+  timestamp records when it was made.
+- **Stopping.** The analysis runs once, when Mark says he is done, with no interim looks.
+  Each prediction needs a minimum number of usable judgments; below it, the prediction is reported
+  NOT EVALUABLE (incomplete), with its numbers descriptive only:
+
+  | prediction | minimum usable |
+  |---|---|
+  | P-B1, P-B2 | 40 of the 45 first-drawing pairs |
+  | P-B3, P-B4 | 18 of the 22 revision pairs |
+  | P-B5 | 6 of the 8 repeats |
+
 ## Predictions (logged before the page was built)
 
 | id | prediction | conf |
