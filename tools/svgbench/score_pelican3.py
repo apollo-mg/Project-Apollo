@@ -98,7 +98,9 @@ def contact_sheet(rows):
                         png = cand
                         break
             if png:
-                im = Image.open(png).convert("RGB")
+                src = Image.open(png).convert("RGBA")
+                im = Image.new("RGB", src.size, "white")
+                im.paste(src, mask=src.split()[3])   # transparent backdrops show white, as in the full renders
                 im.thumbnail((tw, th))
                 sheet.paste(im, (x + (tw - im.width) // 2, y + lab + (th - im.height) // 2))
             d.rectangle([x, y + lab, x + tw, y + lab + th], outline=(200, 200, 200))

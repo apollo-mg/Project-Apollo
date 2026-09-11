@@ -68,6 +68,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `pelican3_rep.sh` wraps it with a 2 s memory trace and a 585 s backstop.
     - `score_pelican3.py` was committed before any data.
     - Prereg: `data/receipts/svgbench-pelican3/PREREG_PELICAN3.md`.
+    - Result: `data/receipts/svgbench-pelican3/RESULT_PELICAN3.md`. The contact sheet now composites
+      transparent renders onto white; before that they showed black.
 
   Result: `data/receipts/svgbench-ladder/RESULT_LADDER.md`. The scorer saturates (7/10 first drawings
   at ceiling). P-L2's bit-depth "confirmation" comes from scorer artifacts however they are handled;

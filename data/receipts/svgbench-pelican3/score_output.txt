@@ -1,0 +1,39 @@
+== integrity (R3-R5)
+   BASE     prompt hashes 1 distinct ['0e0d9d80ec69'] | tail {'tart|>assistant\n<think>\n'} | kv_bpv [8.5, 8.5, 8.5, 8.5, 8.5]
+   QWOPUS   prompt hashes 1 distinct ['89e9dbb0dee8'] | tail {'>\n<|im_start|>assistant\n'} | kv_bpv [8.5, 8.5, 8.5, 8.5, 8.5]
+   DAVIDAU  prompt hashes 1 distinct ['0e0d9d80ec69'] | tail {'tart|>assistant\n<think>\n'} | kv_bpv [8.5, 8.5, 8.5, 8.5, 8.5]
+
+== per drawing
+   arm      rep  tokens  think_ch  answer_ch  score   finish  elapsed  how / failing checks
+   BASE     r1    4440      3903       5628  9/10    stop       163s  parsed ['assembly_coherent']
+   BASE     r2    5100      6926       3850  10/10   stop       187s  parsed []
+   BASE     r3    3197      3949       3422  9/10    stop       116s  parsed ['assembly_coherent']
+   BASE     r4    5556      6335       5632  10/10   stop       204s  parsed []
+   BASE     r5    3923      3949       4736  10/10   stop       143s  parsed []
+   QWOPUS   r1    4190         0       9032  6/10    stop       155s  no thinking ['two_lower_clusters', 'clusters_separated', 'structure_between', 'assembly_coherent']
+   QWOPUS   r2    8310      9636       8447  10/10   stop       308s  parsed []
+   QWOPUS   r3    3251         0       6477  10/10   stop       118s  no thinking []
+   QWOPUS   r4    3267       294       6531  9/10    stop       118s  parsed ['assembly_coherent']
+   QWOPUS   r5   12201     18857       6728  10/10   stop       456s  parsed []
+   DAVIDAU  r1    3709      1240       7155  9/10    stop       135s  parsed ['assembly_coherent']
+   DAVIDAU  r2    4216      1387       7447  10/10   stop       154s  parsed []
+   DAVIDAU  r3    4240      5026       3650  10/10   stop       154s  parsed []
+   DAVIDAU  r4    3927      2791       5821  10/10   stop       143s  parsed []
+   DAVIDAU  r5    1386       206       2709  10/10   stop        50s  parsed []
+
+== medians (capped = above every completed rep)
+   BASE     n=5 tokens 4,440 [3,197-5,556] | thinking chars 3,949 [3,903-6,926] | answer chars 4,736 [3,422-5,632]
+   QWOPUS   n=5 tokens 4,190 [3,251-12,201] | thinking chars 9,636 [294-18,857] | answer chars 6,728 [6,477-9,032]
+   DAVIDAU  n=5 tokens 3,927 [1,386-4,240] | thinking chars 1,387 [206-5,026] | answer chars 5,821 [2,709-7,447]
+
+== predictions
+   P-P1 DAVIDAU thinking < BASE: U = 3.0, exact one-sided p = 0.023809523809523808  -> CONFIRMED
+   P-P2 DAVIDAU tokens < BASE:   U = 7.0, exact one-sided p = 0.15476190476190477  -> not confirmed
+   P-P3 QWOPUS median tokens 4,190 >= BASE median 4,440  -> FALSIFIED
+   P-P4 QWOPUS opened thinking: 3/5 ['no thinking', 'parsed', 'no thinking', 'parsed', 'parsed']
+   P-P5 capped reps: 0  -> CONFIRMED
+   P-P6 judged in the receipt from the failing checks above
+
+== replication: the three earlier DAVIDAU reps (not pooled)
+   tokens [3072, 2389, 4172] | thinking chars [1229, 1220, 2545]
+contact sheet: /mnt/TG_2TB/Projects/Apollo/data/receipts/svgbench-pelican3/contact_sheet.png
