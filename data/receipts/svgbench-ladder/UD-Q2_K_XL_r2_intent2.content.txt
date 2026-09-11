@@ -1,0 +1,97 @@
+Looking at the ASCII rendering, I can identify these faults:
+
+1. **Beak too long** – the upper mandible and pouch extend to x=338 (100 px), making the pelican look like a stork rather than a pelican.
+2. **Near leg floats in mid-air** – the second leg ends at (188 185), not attached to a logical pedal position (the opposite crank arm would point up-back from the hub).
+3. **Tail path is messy** – the five-point polygon creates a jagged, irregular shape instead of clean feathers.
+4. **Wing overlaps the body outline awkwardly** – the closed quadratic path pokes outside the body ellipse.
+5. **Legs too thin** – 5 px strokes make the legs nearly invisible in the rendering.
+
+Here is the corrected SVG:
+
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+  <!-- Sky -->
+  <rect width="400" height="300" fill="#cde8f5"/>
+
+  <!-- Ground -->
+  <ellipse cx="200" cy="288" rx="195" ry="14" fill="#a8c66c"/>
+
+  <!-- ===== Bicycle ===== -->
+  <g stroke="#333" stroke-width="5" fill="none" stroke-linecap="round">
+    <circle cx="100" cy="220" r="45"/>
+    <circle cx="300" cy="220" r="45"/>
+    <path d="M100 220 L195 220"/>
+    <path d="M195 220 L172 128"/>
+    <path d="M195 220 L282 122"/>
+    <path d="M172 128 L282 122"/>
+    <path d="M282 122 L300 220"/>
+    <path d="M282 122 L278 98"/>
+  </g>
+
+  <!-- Spokes -->
+  <g stroke="#999" stroke-width="2">
+    <path d="M70 220 L130 220 M100 190 L100 250"/>
+    <path d="M270 220 L330 220 M300 190 L300 250"/>
+  </g>
+
+  <!-- Hubs -->
+  <circle cx="100" cy="220" r="5" fill="#333"/>
+  <circle cx="300" cy="220" r="5" fill="#333"/>
+
+  <!-- Handlebar -->
+  <path d="M278 98 q0 -12 12 -12" fill="none" stroke="#555" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- Seat -->
+  <ellipse cx="170" cy="122" rx="16" ry="6" fill="#222"/>
+
+  <!-- Crank & pedal (near side, forward-down) -->
+  <circle cx="195" cy="220" r="7" fill="none" stroke="#555" stroke-width="4"/>
+  <line x1="195" y1="220" x2="212" y2="236" stroke="#555" stroke-width="4"/>
+  <line x1="205" y1="236" x2="222" y2="236" stroke="#333" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- Crank arm (far side, up-back) -->
+  <line x1="195" y1="220" x2="178" y2="204" stroke="#555" stroke-width="4"/>
+  <line x1="172" y1="204" x2="189" y2="204" stroke="#333" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- ===== Pelican ===== -->
+  <!-- Tail feathers -->
+  <path d="M155 105 L122 80 L138 96 L118 90 L145 108 Z" fill="#dfe6ea"/>
+
+  <!-- Body -->
+  <ellipse cx="185" cy="100" rx="35" ry="42" fill="#ffffff" stroke="#333" stroke-width="2" transform="rotate(-12 185 100)"/>
+
+  <!-- Wing (kept inside body) -->
+  <path d="M178 80 q-22 10 -12 35 q16 3 24 -14 q4 -14 -12 -21 Z" fill="#d3dce1" stroke="#333" stroke-width="1.5"/>
+
+  <!-- Head -->
+  <circle cx="225" cy="58" r="16" fill="#ffffff" stroke="#333" stroke-width="2"/>
+
+  <!-- Beak: upper mandible (shortened) -->
+  <path d="M235 50 L310 56 L235 60 Z" fill="#f2a93b" stroke="#333" stroke-width="1.5"/>
+
+  <!-- Beak: lower pouch (rounded) -->
+  <path d="M235 60 C242 82 290 82 310 60 L235 62 Z" fill="#e8952c" stroke="#333" stroke-width="1.5"/>
+
+  <!-- Eye -->
+  <circle cx="225" cy="52" r="3" fill="#111"/>
+  <circle cx="226" cy="51" r="1" fill="#fff"/>
+
+  <!-- Legs (thicker) -->
+  <g stroke="#e8952c" stroke-width="7" fill="none" stroke-linecap="round">
+    <!-- Far leg to forward pedal -->
+    <path d="M192 140 L204 180 L212 232"/>
+    <!-- Near leg to rear pedal -->
+    <path d="M178 142 L182 178 L180 202"/>
+  </g>
+
+  <!-- Feet -->
+  <ellipse cx="213" cy="234" rx="9" ry="5" fill="#e8952c" stroke="#c47a1d" stroke-width="1.5"/>
+  <ellipse cx="181" cy="204" rx="8" ry="5" fill="#e8952c" stroke="#c47a1d" stroke-width="1.5"/>
+
+  <!-- Motion lines -->
+  <g stroke="#8ab" stroke-width="2" stroke-linecap="round" fill="none">
+    <path d="M20 200 q10 -6 20 0"/>
+    <path d="M10 225 q12 -6 24 0"/>
+  </g>
+</svg>
+```

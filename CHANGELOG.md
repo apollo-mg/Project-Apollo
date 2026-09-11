@@ -24,7 +24,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   516 `triton/` files are also owned by the live `triton-rocm 3.7.1`; removing it deletes the
   working triton.
 
+- **RX 9070 XT power cap lowered 374 → 330 W in LACT (Mark, 2026-09-09 22:55:55):** the timestamp
+  is the `/etc/lact/config.yaml` mtime. Mark had seen transient draws above 375 W and capped the card
+  at about factory level. **Every 9070 receipt from 2026-09-09 23:00 on ran at 330 W; earlier ones
+  ran at 374 W.** The change went unlogged mid-experiment and confounded a night of VBR runs; see
+  `data/receipts/viability/RESULT_POWER_CAP_LATCH.md`. That receipt is superseded, but the timestamp
+  split stands.
+
 ### Added
+- **`tools/llmproxy/llm_proxy.py` — transparent OpenAI-compatible logging proxy (Claude,
+  2026-09-09):** sits between a harness and llama-server
+  (`--listen 8091 --upstream http://127.0.0.1:8090 --log run.jsonl`) and records what crossed the
+  wire.
+  - **Why:** hermesbench writes `trace.jsonl` only when a task completes, so every timed-out task in
+    run v5 left a 0-byte trace.
+  - **Behaviour:** forwards chunks unbuffered, writes the partial generation when the client
+    disconnects, and fsyncs progress as it goes.
+  - **Flags:** `--drain-mode inline|decoupled` (default decoupled); `--pidfile`, so it can be stopped
+    without `pkill -f`.
+
+  ⚠ **Treat the proxy as an experimental variable.** `RESULT_SLASH_DEGENERACY.md` needed no-proxy
+  controls to rule it in or out.
+- **svgbench — constrained mechanistic SVG scoring + a bit-depth × review-framing ladder (Claude,
+  2026-09-10):** `tools/svgbench/`.
+  - `svg_probe.py` renders an SVG and runs 10 structural checks. It also emits a 64×30 occupancy grid,
+    which is the only feedback a model gets.
+  - `run_ladder.py` fsyncs every item and is resumable. Before starting a server it checks for 8 GB
+    free; a watchdog SIGKILLs the server below 2.5 GB MemAvailable; after each stop it waits for GTT
+    to drain.
+  - `score_ladder.py` does the pre-registered grading. `explore_ladder.py` is exploratory only.
+    `sensitivity_ladder.py` checks how the verdicts depend on artifact reps.
+
+  Result: `data/receipts/svgbench-ladder/RESULT_LADDER.md`. The scorer saturates (7/10 first drawings
+  at ceiling), and both bit-depth "confirmations" come from scorer artifacts. v2 requirements are in
+  `tools/svgbench/V2_NOTES.md`.
+
+  ⚠ **Qwen3.8-27B UD-Q4_K_M at `-c 24576` on the 9070 spills into *pinned* host RAM.** It caused a
+  global OOM with 30 GB of swap free, killing kwin_wayland, Discord and Chrome.
 - **Lab spec: knowledge vs reasoning under compression (Opus 5+Mark, 2026-08-06):**
   `data/Apollo Docs/Lab_Spec_Knowledge_vs_Reasoning_Under_Compression.md`. Tests whether knowledge
   recall degrades under compression faster than reasoning does, and whether the field's standard

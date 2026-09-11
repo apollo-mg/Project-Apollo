@@ -1,0 +1,88 @@
+## Faults
+
+1. **No wings/arms on the handlebars** – the pelican is just sitting on the bike; nothing reaches forward to grip the bars, so it doesn't read as "riding."
+2. **Tail is a jagged polygon** – straight-line facets look angular rather than feather-like.
+3. **Eye too small** (r = 3.5) – barely visible in the render; no highlight.
+4. **Beak slightly over-long** (tip at x = 385) – pushes the head/beak cluster toward the front wheel and makes the bird look top-heavy.
+5. **Neck volume is only a thin filled sliver** – the thick white stroke and the thin filled quad don't align well, leaving a visible seam at the head junction.
+
+## Corrected SVG
+
+```svg
+<svg viewBox="0 0 500 400" xmlns="http://www.w3.org/2000/svg">
+  <!-- ground -->
+  <line x1="0" y1="365" x2="500" y2="365" stroke="#9aa8a1" stroke-width="3"/>
+
+  <!-- shadow -->
+  <ellipse cx="240" cy="367" rx="170" ry="10" fill="#000000" opacity="0.15"/>
+
+  <!-- bicycle frame -->
+  <g stroke="#2b2b2b" stroke-width="6" stroke-linecap="round" fill="none">
+    <circle cx="120" cy="310" r="48"/>
+    <circle cx="360" cy="310" r="48"/>
+    <path d="M 120 310 L 240 310"/>
+    <path d="M 240 310 L 200 210"/>
+    <path d="M 240 310 L 345 235"/>
+    <path d="M 200 210 L 345 235"/>
+    <path d="M 120 310 L 200 210"/>
+    <path d="M 345 235 L 360 310"/>
+    <path d="M 345 235 L 348 200"/>
+    <path d="M 348 200 Q 348 188 365 188 L 380 188"/>
+    <path d="M 200 210 L 200 198"/>
+    <line x1="185" y1="198" x2="215" y2="198" stroke-width="8"/>
+  </g>
+
+  <!-- crank, chain, pedals -->
+  <circle cx="240" cy="310" r="11" fill="none" stroke="#2b2b2b" stroke-width="5"/>
+  <line x1="120" y1="310" x2="240" y2="310" stroke="#2b2b2b" stroke-width="3"/>
+  <line x1="240" y1="310" x2="262" y2="340" stroke="#2b2b2b" stroke-width="5"/>
+  <line x1="240" y1="310" x2="218" y2="280" stroke="#2b2b2b" stroke-width="5"/>
+  <line x1="252" y1="340" x2="274" y2="340" stroke="#2b2b2b" stroke-width="7"/>
+  <line x1="206" y1="280" x2="228" y2="280" stroke="#2b2b2b" stroke-width="7"/>
+
+  <!-- pelican legs -->
+  <g stroke="#f2801f" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M 205 228 Q 210 255 218 280"/>
+    <path d="M 195 232 Q 240 290 262 340"/>
+  </g>
+  <!-- feet -->
+  <g fill="#f2801f">
+    <ellipse cx="218" cy="280" rx="11" ry="6"/>
+    <ellipse cx="263" cy="340" rx="11" ry="6"/>
+  </g>
+
+  <!-- pelican body -->
+  <g>
+    <!-- tail (smoothed) -->
+    <path d="M 135 182 Q 88 160 96 190 Q 88 214 135 214 Z"
+          fill="#ffffff" stroke="#b7c4c6" stroke-width="3" stroke-linejoin="round"/>
+    <!-- body -->
+    <ellipse cx="185" cy="192" rx="58" ry="44" fill="#ffffff" stroke="#b7c4c6" stroke-width="3"/>
+    <!-- back wing on body -->
+    <path d="M 148 188 Q 185 160 225 182 Q 215 218 165 214 Q 146 204 148 188 Z"
+          fill="#eef4f4" stroke="#b7c4c6" stroke-width="2"/>
+
+    <!-- front wing reaching to handlebars -->
+    <path d="M 218 176 Q 268 148 342 174 L 368 186 Q 358 200 332 196 Q 268 190 218 194 Z"
+          fill="#eef4f4" stroke="#b7c4c6" stroke-width="2"/>
+    <!-- wing-tip / hand gripping bar -->
+    <ellipse cx="366" cy="190" rx="9" ry="6" fill="#f5a15a" stroke="#d97b29" stroke-width="1.5"/>
+
+    <!-- neck: thick stroke for volume -->
+    <path d="M 230 162 Q 265 142 284 118" stroke="#ffffff" stroke-width="26" fill="none" stroke-linecap="round"/>
+    <!-- neck: outline -->
+    <path d="M 228 158 Q 265 140 284 116" stroke="#b7c4c6" stroke-width="2" fill="none"/>
+    <!-- head -->
+    <circle cx="292" cy="105" r="18" fill="#ffffff" stroke="#b7c4c6" stroke-width="3"/>
+    <!-- beak (upper) – shortened -->
+    <path d="M 304 94 L 378 106 L 340 126 Q 314 124 304 110 Z"
+          fill="#f5a15a" stroke="#d97b29" stroke-width="2.5" stroke-linejoin="round"/>
+    <!-- gular pouch -->
+    <path d="M 304 110 Q 318 148 348 142 Q 365 136 378 106 Q 355 124 340 126 Q 316 124 304 110 Z"
+          fill="#f7b169" stroke="#d97b29" stroke-width="2"/>
+    <!-- eye -->
+    <circle cx="290" cy="100" r="5" fill="#222222"/>
+    <circle cx="292" cy="98" r="2" fill="#ffffff"/>
+  </g>
+</svg>
+```

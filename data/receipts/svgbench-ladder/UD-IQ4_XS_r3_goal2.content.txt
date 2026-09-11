@@ -1,0 +1,122 @@
+Looking at the ASCII rendering, I can identify these faults:
+
+1. **Neck is nearly invisible** – it blends into the body and head; no distinct S-curve reads between the blob body and the head.
+2. **Beak/pouch merge with the head** – the upper beak, pouch, and head form one amorphous mass in the top-right; the pouch does not clearly hang *below* the beak line.
+3. **Wing-to-handlebar is muddy** – the wing shape overlaps the body so much that the "reaching to the bars" gesture is lost; it just looks like the body extends rightward.
+4. **Legs/pedals are ambiguous** – the leg strokes overlap the frame tubes and crank, making it hard to tell where the pelican's legs end and the bicycle hardware begins.
+5. **Tail is too small** – a few pixels of light grey that don't register as a tail.
+
+Here is a corrected SVG:
+
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+  <title>Pelican riding a bicycle</title>
+
+  <!-- background -->
+  <rect width="800" height="600" fill="#EAF6FB"/>
+  <!-- ground -->
+  <line x1="60" y1="542" x2="740" y2="542" stroke="#B8C7CF" stroke-width="4"/>
+
+  <!-- ================= WHEELS ================= -->
+  <g stroke="#4A4A4A" fill="none">
+    <circle cx="250" cy="450" r="90" stroke-width="8"/>
+    <circle cx="250" cy="450" r="78" stroke-width="3"/>
+    <g stroke-width="2">
+      <line x1="250" y1="360" x2="250" y2="540"/>
+      <line x1="160" y1="450" x2="340" y2="450"/>
+      <line x1="186" y1="386" x2="314" y2="514"/>
+      <line x1="314" y1="386" x2="186" y2="514"/>
+    </g>
+    <circle cx="250" cy="450" r="8" fill="#4A4A4A" stroke="none"/>
+  </g>
+  <g stroke="#4A4A4A" fill="none">
+    <circle cx="550" cy="450" r="90" stroke-width="8"/>
+    <circle cx="550" cy="450" r="78" stroke-width="3"/>
+    <g stroke-width="2">
+      <line x1="550" y1="360" x2="550" y2="540"/>
+      <line x1="460" y1="450" x2="640" y2="450"/>
+      <line x1="486" y1="386" x2="614" y2="514"/>
+      <line x1="614" y1="386" x2="486" y2="514"/>
+    </g>
+    <circle cx="550" cy="450" r="8" fill="#4A4A4A" stroke="none"/>
+  </g>
+
+  <!-- ================= FRAME ================= -->
+  <g stroke="#D93B2B" stroke-width="11" stroke-linecap="round" fill="none">
+    <line x1="250" y1="450" x2="400" y2="450"/>
+    <line x1="250" y1="450" x2="355" y2="332"/>
+    <line x1="400" y1="450" x2="355" y2="332"/>
+    <line x1="400" y1="450" x2="530" y2="352"/>
+    <line x1="355" y1="332" x2="530" y2="352"/>
+    <line x1="550" y1="450" x2="530" y2="352"/>
+    <line x1="530" y1="352" x2="539" y2="316"/>
+  </g>
+  <!-- handlebar -->
+  <path d="M 539 316 Q 539 294 506 298" fill="none" stroke="#333" stroke-width="9" stroke-linecap="round"/>
+  <!-- saddle -->
+  <line x1="320" y1="320" x2="382" y2="320" stroke="#333" stroke-width="12" stroke-linecap="round"/>
+  <!-- crank and pedals -->
+  <line x1="372" y1="480" x2="428" y2="420" stroke="#666" stroke-width="6"/>
+  <circle cx="400" cy="450" r="9" fill="#666"/>
+  <rect x="350" y="474" width="40" height="11" rx="3" fill="#333"/>
+  <rect x="408" y="414" width="40" height="11" rx="3" fill="#333"/>
+
+  <!-- ================= PELICAN ================= -->
+  <!-- legs (behind body, clearly separate from frame) -->
+  <g stroke="#F5A623" stroke-width="13" stroke-linecap="round" fill="none">
+    <path d="M 330 300 C 340 370 358 440 372 474"/>
+    <path d="M 350 300 C 380 350 410 390 428 418"/>
+  </g>
+  <!-- webbed feet on pedals -->
+  <g fill="#F5A623" stroke="#C98A1A" stroke-width="2">
+    <path d="M 352 472 L 394 472 L 398 482 L 348 482 Z"/>
+    <path d="M 412 412 L 454 412 L 458 422 L 408 422 Z"/>
+  </g>
+
+  <!-- tail (larger, more visible) -->
+  <path d="M 238 220 L 152 192 L 168 238 L 242 252 Z" fill="#CFC8BC" stroke="#B5AD9E" stroke-width="2"/>
+  <path d="M 155 196 L 172 218 M 162 202 L 178 228" stroke="#B5AD9E" stroke-width="2" fill="none"/>
+
+  <!-- body -->
+  <ellipse cx="325" cy="245" rx="102" ry="64" fill="#E8E4DC" stroke="#D4CFC5" stroke-width="2"/>
+
+  <!-- neck – thicker, clearer S-curve -->
+  <path d="M 398 232 C 438 222 452 192 454 162 C 456 138 458 126 460 114"
+        fill="none" stroke="#D4CFC5" stroke-width="34" stroke-linecap="round"/>
+  <path d="M 398 232 C 438 222 452 192 454 162 C 456 138 458 126 460 114"
+        fill="none" stroke="#E8E4DC" stroke-width="28" stroke-linecap="round"/>
+
+  <!-- head -->
+  <circle cx="462" cy="108" r="26" fill="#E8E4DC" stroke="#D4CFC5" stroke-width="2"/>
+
+  <!-- upper beak – long, pointed -->
+  <path d="M 476 90 Q 560 98 608 128 L 610 142 L 478 130 Z" fill="#F5A623" stroke="#D48A1A" stroke-width="1.5"/>
+  <!-- lower beak / mouth line -->
+  <line x1="478" y1="130" x2="608" y2="140" stroke="#C96E12" stroke-width="3.5"/>
+
+  <!-- gular pouch – clearly hangs BELOW the beak -->
+  <path d="M 606 140 Q 580 218 505 210 Q 475 206 472 168 L 474 132 Z"
+        fill="#E8871A" stroke="#C96E12" stroke-width="2"/>
+  <!-- pouch inner line for depth -->
+  <path d="M 590 148 Q 570 198 510 195" fill="none" stroke="#C96E12" stroke-width="1.5"/>
+
+  <!-- eye -->
+  <circle cx="456" cy="100" r="9" fill="#FFFFFF" stroke="#CCC" stroke-width="1.5"/>
+  <circle cx="459" cy="100" r="4.5" fill="#222"/>
+
+  <!-- wing – clearly extends from body to handlebar -->
+  <path d="M 305 208 C 370 192 470 235 515 295
+           C 522 308 510 320 498 312
+           C 448 268 378 244 312 242
+           C 298 240 296 210 305 208 Z"
+        fill="#CFC8BC" stroke="#A89F8F" stroke-width="2.5"/>
+  <!-- wing feather lines -->
+  <path d="M 375 222 C 430 242 478 275 508 308" fill="none" stroke="#A89F8F" stroke-width="2"/>
+  <path d="M 360 230 C 415 252 462 282 500 312" fill="none" stroke="#A89F8F" stroke-width="1.5"/>
+  <path d="M 345 238 C 400 260 448 290 492 316" fill="none" stroke="#A89F8F" stroke-width="1"/>
+
+  <!-- wing tip "hand" gripping handlebar -->
+  <ellipse cx="512" cy="305" rx="14" ry="10" fill="#CFC8BC" stroke="#A89F8F" stroke-width="2"
+           transform="rotate(-20 512 305)"/>
+</svg>
+```

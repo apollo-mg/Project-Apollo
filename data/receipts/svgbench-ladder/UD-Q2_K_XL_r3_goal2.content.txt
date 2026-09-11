@@ -1,0 +1,99 @@
+## Faults
+
+1. **Body ellipse oversized** (rx 55, ry 65) – makes the pelican a giant blob dwarfing the bike.
+2. **Wing is a large filled path** (`M195 175 Q250 185 316 160 … Z`) that merges with the body into one amorphous white mass instead of a thin limb reaching the bars.
+3. **Head too small** (r 26) relative to the body, and the neck is a sliver, so the bird has no clear "neck + head" silhouette.
+4. **Legs are short and start well inside the body ellipse**, so they are nearly hidden; the pelican doesn't read as *sitting on* the saddle with legs reaching the pedals.
+5. **Beak/pouch extends past x = 305**, well past the head-tube of the frame, making the bird look like it's poking through the bike.
+
+## Corrected SVG
+
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 400" width="500" height="400">
+  <!-- Sky -->
+  <rect width="500" height="400" fill="#cde9f5"/>
+
+  <!-- Ground -->
+  <rect y="340" width="500" height="60" fill="#8bc34a"/>
+  <line x1="0" y1="340" x2="500" y2="340" stroke="#689f38" stroke-width="3"/>
+
+  <!-- ===== BICYCLE ===== -->
+  <!-- Wheels -->
+  <g fill="none" stroke="#333" stroke-width="6">
+    <circle cx="110" cy="300" r="48"/>
+    <circle cx="390" cy="300" r="48"/>
+  </g>
+  <!-- Spokes -->
+  <g stroke="#777" stroke-width="2">
+    <line x1="110" y1="252" x2="110" y2="348"/>
+    <line x1="62"  y1="300" x2="158" y2="300"/>
+    <line x1="76"  y1="266" x2="144" y2="334"/>
+    <line x1="144" y1="266" x2="76"  y2="334"/>
+    <line x1="390" y1="252" x2="390" y2="348"/>
+    <line x1="342" y1="300" x2="438" y2="300"/>
+    <line x1="356" y1="266" x2="424" y2="334"/>
+    <line x1="424" y1="266" x2="356" y2="334"/>
+  </g>
+  <!-- Hubs -->
+  <circle cx="110" cy="300" r="6" fill="#555"/>
+  <circle cx="390" cy="300" r="6" fill="#555"/>
+
+  <!-- Frame -->
+  <g stroke="#d32f2f" stroke-width="7" stroke-linecap="round" fill="none">
+    <path d="M110 300 L250 300 L150 195 L110 300"/>
+    <path d="M250 300 L150 195"/>
+    <path d="M250 300 L350 195"/>
+    <path d="M150 195 L350 195"/>
+    <path d="M350 195 L390 300"/>
+  </g>
+  <!-- Handlebar -->
+  <path d="M350 195 L345 160" stroke="#444" stroke-width="6" stroke-linecap="round" fill="none"/>
+  <path d="M345 160 Q330 150 318 158" stroke="#222" stroke-width="6" stroke-linecap="round" fill="none"/>
+  <!-- Saddle -->
+  <path d="M128 190 Q150 178 172 190" stroke="#333" stroke-width="9" stroke-linecap="round" fill="none"/>
+
+  <!-- Crank + pedals -->
+  <line x1="250" y1="300" x2="272" y2="322" stroke="#555" stroke-width="5"/>
+  <line x1="250" y1="300" x2="228" y2="278" stroke="#555" stroke-width="5"/>
+  <line x1="262" y1="322" x2="284" y2="322" stroke="#222" stroke-width="5" stroke-linecap="round"/>
+  <line x1="218" y1="278" x2="240" y2="278" stroke="#222" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- ===== PELICAN ===== -->
+  <!-- Tail -->
+  <path d="M122 165 Q95 172 85 180 Q100 184 128 182 Z" fill="#e8e8e8" stroke="#bbb" stroke-width="1.5"/>
+
+  <!-- Body -->
+  <ellipse cx="155" cy="162" rx="38" ry="38" fill="#ffffff" stroke="#ccc" stroke-width="2"/>
+
+  <!-- Neck -->
+  <path d="M178 140 Q186 122 190 110 L200 110 Q196 128 186 142 Z" fill="#ffffff" stroke="#ccc" stroke-width="1.5"/>
+
+  <!-- Head -->
+  <circle cx="195" cy="100" r="22" fill="#ffffff" stroke="#ccc" stroke-width="2"/>
+
+  <!-- Eye -->
+  <circle cx="203" cy="94" r="4" fill="#222"/>
+
+  <!-- Beak: upper bill -->
+  <path d="M214 92 L280 100 Q277 107 214 105 Z" fill="#f4a832" stroke="#c77f00" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- Pouch (throat sac) -->
+  <path d="M214 105 Q275 112 280 100 Q275 130 248 134 Q222 130 214 105 Z" fill="#f5822b" stroke="#d96b12" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- Nostril -->
+  <circle cx="222" cy="98" r="2" fill="#c77f00"/>
+
+  <!-- Legs (yellow) reaching down to pedals -->
+  <g stroke="#f2b01e" stroke-width="6" stroke-linecap="round" fill="none">
+    <path d="M172 195 Q200 240 228 278"/>
+    <path d="M158 198 Q215 270 272 322"/>
+  </g>
+  <!-- Feet on pedals -->
+  <ellipse cx="228" cy="279" rx="10" ry="4.5" fill="#f2b01e"/>
+  <ellipse cx="272" cy="323" rx="10" ry="4.5" fill="#f2b01e"/>
+
+  <!-- Wing / arm reaching to the handlebar (thin limb, not a filled blob) -->
+  <path d="M188 152 Q260 145 325 155" stroke="#d5d5d5" stroke-width="5" stroke-linecap="round" fill="none"/>
+  <!-- Wing feather hints -->
+  <path d="M158 175 Q168 192 178 202" stroke="#ddd" stroke-width="2" fill="none"/>
+  <path d="M148 180 Q158 198 168 208" stroke="#ddd" stroke-width="2" fill="none"/>
+</svg>
+```

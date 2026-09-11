@@ -93,6 +93,10 @@ someone find it, and the claim in a form that is checkable.
 
 | finding | receipt | date |
 |---|---|---|
+| **VBR KV degenerates after a `vbr reset`; q8_0 and f16 never do.** buun `3823c9eb6`, gfx1201, interleaved A/B/C x3: VBR 3/3 runs affected, q8_0/f16 0/6 (Fisher one-tailed p = 0.0119); 5/5 degenerate generations followed a reset, 5/27 resets went bad | `viability/PREREG_LATCH_INTERLEAVED.md` (SCORING) | 09-10 |
+| **Localised to the fused turbo MMA path.** `GGML_TURBO_MMA_FUSED=0` 0/33 resets bad, `TURBO_TCQ_HOTSWAP=1` 0/33, stock 11/60 (P(0 in 66) ~ 1.7e-6). **buun master `d0f82fd41` does NOT fix it on gfx1201** (5/33). HOTSWAP working contradicts its author's expectation; why is unknown | `viability/PREREG_LATCH_INTERLEAVED.md` (localisation) | 09-10 |
+| VBR degeneracy is **episodic, not a permanent latch** — a run fails, recovers on the next task, fails again. Every degenerate generation follows a `vbr reset`; most resets are harmless | `viability/RESULT_VBR_RESET_CORRELATION.md` | 09-10 |
+| ~~The latch tracks the GPU power cap~~ **superseded** — the 374->330 W change splits the 09-09 ledger 4/5 vs 0/3 (p=0.071, all VBR), but in the interleaved runs power excursions *anti*-correlated with failure (f16 11.9% of seconds > 374 W, clean; VBR 2.9%, failed). Reading: VBR necessary, timing modulates the rate | `viability/RESULT_POWER_CAP_LATCH.md` | 09-10 |
 | **FALSIFIED: there is no VBR context ceiling.** Prefix reuse is perfect at 32k-262k (1 cold prefill, 7 reuses, 0 resets) even at ratio 3.12. The 262k agent thrash is a **prompt-shape** problem — the agent showed `0/14,390 tokens reusable`, which means the prefix is altered, not extended | `viability/RESULT_ENTRY_TIER_CEILING_FALSIFIED.md` | 09-08 |
 | **Quantisation degrades KNOWLEDGE before CALIBRATION — and calibration improves as it goes.** Controlled AD ladder, one box/binary/packager: IQ2_XS 20/24 answerable + **24/24** abstention; IQ3_XXS 24/24 + 23/24; IQ3_S 24/24 + 21/24. `CAL-U3` dose-response `1906`x10 -> `1907`x3 -> unstable -> gone | `viability/RESULT_AD_QUANT_LADDER.md` | 09-07 |
 | **"Clean" spans 55x in decision danger.** First fidelity numbers: `q8_0` R=10.5, turbo4 68.1, `q4_0` 89.5, turbo3 228.4, turbo2 **817.3** (12.4% top-1 flips) — all of which the collapse detector called clean | `kv-fidelity/RESULT_U5_FIDELITY.md` | 08-18 |
@@ -137,6 +141,8 @@ someone find it, and the claim in a form that is checkable.
 
 | finding | receipt | date |
 |---|---|---|
+| **RDNA4 narrow-band crossover is m 2048-4096 — ~8-16x wider than the RDNA3 values (F16 128, BF16 256) it inherits.** No floor (vector wins 96% at m=4); the F16 band is inert at n<=5 because RDNA4's base threshold is already `ne11 <= 5`. Recommended RDNA4 F16/BF16 `[0, 2048]` | `rdna4-kernel-census/RESULT_PR363_NARROW_BAND_RDNA4.md` | 09-10 |
+| **On RDNA4 `mmvf` is the SLOW path at m=10240, k=320**, and F16's `ne11 <= 5` threshold keeps it there two rungs longer than BF16, costing 3.2-3.6x | `rdna4-kernel-census/RESULT_RDNA4_NARROW_MATMUL.md` | 09-09 |
 | **Flash-Next full quants protect all 5 qwen4exp structural tensor classes (169 each, F32 — even UD-IQ1_S); the shared MTP head has 2 of them at Q8_0** | `qwen4exp/RESULT_STRUCTURAL_TENSOR_AUDIT.md` | 09-07 |
 | sm_60 FAST_FP16 carve-out — median KLD 0.0023 -> 0.000001, same-top 96.5 -> 99.9% | `mtp-sm60/SUMMARY.md` | — |
 | Pascal `mul_mat_id` guard costs **~50% of all MoE throughput** on sm_60, and sm_60 doesn't reproduce the bug it guards | `pulsar/PASCAL_MMID_GUARD_COST.md` | 08-03 |
@@ -151,6 +157,14 @@ someone find it, and the claim in a form that is checkable.
 
 | finding | receipt | date |
 |---|---|---|
+| **svgbench saturated, and both of its 'confirmations' were scorer artifacts.** 7/10 Qwen3.8-27B first drawings at the 10-check ceiling; P-L2/P-L3 CONFIRMED raw, both FALSIFIED with the 2 artifact reps counted as drawn. Clean: 2-bit first drawings as sound as 4-bit (6/6 vs 3/4); 0/22 corrections identical to parent; models fixed semantic faults the scorer can't see | `svgbench-ladder/RESULT_LADDER.md` | 09-10 |
+| ~~Visual-feedback use depends on the prompt's reference point~~ **causal claim withdrawn same day** — the two arms varied three things, not one; asking for a fault list is at least as plausible a cause | `svgbench-run/RESULT_REFERENCE_POINT.md` | 09-10 |
+| ~~Backpressure isolated~~ **RETRACTED** — the positive control (stock flags, inline drain; latched 3/3 before) came back clean 20/20. Sequential single-rep arms were confounded with time, and an unlogged power-cap change split the ledger. **Interleave arms and always run a positive control** | `viability/RESULT_SLASH_DEGENERACY.md` | 09-10 |
+| **hermesbench v5 could not finish by construction** — 13 consecutive tasks hit the 960 s wall. Hermes' length-continuation retries double `max_tokens` (to 32,768) and `HERMES_MAX_TOKENS` is inert for `run_agent.py` (absent from every outgoing request). The same task passes when run first on a fresh server: the trigger is server-side state | `viability/RESULT_V5_TIMEOUT_BY_CONSTRUCTION.md` | 09-09 |
+| Prompt-cache reuse did **not** suppress the latch onset (6/6 past task #17 in both arms), and the system prompt was never byte-stable — 22 distinct `sys_sha` per arm | `viability/PREREG_CACHE_REUSE_AB.md` (SCORING) | 09-09 |
+| **Killing a harness leaves its agent child alive, and it poisons the next run** | `FAILURE_MODES.md` AFM-36 | 09-09 |
+| **A component can report the failure it caused itself, and name the wrong subsystem** | `FAILURE_MODES.md` AFM-35 | 09-08 |
+| **A grep that matches the wrong field reads as a finding, not an error** | `FAILURE_MODES.md` AFM-34 | 09-08 |
 | **Verify the outcome, not the route.** Same upstream rename broke `hermes-bench-tool-call` (name matching, 6 tasks/run graded wrong) and left `stevibe/HermesAgent-20` untouched (artifact/state verification). Artifact grading pins a runtime instead — a different, smaller cost | `FAILURE_MODES.md` AFM-33 | 09-08 |
 | **Fixed the hermesbench skew**: one new module + one changed line normalises dispatcher-wrapped and renamed tool calls at the runner's choke point. **6 tasks recovered per run, 0 regressions** across 2 models x 61 tasks. Spark 47->**53**/61, Qwen 44->**50**/60 | `viability/RESULT_HERMESBENCH_FIX.md` | 09-08 |
 | **hermes-agent renamed its tools and hid them behind the discovery bridge on 2026-08-29; the bench (last commit 06-23) still checks the old names.** The 35B baseline ran 07-28 against a different tool surface — **no cross-run comparison in this campaign is valid** | `viability/RESULT_HERMESBENCH_VERSION_SKEW.md` | 09-08 |

@@ -1,6 +1,16 @@
 # Leading result — the latch tracks the GPU power cap, not the software
 
 **Date:** 2026-09-10. **Status:** strongest hypothesis so far, **not yet confirmed** (n=8, p=0.071).
+
+> **Superseded later on 2026-09-10.**
+> - **Power excursions anti-correlated with failure** in the interleaved design: f16 spent 11.9% of
+>   seconds above 374 W and was clean; VBR spent 2.9% and failed every run.
+> - **The fault was localised to the fused turbo MMA path.** See `PREREG_LATCH_INTERLEAVED.md` and
+>   `RESULT_VBR_RESET_CORRELATION.md`.
+> - **What survives:** the 22:55:55 cap change still splits the 09-09 ledger 4/5 vs 0/3. The compatible
+>   reading is that VBR is necessary for the fault and timing perturbations modulate its rate.
+>
+> The original text below is kept as written.
 **Disclosed by Mark 2026-09-10 ~11:15:** he lowered the RX 9070 XT power cap in LACT from
 **374 W to 330 W** ("about factory levels") after noticing transient draws **above 375 W** in his
 own telemetry, wondering whether marginal power was causing numerical errors too small to fault

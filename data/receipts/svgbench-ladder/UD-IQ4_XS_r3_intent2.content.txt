@@ -1,0 +1,113 @@
+Looking at the rendering, I can identify these faults:
+
+1. **Saddle disconnected from seat tube** – there's a 12 px gap between the seat-tube top (y = 332) and the saddle (y = 320), so the pelican appears to float above the saddle.
+2. **Wing doesn't reach the handlebar** – the wing tip stops at x ≈ 502 while the handlebar curve ends at x ≈ 508; a small gap is visible.
+3. **Neck is a uniform thick stroke** that blends into the body ellipse, making the neck/body boundary indistinct.
+4. **Head is a plain circle**, giving the pelican a "bird-on-stick" look rather than a rounded pelican head.
+5. **Eye is tiny** (r = 7 / 3.5) and nearly invisible at this scale.
+
+Here is the corrected SVG:
+
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+  <title>Pelican riding a bicycle</title>
+
+  <!-- background -->
+  <rect width="800" height="600" fill="#EAF6FB"/>
+  <!-- ground -->
+  <line x1="60" y1="542" x2="740" y2="542" stroke="#B8C7CF" stroke-width="4"/>
+
+  <!-- ================= WHEELS ================= -->
+  <!-- rear wheel -->
+  <g stroke="#4A4A4A" fill="none">
+    <circle cx="250" cy="450" r="90" stroke-width="8"/>
+    <circle cx="250" cy="450" r="78" stroke-width="3"/>
+    <g stroke-width="2">
+      <line x1="250" y1="360" x2="250" y2="540"/>
+      <line x1="160" y1="450" x2="340" y2="450"/>
+      <line x1="186" y1="386" x2="314" y2="514"/>
+      <line x1="314" y1="386" x2="186" y2="514"/>
+    </g>
+    <circle cx="250" cy="450" r="8" fill="#4A4A4A" stroke="none"/>
+  </g>
+  <!-- front wheel -->
+  <g stroke="#4A4A4A" fill="none">
+    <circle cx="550" cy="450" r="90" stroke-width="8"/>
+    <circle cx="550" cy="450" r="78" stroke-width="3"/>
+    <g stroke-width="2">
+      <line x1="550" y1="360" x2="550" y2="540"/>
+      <line x1="460" y1="450" x2="640" y2="450"/>
+      <line x1="486" y1="386" x2="614" y2="514"/>
+      <line x1="614" y1="386" x2="486" y2="514"/>
+    </g>
+    <circle cx="550" cy="450" r="8" fill="#4A4A4A" stroke="none"/>
+  </g>
+
+  <!-- ================= FRAME ================= -->
+  <g stroke="#D93B2B" stroke-width="11" stroke-linecap="round" fill="none">
+    <line x1="250" y1="450" x2="400" y2="450"/> <!-- chainstay -->
+    <line x1="250" y1="450" x2="355" y2="332"/> <!-- seatstay -->
+    <line x1="400" y1="450" x2="355" y2="332"/> <!-- seat tube -->
+    <line x1="400" y1="450" x2="530" y2="352"/> <!-- down tube -->
+    <line x1="355" y1="332" x2="530" y2="352"/> <!-- top tube -->
+    <line x1="550" y1="450" x2="530" y2="352"/> <!-- fork -->
+    <line x1="530" y1="352" x2="539" y2="316"/> <!-- stem -->
+  </g>
+  <!-- seat post (connects saddle to frame) -->
+  <line x1="355" y1="332" x2="352" y2="318" stroke="#555" stroke-width="6" stroke-linecap="round"/>
+  <!-- handlebar -->
+  <path d="M 539 316 Q 539 294 504 300" fill="none" stroke="#333" stroke-width="8" stroke-linecap="round"/>
+  <!-- saddle -->
+  <line x1="322" y1="314" x2="380" y2="314" stroke="#333" stroke-width="11" stroke-linecap="round"/>
+  <!-- crank and pedals -->
+  <line x1="372" y1="480" x2="428" y2="420" stroke="#666" stroke-width="6"/>
+  <circle cx="400" cy="450" r="9" fill="#666"/>
+  <rect x="352" y="475" width="38" height="10" rx="3" fill="#333"/>
+  <rect x="409" y="415" width="38" height="10" rx="3" fill="#333"/>
+
+  <!-- ================= PELICAN ================= -->
+  <!-- legs (behind body) -->
+  <g stroke="#F5A623" stroke-width="11" stroke-linecap="round" fill="none">
+    <line x1="340" y1="290" x2="372" y2="472"/>
+    <line x1="330" y1="292" x2="428" y2="412"/>
+  </g>
+  <!-- feet -->
+  <g stroke="#F5A623" stroke-width="9" stroke-linecap="round">
+    <line x1="358" y1="476" x2="390" y2="476"/>
+    <line x1="414" y1="416" x2="446" y2="416"/>
+  </g>
+
+  <!-- tail -->
+  <path d="M 235 230 L 175 214 L 202 258 L 238 264 Z" fill="#CFC8BC"/>
+
+  <!-- body -->
+  <ellipse cx="318" cy="248" rx="96" ry="62" fill="#E8E4DC"/>
+
+  <!-- neck (filled shape for smoother blending) -->
+  <path d="M 380 228
+           C 420 218 438 196 443 162
+           C 445 144 447 132 451 120
+           L 472 122
+           C 469 136 468 150 466 170
+           C 462 210 444 244 400 258
+           C 385 262 375 248 380 228 Z"
+        fill="#E8E4DC"/>
+
+  <!-- head (slightly oval) -->
+  <ellipse cx="454" cy="114" rx="24" ry="21" fill="#E8E4DC"/>
+
+  <!-- pouch -->
+  <path d="M 583 148 Q 548 210 480 202 Q 460 198 460 172 L 460 148 Z" fill="#E8871A"/>
+  <!-- upper beak -->
+  <path d="M 466 100 Q 540 110 587 138 L 589 152 L 466 142 Z" fill="#F5A623"/>
+  <!-- beak mouth line -->
+  <line x1="468" y1="140" x2="585" y2="148" stroke="#C96E12" stroke-width="3"/>
+  <!-- eye (slightly larger) -->
+  <circle cx="450" cy="106" r="9" fill="#FFFFFF"/>
+  <circle cx="452" cy="106" r="4.5" fill="#222"/>
+
+  <!-- wing reaching to the handlebars (tip extended to touch bar) -->
+  <path d="M 312 214 C 392 200 468 240 506 296 C 512 306 504 316 494 310
+           C 444 274 384 252 318 248 C 306 245 304 217 312 214 Z" fill="#CFC8BC"/>
+</svg>
+```

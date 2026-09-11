@@ -3,6 +3,13 @@
 **Date:** 2026-09-10. **Runs:** `latch-interleaved` A1, A2 (VBR arms), no proxy, 330 W cap.
 **Pre-registered:** `PREREG_LATCH_INTERLEAVED.md`. Experiment still running (B2/C2/A3/B3/C3 pending).
 
+> **Update 2026-09-10 — experiment complete; this file's "pending" and "small n" lines are superseded.**
+> Final scoring is in `PREREG_LATCH_INTERLEAVED.md`: VBR 3/3 runs affected vs q8_0/f16 0/6 (Fisher
+> one-tailed p = 0.0119), and 5/5 degenerate generations followed a `vbr reset`. The localisation
+> experiment in the same file then traced it to the fused turbo MMA path:
+> `GGML_TURBO_MMA_FUSED=0` and `TURBO_TCQ_HOTSWAP=1` each gave 0/33 bad resets; buun's master
+> `d0f82fd41` still gave 5/33.
+
 ## Finding
 
 Degenerate generations (pinned at the `-n 4096` cap, the signature previously captured as 4096 `/`)
