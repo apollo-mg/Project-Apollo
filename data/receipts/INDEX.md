@@ -159,6 +159,7 @@ someone find it, and the claim in a form that is checkable.
 
 | finding | receipt | date |
 |---|---|---|
+| **An omitted flag inherits the FORK's default: buun's KV cache defaults to VBR** (`default: vbr (implicit t4 floor)`). A HumanEval+ run launched without `-ctk/-ctv` ran on dynamic VBR against a prereg that said f16. Pass KV flags explicitly; verify the cache type from the server, not the command line | `FAILURE_MODES.md` AFM-38 | 09-11 |
 | **svgbench saturated, and its bit-depth 'confirmations' rest on scorer artifacts.** 7/10 Qwen3.8-27B first drawings at the 10-check ceiling. P-L2 CONFIRMED raw, FALSIFIED however the 2 artifact reps are handled; P-L3 flips only if they are counted as drawn (dropped: 5,396 vs 4,778, 4 reps a side). Clean: 2-bit first drawings as sound as 4-bit (6/6 vs 3/4); 0/22 corrections identical to parent; models fixed semantic faults the scorer can't see | `svgbench-ladder/RESULT_LADDER.md` | 09-10 |
 | ~~Visual-feedback use depends on the prompt's reference point~~ **causal claim withdrawn same day** — the two arms varied three things, not one; asking for a fault list is at least as plausible a cause | `svgbench-run/RESULT_REFERENCE_POINT.md` | 09-10 |
 | ~~Backpressure isolated~~ **RETRACTED** — the positive control (stock flags, inline drain; latched 3/3 before) came back clean 20/20. Sequential single-rep arms were confounded with time, and an unlogged power-cap change split the ledger. **Interleave arms and always run a positive control** | `viability/RESULT_SLASH_DEGENERACY.md` | 09-10 |

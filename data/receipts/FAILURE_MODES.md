@@ -1180,3 +1180,31 @@ a service, is always.
 3. If you must search, do it in a command block that contains the target string **exactly once** —
    inside the pattern — and verify `/proc/<pid>/cmdline` before signalling.
 `scripts/safekill.sh` excludes self and ancestors and remains the safe general tool.
+
+## AFM-38 — An omitted flag inherits the fork's default, not upstream's: buun's KV cache defaults to VBR
+
+**What happened (2026-09-11).**
+- **The launch.** The nex-mini-ab three-way launched llama-server (buun `3823c9eb6`) on `.194`
+  without `-ctk`/`-ctv`, assuming llama.cpp's f16 default.
+- **The fork's default.** buun's fork documents `(default: vbr (implicit t4 floor))`. Both servers
+  armed **VBR dynamic KV**, with different per-arm budgets and a controller that can lower precision
+  mid-run. The pre-registration said f16.
+- **What my checks covered.** The readiness check verified the model file and `n_ctx` through
+  `/props`, but never the cache type.
+- **What I told Mark.** Asked directly how the KV was set up, my first answer was "f16", read off the
+  command line.
+
+**How it was caught:** Mark's question led to a grep of the server log, which found
+`VBR dynamic: KV VRAM budget … decode-time degrade controller armed`. Thirteen minutes of compute
+were discarded, and nothing from them was scored (`nex-mini-ab/PREREG_THREE_WAY.md`, Amendment 2).
+
+**Rules.**
+- **Pass every KV and cache flag explicitly, even when it is the value you intend.** Forks change
+  defaults; the upstream default is not a guarantee.
+- **Verify the cache type from the server itself:** its log line, or `/slots` where the build reports
+  it. A launch command records what was intended, not what happened.
+- **Add the KV type to every launch guard,** next to the model path and context size. In v2 the driver
+  aborts an arm whose server logs VBR.
+
+Related: [[readiness-probes-lie]]; `kv-tensor-split/RESULT_KV_VALIDITY.md` (check quantized arms for a
+silent f16 fallback). This case is the reverse: a silent quantized default.
