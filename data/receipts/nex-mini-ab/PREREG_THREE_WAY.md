@@ -116,3 +116,36 @@ round is reported incomplete.
 - **Nothing about agentic ability.** HumanEval+ is single-function Python.
 - **Nothing about other quants,** other packagers, or other boxes.
 - **Nothing about "smarter" in general.**
+
+## Amendment 1 — schedule (2026-09-11, while R1 runs; no pass@1 computed)
+
+**What changed.** R2 no longer waits for both R1 arms to finish.
+- **Slot A** (GPUs 0,1) starts ORNITH as soon as NEX_R1 finishes.
+- **Slot B** (GPUs 2,3) starts NEX_R2 as soon as QWEN_R1 finishes.
+
+Every arm keeps its registered slot (ORNITH on GPUs 0,1, NEX_R2 on GPUs 2,3); only the start times
+move. Driver: `three_way_amended.sh`.
+
+**Why: timing only.** Early progress, from the first few minutes:
+- NEX answers had a median of about 226 tokens, so all 164 problems take about 1 h.
+- QWEN answers had a median of about 2,500 tokens, so it needs about 8–9 h.
+
+Waiting would leave slot A idle for about 7 h and push completion to midday tomorrow. Mark agreed.
+
+**What it costs.**
+- **NEX–ORNITH is no longer fully concurrent.** NEX_R2 and ORNITH overlap only partly.
+- **ORNITH–QWEN becomes mostly concurrent.** ORNITH now runs mostly alongside QWEN, so that comparison
+  becomes direct rather than indirect.
+- **P-T2 is scored both ways:** directly (ORNITH vs QWEN) and through NEX, as registered. The other
+  predictions are unchanged.
+- **Accuracy is not timing-sensitive** the way the VBR latch was. Decode speed is, so each speed
+  comparison is reported with its overlap.
+
+**Seen so far,** in full:
+- **Progress logs:** the progress lines, including the first 7 NEX problems' per-problem lines (all
+  passing).
+- **Token lengths:** 226 vs 2,536 tokens (median) per completion.
+- **Early decode rates,** relevant to P-T6: NEX 47.6 t/s on slot A, QWEN 42.5 t/s on slot B. NEX
+  moves to slot B in R2, which separates slot from model.
+
+No pass@1 was computed and no arm-to-arm comparison of correctness was made.
