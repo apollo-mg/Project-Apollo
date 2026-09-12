@@ -84,11 +84,16 @@ confident false belief, which is arguably the more dangerous defect.
 **3 confirmed, 6 falsified, 2 unscoreable.** P-O5 falsified without the mechanism predicted: C lost
 abstentions to plain confabulation, not to escalation, since ADVISOR was never emitted.
 
-**P-Q1's falsification is the interesting one, and it goes Mark's way.** At matched effort and
-sampling, IQ3_M fails **4/24** where Q6_K's baseline fails **11/24** — the low-bit model confabulates
-*less*. That is his stated position ("confabulates less and abstains more") and is the premise behind
-his counter-prediction **P-Q5**, which remains open until the Q6_K arm runs. The comparison is
-cross-node and cross-session, so it is suggestive, not decisive.
+**P-Q1 was withdrawn on 2026-09-12, after this receipt was first written.** It originally read as a
+falsification going Mark's way — IQ3_M failing 4/24 against the Q6_K baseline's 11/24, i.e. the
+low-bit model confabulating *less*, which is his stated position. That comparison does not hold: the
+baseline ran at `-c 8192`, so 5 of its 11 failures are NO-STOP against a 7,168-token retry rather
+than tonight's 12,288 (`NOTE_CAL_BASELINE_NOT_COMPARABLE.md`).
+
+On the ANSWERED-WRONG component alone, which is not context-bound, the direction survives — 3/24
+here against 6/24 in the baseline — but it is not scored and should not be cited. **Mark's
+counter-prediction P-Q5 therefore remains open**, and settling it needs IQ3_M re-run under the Q6_K
+server's exact configuration, since the two runs also differ in node, KV type and split.
 
 ## What is shippable from this
 
