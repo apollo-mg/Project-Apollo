@@ -154,3 +154,40 @@ untouched, so arm A remains comparable to `card_xhigh_rep{1,2,3}.jsonl`.
 **P-Q1 is a cross-node, cross-session comparison** (9070 tonight vs `.194` on 2026-08-21/09-07) and
 is therefore weak evidence on its own; arm A is rerun here precisely so the within-session A-vs-C
 contrast does not depend on it.
+
+---
+
+## Addendum 2 — Mark's counter-prediction, logged before the Q6_K arm runs
+
+**2026-09-11, ~23:00, with the IQ3_M run still in progress and the Q6_K arm not started.**
+
+P-Q4 as registered is **Claude's** prediction: the injection helps the small model at least as much
+as the large one. **Mark predicts the opposite**, and the existing corpus supports him:
+
+> *"IQ3_S confabulates and abstains less. That's the fuzz blocking the uncertainty vector — it's just
+> not obvious. It will present better at higher quants."*
+
+**The mechanism, and why it is not merely a hunch:**
+- **`qwen38-hep-thinking/RESULT_2X2.md` (pre-registered, CONFIRMED):** thinking is worth **+4.47pp at
+  IQ2_M but only +1.83pp at Q6_K**. Thinking *substitutes for precision*. Our treatment **cuts**
+  thinking, so it removes compensatory work at low bit depth while removing mostly runaway search at
+  high bit depth.
+- **`RESULT_IQ3_GLIMPSE_MEDIUM.md`:** abstention at IQ3_XXS is 23/24 against Q6_K's 21/24 — the
+  low-bit model is *more* willing to answer UNKNOWN.
+- **`CAL-U3` is the case study:** Q6_K answers "1906" on **9/9 runs at temp 1.0**, a confident false
+  belief no effort setting repairs; at IQ3_XXS the same belief "flips to 1/3". **Sharper weights hold
+  a wrong answer harder**, which is precisely the condition an injected challenge should break.
+
+| id | prediction | who | conf |
+|---|---|---|---|
+| P-Q4 | C's reduction in failures is **at least as large at IQ3_M as at Q6_K** | Claude | 60% |
+| **P-Q5** | **C's reduction in failures is LARGER at Q6_K than at IQ3_M** — the escape hatch presents better at higher precision | **Mark** | **stated as a bet** |
+
+P-Q4 and P-Q5 are mutually exclusive on the sign; both are scored from the same two runs, and the
+loser is reported as falsified by name.
+
+**Live observation that already bears on it, recorded now rather than after the fact:** at 36 of 72
+unanswerable generations, IQ3_M arm A is failing **1 in 12**, against the Q6_K baseline's **11 in 24**
+at matched effort and sampling. If that holds, the low-bit model has little left to fix and the
+headroom is at Q6_K — the direction P-Q5 predicts. **This is partial, cross-node data and is not
+scored.**
