@@ -77,7 +77,7 @@ confident false belief, which is arguably the more dangerous defect.
 | P-O5 | C does not cannibalise abstention | **FALSIFIED** — C 19 vs B 21 |
 | P-O6 | NO-STOP → 0 in B and C | **CONFIRMED** — 0 in both |
 | P-O7 / P-O8 | ADVISOR quality and rarity | **UNSCOREABLE** — 0 emitted |
-| P-Q1 | IQ3_M arm A fails more than Q6_K's 11/24 | **FALSIFIED** — 4/24, it fails *less* |
+| P-Q1 | IQ3_M arm A fails more than Q6_K's 11/24 | **WITHDRAWN 2026-09-12** — the 11/24 baseline ran at `-c 8192`, half tonight's context, so 5 of its 11 failures are NO-STOP against a 7,168-token retry rather than 12,288. Not a clean comparison; see `NOTE_CAL_BASELINE_NOT_COMPARABLE.md`. On the WRONG component alone the direction survives (3/24 vs 6/24) but is not scored |
 | P-Q2 | C reduces failures at IQ3_M | **FALSIFIED** |
 | P-Q3 | C's answerable arm ≥ 20/24 | **CONFIRMED** |
 
