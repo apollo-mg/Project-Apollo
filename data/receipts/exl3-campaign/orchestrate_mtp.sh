@@ -49,11 +49,10 @@ others_running () {   # enumerate EVERY orchestrator pidfile: a hardcoded list m
   done
   return 1
 }
-free73 () {   # comm is truncated to 15 chars, so match the prefix, never `pgrep -x llama-perplexity`
-  local out n mem
-  out=$(timeout 30 ssh -o BatchMode=yes -o ConnectTimeout=8 "$N" 'ps -eo comm | grep -c "^llama-"; nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits | sort -n | tail -1' 2>/dev/null) || return 1
-  n=$(printf '%s' "$out" | head -1); mem=$(printf '%s' "$out" | tail -1)
-  [ "$n" = 0 ] && [ "${mem:-9999}" -lt 500 ] 2>/dev/null
+free73 () {   # Block only on TEST processes. The daily driver (port 8080) is stopped by this script in
+  local out   # step 5, so gating on it deadlocks: a ledger request restarts it and the wait never ends.
+  out=$(timeout 30 ssh -o BatchMode=yes -o ConnectTimeout=8 "$N" 'ps -eo args | grep -c -E "[l]lama-perplexit|[l]lama-bench|[l]lama-server .*--port 8190" || true' 2>/dev/null) || return 1
+  [ "${out:-9}" = 0 ]
 }
 for i in $(seq 1 480); do          # up to 4 h
   if ! others_running && free73; then break; fi
