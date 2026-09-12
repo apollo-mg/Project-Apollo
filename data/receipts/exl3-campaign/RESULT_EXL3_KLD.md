@@ -39,6 +39,39 @@ smallest GGUF arm, so nothing brackets it from beneath and the scorer reported d
 EXL3 been 33 MiB larger, the interpolation would have applied and put it ~25% below the curve. The
 dominance statement is the stronger claim anyway.
 
+## Amendment 2 — the 5.00bpw arm, and the corrected comparison
+
+**P-K1's falsification compared unmatched sizes, and Mark caught it:** EXL3 ships a bitrate ladder, so
+"EXL3 4.00bpw loses to a GGUF 2 GB larger" measures the choice of points, not the formats. Amendment 2
+(`f68b43e`) added `E5` = EXL3 5.00bpw against the same reference, pinned at `a35e75a7`.
+
+| arm | peak VRAM | mean KLD ± | median | same top-1 | PPL |
+|---|---|---|---|---|---|
+| E (EXL3 4.00) | 13,468 | 0.012002 ± 0.000379 | 0.004101 | 95.431% | 5.9535 |
+| **E5 (EXL3 5.00)** | **16,372** | **0.003994 ± 0.000227** | 0.001400 | **97.235%** | 5.9437 |
+| G5 (UD-Q4_K_M) | 15,448 | 0.007840 ± 0.000232 | 0.002917 | 96.225% | 5.9311 |
+| G6 (Q6_K) | 21,276 | 0.002770 ± 0.000240 | 0.000986 | 97.657% | 5.9186 |
+
+| id | prediction | result |
+|---|---|---|
+| P-K5 | the EXL3 curve, interpolated at Q4_K_M's VRAM, is below Q4_K_M | **CONFIRMED.** 0.005668 vs 0.007840 at 15,448 MiB — **28% closer**, well outside the 0.000459 tolerance |
+| P-K6 | E5's same-top exceeds G5's | **CONFIRMED.** 97.235% vs 96.225% |
+| P-K7 | E5's mean KLD is below E's | **CONFIRMED.** 0.003994 vs 0.012002 |
+
+**Matched by bitrate, EXL3's curve is below GGUF's at both sizes we can compare** — 24% at ~13.5 GB and
+28% at ~15.4 GB. The earlier reading, that GGUF wins if you spend 2 GB more, was an artefact of
+comparing a fixed EXL3 point against a chosen GGUF one.
+
+**The advantage widens as fidelity rises.** Interpolating the GGUF curve to find the VRAM each format
+needs for a given KLD:
+- **At KLD 0.012** a GGUF needs ~790 MiB more than EXL3 (+5.9%).
+- **At KLD 0.004** a GGUF needs ~19,227 MiB against E5's 16,372 — **~2.9 GB more (+17%)**.
+
+**E5 also lands within 1.4× of the daily driver's fidelity while using 4.9 GB less VRAM** (0.003994 at
+16,372 MiB against Q6_K's 0.002770 at 21,276 MiB), with same-top within 0.4 points.
+
+*(The interpolations are descriptive, as in the original headline rule.)*
+
 ## Two things worth more than the verdicts
 
 **1. Perplexity fails demonstrably on this run.** Ranked by PPL: G6 5.9186, G5 5.9311, **the reference
@@ -67,9 +100,11 @@ exchange rate for the format, and it should be read next to the **~35% decode co
   write working code, or hold it and still break a tool call. Even buun uses KLD panels ordinally —
   to choose which VBR tier to degrade next (`docs/vbr.md:28,140`), not as a verdict.
 - **`-ub 8` measures the decode kernels.** A prefill-kernel KLD could differ.
-- **The comparison against larger GGUFs is not yet like-for-like.** EXL3 ships a bitrate ladder
-  (2.00 … 6.00bpw), so the fair opponent for Q4_K_M at 15.4 GB is an EXL3 near that size, not EXL3
-  4.00bpw. Mark caught this framing error; Amendment 2 adds the 5.00bpw arm against the same reference.
+- ~~The comparison against larger GGUFs is not yet like-for-like.~~ **Settled by Amendment 2 above:**
+  matched by bitrate, EXL3 is 28% closer than Q4_K_M at Q4_K_M's own VRAM.
+- **The ladder is only sampled twice.** Two EXL3 points (4.00 and 5.00bpw) define the interpolated curve;
+  2.50, 3.00, 3.50 and 6.00bpw are unmeasured, and the curve between 13.5 and 16.4 GB is assumed
+  log-linear.
 - **Cross-run perplexity needs matching `-ub`.** This run's numbers are not comparable to the inference
   receipt's, which used the default `-ub 512` with `-ts 3,2`.
 
