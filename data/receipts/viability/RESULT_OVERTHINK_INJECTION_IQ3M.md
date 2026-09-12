@@ -22,11 +22,12 @@ sampling at `xhigh`, seeds 1001–1003, 16 CAL items × 3 reps × 3 arms = **144
 > **Correction, 2026-09-12.** The thinking totals in the table above are `len(reasoning)`, which
 > **counts our own injected budget message as model thinking** — the server delivers it into the
 > reasoning stream. Removing it, arm B and arm C spend **exactly the same** amount of their own
-> deliberation, 20,330 chars each; the apparent +8,082 gap is the 511-char message × 18 cells minus
-> B's 46-char message × 18. So C does **not** think more than B, and C's share of A is 10.3%, not 15%.
-> Worse, the same inspection shows the message arrives **after the think block has closed** — nothing
-> follows it in the reasoning stream — so it can only influence the final answer, never the
-> deliberation. Stripping the message, B and C are byte-identical on **43 of 48 cells.** Full
+> deliberation, 20,330 chars each; the apparent +8,082 gap is the 495-char message × 18 cells (8,910)
+> minus B's 46-char message × 18 (828). So C does **not** think more than B, and C's share of A is
+> 10.3%, not 15%. Worse, the same inspection shows the message arrives **after the think block has
+> closed** — it is the final content of the reasoning stream in **20 of 20** delivered cells here, and
+> 18 of 18 at Q6_K — so it can only influence the final answer, never the deliberation. Stripping the
+> message, B and C are byte-identical on **43 of 48 cells.** Full
 > derivation and the consequences for P-Q4/P-Q5 are in `RESULT_OVERTHINK_INJECTION_Q6K.md`; the
 > numbers are reproducible with `tools/score_overthink.py`.
 - **The injection did not reduce confabulation.** C is nominally *worst*. Fisher p = 1.00 vs A and

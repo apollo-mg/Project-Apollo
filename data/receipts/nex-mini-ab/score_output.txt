@@ -68,11 +68,18 @@ It lands hardest on QWEN_R1 (3), so it can only understate that arm's lead.
     mean tokens     NEX_R1 fewer on 92, NEX_R2 fewer on 71, 163 discordant, p = 0.117
                     medians 292 vs 287 tokens/problem
 
-=== Sensitivity: P-T3 against NEX's OTHER round (not registered, reported anyway) ===
-P-T3 was registered on NEX_R2. NEX_R2 is NEX's weaker round, so the verdict depends on
-which round it is scored against -- which is exactly what the drift control is for.
-  NEX_R1     vs ORNITH_R2  -0.81 points, 15 vs 23 of 38 discordant, p = 0.2559
-  NEX_R2     vs ORNITH_R2  -3.66 points, 12 vs 30 of 42 discordant, p = 0.0079  SIGNIFICANT
+=== Sensitivity: every NEX comparison against BOTH of NEX's rounds ===
+P-T1 and P-T3 were each registered on one round. Since the panel measured its own
+replicate drift, both must be re-scored against the other round -- run symmetrically, so
+the check is applied where it strengthens a finding as well as where it weakens one.
+
+  vs QWEN_R1   [P-T1, registered on R1]
+    NEX_R1      -4.27 points, 6 vs 23 of 29 discordant, p = 0.0023  SIGNIFICANT
+    NEX_R2      -7.11 points, 5 vs 32 of 37 discordant, p = 0.0000  SIGNIFICANT
+
+  vs ORNITH_R2   [P-T3, registered on R2]
+    NEX_R1      -0.81 points, 15 vs 23 of 38 discordant, p = 0.2559
+    NEX_R2      -3.66 points, 12 vs 30 of 42 discordant, p = 0.0079  SIGNIFICANT
 
 === Is NEX's decode rate just an answer-length artefact? ===
 NEX's answers are ~8x shorter, and decode slows as the KV grows, so the cross-arm rate

@@ -40,17 +40,22 @@ instrument measuring itself against a known null. On pooled points it produces a
 indistinguishable band the prereg warned about. On the registered paired test it correctly returns
 **not significant**.
 
-So the paired test discriminates where the pooled rates cannot: it clears the null pair and flags two
-of the three cross-model pairs. **Had we scored this panel by subtracting two pass@1 numbers — which
-is what we did to the CAL baseline last night and had to withdraw — all four gaps would have looked
-alike, and the one real finding would have been indistinguishable from socket noise.**
+So the paired test discriminates where the pooled rates cannot: it **fails to reject** on the null
+pair while flagging two of the three cross-model pairs. It does not *clear* that pair — 21 vs 11
+discordant is a 2:1 split that simply did not reach significance at n = 32, which is underpowered
+rather than null, and the honest reading is "no detectable drift", not "no drift". **But had we scored
+this panel by subtracting two pass@1 numbers — which is what we did to the CAL baseline last night
+and had to withdraw — all four gaps would have looked alike, and the one real finding would have been
+indistinguishable from socket noise.**
 
 ## What each comparison actually supports
 
-**NEX vs its own base: resolved.** 23 problems where QWEN is better, 6 where NEX is, p = 0.0023,
-fully concurrent (99.9% overlap). The direction is the opposite of the claim that prompted the panel.
-**Caveat: this is the sampling-confounded pair** — NEX ran its card's 0.7 / top_k 40, QWEN its card's
-0.6 / top_k 20, and the prereg conceded "top_k 40 vs 20 is untested."
+**NEX vs its own base: resolved, and robust to replicate choice.** 23 problems where QWEN is better,
+6 where NEX is, p = 0.0023, fully concurrent (99.9% overlap). The direction is the opposite of the
+claim that prompted the panel. Scored against NEX's *other* round it gets stronger, not weaker:
+−7.11 points, 32 vs 5 of 37 discordant, p < 0.0001. **Caveat: this is the sampling-confounded pair** —
+NEX ran its card's 0.7 / top_k 40, QWEN its card's 0.6 / top_k 20, and the prereg conceded "top_k 40
+vs 20 is untested."
 
 **ORNITH vs QWEN: direction only.** This is the **sampling-matched** pair — identical 0.6 / top_k 20
 / min_p 0, 100% concurrent — so it is the comparison least able to be explained away. It goes the
@@ -61,17 +66,22 @@ same way, and it does **not** reach significance (p = 0.1153, 20 discordant; the
 **So the strongest form of "stock beats finetune" is the unresolved one, and the resolved one is
 confounded.** Both point the same way; neither is clean. That is the honest state of it.
 
-**Finetune vs finetune: not settled, and the drift control is why we know that.** P-T3 was registered
-on NEX_R2. Scored as registered, ORNITH beats NEX significantly (p = 0.0079). Scored against NEX's
-*other* replicate, the same comparison collapses:
+**Finetune vs finetune: not settled, and the drift control is why we know that.** Every NEX
+comparison is scored against **both** of NEX's rounds — symmetrically, so the check runs where it
+strengthens a finding as well as where it weakens one:
 
-| | pooled gap | discordant | p |
+| comparison | pooled gap | discordant | p |
 |---|---|---|---|
-| NEX_R2 vs ORNITH_R2 *(registered)* | −3.66 | 12 vs 30 of 42 | **0.0079** |
+| NEX_R1 vs QWEN_R1 *(P-T1, registered)* | −4.27 | 6 vs 23 of 29 | **0.0023** |
+| NEX_R2 vs QWEN_R1 *(sensitivity)* | **−7.11** | 5 vs 32 of 37 | **<0.0001** |
+| NEX_R2 vs ORNITH_R2 *(P-T3, registered)* | −3.66 | 12 vs 30 of 42 | **0.0079** |
 | NEX_R1 vs ORNITH_R2 *(sensitivity)* | −0.81 | 15 vs 23 of 38 | 0.2559 |
 
-One verdict, two answers, decided by which run of the same weights you happen to pick. **The
-NEX–ORNITH result is an artefact of replicate choice and should not be cited in either direction.**
+**P-T1 survives the check twice over; P-T3 does not survive it at all** — one verdict, two answers,
+decided by which run of the same weights you happen to pick. **The NEX–ORNITH result is an artefact
+of replicate choice and should not be cited in either direction.** That the same test hardens the
+base-vs-finetune finding and dissolves the finetune-vs-finetune one is the point of running it both
+ways.
 
 ## Predictions
 
@@ -154,8 +164,12 @@ Same binary, same box: it logs the line when VBR is armed. Nothing from the v1 r
 
 ## The number that actually transfers
 
-**NEX reaches 95.5% of the base's score on 11.6% of its output tokens** (89.84 / 94.11 pass@1;
-280 / 2,408 median tokens) and finishes in a third of the wall clock. Whether 4.27 points is worth
-8.6× the tokens is a deployment question, not a benchmark question — but this is the clearest
-token-cost curve the campaign has produced, and it points the same way as the bit-depth work: the
-cheap configuration gets most of the way there, and the expensive one is genuinely better.
+**NEX reaches 92.4–95.5% of the base's score on ~11.6% of its output tokens** — 86.99–89.84 against
+94.11 pass@1 across NEX's two rounds, 270–280 against 2,408 median tokens — and finishes in a third
+of the wall clock. The range is the honest form: quoting 95.5% alone would be picking NEX's better
+replicate, which is the error this receipt is built to catch.
+
+Whether 4.27 points (7.11 on the other round) is worth 8.6× the tokens is a deployment question, not
+a benchmark question — but this is the clearest token-cost curve the campaign has produced, and it
+points the same way as the bit-depth work: the cheap configuration gets most of the way there, and the
+expensive one is genuinely better.

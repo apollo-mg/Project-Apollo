@@ -182,16 +182,20 @@ def main():
         print(f"    mean tokens     {x} fewer on {twa}, {y} fewer on {twb}, {tn} discordant, p = {tp:.4g}")
         print(f"                    medians {st.median(ta):.0f} vs {st.median(tb):.0f} tokens/problem")
 
-    print("\n=== Sensitivity: P-T3 against NEX's OTHER round (not registered, reported anyway) ===")
-    print("P-T3 was registered on NEX_R2. NEX_R2 is NEX's weaker round, so the verdict depends on")
-    print("which round it is scored against -- which is exactly what the drift control is for.")
-    for x in ("NEX_R1", "NEX_R2"):
-        ids = sorted(set(tasks[x]) & set(tasks["ORNITH_R2"]))
-        n, wa, wb, p = sign_test([sum(tasks[x][i]["passes"]) for i in ids],
-                                 [sum(tasks["ORNITH_R2"][i]["passes"]) for i in ids])
-        gap = (data[x]["pooled_pass@1"] - data["ORNITH_R2"]["pooled_pass@1"]) * 100
-        print(f"  {x:10s} vs ORNITH_R2  {gap:+.2f} points, {wa} vs {wb} of {n} discordant, p = {p:.4f}"
-              + ("  SIGNIFICANT" if p < 0.05 else ""))
+    print("\n=== Sensitivity: every NEX comparison against BOTH of NEX's rounds ===")
+    print("P-T1 and P-T3 were each registered on one round. Since the panel measured its own")
+    print("replicate drift, both must be re-scored against the other round -- run symmetrically, so")
+    print("the check is applied where it strengthens a finding as well as where it weakens one.")
+    for other in ("QWEN_R1", "ORNITH_R2"):
+        reg = "P-T1, registered on R1" if other == "QWEN_R1" else "P-T3, registered on R2"
+        print(f"\n  vs {other}   [{reg}]")
+        for x in ("NEX_R1", "NEX_R2"):
+            ids = sorted(set(tasks[x]) & set(tasks[other]))
+            n, wa, wb, p = sign_test([sum(tasks[x][i]["passes"]) for i in ids],
+                                     [sum(tasks[other][i]["passes"]) for i in ids])
+            gap = (data[x]["pooled_pass@1"] - data[other]["pooled_pass@1"]) * 100
+            print(f"    {x:10s} {gap:+6.2f} points, {wa} vs {wb} of {n} discordant, p = {p:.4f}"
+                  + ("  SIGNIFICANT" if p < 0.05 else ""))
 
     print("\n=== Is NEX's decode rate just an answer-length artefact? ===")
     print("NEX's answers are ~8x shorter, and decode slows as the KV grows, so the cross-arm rate")

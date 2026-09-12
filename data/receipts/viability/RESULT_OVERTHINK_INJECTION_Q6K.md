@@ -63,11 +63,15 @@ three generations counted once per arm — so no arm could have affected them. T
 
 ## Why the injection could not have worked: it arrives after thinking is over
 
-The budget message is delivered **into the reasoning stream, as the last thing in it.** Inspecting
-`armC_rep1` / `CAL-U5`: the reasoning is 1,350 chars, the injected message begins at char 855, and
-**nothing follows it.** The model's deliberation is cut mid-word —
+The budget message is delivered **into the reasoning stream, as the last thing in it.** In
+`armC_rep1` / `CAL-U5` the reasoning is 1,350 chars, the injected message begins at char 855, and
+nothing follows it. The model's deliberation is cut mid-word —
 
 > `…There was "Frisian` → *[injected message]* → end of thinking → `Exact Answer: UNKNOWN`
+
+**This is checked on every cell, not inferred from one.** Of the C rows where the message was
+delivered, the message is the final content of the reasoning stream in **18 of 18** here and **20 of
+20** in the IQ3_M run — **38 of 38, with zero cells carrying any model text after it.**
 
 So the message's only possible influence is the final answer. It cannot redirect deliberation,
 because deliberation is already closed when it arrives. The data confirms this mechanically:
@@ -93,7 +97,8 @@ change, not a prompt change, and it is the actual next step for this idea.
 | injected text | 828 | 8,910 | +8,082 |
 | **model's own thinking** | **20,565** | **20,565** | **0** |
 
-The entire apparent difference is the 511-character message × 18 cells. The same arithmetic applies
+The entire apparent difference is the **495**-character message × 18 cells (8,910) less B's
+46-character message × 18 cells (828). The same arithmetic applies
 to the IQ3_M run (B 20,330, C 20,330). **`RESULT_OVERTHINK_INJECTION_IQ3M.md`'s claim that "arm C
 spends 15% of arm A's thinking" is therefore overstated; corrected it is 10.3%**, and C does not
 spend more than B. A correction note has been added to that receipt.
