@@ -86,8 +86,8 @@ as they close; this is a working file, not a receipt.
     itself wrong, and `75c5dfc`'s commit message carries the same error.
   - **Our `LOCAL_PATCH_sm60_guards.diff` is superseded** — do not re-apply it.
   - **EXL3 inference on sm_60 — DONE 2026-09-12** (`kv-tensor-split/RESULT_EXL3_SM60_INFERENCE.md`).
-    turboderp Qwen3.8-27B-exl3 @ 4.00bpw: perplexity **+0.55%** against the daily driver's Q6_K on 61%
-    of the bits; decode 6.96 / 11.26 t/s (layer / tensor) = 0.89× / 0.85× Q6_K; the int8 path is 2.9×
+    turboderp Qwen3.8-27B-exl3 @ 4.00bpw: perplexity **+0.55%** against the daily driver's Q6_K at 64%
+    of its VRAM (61% of nominal bits per weight, 74% of disk); decode 6.96 / 11.26 t/s (layer / tensor) = 0.89× / 0.85× Q6_K; the int8 path is 2.9×
     faster than reconstruct+cuBLAS. 7 confirmed, 2 falsified. **buun's final-results message is a
     draft with Mark.** Models staged on `.73:/mnt/HDD/exl3/`. **This continues as the EXL3 campaign
     at the top of "Unfinished work".**

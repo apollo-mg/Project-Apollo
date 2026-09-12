@@ -32,9 +32,19 @@ is the only always-on box. Every EXL3 deployment on this fleet runs on:
 
 | | EXL3 4.00bpw | Q6_K | ratio |
 |---|---|---|---|
-| perplexity, wikitext-2, 40 chunks | 5.9520 | 5.9195 | +0.55%, on 61% of the bits |
+| perplexity, wikitext-2, 40 chunks | 5.9520 | 5.9195 | +0.55% |
 | decode, `-sm layer`, **MTP off** | 6.96 t/s | 7.81 t/s | 0.89× |
 | decode, `-sm tensor`, **MTP off** | 11.26 t/s | 13.22 t/s | 0.85× |
+| size: nominal bits per weight (quantized linears) | 4.00 | ~6.56 | 61% |
+| size: VRAM at load (`-sm tensor`, c 8192, the same f16 KV in both) | 14,238 MiB | 22,342 MiB | **64%** |
+| size: on disk | 16.88 GB | 22.88 GB | 74% |
+
+**The VRAM ratio (64%) is the one that matters on a P100.** "61% of the bits," as first written here
+and in the inference receipt, is the nominal figure. Disk overstates EXL3's GPU footprint:
+- **A 2.54 GB bf16 token-embedding table.** It evidently stays in host memory: VRAM at load matches
+  the rest of the weights plus the KV cache.
+- **A 0.92 GB bf16 vision tower** that the native `qwen35` loader never loads.
+- **The remaining 13.40 GB reaches the GPU:** `layers` 12.23, `lm_head` 0.95 at 6 bits, and `mtp` 0.21.
 
 **0.85× is not the deployment number.** The daily driver serves `-sm tensor` **with MTP** at
 22.5–26.2 t/s (measured 2026-08-29). Against that, EXL3's MTP-off 11.26 t/s is **about 0.45×**. Until

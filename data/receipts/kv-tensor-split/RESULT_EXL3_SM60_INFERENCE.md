@@ -1,5 +1,16 @@
 # Result — EXL3 runs correctly on Pascal: +0.55% perplexity against Q6_K on 61% of the bits
 
+> **Clarified 2026-09-12 ~16:00: which "bits".** "61% of the bits" in this receipt is the *nominal*
+> bits-per-weight ratio of the quantized linears (4.00 vs ~6.56). The two measured ratios:
+> - **VRAM: 64%.** EXL3 held 14,238 vs 22,342 MiB at load, under `-sm tensor` at c 8192 with the same
+>   f16 KV in both.
+> - **Disk: 74%**, 16.88 vs 22.88 GB.
+>
+> Two tensor families inflate the disk figure. One is a 2.54 GB bf16 token-embedding table, which
+> evidently stays in host memory. The other is a 0.92 GB bf16 vision tower that the native `qwen35`
+> loader never loads (`exl3-campaign/CAMPAIGN_EXL3.md`). The finding is unchanged; the basis is now
+> named.
+
 **Run 2026-09-12 on `.73`** — 2× Tesla P100-PCIE-16GB (sm_60), driver 580.178.04, CUDA 12.4. Binary:
 buun `9ae8f0f40` + the declared `PATCH_e8m0_cuda128_guard.diff`
 (`RESULT_SM60_EXL3_QUALIFICATION.md`). Pre-registered in `PREREG_EXL3_SM60_INFERENCE.md` + Amendment 1
