@@ -13,11 +13,30 @@ as they close; this is a working file, not a receipt.
   API request, even mid-job** — all five suspends on 09-12 were proxy-initiated (I first blamed KDE
   input-idle; wrong) — and it stops its llama-server before suspending. The sm_60 qualification worktree and binaries are at
   `~/buun-sm60-qual/`.
-- **9070** is running the einstein chain (`viability/einstein_chain.sh`, started 13:15): the IQ4_XS
-  primary, then the IQ2_M secondary, ETA ~15:00. The leftover Swift server was stopped. Ledger timer
-  now **hourly** (was every 3 h).
+- **9070** is free; the einstein chain finished (`cee3750`). A ROCm build of buun `9ae8f0f40`, the same
+  commit as `.73`'s qualification build, is at `/mnt/TG_2TB/Projects/buun-9ae8f/build_rocm`. It was built
+  15:19 (server target only) and is the first local ROCm binary that contains any EXL3 code.
+- **The ledger timer runs hourly at :05** (it was every 3 h) and calls the daily driver through the
+  proxy, so a paused proxy costs that hour's ledger run.
 
 ## Unfinished work, highest value first
+
+**EXL3 campaign — ACTIVE** (`exl3-campaign/CAMPAIGN_EXL3.md`, opened in `7277557`).
+- **Method:** an objection ledger. Default to EXL3 on the P100 nodes and test each reason not to.
+- **Scope is P100-only:** all of `exl3.cu` is compiled out under HIP.
+- **Test 1 (drop-in) has been RUNNING since 15:21.**
+  - The orchestrator is `exl3-campaign/orchestrate_dropin.sh`. It has the wake proxy **paused**, with a
+    120 min dead-man.
+  - Results land in `exl3-campaign/dropin/`.
+  - It swaps EXL3 into the daily driver's exact flags: MTP, mmproj, VBR at 262k, `-sm tensor`.
+- **0.85× is the MTP-off number.** The deployment number against tensor+MTP is test 1's headline.
+- **Queued:**
+  - **O1, HIP load behaviour.** The CPU backend *does* implement EXL3 (`ggml-cpu/exl3.cpp`), so
+    RDNA4 most likely routes EXL3 to the CPU rather than refusing it. Mark offered buun RDNA4 testing
+    at 15:01.
+  - **O6, KLD.** The Q8_0 reference is verified at `/mnt/TG_2TB/AI/Models/qwen38-27b-ref/`. The prereg
+    must measure the ROCm-vs-CUDA backend floor.
+  - **O8:** can exllamav3's converter run on sm_60?
 
 1. ~~**Write the Q6_K injection receipt.**~~ **DONE 2026-09-12 (`6831591`)** —
    `RESULT_OVERTHINK_INJECTION_Q6K.md`. The 03:51 quick score ("P-Q5 favoured") is **withdrawn**: it
@@ -70,7 +89,8 @@ as they close; this is a working file, not a receipt.
     turboderp Qwen3.8-27B-exl3 @ 4.00bpw: perplexity **+0.55%** against the daily driver's Q6_K on 61%
     of the bits; decode 6.96 / 11.26 t/s (layer / tensor) = 0.89× / 0.85× Q6_K; the int8 path is 2.9×
     faster than reconstruct+cuBLAS. 7 confirmed, 2 falsified. **buun's final-results message is a
-    draft with Mark.** Models staged on `.73:/mnt/HDD/exl3/`.
+    draft with Mark.** Models staged on `.73:/mnt/HDD/exl3/`. **This continues as the EXL3 campaign
+    at the top of "Unfinished work".**
   - **`.73` is suspended by our own wake proxy after 30 min without API requests, even mid-job** —
     pause the proxy or run a WoL watchdog for any long job there (memory: `wake-on-demand-73`).
     Before suspending it runs `pkill -x llama-server` on the node, which kills **any** llama-server
