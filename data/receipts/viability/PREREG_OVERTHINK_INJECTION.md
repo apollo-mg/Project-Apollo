@@ -164,8 +164,13 @@ contrast does not depend on it.
 P-Q4 as registered is **Claude's** prediction: the injection helps the small model at least as much
 as the large one. **Mark predicts the opposite**, and the existing corpus supports him:
 
-> *"IQ3_S confabulates and abstains less. That's the fuzz blocking the uncertainty vector — it's just
-> not obvious. It will present better at higher quants."*
+> *"IQ3_S confabulates less and abstains more. That's the fuzz blocking the uncertainty vector —
+> it's just not obvious. It will present better at higher quants."*
+
+*(Quote corrected by Mark within minutes of the original, before any Q6_K data: he first wrote
+"confabulates and abstains less" and corrected it to "confabulates less and abstains more". The
+corrected wording is the one the corpus supports — IQ3_XXS abstains 23/24 against Q6_K's 21/24 —
+and the direction of the bet, P-Q5, is unchanged.)*
 
 **The mechanism, and why it is not merely a hunch:**
 - **`qwen38-hep-thinking/RESULT_2X2.md` (pre-registered, CONFIRMED):** thinking is worth **+4.47pp at
