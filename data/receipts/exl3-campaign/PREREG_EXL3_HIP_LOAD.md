@@ -56,3 +56,20 @@ turboderp `Qwen3.8-27B-exl3` @ 4.00bpw (`mul1` codebook), with the same flags.
   HIP executor would change that. Mark has offered buun RDNA4 testing.
 
 **Driver and scorer:** `exl3_hip_load.py` (`primary`, `secondary` or `score`). Results go to `hip/`.
+
+## Amendment 1 — 2026-09-12 ~15:32, after the primary, before the secondary
+
+**This amendment is informed by the primary's result, which is disclosed here.** The 0.6B decoded at a
+6.47 t/s median on the CPU EXL3 path (`761512e`). Scaled by parameter count, the 27B projects to
+roughly **0.1 t/s**. At that speed the secondary as written has one defect and one cost:
+
+- **The defect: readiness would time out.** The 4-token readiness request had a 30 s timeout. A 27B
+  that needs about a minute to answer would never read as ready, so a working load would be recorded as
+  a load failure. The secondary now allows 600 s per readiness request, inside a 1,500 s load window.
+  The primary keeps 30 s and 900 s.
+- **The cost: 3 × 128 tokens would take about an hour** with 14 GB of the desktop's RAM held. The
+  secondary's speed reps are cut to **3 × 16 tokens**.
+
+**Unchanged:** P-H4, P-H5 and their thresholds, and the 18 GB start guard. At 15:28 the desktop had
+17.6–17.8 GB available, so **the guard may refuse the secondary.** If it does, P-H4 and P-H5 are NOT
+RUN, and the ~0.1 t/s figure stays a labelled projection, not a result.

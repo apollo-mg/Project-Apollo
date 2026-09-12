@@ -22,6 +22,11 @@ BUF = re.compile(r"(\S+) model buffer size\s*=\s*([\d.]+) MiB")
 # needs only headroom. First version applied 18 GB to both and refused the 0.6B at 17.8 GB (no data).
 MIN_START_GB = {"primary": 4, "secondary": 18}
 MIN_RUN_GB = 3
+# Amendment 1: the 27B on the CPU EXL3 path projects to ~0.1 t/s (the 0.6B ran at 6.47), so its
+# readiness request needs a long timeout, inside a longer load window, and its speed reps are 16 tokens.
+READY_TIMEOUT = {"primary": 30, "secondary": 600}
+LOAD_WINDOW = {"primary": 900, "secondary": 1500}
+N_PREDICT = {"primary": 128, "secondary": 16}
 
 
 def log(msg):
@@ -99,12 +104,12 @@ def run(which):
             if p.poll() is not None:
                 err = f"server exited rc={p.returncode}"
                 break
-            if time.time() - t0 > 900:
-                err = "never answered a real completion within 900 s"
+            if time.time() - t0 > LOAD_WINDOW[which]:
+                err = f"never answered a real completion within {LOAD_WINDOW[which]} s"
                 break
             try:
                 if "choices" in req("/v1/chat/completions", {"messages": [{"role": "user", "content": "Say READY"}],
-                                                             "max_tokens": 4}, timeout=30):
+                                                             "max_tokens": 4}, timeout=READY_TIMEOUT[which]):
                     break                      # readiness is a real completion, never /health
             except Exception:
                 pass
@@ -125,7 +130,7 @@ def run(which):
         emit({**base, "stage": "fact", "content": msg.get("content"), "reasoning": msg.get("reasoning_content")})
         log(f"  fact: {(msg.get('content') or '').strip()[:60]!r}")
         for rep in (1, 2, 3):
-            t = req("/completion", {"prompt": SPEED, "n_predict": 128, "temperature": 0, "top_k": 1,
+            t = req("/completion", {"prompt": SPEED, "n_predict": N_PREDICT[which], "temperature": 0, "top_k": 1,
                                     "cache_prompt": False, "ignore_eos": True}).get("timings", {})
             emit({**base, "stage": "speed", "rep": rep, "timings": t, "mem_available_gb": round(mem_available_gb(), 1)})
             log(f"  speed {rep}: {t.get('predicted_per_second', 0):.2f} t/s")
