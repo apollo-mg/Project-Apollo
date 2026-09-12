@@ -119,3 +119,38 @@ trend.
 - Nothing about agentic harnesses. This is a single-turn fixture.
 - **No claim that thinking length is a validated detector** — `NOTE_OVERTHINK_DETECTOR.md` states
   the missing corpus (hard-but-answerable items), and that gap is unchanged by this experiment.
+
+---
+
+## Addendum 1 — the IQ3_M replication on the 9070
+
+**Logged 2026-09-11, before this arm ran.** `.194` is still finishing the three-way, and the
+low-bit case is the one Mark's thesis is actually about: *a smaller model with a legitimate way out
+may be close to unstoppable.* So the same design runs first at 3-bit.
+
+**Changes from the main prereg, and nothing else:**
+
+| | main | addendum |
+|---|---|---|
+| model | `Qwen3.8-27B-Q6_K` | **`Qwen3.8-27B.i1-IQ3_M`** (mradermacher, 12,768,331,744 B, sha256 `7544860b…0f3cd40`, verified 2026-09-11) |
+| node | `.194`, 2× P100 | **RX 9070 XT**, single GPU, 330 W |
+| context | as baseline | `-c 16384` (the escalated retry needs 12,288 tokens of headroom) |
+
+Same 16 CAL items, same 3 arms, same injection text, same card sampling at `xhigh`, same 3 reps.
+Harness is `run_fixture_structfix.py` — **the instrument that produced the baseline**, extended only
+with `--budget`, `--budget-message` and `--arm`, which add three fields to the request body and one
+label to each output row. The grading path (NO-STOP detection, escalated retry, UNKNOWN matching) is
+untouched, so arm A remains comparable to `card_xhigh_rep{1,2,3}.jsonl`.
+
+**Additional predictions:**
+
+| id | prediction | conf |
+|---|---|---|
+| P-Q1 | IQ3_M arm A fails more on the unanswerable arm than the Q6_K baseline's 11/24 | 65% |
+| P-Q2 | At IQ3_M, C reduces confabulation (WRONG + NO-STOP) vs A | 70% |
+| P-Q3 | The answerable arm at IQ3_M survives C: ≥ 20 of 24 ANSWERED-CORRECT | 60% |
+| P-Q4 | **Mark's thesis:** C's absolute reduction in failures is **at least as large at IQ3_M as at Q6_K** — the escape hatch helps the smaller model at least as much. Scored only once `.194` completes | 60% |
+
+**P-Q1 is a cross-node, cross-session comparison** (9070 tonight vs `.194` on 2026-08-21/09-07) and
+is therefore weak evidence on its own; arm A is rerun here precisely so the within-session A-vs-C
+contrast does not depend on it.

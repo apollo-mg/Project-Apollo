@@ -119,6 +119,12 @@ SAMPLING_PRESETS = {
 }
 JSONL = None    # set from --jsonl; opened append, flushed per item
 EFFORT = None   # set from --effort; passed via chat_template_kwargs, the dial Qwen3.8 honours
+# 2026-09-11, PREREG_OVERTHINK_INJECTION.md: cap thinking and inject a message before the forced
+# end-of-thinking tag. Both fields are per-request (tools/server/server-schema.cpp:383,415), so the
+# arms interleave on one server with no restart and no time confound. ARM is recorded per item.
+BUDGET = None   # set from --budget; thinking-token cap, None = unrestricted (arm A)
+BUDGET_MSG = None   # set from --budget-message
+ARM = None      # set from --arm; recorded in the jsonl so arms can be separated at scoring time
 
 TPS_FLOOR = 2.5   # assumed worst-case decode rate; .194 measured 7.7 tok/s on a 27B Q6_K
 
@@ -129,6 +135,10 @@ def ask(host, q, n_predict=512, timeout=None, prompt=None):
             "n_predict": n_predict, **SAMPLING}
     if EFFORT:
         body["chat_template_kwargs"] = {"reasoning_effort": EFFORT}
+    if BUDGET is not None:
+        body["reasoning_budget_tokens"] = BUDGET
+        if BUDGET_MSG:
+            body["reasoning_budget_message"] = BUDGET_MSG
     req = urllib.request.Request(host.rstrip("/") + "/v1/chat/completions",
                                  data=json.dumps(body).encode(),
                                  headers={"Content-Type": "application/json"})
@@ -225,6 +235,10 @@ def record(**row):
     if JSONL is None:
         return
     row.setdefault("sampling", SAMPLING_NAME)
+    if ARM is not None:
+        row.setdefault("arm_label", ARM)          # keep clear of the fixture's own "arm" field
+    if BUDGET is not None:
+        row.setdefault("budget_tokens", BUDGET)
     for k, v in (getattr(ask, "last_cost", None) or {}).items():
         row.setdefault(k, v)
     JSONL.write(json.dumps(row, ensure_ascii=False) + "\n")
@@ -442,6 +456,11 @@ if __name__ == "__main__":
     ap.add_argument("--only", help="comma-separated item ids; run just these")
     ap.add_argument("--jsonl", help="append per-item results here, flushed as they complete "
                                     "(survives a killed run)")
+    ap.add_argument("--budget", type=int, default=None,
+                    help="thinking-token cap (reasoning_budget_tokens). Omit for unrestricted.")
+    ap.add_argument("--budget-message", default=None,
+                    help="text injected before the forced end-of-thinking tag when the cap binds")
+    ap.add_argument("--arm", default=None, help="arm label recorded in each jsonl row")
     ap.add_argument("--effort", choices=["low", "medium", "xhigh"],
                     help="reasoning_effort via chat_template_kwargs. NOT a sampling knob — the "
                          "chat template turns it into injected system text (AFM-23). 'high' is "
@@ -458,6 +477,12 @@ if __name__ == "__main__":
               "\n  of failure-to-terminate on false-premise items. See RETRACTION_NO_STOP.md.")
     if a.jsonl:
         globals()["JSONL"] = open(a.jsonl, "a", encoding="utf-8")
+    globals()["BUDGET"] = a.budget
+    globals()["BUDGET_MSG"] = a.budget_message
+    globals()["ARM"] = a.arm
+    if a.budget is not None:
+        print(f"thinking cap: {a.budget} tokens | arm {a.arm} | "
+              f"message {'set (' + str(len(a.budget_message or '')) + ' chars)' if a.budget_message else 'NONE'}")
         print(f"per-item results -> {a.jsonl}")
     # AFM-23: this selects INJECTED SYSTEM TEXT, not a sampling setting. Say so out loud,
     # because two full dry runs were headed "effort=default" while running at xhigh with a
