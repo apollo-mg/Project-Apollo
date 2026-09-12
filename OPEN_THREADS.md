@@ -47,9 +47,21 @@ as they close; this is a working file, not a receipt.
   not thinking on/off" hypothesis but changed three variables at once (different quant file,
   different starting file state, MTP on). A controlled version is ~30 min: one model, one restored
   starting state, three efforts.
-- **buun's EXL3 fix** — not pushed as of 01:00. Until it lands, `.73` cannot build current master
-  for sm_60. Our guards for `allreduce-oneshot.cu` live only in `~/buun-aad85` on `.73`
-  (`LOCAL_PATCH_sm60_guards.diff`), not upstreamed.
+- **buun's EXL3 / sm_60 fix — LANDED 2026-09-12 05:27 as `4d90517b1`** ("cuda: restore Pascal builds
+  for native quantization"), reachable at `origin/master` = `9ae8f0f40`. It guards **all four**
+  objects that broke our build: `allreduce-oneshot.cu` (pre-Volta all-reduce), `exl3-dq.cuh` /
+  `exl3-gemv-int8.cuh` / `exl3-gemv.cuh` (scalar SM60 fallbacks, unsigned codebook sums),
+  `int8-channel.cu` (signed helper), and the humming `g2s_pipeline.cuh` barrier header. **Our
+  `LOCAL_PATCH_sm60_guards.diff` on `.73` is superseded — do not re-apply it over this.**
+  - **He is asking us for the Pascal qualification, and says so in the commit message:** *"Validated
+    the full SM60 server build… Runtime fallback and cache checks passed on an RTX 3090; actual
+    Pascal hardware qualification remains pending."* Mark is his only Pascal hardware.
+  - **Cheapest first step is his own new unit test**, not a model run: `tests/test-exl3-byte-dot.cu`
+    (added in the same commit, wired into `tests/CMakeLists.txt`) is an exhaustive EXL3 byte-dot
+    regression — exactly what the scalar sm_60 fallbacks implement. Build + run that before sourcing
+    any EXL3 safetensors.
+  - **Open unknowns:** build wall-clock on `.73`'s 8600K, and whether any EXL3 safetensors model is
+    on the fleet (none known — likely a multi-GB download).
 - **Tom / FA f16 pool ratchet on Pascal** — source analysis published
   (`kv-tensor-split/NOTE_FA_F16_POOL_RATCHET_PASCAL.md`); **no measurement taken**. Needs `.194`.
 
