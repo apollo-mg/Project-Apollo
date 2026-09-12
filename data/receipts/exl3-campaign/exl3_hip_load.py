@@ -18,7 +18,10 @@ FLAGS = ["-ngl", "99", "-c", "4096", "-np", "1", "-fa", "on", "-ctk", "f16", "-c
 FACT = "What is the capital of France? Answer with one word."
 SPEED = "Write a detailed explanation of how a hash table works."
 BUF = re.compile(r"(\S+) model buffer size\s*=\s*([\d.]+) MiB")
-MIN_START_GB, MIN_RUN_GB = 18, 3
+# The 18 GB start guard is the 27B's (~14 GB of weights in system RAM), as the prereg states; the 0.6B
+# needs only headroom. First version applied 18 GB to both and refused the 0.6B at 17.8 GB (no data).
+MIN_START_GB = {"primary": 4, "secondary": 18}
+MIN_RUN_GB = 3
 
 
 def log(msg):
@@ -77,8 +80,8 @@ def run(which):
         sys.exit(f"PREFLIGHT: something already answers on port {PORT}")
     except OSError:
         pass
-    if mem_available_gb() < MIN_START_GB:
-        sys.exit(f"PREFLIGHT: MemAvailable {mem_available_gb():.1f} GB < {MIN_START_GB} GB")
+    if mem_available_gb() < MIN_START_GB[which]:
+        sys.exit(f"PREFLIGHT: MemAvailable {mem_available_gb():.1f} GB < {MIN_START_GB[which]} GB")
     v = subprocess.run([f"{BIN}/llama-server", "--version"], capture_output=True, text=True)
     emit({**base, "stage": "meta", "version": (v.stdout + v.stderr).strip()[-200:]})
     logpath = os.path.join(OUT, f"server_{label}.log")
@@ -134,6 +137,8 @@ def run(which):
 
 
 def score():
+    if not os.path.exists(RES):
+        sys.exit(f"no results yet: {RES}")
     rows = [json.loads(l) for l in open(RES) if l.strip()]
     of = lambda arm, st: [r for r in rows if r.get("arm") == arm and r.get("stage") == st]
     ok = lambda arm: bool(of(arm, "load")) and bool(of(arm, "load")[-1].get("ok"))
