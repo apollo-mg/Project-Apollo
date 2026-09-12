@@ -45,6 +45,11 @@ bandwidth, not the GPUs.
 - **This config no longer exists.** `-sm tensor` on `qwen4exp` was deny-listed by upstream PR
   #27941 and is refused by current buun and upstream. Numbers stand as a record of this binary;
   a rerun needs `-sm layer`. See [RESULT_META_BACKEND_SEGFAULT.md](RESULT_META_BACKEND_SEGFAULT.md).
+  **Update 2026-09-12:** buun's fork re-admitted `qwen4exp` for `-sm tensor` on 2026-09-10
+  (`9edf91e99`, *"retain Qwen4 tensor-split admission after master sync"* — the inherited upstream
+  denylist had been blocking full-model loads and silently skipping the test). Upstream still denies
+  it. On his fork a rerun can use tensor split again; whether the meta-backend segfault is also fixed
+  is untested.
 - Sweep died at the 4th point: the server segfaulted, which is how the meta-backend bug was found.
   Points 1-2 are from `timings` JSON; point 3 is from the server log immediately before the crash.
 - K=1 per size. No repeats.
