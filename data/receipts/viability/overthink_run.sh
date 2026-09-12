@@ -9,8 +9,8 @@
 # Usage: overthink_run.sh [MAX_SECONDS]   (default 540)
 set -u
 cd "$(dirname "$0")"
-HOST=http://127.0.0.1:8094
-OUT=overthink
+HOST=${HOST:-http://127.0.0.1:8094}
+OUT=${OUT:-overthink}
 MAX=${1:-540}
 T0=$(date +%s)
 mkdir -p "$OUT"
