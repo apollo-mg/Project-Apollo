@@ -1,5 +1,11 @@
 # Result — blind judging: Mark's eye leaned 4-bit, just short of the line; a second rater saw no lean
 
+> **Qualified 2026-09-11 by `RESULT_COMPLEXITY_CONFOUND.md`.** The 4-bit drawings in this panel carry
+> significantly more DOM elements than the 2-bit ones (53.5 vs 41.0 median, p = 0.003), in every review
+> step. A preference for 4-bit and a preference for busier drawings cannot be separated by this design.
+> The outside raters scored near chance despite the same cue, so complexity is not sufficient to drive it.
+
+
 > **Updated the same afternoon with a third rater (R2).** See the last section. The pooled
 > three-rater ranking does not separate either, and the three raters agree only weakly with each other.
 
