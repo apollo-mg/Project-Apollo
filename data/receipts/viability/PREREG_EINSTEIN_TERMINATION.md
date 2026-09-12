@@ -153,3 +153,75 @@ analysis plan.
 
 **Seen so far, in full:** the four numbers in the table above. No scored generation has been run, and
 no arm-C (capped) generation has been run at all.
+
+---
+
+## Amendment 2 — hashes verified, provenance pinned, and the IQ4_XS pilot disclosed (before any scored data)
+
+**Hashes — verified before any scored generation, but after the pilots.** Both files match their
+published LFS sha256:
+
+| file | bytes | sha256 | published by |
+|---|---|---|---|
+| `Qwen3.8-27B-UD-IQ4_XS.gguf` | 14,252,845,984 | `40fac4050e94…e6199` | `unsloth/Qwen3.8-27B-GGUF` |
+| `Qwen3.8-27B-TurboFCFusion-735-882-Here-Uncen-NEO-CODER-MAX-MTP-IQ2_M.gguf` | 12,124,624,416 | `ee4fc4950338…d189dda` | `DavidAU/Qwen3.8-27B-TURBO-Fable-Cold-Fusion-735-882-Heretic-Uncensored-NEO-CODER-MAX-MTP-GGUF` — and the etag in our HF download cache |
+
+**Both servers were started, and all 8 pilot generations run, before this check.** That breaks the
+lab's verify-before-use rule. The breach is confined to unscored data and is recorded rather than
+omitted; no scored generation runs until this amendment is committed.
+
+**Provenance, pinned by hash rather than by name** (prompted by Mark: *"Careful with DavidAU's model
+filenames"*):
+
+- **The original registration called the IQ2_M "DavidAU's own weights" on the strength of the merge
+  name.** That is now verified — but it was asserted first. The file's own metadata does not settle it:
+  `general.name` reads *"Qwen3.8 27B Brainwaves NM HERETIC BR LOA1"*, which matches neither the repo
+  nor the filename.
+- **The same repo holds a near-twin:** `…NEO-CODER-MAX-IQ2_M.gguf` — no `-MTP`, 11,673,303,648 bytes,
+  a different hash. Ours is the `-MTP-` file.
+- **The template comes from a different model line.** It is the twin-turbo template from
+  `DavidAU/Qwen3.8-27B-TWIN-TURBO-Fable-Cold-Fusion-709-L-…`. The 735-882 GGUF repo ships **no template
+  file at all**, so anyone running `{REASON:einstein}` on these weights is taking it from elsewhere.
+  **This does not change the text under test:** the einstein block hashes `be5e9dfb90189d5e…`
+  (1,082 chars) in all four copies checked — our two, and `chat_template-tturbo.jinja` and
+  `chat_template-toolcall2.jinja` as served by the 709-L repo today.
+
+**The IQ4_XS pilot — 4 unscored generations, seed 2001:**
+
+| item | arm | finish | completion tokens | thinking | answer |
+|---|---|---|---|---|---|
+| `E-C1` coding | A `xhigh` | **length** | **8,192** | 26,767 ch | **0 ch** |
+| `E-C1` coding | B `einstein` | stop | 3,084 | 6,711 ch | 2,602 ch |
+| `E-I1` ideation | A `xhigh` | stop | 138 | 531 ch | 55 ch |
+| `E-I1` ideation | B `einstein` | stop | 1,159 | 4,066 ch | 36 ch |
+
+- **The control ran away; einstein did not.** xhigh on `E-C1` hit the ceiling mid-thought with no
+  answer, having drafted `def parse_duration` four times inside the think block (1 / 0 / 1 / 2 across
+  its quarters — the redrafting accelerates).
+- **Einstein still barely engages at 4-bit, by a crude marker count:** one "brainstorm" across both
+  einstein generations; no agents, no `IdeaArray`, no Sternberg. Its ideation thinking is 7.7× xhigh's.
+
+**4 of the 36 scored cells have effectively been previewed.** The pilot used seed 2001 — rep 1's
+registered seed — with the model, template and flags the scored set uses. The scored set runs on a
+**fresh restart** of that server (the lab restarts llama-server before every benchmark leg). If
+generation is deterministic across processes and prompt-cache states, the scored (E-C1, A/B, rep 1)
+and (E-I1, A/B, rep 1) cells reproduce the pilot exactly. That is not assumed; it is checked.
+
+**The registered seeds are not changed.** Moving seeds after seeing outcomes is its own forking path.
+Instead the receipt reports every result **twice — all 36 cells, and with those 4 excluded** — and
+states whether the 4 reproduced byte-for-byte, which doubles as a determinism check.
+
+**An instrument defect, fixed:** the runner hardcoded `n_ctx: 16384`, so **the IQ4_XS pilot rows
+record the wrong context** (the server was at 12,288). Every row now records `n_ctx` and `kv_bpv` as
+read from the server's `/slots` before each generation. The pilot rows are committed as-is in
+`einstein_pilot/`, uncorrected, with this note as their correction.
+
+**No design change.** Arms, items, reps, seeds, `n_predict`, the non-termination definition, the
+analysis and **all seven predictions stand as logged** — including P-E3 (einstein runs away more than
+xhigh), which the pilot now points against. They were registered before any data and are scored as
+registered.
+
+**Execution.** Primary to `einstein_iq4/` on a freshly restarted IQ4_XS server (`-c 12288`), then the secondary to
+`einstein_iq2/` at `-c 16384` as originally registered, chained by `einstein_chain.sh`. The chain
+refuses to start either set unless the live server reports the expected model, the expected context
+and `kv_bpv` 8.5.
