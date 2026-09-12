@@ -95,12 +95,24 @@ holds beyond perplexity.
 ## Order
 
 1. ~~Test 1, drop-in.~~ **DONE** (`RESULT_EXL3_DROPIN.md`): 7 confirmed, 3 falsified.
-2. ~~O1, RDNA4.~~ **DONE** (`RESULT_EXL3_HIP.md`): loads, but CPU only.
-3. **O6 KLD: RUNNING** (`PREREG_EXL3_KLD.md`).
-4. **The MTP verification test** is a `--draft-max` sweep, or an EXL3 int8 GEMV timing at m = 1 to 8. It
-   decides whether O5 is a kernel problem buun could fix. That makes it the most valuable next test.
-5. ~~O8: read exllamav3's conversion requirements.~~ **DONE, and nothing blocks sm_60 in what was read**
+2. ~~Test 2, O1 on RDNA4.~~ **DONE** (`RESULT_EXL3_HIP.md`): loads, but CPU only. A port looks tractable
+   (`NOTE_EXL3_HIP_PORT.md`).
+3. ~~Test 3, O6 KLD.~~ **DONE** (`RESULT_EXL3_KLD.md`): EXL3 dominates the GGUF at its own size;
+   perplexity is retired as a fidelity metric.
+4. ~~Test 6, MTP depth.~~ **DONE, gate failed** (`RESULT_EXL3_DEPTH.md`): per-request depth is ignored
+   for MTP, so the curve is unmeasured — but depth 7 makes MTP a **net loss** for EXL3 (0.78×) where
+   Q6_K still gains (1.10×).
+5. **Test 3, Amendment 2 (EXL3 5.00bpw): RUNNING.** It makes the comparison at Q4_K_M's size
+   like-for-like.
+6. **Test 4, the micro-batch cost curve: RE-RUNNING** after attempt 1's cold-start control failure
+   (`PREREG_EXL3_MTP_SWEEP.md`, Amendment 1). It decides whether O5's MTP gap is a kernel property buun
+   could fix.
+7. ~~O8: read exllamav3's conversion requirements.~~ **DONE, nothing blocks sm_60 in what was read**
    (`NOTE_EXL3_QUANTIZER_ON_SM60.md`). What remains is a real conversion on `.73`.
-6. **O6 task accuracy.**
-7. **O4 degrade path and O7 long context,** one long-context run.
-8. **O10 on NVMe,** after Mark's disk decision.
+8. ~~O9 supply.~~ **RETIRED** (`NOTE_EXL3_SUPPLY.md`).
+9. **The depth curve, properly:** a server restart per depth (1, 2, 3, 5), ~32 min, since the
+   per-request field does not work.
+10. **O6 task accuracy** — the verdict metric. KLD settles distribution, not whether answers get worse.
+11. **O4 degrade path and O7 long context,** one long-context run (`PREREG_EXL3_LONGCTX.md`, written and
+    awaiting Mark).
+12. **O10 on NVMe,** after Mark's disk decision.
