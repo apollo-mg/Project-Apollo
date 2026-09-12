@@ -84,7 +84,10 @@ expert splitting (`dc41967d3`) alongside a guard that **rejects** unsupported mu
 `-fit off` is copied from the daily driver's known-good tensor-split launch on this box. At explicit
 `-c 8192 -ngl 99` it is expected to be inert; it is declared rather than assumed away. The added
 stages run from a separate copy of the driver (`v2`) so that the registered stages still in flight
-read an unchanged script — the registered labels' code is byte-identical in both.
+read an unchanged script (v1's md5 on `.73` was re-checked against its commit, `f3d83655`). For the
+registered labels the two copies run the same flags and the same code path, but the files are **not**
+byte-identical: `v2` threads a `flags` argument through `start()` and `run_model()`, defaulting to
+the registered `FLAGS`. *(The first version of this amendment said "byte-identical"; it was not.)*
 
 **Seen so far, in full:** `X-06` (all stages) and `X-27` under `-sm layer` — loaded in 302 s, answered
 `Paris`, coherent greedy text, decode 6.59 / 6.97 / 6.96 t/s. Nothing from any tensor-split run, and
