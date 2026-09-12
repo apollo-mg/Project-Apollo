@@ -59,7 +59,7 @@ in the inference receipt, is the nominal figure. Disk overstates EXL3's GPU foot
 
 | # | objection | status | evidence, or the test that settles it |
 |---|---|---|---|
-| O1 | **Can't serve from the control plane (HIP)** | CONFIRMED on hardware · NOT RETIRABLE BY US | RDNA4 loads EXL3 and answers correctly, but no EXL3 weight reaches VRAM. A 0.6B decodes at 6.47 t/s, and `-ngl 99` is slower than `-ngl 0` (`RESULT_EXL3_HIP.md`). Only an upstream HIP executor retires this. Mark offered buun RDNA4 testing. |
+| O1 | **Can't serve from the control plane (HIP)** | CONFIRMED on hardware · NOT RETIRABLE BY US · **port looks tractable** | RDNA4 loads EXL3 and answers correctly, but no EXL3 weight reaches VRAM. A 0.6B decodes at 6.47 t/s, and `-ngl 99` is slower than `-ngl 0` (`RESULT_EXL3_HIP.md`). **A port is smaller than it looks:** every Ampere-only construct already falls back for sm_60, and HIP takes those same branches; what blocks a compile is three unguarded PTX idioms in the trellis decoder, the Ampere GEMV needing exclusion, and the two HIP gates (`NOTE_EXL3_HIP_PORT.md`). Only upstream can do it; Mark offered buun RDNA4 testing and the build tree is standing. |
 | O2 | **Loses MTP** | RETIRED, with a cost | MTP engages on EXL3 at GGUF's acceptance rate but buys 1.24× instead of 1.69×. The cost is carried in O5. |
 | O3 | **Loses vision** | RETIRED | The daily driver's existing `mmproj-F16.gguf` attaches to the EXL3 model and reads the probe. |
 | O4 | **Doesn't compose with VBR KV** | RETIRED at load · degrade path OPEN | EXL3 and GGUF log the identical VBR controller init. Both stayed at the f16 entry tier through 14,852 tokens, so VBR's degraded tiers were never exercised with EXL3 weights. Test: a long-context run that forces VBR to degrade. |
