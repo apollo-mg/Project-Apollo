@@ -101,3 +101,28 @@ nothing from `X-27-cublas`, `Q6K` or perplexity.
 
 The proxy pause is extended to cover these stages; the 90-minute dead-man timer (armed 14:03:36)
 still bounds it.
+
+---
+
+## Amendment 2 — the Q6_K perplexity run failed; placement repair (2026-09-12 ~14:34, before any repaired data)
+
+**What happened.** `llama-perplexity` on `Q6K` at the registered settings died on its first batch —
+`CUDA pool allocation failed (out of VRAM)` → `perplexity : failed to decode` — **and exited 0.** The
+driver caught it only because it scores the `Final estimate` line rather than the exit code. `X-27` at
+identical settings completed: **5.9520 ± 0.14188.** The Q6_K weights occupy ~11 GB per GPU against
+EXL3's ~7 GB, which leaves less room for compute buffers; the mechanism is checked against source and
+reported in the receipt, not asserted here.
+
+**The repair, in order:**
+1. `-ts 3,2` — shift layers off the second GPU, which holds the output projection. Placement only:
+   same binary, text, context, chunk count and KV type, every weight still on a GPU.
+2. **Only if (1) also fails to produce an estimate:** `-ub 8`, which keeps every batched matmul on the
+   vector kernel. A different kernel path, and slower, but no whole-matrix buffers.
+
+Perplexity is a property of the weights, not of where they sit; any placement effect is far inside the
+±0.14 standard error. **`X-27` is not re-run.** P-X3's threshold (+5%) and scoring are unchanged. If
+neither repair produces an estimate, P-X3 is reported unscoreable.
+
+**Seen so far, in full:** X-27 perplexity 5.9520 ± 0.14188; Q6K perplexity not produced. Everything
+listed in Amendment 1 as seen, plus `X-27-cublas` (239 s load, `Paris`, greedy identical to int8 for
+193 of 275 chars, 2.39/2.43/2.43 t/s) and `Q6K` (27 s load, `Paris`, 7.80/7.81/7.81 t/s).

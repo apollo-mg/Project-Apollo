@@ -14,6 +14,7 @@ Every result row is appended, flushed and fsynced as it is produced. Stages:
 
 Usage (on .73):  python3 exl3_sm60_qual.py ALL      or one of: X-06 X-27 X-27-cublas Q6K PPL
 Amendment 1 adds X-27-tensor and Q6K-tensor (-sm tensor -fit off); they are not part of ALL.
+Amendment 2 adds PPL-Q6K-repair: Q6K perplexity at -ts 3,2, falling back to -ub 8; not part of ALL.
 """
 import json, os, re, signal, subprocess, sys, time, urllib.request
 
@@ -160,9 +161,9 @@ def run_model(label, model, env_extra, flags=FLAGS):
         stop(p)
 
 
-def ppl(label, model):
+def ppl(label, model, extra=()):
     cmd = [f"{BIN}/llama-perplexity", "-m", model, "-f", TXT, "-c", "512", "--chunks", "40",
-           "-ngl", "99", "-sm", "layer", "-fa", "on", "-ctk", "f16", "-ctv", "f16"]
+           "-ngl", "99", "-sm", "layer", "-fa", "on", "-ctk", "f16", "-ctv", "f16", *extra]
     log(f"=== PPL {label}")
     t0 = time.time()
     out = subprocess.run(cmd, capture_output=True, text=True, timeout=5400)
@@ -170,10 +171,12 @@ def ppl(label, model):
     with open(os.path.join(OUT, f"ppl_{label}.log"), "w") as f:
         f.write(text)
     m = re.search(r"Final estimate: PPL = ([\d.]+) \+/- ([\d.]+)", text)
-    emit({"label": label, "stage": "ppl", "model": model, "rc": out.returncode,
+    emit({"label": label, "stage": "ppl", "model": model, "extra": list(extra), "rc": out.returncode,
+          "failed_decode": "failed to decode" in text,
           "ppl": float(m.group(1)) if m else None, "ppl_err": float(m.group(2)) if m else None,
           "wall_s": round(time.time() - t0, 1)})
     log(f"  PPL {label}: {m.group(1) + ' +/- ' + m.group(2) if m else 'NOT PRODUCED, rc=' + str(out.returncode)}")
+    return float(m.group(1)) if m else None
 
 
 def main():
@@ -192,6 +195,9 @@ def main():
         run_model("X-27-tensor", MODELS["X-27"], {}, FLAGS_TENSOR)
     if what == "Q6K-tensor":
         run_model("Q6K-tensor", MODELS["Q6K"], {}, FLAGS_TENSOR)
+    if what == "PPL-Q6K-repair":            # Amendment 2: placement repair, then kernel fallback
+        if ppl("Q6K-ts32", MODELS["Q6K"], ["-ts", "3,2"]) is None:
+            ppl("Q6K-ub8", MODELS["Q6K"], ["-ub", "8"])
     if what in ("ALL", "PPL"):
         for label in ("X-27", "Q6K", "X-06"):
             ppl(label, MODELS[label])
