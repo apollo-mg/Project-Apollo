@@ -24,19 +24,22 @@ as they close; this is a working file, not a receipt.
 **EXL3 campaign — ACTIVE** (`exl3-campaign/CAMPAIGN_EXL3.md`, opened in `7277557`).
 - **Method:** an objection ledger. Default to EXL3 on the P100 nodes and test each reason not to.
 - **Scope is P100-only:** all of `exl3.cu` is compiled out under HIP.
-- **Test 1 (drop-in) has been RUNNING since 15:21.**
-  - The orchestrator is `exl3-campaign/orchestrate_dropin.sh`. It has the wake proxy **paused**, with a
-    120 min dead-man.
-  - Results land in `exl3-campaign/dropin/`.
-  - It swaps EXL3 into the daily driver's exact flags: MTP, mmproj, VBR at 262k, `-sm tensor`.
-- **0.85× is the MTP-off number.** The deployment number against tensor+MTP is test 1's headline.
-- **Queued:**
-  - **O1, HIP load behaviour.** The CPU backend *does* implement EXL3 (`ggml-cpu/exl3.cpp`), so
-    RDNA4 most likely routes EXL3 to the CPU rather than refusing it. Mark offered buun RDNA4 testing
-    at 15:01.
-  - **O6, KLD.** The Q8_0 reference is verified at `/mnt/TG_2TB/AI/Models/qwen38-27b-ref/`. The prereg
-    must measure the ROCm-vs-CUDA backend floor.
-  - **O8:** can exllamav3's converter run on sm_60?
+- **Test 1 (drop-in): DONE** (`RESULT_EXL3_DROPIN.md`), 7 confirmed and 3 falsified.
+  - EXL3 works with the daily driver's exact flags: MTP, vision, VBR at 262k.
+  - It decodes at **0.646×** the daily driver as served.
+  - **MTP buys EXL3 1.24× against GGUF's 1.69×, at identical acceptance.** The loss is in verification;
+    a `--draft-max` sweep would tell whether it is fixable in buun's kernel.
+  - Loads take 322 s off `/mnt/HDD` (O10: blocked on NVMe space).
+- **Test 2 (RDNA4): DONE** (`RESULT_EXL3_HIP.md`). EXL3 loads, but every EXL3 matmul runs on the CPU;
+  `-ngl 99` is slower than `-ngl 0`. Mark offered buun RDNA4 testing.
+- **Test 3 (KLD) has been RUNNING since 15:53.**
+  - Orchestrator: `exl3-campaign/orchestrate_kld.sh`. The proxy is **paused**, with a 180 min dead-man,
+    so the 16:05 and 17:05 ledger runs will fail.
+  - It copies the Q8_0, UD-IQ4_XS and UD-Q4_K_M to `.73:/mnt/HDD/kld/`, re-hashes them there, then runs
+    the reference and five arms at `-ub 8`.
+  - Results land in `exl3-campaign/kld/`. The 5 GB reference stays on `.73`.
+- **"61% of the bits" was the nominal figure.** VRAM is 64% and disk 74% (fixed in `cc0c9a6`).
+- **Next:** the MTP verification sweep, then O8 (can exllamav3's converter run on sm_60?).
 
 1. ~~**Write the Q6_K injection receipt.**~~ **DONE 2026-09-12 (`6831591`)** —
    `RESULT_OVERTHINK_INJECTION_Q6K.md`. The 03:51 quick score ("P-Q5 favoured") is **withdrawn**: it

@@ -1,0 +1,24 @@
+| arm | loaded | load s | n_ctx | kv_bpv load / after prefill | VRAM MiB | fact | vision | greedy t/s | greedy acc | sampled t/s | sampled acc | prefill t/s (tok) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| X | True | 322 | 262144 | 16.0 / 16.0 | [9433, 8297] | 'Paris' | 'KESTREL' | 13.96 | 0.693 | 13.08 | 0.683 | 153.7 (14852) |
+| Xn | True | 202 | 262144 | 16.0 / 16.0 | [8227, 7091] | 'Paris' | 'KESTREL' | 11.22 | - | 10.94 | - | 157.5 (14852) |
+| Q | True | 36 | 262144 | 16.0 / 16.0 | [13461, 12325] | 'Paris' | 'KESTREL' | 22.27 | 0.688 | 20.71 | 0.640 | 150.1 (14852) |
+| Qn | True | 36 | 262144 | 16.0 / 16.0 | [12199, 11063] | 'Paris' | 'KESTREL' | 13.18 | - | 13.17 | - | 153.4 (14852) |
+| D | True | 31 | 262144 | 16.0 / 16.0 | [13461, 12325] | 'Paris' | 'KESTREL' | 22.38 | 0.692 | 20.25 | 0.598 | 151.2 (14852) |
+
+## Predictions
+
+- **P-D1**: CONFIRMED
+- **P-D2**: CONFIRMED
+- **P-D3**: CONFIRMED (X 0.693 vs Q 0.688, |diff| 0.004)
+- **P-D4**: FALSIFIED (13.96 / 22.27 = 0.627)
+- **P-D5**: CONFIRMED (X 13.96 vs Qn 13.18 t/s)
+- **P-D6**: CONFIRMED
+- **P-D7**: FALSIFIED (n_ctx 262144, kv_bpv 16.0)
+- **P-D8**: CONFIRMED (22.38 / 22.27 = 1.005)
+- **P-D9**: CONFIRMED (153.67 / 150.08 = 1.024)
+- **P-D10**: FALSIFIED (13.96 / 11.22 = 1.244)
+
+## Headline (descriptive): X vs D at the served sampling
+
+X 13.08 t/s (acceptance 0.683) vs D 20.25 t/s (acceptance 0.598) = **0.646x**
