@@ -1,0 +1,40 @@
+=== IQ2_M secondary (DavidAU TURBO-735-882 -MTP-): 36 rows from data/receipts/viability/einstein_iq2 ===
+
+=== Configuration as recorded per row (read from the server's /slots, not assumed) ===
+  n_ctx      {'16384': 36}
+  kv_bpv     {'8.5': 36}
+  n_predict  {'8192': 36}
+  model      {'DavidAU/Qwen3.8-27B-TURBO-Fable-Cold-Fusion-735-882-Heretic-Uncensored-NEO-CODER-MAX-MTP-GGUF:Qwen3.8-27B-TurboFCFusion-735-882-Here-Uncen-NEO-CODER-MAX-MTP-IQ2_M.gguf sha256=ee4fc4950338cc95e804bff5d5c51f0a55ef7b196f9dd6fbaddf62183d189dda': 36}
+  injected budget text found in reasoning: 0 rows
+
+--- ALL cells (36) ---
+arm    n  non-term  usable  compliant  med think ch  med tokens
+A     12         2      10         10          5873        1716
+B     12         0      12         12          1922         654
+C     12         0      12         12          1922         654
+
+--- EXCLUDING the 4 pilot-previewed cells (32) ---
+arm    n  non-term  usable  compliant  med think ch  med tokens
+A     10         2       8          8          6416        1716
+B     10         0      10         10          1648         654
+C     12         0      12         12          1922         654
+
+=== Did the 4 previewed cells reproduce? (a cross-process determinism check) ===
+  ('E-C1', 'A', 1): BYTE-IDENTICAL  pilot 1949 tok / scored 1949 tok
+  ('E-C1', 'B', 1): BYTE-IDENTICAL  pilot 1452 tok / scored 1452 tok
+  ('E-I1', 'A', 1): BYTE-IDENTICAL  pilot 374 tok / scored 374 tok
+  ('E-I1', 'B', 1): BYTE-IDENTICAL  pilot 444 tok / scored 444 tok
+
+=== B vs C: 12 paired cells ===
+  byte-identical (cap never bound)       10  <- no information about the cap
+  C's thinking is a truncation of B's     2  <- the cap bound; same trajectory
+  outcome differs (non-term or usable)    0  <- the real n for P-E4 vs P-E3
+
+=== Predictions (all cells; see the excluded table above for the 4-cell sensitivity) ===
+  P-E1  B median thinking > A          1922 vs 5873 ch  -> FALSIFIED
+  P-E2  B reaches >=5000 reasoning tok  0/12 (+0 unresolved), 'fewer than half' -> CONFIRMED
+  P-E3  B non-term > A                  0/12 vs 2/12  -> FALSIFIED  (Fisher p=0.478)
+  P-E4  C non-term == 0                 0/12  -> CONFIRMED
+  P-E5  C usable >= 80%                 12/12 = 100%  -> CONFIRMED
+  P-E6  runaway is inside <think>       2/2 with empty answer  -> CONFIRMED
+  P-E7  ideation overrun > coding       B/A ratio ideation 1.18x vs coding 0.48x  -> CONFIRMED  (pilot already pointed this way: little independent weight)
