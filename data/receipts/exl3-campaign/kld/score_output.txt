@@ -1,0 +1,23 @@
+| arm | rc | disk GB | peak VRAM MiB | mean KLD ± | median KLD | 99% KLD | same top % ± | PPL(Q) |
+|---|---|---|---|---|---|---|---|---|
+| REF | 0 | 29.05 | 26746 | - | - | - | - | - |
+| R2 | 0 | 29.05 | 26746 | 0.000000 ± 0.000000 | -0.000000 | 0.000038 | 100.000 ± 0.000 | 5.9325 |
+| E | 0 | 16.88 | 13468 | 0.012002 ± 0.000379 | 0.004101 | 0.148772 | 95.431 ± 0.207 | 5.9535 |
+| G4 | 0 | 14.25 | 13500 | 0.015727 ± 0.000383 | 0.006376 | 0.166563 | 94.245 ± 0.231 | 5.9490 |
+| G5 | 0 | 16.46 | 15448 | 0.007840 ± 0.000232 | 0.002917 | 0.078477 | 96.225 ± 0.189 | 5.9311 |
+| G6 | 0 | 22.88 | 21276 | 0.002770 ± 0.000240 | 0.000986 | 0.023571 | 97.657 ± 0.150 | 5.9186 |
+
+## Predictions
+
+- **P-K0** (gate): CONFIRMED (R2 mean KLD 0.0, same top 100.0)
+- **P-K1**: FALSIFIED (E 0.012002 ± 0.000379 vs G5 0.007840 ± 0.000232)
+- **P-K2**: CONFIRMED (E 0.012002 ± 0.000379 vs G4 0.015727 ± 0.000383)
+- **P-K3**: CONFIRMED (G6 0.002770 ± 0.000240 vs E 0.012002 ± 0.000379)
+- **P-K4**: CONFIRMED (E same top 95.431%)
+
+## Headline (descriptive): EXL3 against the GGUF size curve, by peak VRAM
+
+EXL3 at 13468 MiB is not bracketed by the GGUF arms [('G4', 13500), ('G5', 15448), ('G6', 21276)]
+- EXL3 dominates G4 (G4: 13500 MiB, KLD 0.015727)
+- EXL3 trades off against G5 (G5: 15448 MiB, KLD 0.007840)
+- EXL3 trades off against G6 (G6: 21276 MiB, KLD 0.002770)

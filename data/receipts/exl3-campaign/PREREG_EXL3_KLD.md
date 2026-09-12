@@ -107,3 +107,30 @@ Three declarations:
    window when `TURBO_SCORE_LAST_ONLY` or `TURBO_SCORE_LAST_K` is set, zero-filling the rest
    (`perplexity.cpp:363-372`). Neither variable is set in the running driver's environment, checked in
    `/proc/<pid>/environ`, so every position is scored.
+
+## Amendment 2 — 2026-09-12 ~18:15, after test 3's results, adding a 5.00bpw arm
+
+**Prompted by Mark, and test 3's results are disclosed above.** Comparing EXL3 4.00bpw against a GGUF
+2 GB larger and concluding "GGUF wins if you have the VRAM" is a false choice: **EXL3 ships a bitrate
+ladder**, so the fair opponent at 15.4 GB is an EXL3 near that size, not EXL3 4.00bpw.
+
+**The campaign's rule from here: match VRAM by choosing the bitrate on both sides, never by comparing
+two fixed points.**
+
+- **The arm.** `E5` = turboderp `Qwen3.8-27B-exl3` @ `5.00bpw`, pinned at commit
+  `a35e75a73baee51da709329d19294245cbeeb5d8` (19.93 GB of safetensors, projected ~16.5 GB GPU-resident).
+- **Everything else is unchanged:** the same `ref.kld` on `.73`, the same binary, flags and 40 chunks.
+  It runs after tests 4 and 6.
+- **Why 5.00 and not 4.50:** turboderp publishes 2.00, 2.50, 3.00, 3.50, 4.00, 5.00 and 6.00bpw for this
+  model — there is no 4.50. The measured 4.00 (13,468 MiB) and the projected 5.00 (~16,500 MiB) bracket
+  Q4_K_M's 15,448 MiB, which is exactly what the comparison needs.
+
+| id | prediction |
+|---|---|
+| P-K5 | Interpolating log-KLD between E (13,468 MiB) and E5, evaluated at Q4_K_M's 15,448 MiB, lands **below** G5's 0.007840: EXL3's curve is below GGUF's at that size too |
+| P-K6 | E5's same-top exceeds G5's 96.225% |
+| P-K7 | E5's mean KLD is below E's 0.012002 — more bits, closer. The sanity check |
+
+**Declared:** this arm was chosen after seeing test 3's results; its predictions were written before it
+ran. A P-K5 interpolation landing within the summed uncertainties of G5's value scores **TIE**, as in
+the original prereg.
