@@ -1,0 +1,61 @@
+rows 144  arms ['A', 'B', 'C']
+
+=== UNANSWERABLE arm (24 generations per arm) ===
+  arm   ABSTAIN  WRONG  NO-STOP  ADVISOR  FAIL(W+NS)
+  A          20      3        1        0        4/24
+  B          21      3        0        0        3/24
+  C          19      5        0        0        5/24
+
+=== ANSWERABLE arm (safety check, 24 per arm) ===
+  A: CORRECT 23/24  other {'ANSWERED-WRONG': 1}
+  B: CORRECT 23/24  other {'ANSWERED-WRONG': 1}
+  C: CORRECT 23/24  other {'ANSWERED-WRONG': 1}
+
+=== thinking characters, unanswerable ===
+  A: median    2275  max   36764  total   196696
+  B: median     938  max    1076  total    21158
+  C: median    1388  max    1525  total    29240
+  C uses 15% of A's total thinking on the unanswerable arm
+
+=== predictions ===
+  P-O1  C 5/24 vs A 4/24 failures  -> FALSIFIED (Fisher p=1.000)
+  P-O2  C 5/24 vs B 3/24          -> FALSIFIED (Fisher p=0.701)
+  P-O3  B WRONG 3 vs A WRONG 3        -> FALSIFIED
+  P-O4  C answerable 23/24 (>=22)         -> CONFIRMED
+  P-O5  C ABSTAIN 19 >= B 21         -> FALSIFIED
+  P-O6  NO-STOP in B+C = 0                -> CONFIRMED
+  P-O7/8 ADVISOR emitted by C: 0/24     -> UNSCOREABLE (none emitted)
+  P-Q1  IQ3_M A fails 4/24 vs Q6_K baseline 11/24 -> FALSIFIED
+  P-Q2  C 5 < A 4                      -> FALSIFIED
+  P-Q3  C answerable 23/24 (>=20)          -> CONFIRMED
+
+=== CONDITIONAL ANALYSIS: the cap fired on 18/24 (item,rep) cells
+    Where it never fired, all three arms are the same generation and cannot differ.
+
+  --- cap FIRED (18 cells) ---
+    arm   ABSTAIN  WRONG  NO-STOP
+    A          16      1        1
+    B          17      1        0
+    C          15      3        0
+  --- cap did NOT fire (6 cells) ---
+    arm   ABSTAIN  WRONG  NO-STOP
+    A           4      2        0
+    B           4      2        0
+    C           4      2        0
+
+=== every (item,rep) where the arms disagreed ===
+  CAL-U2   rep1  A=ABSTAINED        B=ABSTAINED        C=ANSWERED-WRONG    cap=Y
+  CAL-U4   rep3  A=ANSWERED-WRONG   B=ABSTAINED        C=ANSWERED-WRONG    cap=Y
+  CAL-U6   rep2  A=NO-STOP/REC      B=ANSWERED-WRONG   C=ANSWERED-WRONG    cap=Y
+  3 of 24 item-reps diverged
+
+=== CAL-U3, the confident false belief (Q6_K holds '1906' 9/9) ===
+  rep1 arm A: ABSTAINED        got=UNKNOWN              think=   731
+  rep1 arm B: ABSTAINED        got=UNKNOWN              think=   731
+  rep1 arm C: ABSTAINED        got=UNKNOWN              think=   731
+  rep2 arm A: ANSWERED-WRONG   got=1906                 think=   651
+  rep2 arm B: ANSWERED-WRONG   got=1906                 think=   651
+  rep2 arm C: ANSWERED-WRONG   got=1906                 think=   651
+  rep3 arm A: ANSWERED-WRONG   got=1906                 think=   501
+  rep3 arm B: ANSWERED-WRONG   got=1906                 think=   501
+  rep3 arm C: ANSWERED-WRONG   got=1906                 think=   501
