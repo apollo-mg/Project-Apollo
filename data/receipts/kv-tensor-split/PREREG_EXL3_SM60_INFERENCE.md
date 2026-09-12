@@ -67,3 +67,34 @@ to achieve by accident.
 - **Speed is 3 reps of 256 decoded tokens per configuration**, read from the server's own timings.
 - **Nothing about the MTP head** (`mtp_bits: 4` in `X-27`), tensor split, or any other box.
 - **One model per quant family, one box, one toolkit.**
+
+---
+
+## Amendment 1 — add `-sm tensor` (2026-09-12 ~14:13, before any tensor-split EXL3 data)
+
+buun asked for it directly — *"try with -sm tensor, why not"* — and his fork carries EXL3 tensor and
+expert splitting (`dc41967d3`) alongside a guard that **rejects** unsupported multi-device EXL3 splits
+(`32c2c1479`). Two stages are added, run after the registered set in the same window on the same box:
+
+| label | model | flags |
+|---|---|---|
+| `X-27-tensor` | `X-27` | as registered, but `-sm tensor -fit off` |
+| `Q6K-tensor` | `Q6K` | as registered, but `-sm tensor -fit off` — its matched baseline |
+
+`-fit off` is copied from the daily driver's known-good tensor-split launch on this box. At explicit
+`-c 8192 -ngl 99` it is expected to be inert; it is declared rather than assumed away. The added
+stages run from a separate copy of the driver (`v2`) so that the registered stages still in flight
+read an unchanged script — the registered labels' code is byte-identical in both.
+
+**Seen so far, in full:** `X-06` (all stages) and `X-27` under `-sm layer` — loaded in 302 s, answered
+`Paris`, coherent greedy text, decode 6.59 / 6.97 / 6.96 t/s. Nothing from any tensor-split run, and
+nothing from `X-27-cublas`, `Q6K` or perplexity.
+
+| id | prediction | conf |
+|---|---|---|
+| P-X7 | `X-27` loads under `-sm tensor` — i.e. `32c2c1479` does not reject it | 60% |
+| P-X8 | if it loads, `X-27` decodes faster under `-sm tensor` than under `-sm layer` | 70% |
+| P-X9 | the EXL3 ÷ Q6_K decode ratio is closer to 1 under tensor split than under layer split | 50% |
+
+The proxy pause is extended to cover these stages; the 90-minute dead-man timer (armed 14:03:36)
+still bounds it.

@@ -13,6 +13,7 @@ Every result row is appended, flushed and fsynced as it is produced. Stages:
   ppl     llama-perplexity, wikitext-2 test, -c 512 --chunks 40          -> P-X3
 
 Usage (on .73):  python3 exl3_sm60_qual.py ALL      or one of: X-06 X-27 X-27-cublas Q6K PPL
+Amendment 1 adds X-27-tensor and Q6K-tensor (-sm tensor -fit off); they are not part of ALL.
 """
 import json, os, re, signal, subprocess, sys, time, urllib.request
 
@@ -30,6 +31,9 @@ TXT = "/mnt/HDD/exl3/wiki.test.raw"
 # Matched for every model (prereg). f16 KV passed explicitly: buun's fork defaults to VBR.
 FLAGS = ["-ngl", "99", "-sm", "layer", "-c", "8192", "-np", "1", "-fa", "on",
          "-ctk", "f16", "-ctv", "f16", "--jinja"]
+# Amendment 1 (tensor split, requested by buun). `-fit off` is copied from the daily driver's
+# known-good `-sm tensor` launch on this box; expected inert at explicit -c/-ngl, declared anyway.
+FLAGS_TENSOR = [("tensor" if f == "layer" else f) for f in FLAGS] + ["-fit", "off"]
 FACT = "What is the capital of France? Answer with one word."
 GREEDY = "The history of the Roman Empire"
 SPEED = "Write a detailed explanation of how a hash table works."
@@ -77,10 +81,10 @@ def preflight():
     log(f"preflight ok: GPUs {gpu_mib()} MiB, no llama-server")
 
 
-def start(model, env_extra, label):
+def start(model, env_extra, label, flags=FLAGS):
     env = dict(os.environ, **env_extra)
     logf = open(os.path.join(OUT, f"server_{label}.log"), "w")
-    p = subprocess.Popen([f"{BIN}/llama-server", "-m", model, *FLAGS, "--host", "127.0.0.1",
+    p = subprocess.Popen([f"{BIN}/llama-server", "-m", model, *flags, "--host", "127.0.0.1",
                           "--port", str(PORT)], stdout=logf, stderr=subprocess.STDOUT,
                          env=env, start_new_session=True)
     t0 = time.time()
@@ -112,10 +116,10 @@ def stop(p):
         time.sleep(1)
 
 
-def run_model(label, model, env_extra):
-    base = {"label": label, "model": model, "env": env_extra, "flags": FLAGS}
+def run_model(label, model, env_extra, flags=FLAGS):
+    base = {"label": label, "model": model, "env": env_extra, "flags": flags}
     log(f"=== {label}: {model} {env_extra or ''}")
-    p, load_s, err = start(model, env_extra, label)
+    p, load_s, err = start(model, env_extra, label, flags)
     if err:
         log(f"  LOAD FAILED: {err}")
         emit({**base, "stage": "load", "ok": False, "error": err})
@@ -184,6 +188,10 @@ def main():
         run_model("X-27-cublas", MODELS["X-27"], {"GGML_EXL3_INT8": "0"})
     if what in ("ALL", "Q6K"):
         run_model("Q6K", MODELS["Q6K"], {})
+    if what == "X-27-tensor":
+        run_model("X-27-tensor", MODELS["X-27"], {}, FLAGS_TENSOR)
+    if what == "Q6K-tensor":
+        run_model("Q6K-tensor", MODELS["Q6K"], {}, FLAGS_TENSOR)
     if what in ("ALL", "PPL"):
         for label in ("X-27", "Q6K", "X-06"):
             ppl(label, MODELS[label])
