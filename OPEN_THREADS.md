@@ -66,10 +66,12 @@ as they close; this is a working file, not a receipt.
     logs, 17 today). I briefly "corrected" this entry to say he fixed only three; that correction was
     itself wrong, and `75c5dfc`'s commit message carries the same error.
   - **Our `LOCAL_PATCH_sm60_guards.diff` is superseded** — do not re-apply it.
-  - **Not qualified: EXL3 inference.** No EXL3 model has been run. Candidates: `turboderp/Qwen3-0.6B-exl3`
-    (tiny, load-and-generate check), then `turboderp/Qwen3.8-27B-exl3` (26 branches, 10.8 GB at
-    2.00bpw to 23.0 GB at 6.00bpw — the same base model `.73` already serves as Q6_K). `/mnt/models`
-    has 9.9 GB free; **stage on `/mnt/HDD` (269 GB free).**
+  - **EXL3 inference: the first model RUNS on sm_60 (2026-09-12 13:49).** `turboderp/Qwen3-0.6B-exl3`
+    @ 4.0bpw loads in 5 s, answers `Paris`, writes coherent greedy text, decodes at 69.6 t/s. But it
+    has no `mul1` codebook, so it exercises only the loader and the reconstruct/cuBLAS path. **The
+    real test is `Qwen3.8-27B-exl3` @ 4.00bpw** (`mul1`, int8 path), staged on `.73:/mnt/HDD/exl3/`;
+    prereg `PREREG_EXL3_SM60_INFERENCE.md`, driver `exl3_sm60_qual.py`, raw in `exl3_sm60/`. It needs
+    the wake proxy paused for ~1 h.
   - **`.73` is suspended by our own wake proxy after 30 min without API requests, even mid-job** —
     pause the proxy or run a WoL watchdog for any long job there (memory: `wake-on-demand-73`).
     Before suspending it runs `pkill -x llama-server` on the node, which kills **any** llama-server
@@ -78,6 +80,11 @@ as they close; this is a working file, not a receipt.
   + Amendments 1–3. The pilot reversed the premise: at IQ4_XS the **xhigh control** ran away inside
   `<think>` and einstein did not. Scored run chained by `einstein_chain.sh`: IQ4_XS primary, then the
   IQ2_M secondary. 4 of 36 cells previewed by the pilot (same seed) and must be reported both ways.
+- **buun: Qwen3.8-Flash-Next on Pascal (asked 2026-09-12 ~13:50).** He has improved tensor sharding
+  for it and suggests putting the n-gram table on SSD. `.194` (4×16 GB VRAM, 64 GB DDR4, SATA SSD)
+  is the box. Our memory says upstream disabled `-sm tensor` for qwen4exp/Flash-Next (#27941) —
+  check whether his fork re-enables it first. Related: Jas and Mark's four Flash-Next fixes on Tom's
+  fork (TheTom/llama-cpp-turboquant PR #362).
 - **Tom / FA f16 pool ratchet on Pascal** — source analysis published
   (`kv-tensor-split/NOTE_FA_F16_POOL_RATCHET_PASCAL.md`); **no measurement taken**. Needs `.194`.
 
