@@ -77,3 +77,58 @@ Independently of the judging, this is a measured property of the ladder: **at ma
 harness and sampling, the 2-bit quants of Qwen3.8-27B emit about 23% fewer SVG elements than the
 4-bit quants** (41 vs 53.5 median), and the effect is present before any revision. That is a
 different axis from the structural score, which saturated at 10/10 for both.
+
+## Addendum — what each rater was actually answering
+
+**Post-hoc, prompted by Mark's account of his own procedure (2026-09-11):** he graded "what comes
+closest to a pelican on a bike", deducting for incomplete frames and bad geometry — deliberately
+looking for differences that would follow from capability. The share page asked a different
+question:
+
+> **"Which is the better picture of a pelican riding a bicycle?"**
+> *Judge each picture as a whole. Some pairs are close; "Too close to call" is a real answer.*
+
+That invites a taste judgment. Two raters answering a taste question and one answering a capability
+question is sufficient to produce near-zero agreement without anyone judging badly.
+
+**Decisive cross-bit picks** — pairs whose two drawings differ in bit depth, ties excluded:
+
+| rater | picked the 4-bit drawing |
+|---|---|
+| Mark | **23/23 (100%)** |
+| R1 (JabbaTheDuck) | 16/30 (53%) |
+| R2 | 16/29 (55%) |
+
+Mark never once preferred a 2-bit drawing over a 4-bit one when he made a call. This is consistent
+with the pre-registered 21/24: that statistic ranks aggregated win rates and counts ties as 0.5,
+and Mark tied on four cross-bit pairs (for instance `XAA7`, a 4-bit drawing, tied with four
+different 2-bit drawings and beat two more, giving it a 0.444 win rate while never losing to a
+2-bit drawing).
+
+**Do not read 23/23 as p = 2⁻²³.** The 23 decisions involve only ten drawings, so they are heavily
+dependent — a single strong drawing contributes many comparisons. The pre-registered permutation
+test accounts for that structure; a binomial does not.
+
+**What the picks track, by feature** (share of decisive pairs where the rater chose the drawing
+scoring higher on that feature):
+
+| rater picks the… | Mark | R1 | R2 |
+|---|---|---|---|
+| busier drawing (DOM elements) | 36/47 (77%) | 34/62 (55%) | 35/55 (64%) |
+| less fragmented (fewer components) | 25/37 (68%) | 35/44 (80%) | 28/43 (65%) |
+| higher structural score | 18/19 (95%) | 20/24 (83%) | 20/23 (87%) |
+| more ink | 31/46 (67%) | 41/66 (62%) | 24/56 (43%) |
+
+Small denominators, and the structural score saturates at 10/10 for most drawings, so the third row
+rests on few pairs.
+
+**Three explanations remain live, and this design separates none of them:**
+1. Mark perceives quality that tracks bit depth.
+2. Mark prefers busier drawings, and 4-bit drawings are busier.
+3. Mark applied a capability rubric while the other two applied the taste rubric the page requested.
+
+**The cheap discriminator is (3), and it needs no new drawings:** re-run the panel with Mark's
+rubric stated explicitly — *closer to a correct pelican riding a bicycle; penalise incomplete
+frames, broken geometry and floating parts* — and see whether outside raters move off 53%. If they
+do, the coin flip was the instruction, not the eye. Separating (1) from (2) still requires the
+complexity-matched pool described above.
