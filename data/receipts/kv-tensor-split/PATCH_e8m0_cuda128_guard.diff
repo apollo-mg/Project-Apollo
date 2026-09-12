@@ -1,0 +1,17 @@
+diff --git a/ggml/src/ggml-cuda/humming-vendor/include/humming/datatype/base_conversion.cuh b/ggml/src/ggml-cuda/humming-vendor/include/humming/datatype/base_conversion.cuh
+index d03f318e..2fef17e2 100644
+--- a/ggml/src/ggml-cuda/humming-vendor/include/humming/datatype/base_conversion.cuh
++++ b/ggml/src/ggml-cuda/humming-vendor/include/humming/datatype/base_conversion.cuh
+@@ -104,6 +104,7 @@ public:
+ };
+ 
+ 
++#if defined(CUDART_VERSION) && CUDART_VERSION >= 12080  // __nv_fp8*_e8m0 need CUDA >= 12.8
+ template <>
+ class F8Conversion<Float8E8M0> {
+ public:
+@@ -123,3 +124,4 @@ public:
+     return *reinterpret_cast<float4 *>(&res);
+   };
+ };
++#endif  // CUDART_VERSION >= 12080
