@@ -50,10 +50,12 @@ grep -q "ALL FILES VERIFIED" /mnt/TG_2TB/AI/Models/exl3/fetch_5.00bpw.log 2>/dev
 log "5.00bpw verified on the control plane"
 
 # 1. Wait until .73 is genuinely free -- no other campaign orchestrator, no llama process, empty GPUs.
-others_running () {
-  local f
-  for f in "$D"/kld/orchestrate.pid "$D"/mtp/orchestrate.pid "$D"/depth/orchestrate.pid; do
-    [ -f "$f" ] && kill -0 "$(cat "$f")" 2>/dev/null && return 0
+others_running () {   # enumerate EVERY orchestrator pidfile: a hardcoded list missed this script's own
+  local f p                     # sibling on 2026-09-12 and two runs collided on .73
+  for f in $(find "$D" -name 'orchestrate*.pid' 2>/dev/null); do
+    [ "$f" = "$PIDF" ] && continue
+    p=$(cat "$f" 2>/dev/null)
+    [ -n "$p" ] && kill -0 "$p" 2>/dev/null && return 0
   done
   return 1
 }
@@ -92,7 +94,9 @@ for i in $(seq 1 18); do s73 true 2>/dev/null && break; sleep 5; done
 s73 true || die ".73 not reachable over ssh"
 
 # 4. Refuse to score this arm twice, then copy the model and stage the driver + manifest.
-s73 "grep -q '\"arm\": \"$LABEL\"' ~/exl3_kld/results.jsonl 2>/dev/null" && die "arm $LABEL is already in results.jsonl on .73"
+# Refuse only if this arm already SUCCEEDED. A failed row (e.g. the 19:02 OOM when another run held the
+# GPUs) stays in the file as data; the scorer takes the last row per arm.
+s73 "grep '\"arm\": \"$LABEL\"' ~/exl3_kld/results.jsonl 2>/dev/null | grep -q '\"rc\": 0'" && die "arm $LABEL already has a successful row on .73"
 s73 "mkdir -p $DST" || die "cannot create $DST"
 t0=$(date +%s)
 timeout 3600 rsync -a --partial "$SRC"/ "$N:$DST"/ || die "copy of the 5.00bpw model failed"

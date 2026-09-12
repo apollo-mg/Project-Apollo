@@ -40,11 +40,12 @@ log "orchestrator up (pid $$)"
 #    successor started while the KLD run still held both GPUs; it stopped and restarted the proxy on its
 #    way out, and the next ledger run launched the daily driver into 21 GB of live test, which OOM'd.
 #    The precondition is the node being free, not a pidfile being gone.
-others_running () {
-  local f
-  for f in "$D"/kld/orchestrate.pid "$D"/mtp/orchestrate.pid "$D"/depth/orchestrate.pid; do
+others_running () {   # enumerate EVERY orchestrator pidfile: a hardcoded list missed kld/orchestrate_arm.pid
+  local f p                     # on 2026-09-12 and two runs collided on .73
+  for f in $(find "$D" -name 'orchestrate*.pid' 2>/dev/null); do
     [ "$f" = "$PIDF" ] && continue
-    [ -f "$f" ] && kill -0 "$(cat "$f")" 2>/dev/null && return 0
+    p=$(cat "$f" 2>/dev/null)
+    [ -n "$p" ] && kill -0 "$p" 2>/dev/null && return 0
   done
   return 1
 }
