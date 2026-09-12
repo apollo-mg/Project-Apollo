@@ -39,21 +39,29 @@ as they close; this is a working file, not a receipt.
     they approximate*, and ranks EXL3 last where KLD ranks it second.
   - The gate reproduced the reference bit-for-bit (KLD 0.000000, same-top 100%).
   - **The 5 GB reference stays on `.73:/mnt/HDD/kld/ref.kld`** — any further arm scores against it.
-- **Amendment 2 adds EXL3 5.00bpw (`E5`), queued** (`orchestrate_kld_arm.sh`): 4.00 and 5.00bpw bracket
-  Q4_K_M's VRAM, so the EXL3 curve can be interpolated at the GGUF's size instead of comparing two fixed
-  points.
+- **Amendment 2 (EXL3 5.00bpw): DONE**, and it corrected the conclusion. **Matched by bitrate, EXL3's
+  curve is below GGUF's at both comparable sizes:** 24% at ~13.5 GB, and 28% at Q4_K_M's own 15,448 MiB
+  (interpolated 0.005668 vs 0.007840). **The advantage widens with fidelity** — a GGUF needs ~790 MiB
+  more VRAM to match EXL3 at KLD 0.012 but ~2.9 GB more at 0.004. EXL3 5.00bpw is within 1.4× of the
+  daily driver's fidelity on **4.9 GB less VRAM**. Mark caught the false choice that produced the earlier
+  "GGUF wins at +2 GB" reading.
 - **"61% of the bits" was the nominal figure.** VRAM is 64% and disk 74% (fixed in `cc0c9a6`).
-- **Test 4 (MTP micro-batch sweep) is QUEUED behind test 3** (`orchestrate_mtp.sh`, launched 16:25; it
-  waits for the KLD orchestrator, then takes `.73` itself, builds `llama-bench` there and sweeps
-  `-ub 1,2,4,8,16` on both formats). It measures whether EXL3's int8 path amortizes a multi-row batch —
-  that is, whether the 1.24× is a kernel issue buun could fix. Both fast paths cover 8 rows, so a 4-row
-  verify does not fall off either.
-- **Test 6 (MTP depth curve) is QUEUED behind test 4** (`orchestrate_depth.sh`, launched 17:09), at
-  Mark's suggestion that a format with costlier extra rows should want less depth. Per-request
-  `speculative.n_max` varies depth without reloading, so one server per format covers 0,1,2,3,5,7. A
-  cost model fitted to test 1 puts EXL3's optimum near depth 2, worth only 2-3% — the test replaces the
-  model. **The whole chain runs unattended:** each orchestrator waits on the previous one's pidfile,
-  takes `.73` only when the daily driver is idle, and restores the proxy behind a dead-man.
+- **Test 4 (MTP micro-batch sweep): DONE** (`RESULT_EXL3_MTP_SWEEP.md`), all five predictions confirmed
+  on the re-run. **A 4-row verify costs EXL3's int8 GEMV 2.08× a single row where GGUF's MMVQ pays
+  1.37×** (A(4) 1.92 vs 2.92), which predicts test 1's MTP asymmetry to within a few points. **So most of
+  the speed gap is a kernel property buun could address**, not the format. Attempt 1 said the opposite
+  purely from a cold first test after a 318 s load; its control caught it, and it is kept in
+  `mtp/attempt1_cold/`.
+- **Test 6 (MTP depth curve): DONE, gate failed** (`RESULT_EXL3_DEPTH.md`). **Per-request
+  `speculative.n_max` is ignored under `--spec-type draft-mtp`** — every depth drafted 7 per step, the
+  CLI value — so the curve is unmeasured and P-S1..P-S4 are VOID. The source says the request field
+  should reach MTP, which makes it a question for buun. **The accidental depth-7 point is usable:** MTP
+  becomes a **net loss** for EXL3 (0.78× of no speculation) while Q6_K still gains (1.10×), with
+  acceptance halved to 0.325.
+- **Three orchestration bugs cost time, not data** (`6300b36`, `c6d259e`, `d75e2ee`, `e39a08c`; memory:
+  `orchestration-chaining-lessons`). A pidfile's absence was read as success; the pidfile registry was
+  hardcoded and missed a new runner, so two runs collided and one OOM'd; and the free-node gate
+  deadlocked on the daily driver it stops itself. Every result was either clean or voided by its own gate.
 - **A HIP port of EXL3 looks tractable** (`NOTE_EXL3_HIP_PORT.md`, source reading). Every Ampere-only
   construct in the int8 GEMV is guarded on `__CUDA_ARCH__`, which HIP does not define, so `cp.async` and
   `dp4a` already fall back to portable C — **the sm_60 path buun wrote for our P100s is the HIP path.**
