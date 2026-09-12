@@ -16,9 +16,12 @@ Each rule below comes from a real failure:
 
 Usage:
   hf_fetch.py turboderp/Qwen3.8-27B-exl3 4.00bpw /mnt/TG_2TB/AI/Models/exl3/Qwen3.8-27B-exl3-4.00bpw
+  hf_fetch.py <repo> <rev> <outdir> 'Qwen3.8-27B-Q8_0.gguf'     # optional globs: fetch only matching files
+Pin <rev> to a commit sha for anything a receipt depends on -- branches move, and unsloth has re-cut
+files under unchanged names before.
 Exit status 0 only if every file verified.
 """
-import fcntl, hashlib, json, os, subprocess, sys, time, urllib.request
+import fcntl, fnmatch, hashlib, json, os, subprocess, sys, time, urllib.request
 
 
 def log(msg):
@@ -60,9 +63,10 @@ def curl(url, part, resume):
 
 
 def main():
-    if len(sys.argv) != 4:
+    if len(sys.argv) < 4:
         sys.exit(__doc__)
     repo, rev, out = sys.argv[1:4]
+    globs = sys.argv[4:]
     os.makedirs(out, exist_ok=True)
     lock = open(os.path.join(out, ".hf_fetch.lock"), "w")
     try:
@@ -71,6 +75,10 @@ def main():
         sys.exit(f"another hf_fetch is already writing {out} -- refusing to be a second writer")
 
     files = manifest(repo, rev)
+    if globs:
+        files = [e for e in files if any(fnmatch.fnmatch(e["path"], g) for g in globs)]
+        if not files:
+            sys.exit(f"no file in {repo}@{rev} matches {globs}")
     log(f"{repo}@{rev}: {len(files)} files, {sum(e['size'] for e in files) / 1e9:.2f} GB -> {out}")
     bad = 0
     for e in files:
