@@ -107,3 +107,49 @@ problem.
   a different quant in a VS Code agent harness with its own turn loop.
 - **We are not testing spoon mode** (mythrime's question), which injects a different and much larger
   block (+3,989 chars).
+
+---
+
+## Amendment 1 — the pilot invalidated the primary instrument (2026-09-12, before any scored data)
+
+**What the pilot showed.** 4 unscored generations on `IQ2_M` (DavidAU's weights), 2 items × arms A/B:
+
+| item | arm | finish | completion tokens | thinking |
+|---|---|---|---|---|
+| `E-C1` coding | A `xhigh` | **stop** | 1,949 | 5,608 ch |
+| `E-C1` coding | B `einstein` | **stop** | 1,452 | 4,543 ch |
+| `E-I1` ideation | A `xhigh` | **stop** | 374 | 1,342 ch |
+| `E-I1` ideation | B `einstein` | **stop** | 444 | 1,817 ch |
+
+- **No runaway anywhere.** Every generation terminated on `stop`; none approached the 8,192 ceiling.
+- **Einstein produced *less* thinking than xhigh on the coding item** and more on the ideation item.
+- **Nothing came near the instructed "at least 5000 tokens".** The largest einstein thinking block was
+  1,817 characters — roughly 450 tokens, about an order of magnitude short.
+- **Arm B's reasoning on `E-C1` contained zero einstein-persona markers** — no agents, no novelty
+  pass, no `IdeaArray`, no Sternberg. It reasoned like the xhigh arm.
+
+**Why this forces a change.** At IQ2_M the instrument cannot separate *"einstein does not loop"* from
+*"this 2-bit quant cannot follow a 1,082-character persona instruction"*. That confound was declared
+in the original registration; the pilot shows it is live, not hypothetical, so scoring 36 generations
+on it would produce an uninterpretable null.
+
+**The change.** The declared control is **promoted to primary**, and both models are now run:
+
+| | model | what it isolates |
+|---|---|---|
+| **primary** | `unsloth-v3/Qwen3.8-27B-UD-IQ4_XS.gguf` — **base Qwen**, 4-bit, same template | the **template**, at a bit depth that can follow it |
+| **secondary** | `TurboFCFusion…IQ2_M` — DavidAU's weights | the tune, at the depth we have |
+
+Server context drops to **`-c 12288`** for the primary so 14.25 GB of weights and the KV cache fit on
+a 17.1 GB card; `n_predict` stays 8,192, so the non-termination definition is unchanged.
+
+**What this costs.** The primary now runs **base Qwen weights, not DavidAU's tune**. It therefore
+tests whether *the template* causes a runaway, which is the actionable question for a template fix —
+and it explicitly does **not** test whether DavidAU's fine-tuning contributes. If the primary shows a
+runaway, the follow-up is his weights at a comparable quant, which we do not currently hold.
+
+**Unchanged:** arms, items, reps, seeds, the non-termination definition, all 7 predictions, and the
+analysis plan.
+
+**Seen so far, in full:** the four numbers in the table above. No scored generation has been run, and
+no arm-C (capped) generation has been run at all.
