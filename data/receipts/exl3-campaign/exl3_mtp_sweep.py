@@ -16,8 +16,11 @@ EXL3 = "/mnt/HDD/exl3/Qwen3.8-27B-exl3-4.00bpw"
 EXL3_SAFETENSORS_BYTES = 16860809795          # shards hash-verified on .73 in RESULT_EXL3_SM60_INFERENCE.md
 Q6K, Q6K_BYTES = "/mnt/models/AI_Models/Qwen 3.8/Qwen3.8-27B-Q6_K.gguf", 22884408288
 MODELS = [("X", EXL3), ("Q", Q6K)]
+# Amendment 1: ub 1 runs twice. The first test after a load is cold -- on the first attempt EXL3's tg8
+# read 5.42 t/s at ub1 against 6.95 everywhere after (28.5% spread, control failed), which also
+# depressed the pp64 ub1 baseline that every A(m) divides by. The trailing repeat gives a warm baseline.
 ARGS = ["-ngl", "99", "-sm", "layer", "-fa", "on", "-ctk", "f16", "-ctv", "f16",
-        "-p", "64", "-n", "8", "-ub", "1,2,4,8,16", "-r", "3", "-o", "json"]
+        "-p", "64", "-n", "8", "-ub", "1,2,4,8,16,1", "-r", "3", "-o", "json"]
 KEEP = ("n_prompt", "n_gen", "n_ubatch", "n_batch", "avg_ts", "stddev_ts", "samples_ts",
         "build_commit", "split_mode", "type_k", "type_v", "flash_attn", "model_type", "model_size")
 

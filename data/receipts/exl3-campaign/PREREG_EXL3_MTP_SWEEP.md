@@ -68,3 +68,23 @@ reconstruct plus cuBLAS, GGUF to dequantize plus cuBLAS.
 - **One prompt length, three reps, one node.**
 
 **Scorer:** `tools/score_exl3_mtp.py`, committed with this prereg.
+
+## Amendment 1 — 2026-09-12 ~18:50, after attempt 1's control failed, before the re-run
+
+**Attempt 1 is kept in `mtp/attempt1_cold/` and is superseded.** Its control (P-M0) failed and the
+reason invalidates the headline rather than merely adding noise:
+
+- **EXL3's tg8 read 5.42 t/s at ub 1 and 6.95 t/s at every later ubatch** — a 28.5% spread that is
+  entirely the first measurement after the model loads. Q6_K's spread was 0.5%, because it loads in 36 s
+  where EXL3 takes 318 s off spinning disk, leaving cold caches and un-ramped clocks for the first test.
+- **The same cold start hits `pp64` at ub 1**, which is the baseline every `A(m)` divides by. Attempt 1
+  reads A_X(4) = 2.92 against A_Q(4) = 2.94, which would falsify the verification-cost hypothesis — but
+  correcting X's baseline by the ~22% the tg8 artifact shows would give A_X(4) ≈ 2.40 against 2.94, which
+  would support it. **The run cannot decide between those two readings, so it decides nothing.**
+
+**The change:** the sweep runs `-ub 1,2,4,8,16,1`, so ub 1 is measured twice in the same process — cold
+first, warm last.
+- **The baseline for every `A(m)` is the warm ub 1 measurement** (the higher of the two).
+- **The tg8 control uses the warm value too**, so P-M0 tests node stability rather than re-detecting a
+  known cold start.
+- **Predictions P-M0 to P-M4 and their thresholds are unchanged.**

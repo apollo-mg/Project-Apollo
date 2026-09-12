@@ -5,15 +5,20 @@ Usage: score_exl3_mtp.py data/receipts/exl3-campaign/mtp/results.jsonl
 """
 import json, sys
 
-pp, tg = {}, {}      # arm -> {ubatch: t/s}
+# Amendment 1: ub 1 is measured twice (cold first, warm last). Keep every measurement in file order;
+# the ub1 baseline is the WARM one (the higher of the two), and the tg8 control skips each arm's first
+# test, which is the cold one.
+ppL, tgL = {}, {}    # arm -> {ubatch: [t/s in file order]}
 for line in open(sys.argv[1]):
     if not line.strip():
         continue
     r = json.loads(line)
     if r.get("stage") != "bench":
         continue
-    d = pp if r.get("n_prompt") else tg
-    d.setdefault(r["arm"], {})[r["n_ubatch"]] = r["avg_ts"]
+    d = ppL if r.get("n_prompt") else tgL
+    d.setdefault(r["arm"], {}).setdefault(r["n_ubatch"], []).append(r["avg_ts"])
+pp = {a: {u: (max(v) if u == 1 else v[0]) for u, v in d.items()} for a, d in ppL.items()}
+tg = {a: {u: (max(v) if u == 1 else v[0]) for u, v in d.items()} for a, d in tgL.items()}
 
 UBS = [1, 2, 4, 8, 16]
 ARMS = [a for a in ("X", "Q") if a in pp]
