@@ -1,0 +1,57 @@
+### HumanEval/141  pass_frac=0.33 (of K=3)  first-fail bucket=WRONG finish=stop gzip_ratio=0.510 code_src=content
+### PROMPT:
+
+def file_name_check(file_name):
+    """Create a function which takes a string representing a file's name, and returns
+    'Yes' if the the file's name is valid, and returns 'No' otherwise.
+    A file's name is considered to be valid if and only if all the following conditions 
+    are met:
+    - There should not be more than three digits ('0'-'9') in the file's name.
+    - The file's name contains exactly one dot '.'
+    - The substring before the dot should not be empty, and it starts with a letter from 
+    the latin alphapet ('a'-'z' and 'A'-'Z').
+    - The substring after the dot should be one of these: ['txt', 'exe', 'dll']
+    Examples:
+    file_name_check("example.txt") # => 'Yes'
+    file_name_check("1example.dll") # => 'No' (the name should start with a latin alphapet letter)
+    """
+
+### CONTENT:
+```python
+def file_name_check(file_name):
+    if file_name.count('.') != 1:
+        return 'No'
+    
+    name, ext = file_name.split('.')
+    
+    if not name or ext not in ['txt', 'exe', 'dll']:
+        return 'No'
+    
+    if not (('a' <= name[0] <= 'z') or ('A' <= name[0] <= 'Z')):
+        return 'No'
+    
+    if sum(1 for char in file_name if char.isdigit()) > 3:
+        return 'No'
+    
+    return 'Yes'
+```
+### REASONING_CONTENT:
+We need answer only complete function in python code block. Need solve. Need be careful conditions. We need implement file_name_check.
+
+We have to return ONLY complete function in code block, no extra. Need maybe include function. Let's reason about exact requirements.
+
+A file name valid iff:
+- not more than three digits in the file's name. Means total count of digits in whole string <=3.
+- exactly one dot.
+- substring before dot non-empty and starts with a latin alphabet letter.
+- substring after dot exactly in list.
+Potential ambiguity: substring before dot can contain anything incl digits, dots? It has exactly one dot, so no. Could contain spaces etc? Only start with letter and digits count. No condition about other chars. So implement.
+
+Need maybe use split and isalpha? Before dot starts with letter. It could be length one. After dot one of. Exactly one dot. We can use name.count('.') == 1. Then before, after = split('.'); if before and after in allowed and before[0].isalpha() and sum(ch.isdigit() for ch in name)<=3.
+
+Need maybe latin alphabet only, not Unicode. Python str.isalpha accepts Unicode. Better use regex or ascii letters. We only need first char. Use ('a' <= before[0] <= 'z') or ('A' <= before[0] <= 'Z').
+
+Return 'Yes' or 'No'. Use if all.
+
+Need complete function.
+

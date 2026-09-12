@@ -1,0 +1,188 @@
+### HumanEval/160  pass_frac=0.33 (of K=3)  first-fail bucket=WRONG finish=stop gzip_ratio=0.354 code_src=content
+### PROMPT:
+
+def do_algebra(operator, operand):
+    """
+    Given two lists operator, and operand. The first list has basic algebra operations, and 
+    the second list is a list of integers. Use the two given lists to build the algebric 
+    expression and return the evaluation of this expression.
+
+    The basic algebra operations:
+    Addition ( + ) 
+    Subtraction ( - ) 
+    Multiplication ( * ) 
+    Floor division ( // ) 
+    Exponentiation ( ** ) 
+
+    Example:
+    operator['+', '*', '-']
+    array = [2, 3, 4, 5]
+    result = 2 + 3 * 4 - 5
+    => result = 9
+
+    Note:
+        The length of operator list is equal to the length of operand list minus one.
+        Operand is a list of of non-negative integers.
+        Operator list has at least one operator, and operand list has at least two operands.
+
+    """
+
+### CONTENT:
+```python
+def do_algebra(operator, operand):
+    precedence = {'+': 1, '-': 1, '*': 2, '//': 2, '**': 3}
+    values = [operand[0]]
+    ops = []
+
+    def apply_last():
+        op = ops.pop()
+        right = values.pop()
+        left = values.pop()
+
+        if op == '+':
+            return left + right
+        if op == '-':
+            return left - right
+        if op == '*':
+            return left * right
+        if op == '//':
+            return left // right
+        if op == '**':
+            return left ** right
+
+    for op, value in zip(operator, operand[1:]):
+        while ops and (
+            precedence[ops[-1]] > precedence[op] or
+            (precedence[ops[-1]] == precedence[op] and ops[-1] != '**')
+        ):
+            apply_last()
+        ops.append(op)
+        values.append(value)
+
+    while ops:
+        apply_last()
+
+    return values[0]
+```
+### REASONING_CONTENT:
+We need answer only complete function in python code block. Need implement do_algebra. Need infer constraints? Need evaluate with standard precedence? Example 2+3*4-5 =9 yes standard precedence. Need operator list length n-1. Basic ops. Need return int. Could implement using stack respecting precedence exponentiation maybe Python associativity right-to-left? Need decide. "algebraic expression evaluation" likely standard precedence: **, *, //, +,-. Exponentiation in Python right associative. Need implement. Need not use eval? Could, but function only. Need robust.
+
+We need output code block only. Need include function. Since asked complete function.
+
+Let's think deeply for potential hidden tests. Inputs lists maybe strings. Operand non-negative ints. Operator list at least one. Need return evaluation.
+
+Could simply parse expression string and eval? But maybe unsafe? Inputs limited. But better implement stack.
+
+Potential edge cases:
+- operator list length equal operand-1
+- operands non-negative, so no unary minus initially. But subtraction can produce negative intermediate maybe? Floor division semantics: Python // floor toward negative infinity. Algebra floor division maybe should match Python //, since operator is //. Use //.
+- Exponentiation precedence high. For right associativity, if operator[i] == '**' and previous op is '**', should evaluate current before previous? Python: 2 ** 3 ** 2 = 2 ** (3 ** 2). Stack algorithm with left-to-right and precedence: if current precedence > previous then push; if current precedence <= previous evaluate previous. This yields right-assoc for exponentiation? Let's test: operands [2,3,4], ops ['**','**']:
+i0 prec 3 > prev None push
+i1 prec 3 <= prev 3 => eval 2**3=8, push **
+then eval 8**4=4096. Wrong. Need special right associativity for **. If current is **, and previous is ** should not eval previous. If current not **, eval previous. General: while stack and ((prec[current] < prec[top]) or (prec equal and op != '**') or current not **? Actually if current == '**' and top == '**', keep. If current != '**' and top == '**'? For 2 ** 3 ** 4 * 5, current '*' prec 2 <= top 3 => eval 3**4 then 2**... correct. For 2 * 3 ** 4, current '**' prec 3 > top 2 push. For 2 ** 3 * 4, current '*' prec 2 <= top 3 eval. So condition while stack and prec[top] >= prec[current] but not (current == '**' and top == '**').
+
+Alternative implement expression string and Python eval with precedence; Python handles ** right assoc. But eval maybe not allowed? We can use ast. But simplest: build expression "2+3*4-5" with operators and eval. Since inputs are known ops and ints, safe enough. But hidden code runner may reject eval? Usually okay. Yet as AI coding answer, implementing without eval is better.
+
+Need maybe "Floor division" standard precedence same as multiplication. Need no parentheses.
+
+Could implement:
+def do_algebra(operator, operand):
+precedence = {'+':1, '-':1, '*':2, '//':2, '**':3}
+values=[operand[0]]
+ops=[]
+def apply():
+b=values.pop(); a=values.pop(); op=ops.pop()
+if op == '+': ...
+for op, val in zip(operator, operand[1:]):
+while ops and precedence[ops[-1]] >= precedence[op]:
+apply()
+ops.append(op); values.append(val)
+while ops: apply()
+return values[0]
+But right assoc issue. Use special condition:
+while ops and precedence[ops[-1]] > precedence[op] or (ops[-1]=='**' and op=='**')? Need parentheses.
+while ops and (precedence[ops[-1]] > precedence[op] or (precedence[ops[-1]] == precedence[op] and ops[-1] != '**')):
+apply()
+This keeps previous ** if current ** equal. But what about current ** after previous ** as above: top '**', current '**', precedence equal, top == '**', skip. Good.
+What about current '+' after top '**': precedence top > current => eval. Good.
+What about current '*' after top '**': eval. Good.
+What about current '**' after top '*' (prec top 2 < current 3): no eval.
+What about current '**' after top '+' no eval.
+What about current '*' after top '*' eval left assoc. Good.
+What about current '**' after top '**' after top '*'? [2,3,4,5], ops ['*','**','**']:
+i0 push * val2
+i1 '*' current vs top * equal eval? no? Condition top>cur? false; top==cur and top != '**' true => eval 2*3=6, push * val3.
+i2 current '**' prec 3 > top 2 no eval push ** val4.
+i3 current '**' equal top '**', top=='**' so no eval push ** val5.
+end eval top ** 4**5=1024, then * 6**1024. Correct for 2*3**(4**5). Good.
+What about [2,3,4,5] ops ['**','*','**']: 2**(3*4)**5? Actually standard: 2 ** (3 * 4) ** 5 because ** higher than * and right assoc only among **. Parse: 2 ** ((3 * 4) ** 5). Algorithm:
+push **, val2; current * prec2 < top3 eval? condition top>cur true => eval 2**3=8 push * val3; current ** prec3 > top2 push ** val4; current ** equal top ** skip push ** val5; end eval 4**5=1024 then 8**1024. Correct.
+What about [2,3,4,5] ops ['**','**','*']: 2 ** (3 ** 4) * 5. Algorithm:
+push ** 2; current ** skip push ** 3; current * top ** > cur eval 3**4=81 push * 4; end eval 2**81 then *5. Correct.
+What about [2,3,4,5] ops ['*','**','**'] correct above.
+What about [2,3,4,5] ops ['**','**','**'] 2**(3**(4**5)) algorithm skip all and eval right-to-left. Good.
+
+Need maybe if operator list includes '**' and operand large, Python big ints okay maybe.
+
+Could implement with eval:
+expr = str(operand[0])
+for op, val in zip(operator, operand[1:]): expr += op + str(val)
+return eval(expr)
+This handles right assoc. But output "complete function" only. Which is preferable? Stack code more verbose. Need no imports.
+
+Need ensure code block only.
+
+But let's consider if hidden tests expect left-to-right ignoring precedence? Example says result = 2 + 3 * 4 - 5 => 9, so precedence. Good.
+
+Could there be issue with using floor division and negative intermediate? Python floor division. Example no. Since operator is //, Python floor division. Good.
+
+Potential issue with operator list maybe list of strings exactly '+','-','*','//','**'. Operand maybe integers. If operand could be list of strings? It says integers. Fine.
+
+Need maybe support multi-digit operand and operator string. Good.
+
+Let's think about "algebric" typo. No.
+
+Need answer only function in code block. We can include docstring? Already in prompt. We can just code.
+
+Need maybe "Return ONLY complete function in ```python code block" means no explanation. Good.
+
+Let's craft concise function:
+def do_algebra(operator, operand):
+precedence = {'+': 1, '-': 1, '*': 2, '//': 2, '**': 3}
+values = [operand[0]]
+ops = []
+
+def apply_last():
+op = ops.pop()
+right = values.pop()
+left = values.pop()
+if op == '+': ...
+for op, value in zip(operator, operand[1:]):
+while ops and (
+precedence[ops[-1]] > precedence[op]
+or (
+precedence[ops[-1]] == precedence[op]
+and ops[-1] != '**'
+)
+):
+apply_last()
+ops.append(op)
+values.append(value)
+while ops:
+apply_last()
+return values[0]
+This is complete.
+
+Need maybe use `operator` shadows built-in? no.
+
+Could use `//` in function. Fine.
+
+Let's ensure parentheses in while:
+while ops and (precedence[ops[-1]] > precedence[op] or (precedence[ops[-1]] == precedence[op] and ops[-1] != '**')):
+Works. If top is '**' and current '*' top prec 3 > 2 true. If top '*' and current '**' false. Good. If top '+' and current '-' equal and top != '**' true. If top '-' and current '+' equal and top != '**' true. Good. If top '*' and current '**' false; push. Good.
+Potential issue if top is '**' and current '**' equal and top != '**' false. Good.
+
+Could maybe implement with recursive descent parser. Stack is fine.
+
+Need final only code block. Done.
+

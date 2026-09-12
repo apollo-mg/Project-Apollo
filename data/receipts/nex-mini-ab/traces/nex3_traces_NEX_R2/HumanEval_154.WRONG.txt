@@ -1,0 +1,46 @@
+### HumanEval/154  pass_frac=0.67 (of K=3)  first-fail bucket=WRONG finish=stop gzip_ratio=0.463 code_src=content
+### PROMPT:
+
+def cycpattern_check(a , b):
+    """You are given 2 words. You need to return True if the second word or any of its rotations is a substring in the first word
+    cycpattern_check("abcd","abd") => False
+    cycpattern_check("hello","ell") => True
+    cycpattern_check("whassup","psus") => False
+    cycpattern_check("abab","baa") => True
+    cycpattern_check("efef","eeff") => False
+    cycpattern_check("himenss","simen") => True
+
+    """
+
+### CONTENT:
+```python
+def cycpattern_check(a, b):
+    if len(b) > len(a):
+        return False
+    return any(b in a for i in range(len(b)) for b in [b[i:] + b[:i]])
+```
+### REASONING_CONTENT:
+We need answer only complete function in python code block. Need solve. Need be careful. Function cycpattern_check(a,b): return True if second word or any rotations is substring in first. Examples:
+("abcd","abd"): rotations abd,bda,dab none substring -> False.
+("hello","ell"): ell substring -> True.
+("whassup","psus"): rotations? psus,susp,usps,spps? Actually rotations: psus,susp,usps,spps none substring whassup -> False.
+("abab","baa"): rotations baa,aab,aba -> "aba" substring -> True.
+("efef","eeff"): rotations eeff,effe,ffee,feef none substring? efef has efef,fe ef? eeff no -> False.
+("himenss","simen"): rotations simen,imens,menss,enssm,nssme -> imens? himenss contains imens yes -> True.
+
+Need implement. Edge cases? If b empty? "word" maybe non-empty. If b longer than a, any rotation same length > a cannot substring false except empty? If b=="" rotations? substring empty true? Could return True maybe. Need decide. Complete function likely simple:
+def cycpattern_check(a,b):
+    return any(b in a for b_rot in (b[i:]+b[:i] for i in range(len(b))))
+This returns True for empty b (range 0, b_rot = "" in a True). Fine.
+
+But need "Return ONLY complete function in code block." Must call cpa_final_answer with answer including code block and marker. Need no explanation. Ensure complete function. Could include type? No.
+
+Need consider if b length > len(a): any rotations length > len(a), substring impossible unless b empty. Could optimize:
+if len(b)>len(a): return False
+...
+For empty b, len 0 <= len(a), loop returns True. Good.
+
+Could also use (b+b) and check rotations; any rotation is substring of b+b length n. But simple.
+
+Need maybe exact function signature "def cycpattern_check(a , b):". Use code block. final answer only.
+

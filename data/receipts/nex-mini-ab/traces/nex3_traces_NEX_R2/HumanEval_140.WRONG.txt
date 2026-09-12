@@ -1,0 +1,48 @@
+### HumanEval/140  pass_frac=0.67 (of K=3)  first-fail bucket=WRONG finish=stop gzip_ratio=0.435 code_src=content
+### PROMPT:
+
+def fix_spaces(text):
+    """
+    Given a string text, replace all spaces in it with underscores, 
+    and if a string has more than 2 consecutive spaces, 
+    then replace all consecutive spaces with - 
+    
+    fix_spaces("Example") == "Example"
+    fix_spaces("Example 1") == "Example_1"
+    fix_spaces(" Example 2") == "_Example_2"
+    fix_spaces(" Example   3") == "_Example-3"
+    """
+
+### CONTENT:
+```python
+def fix_spaces(text):
+    result = []
+    i = 0
+    
+    while i < len(text):
+        if text[i] == " ":
+            j = i
+            while j < len(text) and text[j] == " ":
+                j += 1
+            
+            if j - i > 2:
+                result.append("-")
+            else:
+                result.append("_")
+            
+            i = j
+        else:
+            result.append(text[i])
+            i += 1
+    
+    return "".join(result)
+```
+### REASONING_CONTENT:
+We need answer only complete function in python code block. Need infer task: replace all spaces with underscores, but if more than 2 consecutive spaces, replace all consecutive spaces with "-". Need implement. Examples: " Example 2" -> "_Example_2" (single leading underscore, single between). " Example   3" -> "_Example-3": more than 2 consecutive spaces (3) replaced by hyphen. What about exactly 2 consecutive spaces? Wording "if a string has more than 2 consecutive spaces, then replace all consecutive spaces with -"; so exactly 2 remain underscores "__". Need implement robust. Return only code block with function. Could use re.sub? Need complete function.
+
+Need ensure only function. Use regex to replace runs of spaces: if run length >2 then "-" else "_". Could avoid regex maybe.
+
+Need think about "all spaces" and "if a string has more than 2 consecutive spaces" maybe "if a string has more than 2 consecutive spaces" means any sequence >2. Example "Example 1" exactly 2 -> "Example__1". We'll implement.
+
+Need no extra text.
+

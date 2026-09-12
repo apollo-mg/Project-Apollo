@@ -1,0 +1,89 @@
+### HumanEval/95  pass_frac=0.33 (of K=3)  first-fail bucket=WRONG finish=stop gzip_ratio=0.366 code_src=content
+### PROMPT:
+
+def check_dict_case(dict):
+    """
+    Given a dictionary, return True if all keys are strings in lower 
+    case or all keys are strings in upper case, else return False.
+    The function should return False is the given dictionary is empty.
+    Examples:
+    check_dict_case({"a":"apple", "b":"banana"}) should return True.
+    check_dict_case({"a":"apple", "A":"banana", "B":"banana"}) should return False.
+    check_dict_case({"a":"apple", 8:"banana", "a":"apple"}) should return False.
+    check_dict_case({"Name":"John", "Age":"36", "City":"Houston"}) should return False.
+    check_dict_case({"STATE":"NC", "ZIP":"12345" }) should return True.
+    """
+
+### CONTENT:
+```python
+def check_dict_case(dict):
+    """
+    Given a dictionary, return True if all keys are strings in lower 
+    case or all keys are strings in upper case, else return False.
+    The function should return False is the given dictionary is empty.
+    Examples:
+    check_dict_case({"a":"apple", "b":"banana"}) should return True.
+    check_dict_case({"a":"apple", "A":"banana", "B":"banana"}) should return False.
+    check_dict_case({"a":"apple", 8:"banana", "a":"apple"}) should return False.
+    check_dict_case({"Name":"John", "Age":"36", "City":"Houston"}) should return False.
+    check_dict_case({"STATE":"NC", "ZIP":"12345" }) should return True.
+    """
+    if not dict:
+        return False
+    keys = list(dict.keys())
+    if not all(isinstance(k, str) for k in keys):
+        return False
+    if all(k == k.lower() for k in keys):
+        return True
+    if all(k == k.upper() for k in keys):
+        return True
+    return False
+```
+### REASONING_CONTENT:
+Let me analyze this problem:
+
+1. Return True if all keys are strings in lower case OR all keys are strings in upper case
+2. Return False if the dictionary is empty
+3. Return False if keys are not all strings (e.g., contains non-string keys)
+
+Let me think about the examples:
+- `{"a":"apple", "b":"banana"}` → all lowercase strings → True
+- `{"a":"apple", "A":"banana", "B":"banana"}` → mixed case → False
+- `{"a":"apple", 8:"banana", "a":"apple"}` → contains non-string key 8 → False
+- `{"Name":"John", "Age":"36", "City":"Houston"}` → mixed case (Title case) → False
+- `{"STATE":"NC", "ZIP":"12345"}` → all uppercase strings → True
+
+So the logic:
+- If empty, return False
+- Check if all keys are strings
+- Check if all keys are lowercase OR all keys are uppercase
+
+Let me write the function:
+
+```python
+def check_dict_case(dict):
+    if not dict:
+        return False
+    keys = list(dict.keys())
+    if not all(isinstance(k, str) for k in keys):
+        return False
+    if all(k == k.lower() for k in keys):
+        return True
+    if all(k == k.upper() for k in keys):
+        return True
+    return False
+```
+
+Let me verify with examples:
+- `{"a":"apple", "b":"banana"}`: all strings, all lowercase → True ✓
+- `{"a":"apple", "A":"banana", "B":"banana"}`: all strings, not all lowercase, not all uppercase → False ✓
+- `{"a":"apple", 8:"banana"}`: contains non-string → False ✓
+- `{"Name":"John", "Age":"36", "City":"Houston"}`: all strings, not all lowercase, not all uppercase → False ✓
+- `{"STATE":"NC", "ZIP":"12345"}`: all strings, all uppercase → True ✓
+
+This looks correct.
+
+Let me also consider edge cases like empty keys. A key like "" - "".lower() == "" so it would be considered lowercase. That's fine.
+
+The function looks good.
+

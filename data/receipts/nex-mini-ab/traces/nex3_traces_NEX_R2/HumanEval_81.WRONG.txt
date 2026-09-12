@@ -1,0 +1,63 @@
+### HumanEval/81  pass_frac=0.67 (of K=3)  first-fail bucket=WRONG finish=stop gzip_ratio=0.570 code_src=content
+### PROMPT:
+
+def numerical_letter_grade(grades):
+    """It is the last week of the semester and the teacher has to give the grades
+    to students. The teacher has been making her own algorithm for grading.
+    The only problem is, she has lost the code she used for grading.
+    She has given you a list of GPAs for some students and you have to write 
+    a function that can output a list of letter grades using the following table:
+             GPA       |    Letter grade
+              4.0                A+
+            > 3.7                A 
+            > 3.3                A- 
+            > 3.0                B+
+            > 2.7                B 
+            > 2.3                B-
+            > 2.0                C+
+            > 1.7                C
+            > 1.3                C-
+            > 1.0                D+ 
+            > 0.7                D 
+            > 0.0                D-
+              0.0                E
+    
+
+    Example:
+    grade_equation([4.0, 3, 1.7, 2, 3.5]) ==> ['A+', 'B', 'C-', 'C', 'A-']
+    """
+
+### CONTENT:
+```python
+def numerical_letter_grade(grades):
+    thresholds = [
+        (4.0, "A+"),
+        (3.7, "A"),
+        (3.3, "A-"),
+        (3.0, "B+"),
+        (2.7, "B"),
+        (2.3, "B-"),
+        (2.0, "C+"),
+        (1.7, "C"),
+        (1.3, "C-"),
+        (1.0, "D+"),
+        (0.7, "D"),
+        (0.0, "D-"),
+        (-float("inf"), "E"),
+    ]
+
+    grades_map = []
+
+    for gpa in grades:
+        for threshold, grade in thresholds:
+            if gpa > threshold:
+                grades_map.append(grade)
+                break
+
+    return grades_map
+```
+### REASONING_CONTENT:
+We need answer only complete function in python code block. Need implement. Need be careful thresholds table. The table says GPA 4.0 A+, >3.7 A, >3.3 A-, >3.0 B+, >2.7 B, >2.3 B-, >2.0 C+, >1.7 C, >1.3 C-, >1.0 D+, >0.7 D, >0.0 D-, 0.0 E. Need output list. Examples: [4.0 -> A+, 3 -> C? Let's test thresholds: 3.0 exactly: >2.7 B, >3.0 B+ false, >2.7 true => B. yes example B. 1.7 exactly: >1.3 C-, >1.7 C false => C-. 2 exactly: >1.7 C true, >2.0 C+ false => C. 3.5: >3.3 A- true, >3.7 false => A-. Good. Need maybe handle floats, maybe clamp? Should return letter.
+
+Need only function. Could use loop thresholds descending. Need include def and docstring? Complete function. Maybe no extra. Ensure code block only.
+

@@ -1,0 +1,37 @@
+### HumanEval/106  pass_frac=0.67 (of K=3)  first-fail bucket=WRONG finish=stop gzip_ratio=0.610 code_src=content
+### PROMPT:
+
+def f(n):
+    """ Implement the function f that takes n as a parameter,
+    and returns a list of size n, such that the value of the element at index i is the factorial of i if i is even
+    or the sum of numbers from 1 to i otherwise.
+    i starts from 1.
+    the factorial of i is the multiplication of the numbers from 1 to i (1 * 2 * ... * i).
+    Example:
+    f(5) == [1, 2, 6, 24, 15]
+    """
+
+### CONTENT:
+```python
+def f(n):
+    result = []
+    factorial = 1
+    total_sum = 0
+
+    for i in range(1, n + 1):
+        if i % 2 == 0:
+            factorial *= i
+            result.append(factorial)
+        else:
+            total_sum += i
+            result.append(total_sum)
+
+    return result
+```
+### REASONING_CONTENT:
+We need answer only complete function in python code block. Need parse task. Need implement f(n) returns list size n, element at index i is factorial of i if i is even or sum 1..i otherwise. "i starts from 1." Example f(5) == [1,2,6,24,15]. Let's map: list indices 0..4 but i starts from 1, so i=1 odd sum=1, i=2 even factorial=2, i=3 odd sum=6, i=4 even factorial=24, i=5 odd sum=15. So yes.
+
+Need provide function only code block. Could use loop. Need maybe handle n negative? "list size n" maybe n nonnegative. For n=0 return [].
+
+Need final only code.
+

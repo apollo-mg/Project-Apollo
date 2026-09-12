@@ -1,0 +1,55 @@
+### HumanEval/93  pass_frac=0.33 (of K=3)  first-fail bucket=WRONG finish=stop gzip_ratio=0.398 code_src=content
+### PROMPT:
+
+def encode(message):
+    """
+    Write a function that takes a message, and encodes in such a 
+    way that it swaps case of all letters, replaces all vowels in 
+    the message with the letter that appears 2 places ahead of that 
+    vowel in the english alphabet. 
+    Assume only letters. 
+    
+    Examples:
+    >>> encode('test')
+    'TGST'
+    >>> encode('This is a message')
+    'tHKS KS C MGSSCGG'
+    """
+
+### CONTENT:
+```python
+def encode(message):
+    vowels = "aeiouAEIOU"
+    encoded = []
+    
+    for char in message:
+        if char in vowels:
+            shifted = chr(ord(char.lower()) + 2)
+            encoded.append(shifted.swapcase())
+        else:
+            encoded.append(char.swapcase())
+    
+    return "".join(encoded)
+```
+### REASONING_CONTENT:
+We need answer only complete function in python code block. Need infer spec. Need be careful. "swaps case of all letters, replaces all vowels in the message with the letter that appears 2 places ahead of that vowel in english alphabet. Assume only letters." But examples include spaces? First example 'test' -> 'TGST': t->T, e vowel +2 => g, s->S, t->T. Good. "This is a message" -> expected 'tHKS KS C MGSSCGG'. Let's check:
+This: T->t, h->H, i->k (vowel +2), s->S => tHKS.
+space unchanged? They said assume only letters, but examples include spaces. spaces unchanged.
+is -> KS (i->k, s->S)
+a -> C (a->c)
+message: m->M, e->g, s->S, s->S, a->C, g->G, e->g => MGSSCGG. Yes.
+
+Need implement vowels and uppercase vowels? "replaces all vowels ... 2 places ahead of that vowel" Examples only lowercase vowels? Need handle uppercase vowels too likely. Swap case and replace vowels. Ambiguity order. For original vowel 'a' -> after shift c (lower), then case swap? If swap case first uppercase A -> a -> c -> C. Same for lowercase a: if shift then swap => C. For uppercase A: swap -> a -> c -> C. For vowel y? Vowels likely a,e,i,o,u. Need case-insensitive vowels. For uppercase vowels, two ahead preserving? But since after case swap all output letters uppercase for lowercase original vowels and lowercase for uppercase original vowels. If original lowercase e -> g then swap uppercase G. If original uppercase E -> swap e, shift g, swap G. Same. For uppercase original vowel output uppercase shifted. So simply if char.lower() in vowels then chr(ord(char.lower()+2)) then swapcase? But for non-vowels just swapcase. Need avoid Unicode? "Assume only letters" but examples spaces. Could use isalpha? But only letters and spaces. We can implement.
+
+Need return ONLY function in code block. No explanation. Need no analysis. Ensure indentation.
+
+Potential issue "Assume only letters" but examples have spaces; implement spaces preserved. Could use str.translate. But simple.
+
+Need decide if vowels include uppercase and lowercase. We'll implement set("aeiouAEIOU"). For char in vowels: shifted = chr(ord(char.lower() + 2)); result.append(shifted.swapcase())? For char.lower() returns lowercase; shifted lower; swapcase uppercase. For uppercase original char, char.lower() lower, shifted lower, swapcase uppercase. For lowercase original char, output uppercase. That matches. For non-vowel result.append(char.swapcase()). But if char is uppercase non-vowel, swapcase lowercase.
+
+Alternative order: swap then vowel shift then swap? For vowel uppercase: swap -> e -> g -> G. Same. For non-vowel swap. Good.
+
+Need maybe "replaces all vowels in the message with the letter that appears 2 places ahead of that vowel" Could shift before swap? Original lowercase e -> g then swap -> G, same. Original uppercase E -> E->G? if shift before swap uppercase -> G. same. So no issue.
+
+Need answer code block only.
+

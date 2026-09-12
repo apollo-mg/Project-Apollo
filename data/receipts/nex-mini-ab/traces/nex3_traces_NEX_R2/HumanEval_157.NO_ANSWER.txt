@@ -1,0 +1,25 @@
+### HumanEval/157  pass_frac=0.67 (of K=3)  first-fail bucket=NO_ANSWER finish=stop gzip_ratio=0.529 code_src=none
+### PROMPT:
+
+def right_angle_triangle(a, b, c):
+    '''
+    Given the lengths of the three sides of a triangle. Return True if the three
+    sides form a right-angled triangle, False otherwise.
+    A right-angled triangle is a triangle in which one angle is right angle or 
+    90 degree.
+    Example:
+    right_angle_triangle(3, 4, 5) == True
+    right_angle_triangle(1, 2, 3) == False
+    '''
+
+### CONTENT:
+def right_angle_triangle(a, b, c):
+    sides = sorted([a, b, c])
+    return a > 0 and b > 0 and c > 0 and sides[0] ** 2 + sides[1] ** 2 == sides[2] ** 2
+### REASONING_CONTENT:
+We need answer only complete function in python code block. Need infer task. Implement right_angle_triangle. Need likely validate triangle? Given lengths three sides. Return True if form right triangle. Need handle arbitrary order. Need avoid floats? Inputs maybe ints. We can sort and check a^2+b^2==c^2. But if non-positive? A triangle with negative lengths shouldn't form. Could include floats? Use sorting works. Need return only function. Should we include docstring? Complete function. Need decide robust.
+
+Potential issue with floats precision? Could use math.isclose? In typical coding challenge expect exact equality for numbers maybe ints. But if floats, "lengths" may include decimals, exact Pythagorean possible like 0.3,0.4,0.5: 0.09+0.16=0.25 exact? Maybe. Could use tolerance. But if tests expect exact? isclose okay for true right triangles and may return true for near right triangles, maybe undesirable. Usually simple. But "form a right-angled triangle" implies valid triangle too. Sorting and checking hypotenuse squared equality also implies triangle inequality? If c^2 = a^2+b^2 with positive a,b then c < a+b, so valid. Non-positive: e.g. 0,1,1: sorted 0^2+1^2=1^2 => True with current; but degenerate not triangle. Need require a>0,b>0,c>0. Also if a,b negative: sorted [-1,0,1], 1+0=1 => True; invalid. Check all positive.
+
+Return only function.
+

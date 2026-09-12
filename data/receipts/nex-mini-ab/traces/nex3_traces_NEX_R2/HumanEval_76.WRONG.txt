@@ -1,0 +1,54 @@
+### HumanEval/76  pass_frac=0.67 (of K=3)  first-fail bucket=WRONG finish=stop gzip_ratio=0.470 code_src=content
+### PROMPT:
+
+def is_simple_power(x, n):
+    """Your task is to write a function that returns true if a number x is a simple
+    power of n and false in other cases.
+    x is a simple power of n if n**int=x
+    For example:
+    is_simple_power(1, 4) => true
+    is_simple_power(2, 2) => true
+    is_simple_power(8, 2) => true
+    is_simple_power(3, 2) => false
+    is_simple_power(3, 1) => false
+    is_simple_power(5, 3) => false
+    """
+
+### CONTENT:
+```python
+def is_simple_power(x, n):
+    if x == 1:
+        return True
+    if n in (0, 1):
+        return False
+    if n < 0:
+        return False
+    
+    while x % n == 0:
+        x //= n
+        if x == 1:
+            return True
+    return False
+```
+### REASONING_CONTENT:
+We need answer only complete function in python code block. Need infer edge cases. Need implement is_simple_power(x,n) returns True if exists int k such that n**int = x. "int" likely nonnegative integer exponent? Examples include 1,4 true because 4**0=1. 2,2 true exponent1. 3,1 false though 1**k=1 not 3. What about negative bases/exponents? Need robust. Python n**int with int can be negative yielding float for nonzero n. But "simple power" likely exponent integer maybe nonnegative? Need consider x,n can be arbitrary ints? We need complete function. Need decide.
+
+This is likely from coding challenge "is_simple_power" maybe from Python exercise. Common solution:
+def is_simple_power(x, n):
+    if x == 1: return True
+    if n == 0 or n == 1: return False
+    while x > 1:
+       x /= n
+       if x == 1: return True
+       if x % n != 0: return False
+    return False
+But with integer division maybe.
+Need produce only function.
+
+Need be careful with n=1, x=1. Example 1,4 true; 3,1 false. If x=1 and any n? n**0=1 for any n except maybe 0**0 controversial. In Python 0**0=1. "int" maybe integer exponent, includes 0. So is_simple_power(1,0) true if 0**0 in Python. But mathematically 0^0 undefined. Challenge likely expects 1 true for any n? Need maybe special.
+
+Need understand phrase "n**int=x": maybe "int" placeholder for integer? They mean x is simple power of n if n**int = x. Could include exponent any integer? Examples:
+is_simple_power(1,4) true (4^0=1).
+is_simple_power(3,1) false. If exponent can be any integer, 1^anything=1 not 3.
+Need handle x=1,n=1? 1^k=1 true for k=0 or positive. x=0? 0^positive=0 but 0^0? Need if exponent nonnegative. If exponent can be negative, x=0 impossible except maybe n=0 and exponent? no. If n=0, x=1 true by 0^0? Maybe
+

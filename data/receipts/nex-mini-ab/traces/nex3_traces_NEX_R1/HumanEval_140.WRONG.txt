@@ -1,0 +1,33 @@
+### HumanEval/140  pass_frac=0.67 (of K=3)  first-fail bucket=WRONG finish=stop gzip_ratio=0.482 code_src=content
+### PROMPT:
+
+def fix_spaces(text):
+    """
+    Given a string text, replace all spaces in it with underscores, 
+    and if a string has more than 2 consecutive spaces, 
+    then replace all consecutive spaces with - 
+    
+    fix_spaces("Example") == "Example"
+    fix_spaces("Example 1") == "Example_1"
+    fix_spaces(" Example 2") == "_Example_2"
+    fix_spaces(" Example   3") == "_Example-3"
+    """
+
+### CONTENT:
+```python
+def fix_spaces(text):
+    return re.sub(r' {3,}| ', lambda m: '-' if m.group(0) == '   ' else '_', text)
+```
+### REASONING_CONTENT:
+We need answer only complete function in python code block. Need infer exact behavior. Need implement fix_spaces. Need consider spaces only literal ' ' not tabs? "spaces" likely ' '. Replace all spaces with underscores, if more than 2 consecutive spaces, replace all consecutive spaces with '-'. Examples. Need decide for exactly 2 consecutive spaces: underscores. More than 2 consecutive spaces: a single '-' for the whole run. Return string.
+
+Need provide only function code. No explanation. Need ensure docstring? Complete function can include docstring maybe. User says Return ONLY complete function in code block. We'll output function.
+
+Potential issue: "replace all spaces in it with underscores, and if a string has more than 2 consecutive spaces, then replace all consecutive spaces with -" Means if run length >2, replace run with '-' not each space. Example " Example   3" has one leading single space -> "_" and three spaces -> "-" => "_Example-3". Good.
+
+Implementation options:
+def fix_spaces(text):
+    return re.sub(r' {3,}', '-', text.replace(' ', '_'))? If replace first then regex spaces. Or regex r' {3,}| ' -> lambda m: '-' if len(m.group(0))>2 else '_'. Since spaces only. Simpler.
+
+Need only code. final with code block.
+

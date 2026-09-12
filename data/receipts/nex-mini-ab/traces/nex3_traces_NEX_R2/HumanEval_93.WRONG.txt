@@ -1,0 +1,62 @@
+### HumanEval/93  pass_frac=0.33 (of K=3)  first-fail bucket=WRONG finish=stop gzip_ratio=0.508 code_src=content
+### PROMPT:
+
+def encode(message):
+    """
+    Write a function that takes a message, and encodes in such a 
+    way that it swaps case of all letters, replaces all vowels in 
+    the message with the letter that appears 2 places ahead of that 
+    vowel in the english alphabet. 
+    Assume only letters. 
+    
+    Examples:
+    >>> encode('test')
+    'TGST'
+    >>> encode('This is a message')
+    'tHKS KS C MGSSCGG'
+    """
+
+### CONTENT:
+```python
+def encode(message):
+    result = []
+
+    for ch in message:
+        swapped = ch.swapcase()
+
+        if swapped.lower() in "aeiou":
+            shifted = chr(ord(swapped.lower()) + 2)
+            swapped = shifted.upper() if ch.isupper() else shifted
+
+        result.append(swapped)
+
+    return "".join(result)
+```
+### REASONING_CONTENT:
+We need answer only complete function in python code block. Need implement. Need be careful examples: "This is a message": swap case all letters, replace all vowels with letter 2 places ahead. Ambiguity order? Examples: This -> tHKS. T->t, h->H, i->k? s->S. yes vowels after swap? 'i' uppercase I shifted to K. So shift after case swap. "a" -> C (a->c uppercase due swap). message -> MGSSCGG? m->M, e->G, s->S, s->S, a->C, g->G, e->G. Good.
+
+Need "Assume only letters" but examples spaces. Actually assume only letters? But spaces preserved. Function should preserve non-letters maybe. Need vowels include a,e,i,o,u both cases. Replace with letter 2 ahead preserving swapped case. Could loop.
+
+Need return ONLY complete function in code block. No explanation.
+
+Potential issue "letter that appears 2 places ahead of that vowel in english alphabet" For 'u' -> 'w', 'y'? not vowel. No wrap? For vowel u->w, no wrap. If y not. For uppercase U->W. Fine.
+
+Need complete function:
+def encode(message):
+ vowels = ...
+ result=[]
+ for ch in message:
+   if ch.isalpha():
+      swapped = ch.swapcase()
+      if swapped.lower() in "aeiou":
+         swapped = chr(ord(swapped.lower())+2)
+         if ch.isupper(): swapped=swapped.upper()
+      result.append(swapped)
+   else: result.append(ch)
+ return ''.join(result)
+Need ensure for non-letter preserve. Since assume letters and spaces.
+
+Could use str.translate with maketrans. Simpler. But function only. Need maybe no type annotations? okay.
+
+Let's craft final only code block.
+

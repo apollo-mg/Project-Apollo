@@ -1,0 +1,26 @@
+### HumanEval/145  pass_frac=0.33 (of K=3)  first-fail bucket=WRONG finish=stop gzip_ratio=0.573 code_src=content
+### PROMPT:
+
+def order_by_points(nums):
+    """
+    Write a function which sorts the given list of integers
+    in ascending order according to the sum of their digits.
+    Note: if there are several items with similar sum of their digits,
+    order them based on their index in original list.
+
+    For example:
+    >>> order_by_points([1, 11, -1, -11, -12]) == [-1, -11, 1, -12, 11]
+    >>> order_by_points([]) == []
+    """
+
+### CONTENT:
+```python
+def order_by_points(nums):
+    def digit_sum(n):
+        return sum(int(d) for d in str(abs(n)))
+
+    return [num for _, num in sorted(enumerate(nums), key=lambda item: (digit_sum(item[1]), item[0]))]
+```
+### REASONING_CONTENT:
+We need answer only complete function in python code block. Need infer sorting by digit sum ascending, tie by original index. Need handle negatives. Digit sum of integer likely sum digits ignoring sign. For -12 sum=3. Examples: nums [1,11,-1,-11,-12]. digit sums: 1:1, 11:2, -1:1, -11:2, -12:3. Sort by sum then index: index0 value1 sum1, index2 value-1 sum1 => [1,-1]; sum2 index1 11, index3 -11 => [11,-11]; sum3 index4 -12. matches. Need implement. Need maybe Python's sum(map(int, str(abs(n)))) works for negative and zero. Stable sorted with key lambda x: (digit_sum(x), nums.index(x)) problematic duplicates because nums.index returns first duplicate not original position. Need enumerate. Return [x for x,_ in sorted(enumerate(nums), key=lambda e:(digit_sum(e[1]), e[0]))]. Need "only complete function" in code block. No extra. Ensure code block.
+

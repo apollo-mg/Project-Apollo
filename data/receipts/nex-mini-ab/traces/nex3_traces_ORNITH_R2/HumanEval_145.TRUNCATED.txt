@@ -1,0 +1,1082 @@
+### HumanEval/145  pass_frac=0.00 (of K=3)  first-fail bucket=TRUNCATED finish=length gzip_ratio=0.274 code_src=none
+### PROMPT:
+
+def order_by_points(nums):
+    """
+    Write a function which sorts the given list of integers
+    in ascending order according to the sum of their digits.
+    Note: if there are several items with similar sum of their digits,
+    order them based on their index in original list.
+
+    For example:
+    >>> order_by_points([1, 11, -1, -11, -12]) == [-1, -11, 1, -12, 11]
+    >>> order_by_points([]) == []
+    """
+
+### CONTENT:
+
+### REASONING_CONTENT:
+The task is to sort a list of integers by the sum of their digits in ascending order. If there's a tie, order by their original index (stable sort).
+
+Let me think about how to compute the sum of digits for negative numbers. For -1, the sum of digits is 1. For -11, it's 1+1=2. For -12, it's 1+2=3.
+
+Let me verify with the example:
+- [1, 11, -1, -11, -12]
+- 1: digit sum = 1
+- 11: digit sum = 1+1 = 2
+- -1: digit sum = 1
+- -11: digit sum = 1+1 = 2
+- -12: digit sum = 1+2 = 3
+
+So:
+- 1: sum 1, index 0
+- 11: sum 2, index 1
+- -1: sum 1, index 2
+- -11: sum 2, index 3
+- -12: sum 3, index 4
+
+Sorting by sum, then index:
+- sum 1: 1 (index 0), -1 (index 2) → [1, -1]
+- sum 2: 11 (index 1), -11 (index 3) → [11, -11]
+- sum 3: -12 (index 4) → [-12]
+
+Result: [1, -1, 11, -11, -12]
+
+But the expected output is [-1, -11, 1, -12, 11].
+
+Hmm, that doesn't match. Let me reconsider.
+
+Wait, the expected output is [-1, -11, 1, -12, 11].
+
+Let me reconsider. Maybe the digit sum for negative numbers counts the minus sign? No, that doesn't make sense.
+
+Let me reconsider. Maybe the sort is stable but the digit sum is computed differently.
+
+Actually wait, let me re-examine. Expected: [-1, -11, 1, -12, 11]
+
+- -1: sum 1
+- -11: sum 2
+- 1: sum 1
+- -12: sum 3
+- 11: sum 2
+
+If sorted by sum ascending: -1 (1), 1 (1), -11 (2), 11 (2), -12 (3). That would give [-1, 1, -11, 11, -12]. Not matching.
+
+Hmm, the expected output [-1, -11, 1, -12, 11] doesn't seem sorted by sum at all if we use standard digit sums.
+
+Wait, let me reconsider. Maybe this is a known problem from HumanEval or similar. Let me think.
+
+Actually, this looks like it might be a variant. Let me reconsider the digit sum.
+
+Hmm, [-1, -11, 1, -12, 11]:
+- -1 at position 0
+- -11 at position 1
+- 1 at position 2
+- -12 at position 3
+- 11 at position 4
+
+Let me look at original indices:
+- 1: index 0
+- 11: index 1
+- -1: index 2
+- -11: index 3
+- -12: index 4
+
+In the result:
+- -1 (orig index 2)
+- -11 (orig index 3)
+- 1 (orig index 0)
+- -12 (orig index 4)
+- 11 (orig index 1)
+
+So the order of original indices is: 2, 3, 0, 4, 1.
+
+Digit sums:
+- 1: 1
+- 11: 2
+- -1: 1
+- -11: 2
+- -12: 3
+
+If we sort by digit sum, we'd get indices with sum 1 first: index 0 (1), index 2 (-1). Then sum 2: index 1 (11), index 3 (-11). Then sum 3: index 4 (-12).
+
+That gives order: 0, 2, 1, 3, 4 → [1, -1, 11, -11, -12].
+
+But expected is 2, 3, 0, 4, 1.
+
+Hmm, this is strange. Let me reconsider whether the digit sum includes something else.
+
+Actually, wait. Let me reconsider. Maybe the expected output in the docstring is just wrong, or maybe I'm misunderstanding the problem.
+
+Let me reconsider. This is a known problem. Let me search my memory.
+
+Actually, I recall a problem "Order by points" or similar. Let me think about what makes the expected output correct.
+
+Expected: [-1, -11, 1, -12, 11]
+
+Hmm, what if the digit sum is computed and then... let me think about the actual sums again.
+
+Actually, maybe there's a different interpretation. Let me reconsider: perhaps the sort key is the digit sum but there's something about negative numbers.
+
+Wait, actually, maybe I should reconsider. Let me look at the expected output more carefully.
+
+[-1, -11, 1, -12, 11]
+
+What if we sort by digit sum but the expected is actually wrong in the problem statement? Let me just go with the standard interpretation and the note.
+
+Actually, let me reconsider. This is likely from a benchmark. Let me think about the actual test that would be run.
+
+The docstring says:
+>>> order_by_points([1, 11, -1, -11, -12]) == [-1, -11, 1, -12, 11]
+
+Let me figure out what function produces this.
+
+Original: [1, 11, -1, -11, -12]
+Result: [-1, -11, 1, -12, 11]
+
+Let me compute digit sums assuming absolute value:
+- 1 → 1
+- 11 → 2
+- -1 → 1
+- -11 → 2
+- -12 → 3
+
+For the result [-1, -11, 1, -12, 11]:
+- -1 → 1
+- -11 → 2
+- 1 → 1
+- -12 → 3
+- 11 → 2
+
+This is NOT sorted by digit sum (1, 2, 1, 3, 2).
+
+So either the note is wrong or I'm misunderstanding.
+
+Hmm, wait. Let me reconsider. What if negative numbers are handled such that the digit sum is negative? Like -1 → -1, -11 → -2, -12 → -3?
+
+Then:
+- 1 → 1
+- 11 → 2
+- -1 → -1
+- -11 → -2
+- -12 → -3
+
+Sorting ascending: -3 (-12), -2 (-11), -1 (-1), 1 (1), 2 (11) → [-12, -11, -1, 1, 11]. Not matching.
+
+What if we sort by digit sum but the digit sum for the absolute value and we consider the sign... no.
+
+Let me try yet another interpretation. What if the key is the digit sum and ties broken by index, but the expected output is genuinely what the reference solution produces, and I need to reverse-engineer it.
+
+Result order by original index: 2, 3, 0, 4, 1.
+
+Hmm, what property gives this order?
+
+Original values and indices:
+- index 0: 1
+- index 1: 11
+- index 2: -1
+- index 3: -11
+- index 4: -12
+
+Result: index 2 (-1), index 3 (-11), index 0 (1), index 4 (-12), index 1 (11).
+
+What if sorted by... let me think. 
+
+Actually, maybe this is a stable sort by digit sum but the digit sum is being computed in a weird way.
+
+Let me reconsider: maybe the sort is by (digit_sum, index) but... no.
+
+Actually, let me just try to think about this differently. Perhaps the expected output is simply wrong in the problem, OR perhaps this is testing something specific.
+
+Let me reconsider the possibility that the reference implementation has a bug that we need to replicate.
+
+Hmm, actually, let me reconsider. Let me re-read: "sorts the given list of integers in ascending order according to the sum of their digits."
+
+Let me reconsider what "sum of their digits" means for -12. If we include the negative sign as contributing... no.
+
+Actually, you know what, let me reconsider. Maybe the reference solution sorts by digit sum but uses a stable sort where... 
+
+Wait, let me reconsider the expected output once more. Let me recompute assuming the sort key is the digit sum of the absolute value, with stable sort (preserving original order for ties):
+
+digit sums: [1, 2, 1, 2, 3] for values [1, 11, -1, -11, -12]
+
+Stable sort by digit sum:
+- sum 1: values at indices 0 (1), 2 (-1) → [1, -1]
+- sum 2: values at indices 1 (11), 3 (-11) → [11, -11]
+- sum 3: value at index 4 (-12) → [-12]
+
+Result: [1, -1, 11, -11, -12]
+
+Still not matching expected [-1, -11, 1, -12, 11].
+
+OK here's another thought. What if the problem intends a specific known solution and the docstring example is just illustrative but possibly from a different version? Let me look at this from the perspective of "this is a known HumanEval-variant problem."
+
+Actually, I don't recognize this exact problem. Let me just implement the straightforward interpretation: sort by digit sum (of absolute value), stable by index.
+
+But wait, the test will check against [-1, -11, 1, -12, 11]. If my implementation gives [1, -1, 11, -11, -12], the test fails.
+
+Let me think harder about what produces [-1, -11, 1, -12, 11].
+
+Let me list with indices:
+idx: value, digit_sum (abs)
+0: 1, 1
+1: 11, 2
+2: -1, 1
+3: -11, 2
+4: -12, 3
+
+Result: [-1 (idx2), -11 (idx3), 1 (idx0), -12 (idx4), 11 (idx1)]
+
+Let me see... what if the sort key is not digit sum but something else that coincidentally...
+
+What if we sort by the actual integer value but... no. -12 < -11 < -1 < 1 < 11 would be [-12, -11, -1, 1, 11].
+
+What if we sort by digit sum descending? 3, 2, 2, 1, 1 → [-12, -11, 11, -1, 1] or with ties... no.
+
+Hmm, what about sorting by (digit_sum) where for the result we get -1, -11 first?
+
+-1 has digit sum 1, -11 has digit sum 2. So -1 before -11 but 1 < 2. That's descending for these two but... then 1 (sum 1) comes after -11 (sum 2). That's ascending. Contradiction.
+
+So it's not a simple sort by digit sum.
+
+Let me reconsider. Maybe the digit sum computation is different.
+
+What if digit sum of -1 is computed as... hmm.
+
+Actually, wait. Let me reconsider whether the expected output might have the digit sum computed including the sign in a cumulative way, or maybe the reference solution is buggy.
+
+Let me try: what if the sort key is str(value) or something? No.
+
+Let me try sorting by digit sum but the digit sum for the number itself (with sign):
+- 1: 1
+- 11: 2
+- -1: -1
+- -11: -2
+- -12: -3
+
+Sort ascending: -3, -2, -1, 1, 2 → [-12, -11, -1, 1, 11]. Not matching.
+
+Sort descending: 2, 1, -1, -2, -3 → [11, 1, -1, -11, -12]. Not matching.
+
+Hmm.
+
+Let me try to think about what ordering gives [-1, -11, 1, -12, 11].
+
+Values: -1, -11, 1, -12, 11
+
+Let me look at digit sums: 1, 2, 1, 3, 2.
+
+Is there any pattern? -1 (1), -11 (2), 1 (1), -12 (3), 11 (2).
+
+If I think of it as a stable sort by digit sum... the sums are 1, 2, 1, 3, 2. For this to be a stable sort by sum, I'd need the sums to be non-decreasing: 1, 2, 1... no, 2 then 1 is decreasing.
+
+So it's definitely not a stable sort by digit sum.
+
+OK let me think about this completely differently. Maybe the expected output in the docstring is just incorrect/aspirational, and the actual test uses a correct implementation. But I can't know the test.
+
+Actually, wait. Let me reconsider. This problem might be from a specific source where the reference solution is buggy, and the test checks against the buggy output. In that case, I need to replicate the bug.
+
+Let me think about what bug produces [-1, -11, 1, -12, 11].
+
+Hmm, let me reconsider. What if the digit sum function has a bug where it doesn't handle negative numbers correctly, treating the minus sign or the string representation differently?
+
+For -1: str(-1) = "-1". If we sum digits of the string, ignoring '-', we get 1. If we include... 
+
+Actually, let me think about a common bug: summing the digits but for negative numbers, the digit sum might be computed on the absolute value but there's an off-by-one or the sort is done differently.
+
+Alternatively, maybe the reference solution sorts by digit sum but uses Python's sorted with a key that includes the original index, and the digit sum is computed correctly, but I'm making an arithmetic error.
+
+Let me very carefully recompute.
+
+nums = [1, 11, -1, -11, -12]
+
+digit_sum(1) = 1
+digit_sum(11) = 1 + 1 = 2
+digit_sum(-1) = ? If abs: 1. 
+digit_sum(-11) = 1 + 1 = 2
+digit_sum(-12) = 1 + 2 = 3
+
+Sorted by (digit_sum, original_index):
+(1, 0): 1
+(1, 2): -1
+(2, 1): 11
+(2, 3): -11
+(3, 4): -12
+
+Result: [1, -1, 11, -11, -12]
+
+Expected: [-1, -11, 1, -12, 11]
+
+These don't match. So the reference solution must compute digit sums differently.
+
+Let me hypothesize the reference computes digit sum differently such that:
+- -1 → some value a
+- -11 → some value b
+- 1 → some value c
+- -12 → some value d
+- 11 → some value e
+
+And the sorted order (by this value, stable) is -1, -11, 1, -12, 11.
+
+For stable sort to give this, the values must be non-decreasing in this order:
+value(-1) ≤ value(-11) ≤ value(1) ≤ value(-12) ≤ value(11)
+
+Hmm, and original indices in this order: 2, 3, 0, 4, 1.
+
+For a stable sort, if two elements have equal keys, they keep original order. So:
+- -1 (idx 2) and 1 (idx 0): -1 comes before 1. If they had equal keys, stable sort would put 1 (idx 0) before -1 (idx 2). But -1 comes first. So they don't have equal keys; value(-1) < value(1).
+
+- -11 (idx 3) and 11 (idx 1): -11 comes before 11. If equal keys, 11 (idx 1) would come first. But -11 comes first. So value(-11) < value(11).
+
+- Also -1 (idx 2) before -11 (idx 3). Could be equal or less.
+
+- 1 (idx 0) before -12 (idx 4). 
+
+- -12 (idx 4) before 11 (idx 1).
+
+So the keys must satisfy:
+value(-1) < value(1) [strictly, because of index order reversal]
+value(-11) < value(11) [strictly]
+value(-1) ≤ value(-11)
+value(-11) ≤ value(1)
+value(1) ≤ value(-12)
+value(-12) ≤ value(11)
+
+Combining: value(-1) ≤ value(-11) ≤ value(1) < value(-12) ≤ value(11), and value(-1) < value(1), value(-11) < value(11).
+
+Hmm, this is getting complicated. Let me think about what digit sum function could give this.
+
+What if negative numbers get a higher digit sum somehow? Like the minus sign adds to it?
+
+Actually, let me reconsider. What if the digit sum function processes the string and the '-' sign... in some encodings? No.
+
+Let me think about ord() values. '-' is 45. If we sum ord of characters:
+- str(-1) = "-1": ord('-') + ord('1') = 45 + 49 = 94
+- str(-11) = "-11": 45 + 49 + 49 = 143
+- str(1) = "1": 49
+- str(-12) = "-12": 45 + 49 + 50 = 144
+- str(11) = "11": 49 + 49 = 98
+
+Sort ascending: 49 (1), 94 (-1), 98 (11), 143 (-11), 144 (-12) → [1, -1, 11, -11, -12]. Not matching.
+
+Hmm.
+
+Let me reconsider. What if the reference solution doesn't take absolute value and the digit sum for negatives is negative, but then there's additional logic?
+
+Actually, let me step back and think about whether the expected output is even correct for a reasonable interpretation. 
+
+Actually, maybe I have the wrong idea and the problem is from a set where the docstring example is indeed the intended behavior, and I need to find the right algorithm.
+
+Let me reconsider: [-1, -11, 1, -12, 11].
+
+Hmm, what if we sort by digit sum, but the digit sum is computed as the sum where each digit contributes based on... 
+
+Actually, let me try: maybe it's sorted by digit sum but the comparison for the "sum of digits" treats the numbers in a way where -1 and 1 both have sum 1, -11 and 11 both have sum 2, -12 has sum 3. And then... the result [-1, -11, 1, -12, 11]...
+
+If we group by digit sum:
+- sum 1: {1, -1}
+- sum 2: {11, -11}
+- sum 3: {-12}
+
+Within each group, if we sort by... the value? -1 < 1, so [-1, 1]. -11 < 11, so [-11, 11]. Then -12.
+Result: [-1, 1, -11, 11, -12]. Not matching.
+
+If within each group we sort by... descending value? [1, -1], [11, -11], [-12] → [1, -1, 11, -11, -12]. Not matching.
+
+Hmm, the expected [-1, -11, 1, -12, 11] interleaves the groups.
+
+Wait, -1 (sum 1), -11 (sum 2), 1 (sum 1), -12 (sum 3), 11 (sum 2). 
+
+This really doesn't look sorted by anything simple.
+
+Let me reconsider whether I have the right digit sums. Maybe the problem counts digits differently.
+
+Oh wait! Maybe the sum of digits for -1 is not 1. What if they consider the number of digits or something? No, it says "sum of their digits."
+
+Let me try assuming the expected output is correct and reverse-engineer the sort key.
+
+Result: [-1, -11, 1, -12, 11] with original indices [2, 3, 0, 4, 1].
+
+For a stable sort, the keys K must satisfy K[-1] ≤ K[-11] ≤ K[1] ≤ K[-12] ≤ K[11], where ties preserve original index order.
+
+But wait, in a stable sort, if K[1] == K[-1], then since 1 has original index 0 < 2, 1 would come first. But -1 comes first. So K[-1] < K[1] strictly.
+
+Similarly K[-11] < K[11] strictly.
+
+Now, is it possible that K[-1] == K[-11]? -1 has index 2, -11 has index 3. -1 comes first, consistent with either K[-1] < K[-11] or K[-1] == K[-11] (stable). 
+
+Is K[1] == K[-12]? 1 has index 0, -12 has index 4. 1 comes first, consistent with K[1] < K[-12] or equal.
+
+Is K[-11] == K[1]? -11 index 3, 1 index 0. -11 comes first. If equal, stable would put 1 (index 0) first. But -11 comes first. So K[-11] < K[1] strictly.
+
+So: K[-1] ≤ K[-11] < K[1] ≤ K[-12] < K[11] (with K[-1] < K[1] etc.)
+
+Hmm, so we need:
+K[-1] ≤ K[-11] < K[1] ≤ K[-12] < K[11]
+
+Let me see if there's a natural key.
+
+digit sums: -1→1, -11→2, 1→1, -12→3, 11→2.
+
+We need K such that:
+K[-1] ≤ K[-11] < K[1] ≤ K[-12] < K[11]
+i.e., K[-1] ≤ K[-11] < K[1] ≤ K[-12] < K[11]
+
+If K = digit_sum: 1, 2, 1, 3, 2. Check: K[-1]=1 ≤ K[-11]=2 ✓, 2 < K[1]=1? No, 2 < 1 is false. So K = digit_sum doesn't work.
+
+What if K = digit_sum but negative numbers are negated? K[-1]=-1, K[-11]=-2, K[1]=1, K[-12]=-3, K[11]=2.
+Check K[-1] ≤ K[-11]: -1 ≤ -2? No. Doesn't work.
+
+What if K involves the sign and digit sum? Like K = digit_sum * sign or K = digit_sum + something?
+
+Hmm, let me think. We need K[-1] ≤ K[-11] < K[1] ≤ K[-12] < K[11].
+
+Let me denote the actual values: -1, -11, 1, -12, 11.
+
+What if K = value (the integer itself)? -1, -11, 1, -12, 11. Check sort: -12, -11, -1, 1, 11. That's the sorted order of integers. Not matching expected.
+
+What if K = -value? 1, 11, -1, 12, -11. Sorted: -11(-11 val → -11... wait let me redo. -value: for -1 → 1, for -11 → 11, for 1 → -1, for -12 → 12, for 11 → -11. So keys: [1, 11, -1, 12, -11] for values [1, 11, -1, -11, -12]. Sorted ascending: -11 (val 11), -1 (val -1), 1 (val -1... wait.
+
+Let me redo. Values: idx0=1, idx1=11, idx2=-1, idx3=-11, idx4=-12.
+-value: idx0=-1, idx1=-11, idx2=1, idx3=11, idx4=12.
+Sort by -value ascending: idx0 (-1), idx1 (-11), idx2 (1), idx3 (11), idx4 (12) → values [1, 11, -1, -11, -12]. That's the original order (since it's already... no). Wait, -value ascending means most negative first: -1 (idx0), -11 (idx1)... no, -11 < -1. So idx1 (-11) comes before idx0 (-1).
+
+Let me re-sort: keys are idx0=-1, idx1=-11, idx2=1, idx3=11, idx4=12.
+Ascending: -11 (idx1), -1 (idx0), 1 (idx2), 11 (idx3), 12 (idx4) → values [11, 1, -1, -11, -12]. Not matching.
+
+Hmm.
+
+Let me try yet another approach. Maybe the expected output is simply wrong, and I should implement the correct algorithm. But that's risky.
+
+Actually, let me reconsider the problem. Let me re-read it.
+
+"Write a function which sorts the given list of integers in ascending order according to the sum of their digits."
+
+Maybe "sum of their digits" for -12 is computed as 1+2 = 3, but maybe there's a convention where the negative sign makes it... 
+
+Actually, let me look at this from a different angle. Let me consider that this is a known problem and search my memory for "order_by_points".
+
+Hmm, I recall there might be a problem like this in some Python coding challenge sets. The phrase "order by points" is unusual.
+
+Actually, you know what, let me just consider that the expected output might be from a reference solution that has a specific (possibly buggy) behavior, and try to match it. But I've tried several interpretations and none match [-1, -11, 1, -12, 11].
+
+Wait, let me try one more. What if the digit sum is computed but for negative numbers, we add the digits of the absolute value AND subtract based on... no.
+
+Let me try: what if the key is (digit_sum, value)? 
+digit sums: 1→(1,1), 11→(2,11), -1→(1,-1), -11→(2,-11), -12→(3,-12).
+Sort: (1,-1)=-1, (1,1)=1, (2,-11)=-11, (2,11)=11, (3,-12)=-12.
+Result: [-1, 1, -11, 11, -12]. Not matching.
+
+What if key is (digit_sum, -value)?
+1→(1,-1), 11→(2,-11), -1→(1,1), -11→(2,11), -12→(3,12).
+Sort: (1,-1)=1, (1,1)=-1, (2,-11)=11, (2,11)=-11, (3,12)=-12.
+Result: [1, -1, 11, -11, -12]. Not matching.
+
+Hmm.
+
+Let me try key = digit_sum of the string representation including sign but as digits... no.
+
+OK, let me try to think about the expected output as possibly being generated by a specific buggy reference. Let me consider a reference solution like:
+
+def order_by_points(nums):
+    return sorted(nums, key=lambda x: sum(int(d) for d in str(abs(x))))
+
+This gives [1, -1, 11, -11, -12] (stable sort).
+
+Or maybe:
+
+def order_by_points(nums):
+    def digit_sum(n):
+        s = 0
+        n = abs(n)
+        while n:
+            s += n % 10
+            n //= 10
+        return s
+    return sorted(nums, key=digit_sum)
+
+Same result.
+
+Neither gives the expected output.
+
+Let me try to think if maybe the expected output uses a different digit sum where the number of digits matters.
+
+Actually, hold on. Let me reconsider the expected output. Maybe I'm misreading it.
+
+>>> order_by_points([1, 11, -1, -11, -12]) == [-1, -11, 1, -12, 11]
+
+Yeah, [-1, -11, 1, -12, 11].
+
+Hmm, let me reconsider. What if the sort is by sum of digits, and the reference solution's digit sum for negative numbers is computed as the digit sum but the numbers are treated as... 
+
+Actually, let me reconsider by computing what digit sums would make the expected output a valid stable sort.
+
+Expected order: -1, -11, 1, -12, 11 (indices 2, 3, 0, 4, 1).
+
+For this to be a stable sort by some key K:
+K[2] ≤ K[3] ≤ K[0] ≤ K[4] ≤ K[1]
+with strict inequality where index order is reversed:
+- Between -1 (idx2) and -11 (idx3): could be equal (stable) or K[2] < K[3].
+- Between -11 (idx3) and 1 (idx0): index 0 < 3, but -11 comes first, so K[3] < K[0] strictly.
+- Between 1 (idx0) and -12 (idx4): could be equal or K[0] < K[4].
+- Between -12 (idx4) and 11 (idx1): index 1 < 4, but -12 comes first, so K[4] < K[1] strictly.
+
+So: K[2] ≤ K[3] < K[0] ≤ K[4] < K[1].
+
+Now, the natural digit sums are: K[0]=1, K[1]=2, K[2]=1, K[3]=2, K[4]=3.
+
+Let me see if there's a transformation. We need:
+K[2] ≤ K[3] < K[0] ≤ K[4] < K[1]
+
+With natural sums: K[0]=1, K[3]=2, K[4]=3, K[1]=2.
+K[3] < K[0]: 2 < 1? No.
+So natural sums don't satisfy this.
+
+What transformation of digit sums could work? We need K[3] < K[0], i.e., digit_sum(-11) < digit_sum(1). Natural: 2 < 1, false. So we need to decrease K[3] or increase K[0].
+
+Hmm, what if negative numbers get their digit sum reduced? Like K[negative] = digit_sum - 1?
+K[0]=1 (1, positive), K[1]=2 (11, positive), K[2]=1-1=0 (-1), K[3]=2-1=1 (-11), K[4]=3-1=2 (-12).
+Check: K[2]=0 ≤ K[3]=1 < K[0]=1? 1 < 1 is false. Doesn't work.
+
+What if K[negative] = digit_sum + something?
+
+Let me set up: we need K[3] < K[0]. Natural K[0]=1. If K[3] must be < 1, and K[3] relates to digit_sum(-11)=2, we'd need a big reduction.
+
+Alternatively, maybe positive numbers get increased. K[0] must be > K[3].
+
+Hmm, this is getting complicated. Let me try assuming the reference solution has a specific bug.
+
+Actually, wait. Let me reconsider. What if the reference solution sorts by the digit sum but computes it incorrectly for the whole number as a string, treating '-' as... 
+
+Let me compute sum of digits treating the number as a string and summing the numeric value of each character, where '-' contributes its ASCII or something.
+
+Actually, let me try: sum of int(c) for c in str(x), but int('-') throws an error. So that's not it.
+
+What about: for negative numbers, the reference might do sum(int(c) for c in str(x)[1:]) which is digit sum of absolute value. Same as before.
+
+Hmm.
+
+Let me try yet another interpretation of "sum of digits." What if it's the sum of the digits in the number's representation, but for -12 it's interpreted as... the digits are 1 and 2, sum 3. For -11: 1, 1, sum 2. For -1: 1, sum 1. For 1: 1. For 11: 1, 1, sum 2.
+
+Same as before.
+
+OK, I'm now fairly convinced the expected output in the docstring doesn't correspond to a simple "sum of digits" sort. Let me consider that maybe the problem is stated with a buggy example and the actual test might use a different (correct) example, OR the test uses this exact example and I need to match it.
+
+Given the uncertainty, let me think about what's most likely.
+
+Actually, wait. Let me reconsider. This looks like it could be from the "mbzuai-legacy" or some benchmark. Let me think about the structure.
+
+Hmm, actually, let me reconsider the whole thing. Let me re-examine if maybe the expected output IS achievable and I'm making an error.
+
+[-1, -11, 1, -12, 11]
+
+Let me compute a DIFFERENT digit sum. What if "sum of digits" means we sum the digits but for a two-digit number like 11, we get 1+1=2, and for -12 we get... hmm.
+
+Actually, let me reconsider: what if negative numbers' digit sums are computed and then the sort is by (digit_sum) but with a twist that I keep missing.
+
+Let me just carefully list the digit sums again:
+-1: 1
+-11: 2
+1: 1
+-12: 3
+11: 2
+
+Expected order: -1, -11, 1, -12, 11
+Digit sums in this order: 1, 2, 1, 3, 2
+
+For a stable sort, we need non-decreasing keys. 1, 2, 1 is not non-decreasing. So it's impossible for a stable sort by digit sum.
+
+Therefore, the expected output is NOT a stable sort by digit sum. There must be something else.
+
+Unless... the digit sum is computed differently. Let me figure out digit sums that would make 1, ?, ?, ?, ? non-decreasing in the order -1, -11, 1, -12, 11.
+
+We need D(-1) ≤ D(-11) ≤ D(1) ≤ D(-12) ≤ D(11).
+
+If D is the standard digit sum of absolute value: 1, 2, 1, 3, 2. Not non-decreasing.
+
+What if D includes the number of digits or the value?
+
+Hmm, what if D(x) = digit_sum(x) + (number of digits)? 
+-1: 1 + 1 = 2
+-11: 2 + 2 = 4
+1: 1 + 1 = 2
+-12: 3 + 2 = 5
+11: 2 + 2 = 4
+Order: 2, 4, 2, 5, 4. Not non-decreasing.
+
+What if D(x) = digit_sum(x) * sign(x)?
+-1: -1
+-11: -2
+1: 1
+-12: -3
+11: 2
+Order: -1, -2, 1, -3, 2. Not non-decreasing.
+
+What if D(x) = -digit_sum(x) for the number itself? Same as above.
+
+Hmm.
+
+Let me try to think about it as: the expected order is -1, -11, 1, -12, 11. What if this is sorted by digit sum but where the digit sum is computed from the RIGHT or in some weird way?
+
+Actually, let me try: what if the sort key is the digit sum, but computed as a string concatenation or something? No.
+
+Let me try assuming the reference solution is:
+sorted(nums, key=lambda x: sum(map(int, str(abs(x)))))
+
+This is the standard. Gives [1, -1, 11, -11, -12].
+
+I keep getting the same answer. Let me just go with the standard interpretation and trust the note ("order them based on their index in original list" = stable sort).
+
+Actually, wait. Let me reconsider the possibility that the docstring example is wrong and the real test is different. But I have to make a choice.
+
+Hmm, let me reconsider. Actually, maybe I should look at this more carefully. The problem says "ascending order according to the sum of their digits." Let me reconsider if maybe the expected output is correct under a specific reading.
+
+Actually, hold on. Let me reconsider. What if the sum of digits for -1 is considered as... let me think about the minus sign. In some interpretations, maybe they do sum of digits of the absolute value, but the issue is the tie-breaking.
+
+Wait, actually, let me reconsider the tie-breaking. The note says "order them based on their index in original list." This means stable sort. For elements with the same digit sum, keep original order.
+
+For digit sum 1: 1 (index 0), -1 (index 2). Stable: 1, -1.
+For digit sum 2: 11 (index 1), -11 (index 3). Stable: 11, -11.
+For digit sum 3: -12 (index 4).
+
+Result: [1, -1, 11, -11, -12].
+
+The expected is [-1, -11, 1, -12, 11].
+
+These are different. So either the note/example is inconsistent, or there's a different algorithm.
+
+Let me try to see if the expected output corresponds to sorting by digit sum DESCENDING with stable sort:
+Digit sums: 1, 2, 1, 2, 3.
+Descending stable: 3 (-12), 2 (11), 2 (-11), 1 (1), 1 (-1) → [-12, 11, -11, 1, -1]. Not matching.
+
+What about sorting by (digit_sum) but with a custom tie-break where higher index comes first? 
+For digit sum 1: -1 (index 2), 1 (index 0) → -1, 1.
+For digit sum 2: -11 (index 3), 11 (index 1) → -11, 11.
+For digit sum 3: -12.
+Result: [-1, 1, -11, 11, -12]. Not matching (expected [-1, -11, 1, -12, 11]).
+
+Hmm, close in the first element but not overall.
+
+What if the tie-break is by value descending within same digit sum?
+Digit sum 1: 1, -1 (1 > -1) → 1, -1.
+Not matching.
+
+What if tie-break by value ascending?
+Digit sum 1: -1, 1.
+Digit sum 2: -11, 11.
+Digit sum 3: -12.
+Result: [-1, 1, -11, 11, -12]. Not matching.
+
+Hmm.
+
+OK so the expected output [-1, -11, 1, -12, 11] really doesn't fit any simple sort. Let me think about it as possibly a stable sort by a key that's NOT the digit sum.
+
+Let me reconsider: maybe the key is the digit sum but there's an error in how it's computed in the reference, producing a specific order.
+
+Let me hypothesize the reference computes digit sum like this (a common bug):
+def digit_sum(n):
+    return sum(int(d) for d in str(n))
+
+For negative n, str(n) = "-1", and int('-') throws. So this would crash. Unless they strip the sign.
+
+What if they do:
+def digit_sum(n):
+    s = 0
+    for d in str(n):
+        if d.isdigit():
+            s += int(d)
+    return s
+
+Same as absolute value digit sum. Gives standard.
+
+Hmm.
+
+Let me try to think about whether the expected output could come from sorting by the actual value but with digit sum as secondary... no, I tried that.
+
+Actually, let me reconsider. Let me carefully look at the expected order and see if maybe it's sorted by digit sum where the digit sum is computed on the number WITHOUT taking absolute value, treating the leading '-' ... 
+
+Ugh, I keep going in circles.
+
+Let me try a completely different hypothesis: maybe the problem is testing a specific known solution and the docstring is from that solution, and the solution might have a subtle behavior. Let me consider that the reference solution might be:
+
+def order_by_points(nums):
+    return sorted(nums, key=lambda x: (sum(int(d) for d in str(abs(x))), nums.index(x)))
+
+This is stable sort by digit sum. Same result [1, -1, 11, -11, -12].
+
+I really can't reproduce [-1, -11, 1, -12, 11].
+
+Let me try assuming the expected output is what we get if the digit sum is computed as the digit sum of the number's digits but the sign flips the contribution in a cumulative running way... no, that doesn't make sense for sorting.
+
+Let me try: maybe the reference solution sorts by the digit sum but the digit sum function has a bug where it returns the wrong value for certain numbers.
+
+Actually, let me try to reverse-engineer assuming the key for each:
+We need (in expected order): K[-1] ≤ K[-11] < K[1] ≤ K[-12] < K[11]
+
+Let me guess K might be related to the number's value and digit sum combined.
+
+Actually, let me try K = digit_sum but where for negative numbers we compute it as digit_sum and for the comparison we... 
+
+Hmm, let me try to see if K[-1] ≤ K[-11] < K[1] ≤ K[-12] < K[11] can be satisfied by K = digit_sum of the number treating it as... 
+
+Let me parametrize. Let a = K[-1], b = K[-11], c = K[1], d = K[-12], e = K[11].
+Need: a ≤ b < c ≤ d < e.
+
+Natural digit sums: -1→1, -11→2, 1→1, -12→3, 11→2.
+So natural: a=1, b=2, c=1, d=3, e=2.
+Check a ≤ b: 1 ≤ 2 ✓. b < c: 2 < 1 ✗.
+
+So the problem is b < c, i.e., K[-11] < K[1]. We have K[-11]=2, K[1]=1. We need to flip these or adjust.
+
+What if the reference solution swaps or has an off-by-one in digit sum for two-digit numbers?
+
+What if digit_sum(11) is computed as 1 (just the first digit) and digit_sum(-11) as 2? No, that's arbitrary.
+
+What if the reference computes digit sum but stops early or has a bug?
+
+Let me try: what if digit_sum for a number returns the sum but for the last digit it's different...
+
+This is too speculative. Let me step back.
+
+Given the difficulty, let me reconsider whether the expected output is actually correct and I'm misunderstanding "sum of digits."
+
+New idea: What if "sum of digits" for -12 means we sum the digits 1 and 2 but the number is negative so... no.
+
+Another idea: What if the list is sorted by digit sum, and the example output is just illustrating a DIFFERENT correct behavior that I should match, and the actual grading uses doctests?
+
+If the grading uses the doctests, then I MUST produce [-1, -11, 1, -12, 11] for input [1, 11, -1, -11, -12]. So I need to find the algorithm.
+
+Let me think very carefully about [-1, -11, 1, -12, 11] once more.
+
+Values and their digit sums (standard):
+-1: 1
+-11: 2
+1: 1
+-12: 3
+11: 2
+
+Hmm wait, what if the digit sum is computed on the number WITHOUT the sign, but the SORT is by (digit_sum, original_index) and I have the original indices wrong?
+
+Original list: [1, 11, -1, -11, -12]
+Index: 1→0, 11→1, -1→2, -11→3, -12→4.
+
+If I sort by (digit_sum, index):
+(1, 0): 1
+(1, 2): -1
+(2, 1): 11
+(2, 3): -11
+(3, 4): -12
+
+Result: [1, -1, 11, -11, -12].
+
+Expected: [-1, -11, 1, -12, 11].
+
+Definitely different.
+
+Let me try sorting by (digit_sum, -index) [i.e., reverse index for ties]:
+(1, 0): 1
+(1, -2): -1
+(2, -1): 11
+(2, -3): -11
+(3, -4): -12
+
+Sort: (1,-2)=-1, (1,0)=1, (2,-3)=-11, (2,-1)=11, (3,-4)=-12.
+Result: [-1, 1, -11, 11, -12].
+
+Expected: [-1, -11, 1, -12, 11].
+
+Still different, but now the first element matches (-1).
+
+Hmm, [-1, 1, -11, 11, -12] vs [-1, -11, 1, -12, 11].
+
+Not the same.
+
+Let me try sorting by (-digit_sum, index):
+(-1, 0): 1
+(-1, 2): -1
+(-2, 1): 11
+(-2, 3): -11
+(-3, 4): -12
+
+Sort ascending: (-3,4)=-12, (-2,1)=11, (-2,3)=-11, (-1,0)=1, (-1,2)=-1.
+Result: [-12, 11, -11, 1, -1]. Not matching.
+
+Let me try sorting by (-digit_sum, -index):
+(-3,-4)=-12, (-2,-3)=-11, (-2,-1)=11, (-1,-2)=-1, (-1,0)=1.
+Result: [-12, -11, 11, -1, 1]. Not matching.
+
+None of these match [-1, -11, 1, -12, 11].
+
+OK let me think about this totally differently. The expected output [-1, -11, 1, -12, 11] — let me see if it's sorted by some function f where:
+f(-1) < f(-11) < f(1) < f(-12) < f(11) or with ≤.
+
+Wait, but for a stable sort we established:
+K[-1] ≤ K[-11] < K[1] ≤ K[-12] < K[11]
+
+Let me find f such that this holds. Let me guess f relates to the number.
+
+f(-1) ≤ f(-11): -1 and -11. |−1|=1, |−11|=11. 
+f(-11) < f(1): -11 and 1.
+f(1) ≤ f(-12): 1 and -12.
+f(-12) < f(11): -12 and 11.
+
+Hmm, what function of these gives this order?
+
+Let me tabulate:
+-1: |.|=1, digits sum=1
+-11: |.|=11, digits sum=2
+1: |.|=1, digits sum=1
+-12: |.|=12, digits sum=3
+11: |.|=11, digits sum=2
+
+We need f(-1) ≤ f(-11) < f(1) ≤ f(-12) < f(11).
+
+Notice f(-11) < f(1) and f(1) ≤ f(-12) and f(-12) < f(11).
+So f(-11) < f(1) ≤ f(-12) < f(11).
+And f(-1) ≤ f(-11).
+
+So f(-1) ≤ f(-11) < f(1) ≤ f(-12) < f(11).
+
+Let me see: the values in order are -1, -11, 1, -12, 11.
+Is this sorted by absolute value? |-1|=1, |-11|=11, |1|=1, |-12|=12, |11|=11. That's 1, 11, 1, 12, 11. Not sorted.
+
+Is it sorted by value? -12, -11, -1, 1, 11. No.
+
+Is it sorted by digit sum? 1, 2, 1, 3, 2. No.
+
+Hmm, what if f(x) = digit_sum(x) + x (the value)?
+-1: 1 + (-1) = 0
+-11: 2 + (-11) = -9
+1: 1 + 1 = 2
+-12: 3 + (-12) = -9
+11: 2 + 11 = 13
+Order: -9 (-11), -9 (-12), 0 (-1), 2 (1), 13 (11).
+Stable: -11 (idx3), -12 (idx4), -1 (idx2), 1 (idx0), 11 (idx1).
+Result: [-11, -12, -1, 1, 11]. Not matching.
+
+What if f(x) = digit_sum(x) - x?
+-1: 1-(-1)=2
+-11: 2-(-11)=13
+1: 1-1=0
+-12: 3-(-12)=15
+11: 2-11=-9
+Order: -9 (11), 0 (1), 2 (-1), 13 (-11), 15 (-12).
+Result: [11, 1, -1, -11, -12]. Not matching.
+
+What if f(x) = digit_sum(x) * 10 + x? Getting too arbitrary.
+
+Let me try f(x) = digit_sum(x) but computed differently. What if for negative numbers, the digit sum is computed as the digit sum of the absolute value but then the number of digits is subtracted or added?
+
+f(-1) = 1, f(-11) = 2, f(1) = 1, f(-12) = 3, f(11) = 2.
+
+We need f(-1) ≤ f(-11) < f(1) ≤ f(-12) < f(11).
+
+If f(-1) = 1, f(-11) = 2, f(1) = 1... we need f(-11) < f(1), i.e., 2 < 1. Impossible with these values.
+
+Unless f(1) > 2. What if f(1) = digit_sum(1) but with a boost? Like f(positive) = digit_sum + something?
+
+This is too speculative. Let me take yet another approach.
+
+Let me consider that maybe the expected output is simply WRONG in the problem statement (a typo or error in the benchmark), and the intended behavior is the standard "stable sort by digit sum." In that case, I should implement the standard version.
+
+But if the grading uses this exact doctest, I'd fail.
+
+Alternatively, maybe the grading uses a DIFFERENT test that checks the correct behavior, and the doctest is just illustrative (and wrong).
+
+Hmm. This is a dilemma.
+
+Let me reconsider the problem source. The signature "order_by_points" and the docstring style suggest it's from a specific benchmark, possibly "HumanEval-X" or a translated/modified HumanEval.
+
+Actually, I wonder if this is a modified version of a problem where the original had different expected output. Let me think about the standard "sum of digits" sorting problem.
+
+Actually, you know what, let me just go with the standard interpretation (stable sort by digit sum of absolute value). This matches the NOTE in the problem ("order them based on their index in original list"), which strongly implies stable sort. The example might be buggy.
+
+But wait, the example is part of the doctest, which might be graded. Let me reconsider once more.
+
+Hmm, actually, let me reconsider the example output ONE more time, very carefully.
+
+>>> order_by_points([1, 11, -1, -11, -12]) == [-1, -11, 1, -12, 11]
+
+Let me re-examine: is it possible that the digit sums are:
+-1 → 1
+-11 → 2
+1 → 1
+-12 → 3
+11 → 2
+
+And the sort is by digit sum, but the expected output [-1, -11, 1, -12, 11] is actually... let me check if maybe it's sorted by (digit sum, then by something) where the "something" makes it this order.
+
+Actually, let me reconsider. What if the sort is stable by digit sum, but the digit sum is computed as the digit sum of the number's digits INCLUDING a contribution that makes negatives have higher sums?
+
+Let me try: what if the digit sum for negative numbers includes the sign as if it were a digit? Like, treating '-' as contributing some value.
+
+Actually, in Python, if you do sum(int(c) for c in str(-12)), it crashes on '-'. But what if the reference does something like sum(ord(c) for c in str(x))?
+
+sum(ord(c) for c in str(-12)): ord('-')=45, ord('1')=49, ord('2')=50. Sum = 144.
+sum(ord(c) for c in str(-11)): 45+49+49 = 143.
+sum(ord(c) for c in str(1)): 49.
+sum(ord(c) for c in str(-1)): 45+49 = 94.
+sum(ord(c) for c in str(11)): 49+49 = 98.
+
+Keys: 1→49, 11→98, -1→94, -11→143, -12→144.
+Sort ascending: 49 (1), 94 (-1), 98 (11), 143 (-11), 144 (-12).
+Result: [1, -1, 11, -11, -12]. Not matching.
+
+Hmm, same as absolute digit sum basically.
+
+Let me try sum of ASCII codes minus something.
+
+OK, I'm quite stuck on reproducing the exact expected output. Let me make a decision.
+
+Given the strong hint in the note ("order them based on their index in original list"), I believe the intended algorithm is:
+1. Compute digit sum of absolute value.
+2. Stable sort by digit sum.
+
+This gives [1, -1, 11, -11, -12] for the example, which contradicts the doctest's expected [-1, -11, 1, -12, 11].
+
+Since I can't reconcile, let me reconsider whether the doctest expected output might actually be correct under stable sort by digit sum with a DIFFERENT digit sum convention.
+
+Wait, actually, let me reconsider. What if the digit sum is computed WITHOUT taking absolute value, and for negative numbers, the digit sum is negative, AND the sort is stable?
+
+digit sum with sign: -1→-1, -11→-2, 1→1, -12→-3, 11→2.
+Keys: 1→1, 11→2, -1→-1, -11→-2, -12→-3.
+Stable sort ascending: -3 (-12), -2 (-11), -1 (-1), 1 (1), 2 (11).
+Result: [-12, -11, -1, 1, 11]. Not matching.
+
+Hmm.
+
+What if the sort is stable but by digit sum of absolute value, and the digit sum includes... 
+
+Ugh.
+
+Let me try to think about the expected output as a stable sort and find the keys directly.
+
+Expected order (with original indices): 
+position 0: -1 (idx 2)
+position 1: -11 (idx 3)
+position 2: 1 (idx 0)
+position 3: -12 (idx 4)
+position 4: 11 (idx 1)
+
+For a stable sort, assign keys K[idx] such that the order is non-decreasing, and where keys are equal, original index order is preserved.
+
+Let me assign keys based on the natural digit sum but see where it breaks:
+K[2] (=-1) ≤ K[3] (=-11) ≤ K[0] (==1) ≤ K[4] (=-12) ≤ K[1] (==11)
+
+Natural digit sums: K[0]=1, K[1]=2, K[2]=1, K[3]=2, K[4]=3.
+
+For the order to be non-decreasing: K[2] ≤ K[3] ≤ K[0] ≤ K[4] ≤ K[1].
+Plug in: 1 ≤ 2 ≤ 1 ≤ 3 ≤ 2.
+1 ≤ 2 ✓, 2 ≤ 1 ✗.
+
+So K[3] ≤ K[0] fails (2 ≤ 1).
+
+For it to work, we'd need K[3] ≤ K[0], i.e., the key for -11 ≤ key for 1.
+
+What if the reference computes digit sum but has an error making digit_sum(-11) smaller?
+
+Alternatively, what if I misidentified the original indices? Let me re-read: [1, 11, -1, -11, -12]. Index 0=1, 1=11, 2=-1, 3=-11, 4=-12. Yes.
+
+Hmm.
+
+Let me try assuming the reference solution sorts by digit sum but the digit sum function is:
+def digit_sum(n):
+    return sum(int(d) for d in str(n).replace('-', ''))
+
+This gives standard digit sums. Same as before.
+
+I really think the expected output might be erroneous, OR there's a very specific reference implementation I'm not seeing.
+
+Let me try to think about it as: maybe the reference solution is buggy in a way that produces this, and the benchmark expects the buggy output.
+
+Let me hypothesize the reference:
+def order_by_points(nums):
+    def dsum(n):
+        s = 0
+        for c in str(n):
+            if c.isdigit():
+                s += int(c)
+            else:
+                s -= 1  # or some handling of '-'
+        return s
+    
+Hmm, for -1: '-' gives -1, '1' gives +1. s = -1 + 1 = 0.
+For -11: -1 + 1 + 1 = 1.
+For 1: 1.
+For -12: -1 + 1 + 2 = 2.
+For 11: 1 + 1 = 2.
+Keys: 1→1, 11→2, -1→0, -11→1, -12→2.
+Stable sort ascending: 0 (-1), 1 (1), 1 (-11), 2 (11), 2 (-12).
+Wait, for key 1: 1 (idx0) and -11 (idx3). Stable: 1 (idx0) first, then -11 (idx3).
+For key 2: 11 (idx1) and -12 (idx4). Stable: 11 first, then -12.
+Result: [-1, 1, -11, 11, -12]. Not matching.
+
+Hmm, close to before.
+
+What if '-' contributes +1 (or the count of digits)?
+For -1: 1 (from '-') + 1 (from '1') = 2.
+For -11: 1 + 1 + 1 = 3.
+For 1: 1.
+For -12: 1 + 1 + 2 = 4.
+For 11: 1 + 1 = 2.
+Keys: 1→1, 11→2, -1→2, -11→3, -12→4.
+Stable sort: 1 (idx0), 11 (idx1), -1 (idx2), -11 (idx3), -12 (idx4).
+Result: [1, 11, -1, -11, -12]. That's the original order! Not matching.
+
+What if '-' contributes 0 (just count digits)?
+For -1: 0 + 1 = 1.
+For -11: 0 + 1 + 1 = 2.
+Same as standard. Result [1, -1, 11, -11, -12].
+
+Hmm.
+
+Let me try assuming the reference sorts by digit sum but the digit sum for the whole number (not absolute) with a specific bug.
+
+Actually, let me try to brute force think about what keys would give the expected order.
+
+We need keys K[0], K[1], K[2], K[3], K[4] for values [1, 11, -1, -11, -12] such that stable sort gives order [2, 3, 0, 4, 1].
+
+Stable sort by key gives this order iff:
+K[2] ≤ K[3] ≤ K[0] ≤ K[4] ≤ K[1]
+AND for equal adjacent keys, the original index order is preserved. Specifically:
+- If K[2] == K[3]: need idx 2 < idx 3 ✓ (2 < 3). OK.
+- If K[3] == K[0]: need idx 3 < idx 0? But 3 > 0. So if K[3] == K[0], stable sort would put idx 0 before idx 3, giving order [., 0, 3, .] but we need [3, 0]. So K[3] != K[0], i.e., K[3] < K[0] strictly.
+- If K[0] == K[4]: need idx 0 < idx 4 ✓. OK.
+- If K[4] == K[1]: need idx 4 < idx 1? But 4 > 1. So K[4] != K[1], i.e., K[4] < K[1] strictly.
+
+So: K[2] ≤ K[3] < K[0] ≤ K[4] < K[1].
+
+Now, is there a natural key? Let me think about what makes K[3] < K[0], i.e., key(-11) < key(1). And K[4] < K[1], i.e., key(-12) < key(11). And K[2] ≤ K[3], key(-1) ≤ key(-11). And K[0] ≤ K[4], key(1) ≤ key(-12).
+
+So: key(-1) ≤ key(-11) < key(1) ≤ key(-12) < key(11).
+
+Hmm, let me see. key(-11) < key(1): -11 is "smaller" than 1 in this key. key(1) ≤ key(-12): 1 ≤ -12 in this key. key(-12) < key(11): -12 < 11.
+
+Let me think about key(x) = digit_sum(x) but with a sign adjustment... 
+
+What if key(x) = digit_sum(x) for positive, and digit_sum(x) + C for negative, for some constant C?
+key(1) = 1, key(11) = 2, key(-1) = 1+C, key(-11) = 2+C, key(-12) = 3+C.
+Need: key(-1) ≤ key(-11) < key(1) ≤ key(-12) < key(11).
+(1+C) ≤ (2+C): always true.
+(2+C) < 1: C < -1.
+1 ≤ (3+C): C ≥ -2.
+(3+C) < 2: C < -1.
+So C < -1 and C ≥ -2, i.e., -2 ≤ C < -1. So C = -1.5, but C should be integer-ish. If C = -1: key(-1)=0, key(-11)=1, key(1)=1, key(-12)=2, key(11)=2.
+Check: key(-1)=0 ≤ key(-11)=1 ✓. key(-11)=1 < key(1)=1? No, 1 < 1 is false. ✗.
+
+So C=-1 doesn't work because key(-11) < key(1) fails.
+
+What if key(x) = digit_sum(x) - (1 if x < 0 else 0)?
+key(1)=1, key(11)=2, key(-1)=0, key(-11)=1, key(-12)=2.
+Need key(-1) ≤ key(-11) < key(1) ≤ key(-12) < key(11):
+0 ≤ 1 ✓. 1 < 1 ✗. Fails.
+
+What if key(x) = digit_sum(x) - 2 if x < 0?
+key(-1) = -1, key(-11) = 0, key(-12) = 1. key(1)=1, key(11)=2.
+Need: -1 ≤ 0 < 1 ≤ 1 < 2. 
+-1 ≤ 0 ✓. 0 < 1 ✓. 1 ≤ 1 ✓. 1 < 2 ✓. 
+It works! But this is a weird key (subtract 2 from negatives). Unlikely to be the reference.
+
+Hmm, but it shows it's possible with a contrived key. But the reference probably isn't contrived.
+
+Let me reconsider. Maybe I have the wrong digit sums. Let me

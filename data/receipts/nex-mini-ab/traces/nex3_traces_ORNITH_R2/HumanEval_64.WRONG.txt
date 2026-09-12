@@ -1,0 +1,82 @@
+### HumanEval/64  pass_frac=0.33 (of K=3)  first-fail bucket=WRONG finish=stop gzip_ratio=0.464 code_src=content
+### PROMPT:
+
+FIX = """
+Add more test cases.
+"""
+
+def vowels_count(s):
+    """Write a function vowels_count which takes a string representing
+    a word as input and returns the number of vowels in the string.
+    Vowels in this case are 'a', 'e', 'i', 'o', 'u'. Here, 'y' is also a
+    vowel, but only when it is at the end of the given word.
+
+    Example:
+    >>> vowels_count("abcde")
+    2
+    >>> vowels_count("ACEDY")
+    3
+    """
+
+### CONTENT:
+```python
+def vowels_count(s):
+    """Write a function vowels_count which takes a string representing
+    a word as input and returns the number of vowels in the string.
+    Vowels in this case are 'a', 'e', 'i', 'o', 'u'. Here, 'y' is also a
+    vowel, but only when it is at the end of the given word.
+
+    Example:
+    >>> vowels_count("abcde")
+    2
+    >>> vowels_count("ACEDY")
+    3
+    """
+    vowels = "aeiouAEIOU"
+    count = 0
+    for i, char in enumerate(s):
+        if char in vowels:
+            count += 1
+        elif char == 'y' and i == len(s) - 1:
+            count += 1
+    return count
+```
+### REASONING_CONTENT:
+Let me analyze this function. I need to count vowels in a string where vowels are 'a', 'e', 'i', 'o', 'u', and 'y' is a vowel only when it's at the end of the word.
+
+Let me verify with the examples:
+- `vowels_count("abcde")` should return 2. The vowels are 'a', 'e' = 2. Correct.
+- `vowels_count("ACEDY")` should return 3. The vowels are 'A', 'E', 'Y' (Y at end) = 3. Correct.
+
+Let me write the function:
+
+```python
+def vowels_count(s):
+    """Write a function vowels_count which takes a string representing
+    a word as input and returns the number of vowels in the string.
+    Vowels in this case are 'a', 'e', 'i', 'o', 'u'. Here, 'y' is also a
+    vowel, but only when it is at the end of the given word.
+
+    Example:
+    >>> vowels_count("abcde")
+    2
+    >>> vowels_count("ACEDY")
+    3
+    """
+    vowels = "aeiouAEIOU"
+    count = 0
+    for i, char in enumerate(s):
+        if char in vowels:
+            count += 1
+        elif char == 'y' and i == len(s) - 1:
+            count += 1
+    return count
+```
+
+This should work. Let me double-check the edge cases:
+- Empty string: returns 0. Correct.
+- "y" at end: counts it.
+- "y" not at end: doesn't count it.
+
+The function looks good.
+

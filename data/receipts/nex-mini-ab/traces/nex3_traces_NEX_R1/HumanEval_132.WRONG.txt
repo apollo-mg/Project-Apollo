@@ -1,0 +1,207 @@
+### HumanEval/132  pass_frac=0.00 (of K=3)  first-fail bucket=WRONG finish=stop gzip_ratio=0.321 code_src=content
+### PROMPT:
+
+def is_nested(string):
+    '''
+    Create a function that takes a string as input which contains only square brackets.
+    The function should return True if and only if there is a valid subsequence of brackets 
+    where at least one bracket in the subsequence is nested.
+
+    is_nested('[[]]') ➞ True
+    is_nested('[]]]]]]][[[[[]') ➞ False
+    is_nested('[][]') ➞ False
+    is_nested('[]') ➞ False
+    is_nested('[[][]]') ➞ True
+    is_nested('[[]][[') ➞ True
+    '''
+
+### CONTENT:
+```python
+def is_nested(string):
+    opens = 0
+    closes = 0
+    
+    for ch in string:
+        if ch == '[':
+            opens += 1
+        elif opens >= 2:
+            closes += 1
+            if closes >= 2:
+                return True
+    
+    return False
+```
+### REASONING_CONTENT:
+We need answer only complete function in python code block. Need infer problem. Need implement is_nested(string): input contains only square brackets. Return True iff there is a valid subsequence of brackets where at least one bracket in subsequence is nested.
+
+Need understand examples.
+
+We need solve precisely. Let's parse.
+
+Examples:
+'[[]]' => True. String has nesting depth 2 entire valid.
+'[]]]]]]][[[[[]' => False. Let's count maybe has substring '[[]' at end? string: [] then ]]]]]] then [[[[[] maybe has "[[]"? Need valid subsequence? "subsequence" not substring? They say valid subsequence of brackets where at least one bracket in subsequence is nested. Examples?
+'[][]' => False: valid sequence of two pairs no nesting.
+'[]' => False.
+'[[][]]' => True: outer around [][], has nesting? Actually depth2.
+'[[]][[' => True: substring "[[]]" valid nested plus leftover "[[".
+
+Need define valid subsequence: likely choose characters preserving order that form balanced bracket sequence. Need exists balanced subsequence containing nested pair (i.e. some pair of brackets enclosing another pair) not necessarily all chars. Since string only [ and ], any balanced subsequence with depth >=2. Need return true iff there exists i<j<k<l? Let's derive.
+
+If valid subsequence balanced and nested, then there exist two brackets '[' at positions i < j, and corresponding closing brackets after? For nesting, there is an opening bracket that encloses at least one other pair. That means in subsequence, at some point before closing outer, there is a pair. In original, there exist positions a < b < c < d such that string[a]='[', string[b]='[', string[c]=']', string[d]=']', and subsequence a,b,c,d forms "[[]]". Actually nested subsequence can be exactly two opens then two closes. If there is any valid subsequence with depth>=2, then it contains a pattern "[[]]" as subsequence. Conversely any positions i<j<k<l with "[", "[", "]", "]" gives nested valid subsequence "[[]]". So condition is existence of increasing indices with two opens before two closes, i.e. some '[' has at least two '[' after it? Wait i<j open, k<l close after j. Need both closes after second open. This is equivalent to max depth of subsequence >=2, which is if there exists a pair of '[' such that at least two ']' occur after the second. Or there exists "[]" pair nested.
+
+Test examples:
+'[]]]]]]][[[[[]': Need find i<j<k<l all bracket. There is final "[[]": only one close after second? Let's inspect: string starts "[]" positions 0 '[' 1 ']' then many closing then "(((([]" maybe positions after: '[' '[' '[' '[' '[' '['? Actually '[[[[[]' = five? Let's count: string after 7 closes: '[[[[[]' = six chars: [ [ [ [ [ ]? Wait "[[[[[]" has four? Let's count: chars: [ [ [ [ [ ]? The literal '[[[[[]' = 6: positions 0-4 '['? No, "[[[[[]" visual: four '[' then '[]'? Let's count: string = '[' x4 + '[]' = [ [ [ [ [ ]? That's 5 opens and one close? Let's use python mentally: "[[[[[]" length 6, chars: 0 [,1 [,2 [,3 [,4 [,5 ]? Actually pattern "[[[[[]" has 5 '['? It starts with 4 '[' then '[]' => positions 0-3 [ and 4 [ and 5 ], yes 5 opens and one close. If so at end there are many opens and one close, not two closes after any second open. Initial "[]" has close before later opens, no two closes after. So False. Good.
+
+'[][]' no nested: positions [ ] [ ], no two opens before two closes? second open after first close, no. False.
+'[]' false.
+'[[][]]' true.
+'[[]][[' true: positions 0,1,2,3 => "[[]]" yes.
+
+So simple.
+
+Need maybe "valid subsequence" could mean contiguous substring? Examples "valid subsequence" but [][[ could be contiguous. For all examples same? '[]]]]]]][[[[[]' contains substring "[[]"? If substring? It has maybe "[[]", no valid substring "[[]]" because only one close. False. If contiguous, condition maybe any substring balanced with nesting, equivalent to any occurrence of '[[]]' contiguous? But '[[][]]' contains nested substring? "[[]]" at positions 0,1,2,3? string [ [ ] [ ] ] yes positions 0-3 "[[]]" yes. '[[]][[' contiguous. '[][]' no. Could be same mostly. But subsequence wording likely not contiguous.
+
+Need produce function only. Could implement O(n) with max nestedness. Need robust.
+
+Potential solutions:
+1. Track minimum opens? We can scan to detect if there is a '[' with at least two '[' before it and two closes after? Simpler.
+
+We need existence of increasing indices i<j<k<l with chars '[','[',']',']'. This is a regular subsequence pattern.
+
+Could scan left to right:
+- count_open_seen = 0
+- count_nested_opens? Hmm.
+Need detect pattern "[[]]" as subsequence:
+Maintain found_open_count? There is standard pattern matching:
+stage = 0: looking for first '['
+stage = 1: found one '['
+stage = 2: found second '['
+stage = 3: found first ']' after second '['
+stage=4: found second ']' after first, return True.
+But if first '[' may be after second? Need algorithm:
+```
+seen_first_open = False
+seen_second_open = False
+seen_close1 = False
+for ch:
+ if ch == '[':
+   if not seen_first_open:
+      seen_first_open = True
+   elif not seen_second_open:
+      seen_second_open = True
+   # else ignore
+ elif ch == ']':
+   if seen_first_open and seen_second_open and not seen_close1:
+      seen_close1 = True
+   elif seen_first_open and seen_second_open and seen_close1:
+      return True
+return False
+```
+This detects two opens then two closes. However issue: If see opens before first? It sets first at first open, second at second. Good. If close after first before second ignored. If no second open, ignore. If second open before first? impossible. This is okay.
+
+But maybe we can do more efficient with counts:
+- Iterate from left to right, count opens. Once count opens >=2, then any two closes after second open? Need ensure first open before second. Yes. If count opens >=2 before a close, that close could be first close; if count closes_after? return true. Algorithm:
+```
+opens = 0
+closes = 0
+for ch:
+ if ch=='[':
+    opens +=1
+ elif opens >=2:
+    closes +=1
+    if closes>=2: return True
+return False
+```
+Wait this counts closes after at least two opens have occurred. If two closes after second open, true. It doesn't require first close after second open? yes because closes increment only when opens>=2. But there is subtlety: if opens >=2 then close1, close2. Good. Example "[[]]" opens 1,2, close1, close2 true. "[[][]]" true. "[]][[]]"? opens: char0 open=1, close ignore, close ignore, open=2, open=3, close count1, close count2 true. There is subsequence indices 2,3,4,5 "[[]]"? string []][[]] positions 2 [,3 [,4 ],5 ] yes.
+
+Example "[][]]" opens=1 close ignore, open=2, closes: 3,4 true. Subsequence positions 1,2,3,4 = []? Wait positions 1 '['? string "[][]]" = [ ] [ ] ], second open pos2, closes pos3,pos4 => [ ] ] but no second opening before? Need first opening pos1, second pos2, closes pos3,pos4 => "[[]]" subsequence yes. Valid subsequence "[[]]" using pos1,pos2,pos3,pos4. So true. Good.
+
+Example "[]]]]]]][[[[[]": opens=1, closes ignore until later opens. At later opens, opens reaches maybe 5, but only one close after, close count=1, false. Good.
+
+This O(n), simple. But need be careful if string contains only square brackets but maybe empty. Return false.
+
+Alternative compute max depth of any balanced subsequence. A balanced subsequence can include unmatched opens and closes; max depth as subsequence equals maximum number of opens before a point? Actually to get depth 2 need two opens before two closes. Could scan "balance" but unmatched closes reset? If compute max balance treating closes decrement but not below 0? For pattern? For "[]]]]]]][[[[[]" max balance maybe 2? Let's see with reset? balance increments opens, decrements closes min 0: first [] balance 0, closes 0, then many opens balance 5, one close balance4 => max5, would incorrectly true if using max balance. But valid subsequence nested? We have many opens but only one close after them, cannot form balanced nested subsequence. Need two closes after. So need count closes after two opens.
+
+Maybe there is another interpretation: valid subsequence of brackets where at least one bracket in subsequence is nested. Could mean "valid bracket sequence" as entire string? "subsequence" maybe substring? Let's examine phrase: "valid subsequence of brackets where at least one bracket in the subsequence is nested." If valid subsequence means any contiguous substring that is a valid bracket sequence and has nested brackets. For "[][]]" would contiguous "[ ] ]"? no valid nested substring, but subsequence true. Would they expect? No examples not. We need infer from challenge? It might be from "Nesting Depth" or "brackets" kata. "valid subsequence" maybe means "where at least one bracket in the subsequence is nested" not necessarily entire string. Could be asks if string has nested square brackets in a valid subsequence. Hmm.
+
+Let's search memory. This prompt examples:
+```
+is_nested('[[]]') ➞ True
+is_nested('[]]]]]]][[[[[]') ➞ False
+is_nested('[][]') ➞ False
+is_nested('[]') ➞ False
+is_nested('[[][]]') ➞ True
+is_nested('[[]][[') ➞ True
+```
+I vaguely recall Codewars "Bracket Dance"? Or "Is it nested?" maybe. The condition might be: Return True if there is at least one pair of square brackets that contains another pair anywhere in the string, not necessarily forming valid subsequence? For string "[]]]]]]][[[[[]" has "[[]", but no closing, maybe false. "[][]" no. "[[]][" true? maybe. If condition simply existence of substring "[[" and "]]" after? Same.
+
+But they mention valid subsequence, so not just two opens and two closes? Let's think.
+
+Input contains only square brackets. Need return True iff there is a valid subsequence of brackets where at least one bracket in subsequence is nested. Since any subsequence pattern "[[]]" is valid and nested. If there is a valid subsequence with nesting, then it contains pattern "[[]]". Conversely pattern gives valid nested subsequence. So our condition.
+
+But "valid subsequence" could mean "the subsequence itself is a correctly balanced bracket sequence". If pattern exists, yes.
+
+Potential edge cases:
+- string = "[[]]]": true.
+- "[[]]" true.
+- "[[]][" true because subsequence positions 0,1,2,3.
+- "[[]]][" true.
+- "[][[[]" false? Need two closes after two opens? string [] [[[] = opens 1, close ignore, opens 4? only one close after, false. No nested valid subsequence? Could choose positions 2,3,4,5? Need two closes after pos3, only one. false. Good.
+- "[[][]" true? positions 0,2,3,4 => "[[]]" yes though full string not balanced? Actually string [ ] [ ] [ has subsequence [ [ ] ] (0,2,3,4), nested. True. Our algorithm true.
+- "[[][" true? positions 0,1,2,? only one close after second open, no second close. false. But full has nested substring "[[]]"? no. Good.
+- "[[[[]]" true.
+
+Need answer only code block with function. Could include docstring? They asked complete function. Use code block.
+
+Need ensure no final prose.
+
+Let's maybe implement:
+```
+def is_nested(string):
+    opens = 0
+    closes = 0
+    for ch in string:
+        if ch == '[':
+            opens += 1
+        elif opens >= 2:
+            closes += 1
+            if closes >= 2:
+                return True
+    return False
+```
+Does this always detect two opens before two closes? Let's prove. It increments closes only after opens>=2 at time of close. If closes>=2, there are two closes after time when opens>=2. There are at least two opens before first of those closes, and hence before second. So true. Conversely if positions i<j<k<l with opens at i,j and closes k,l, when scanning k, opens>=2, closes increments to at least 1; at l increments to 2, return. Good.
+
+Need maybe if string contains only square brackets, but if other chars? Could ignore or treat as not? Not needed. But maybe robust:
+```
+if ch == '[': ...
+elif ch == ']': ...
+```
+Given only square brackets.
+
+Could use variable names:
+```
+def is_nested(string):
+    opens = 0
+    closes_after_two_opens = 0
+    for ch in string:
+        if ch == '[':
+            opens += 1
+        elif opens >= 2:
+            closes_after_two_opens += 1
+            if closes_after_two_opens == 2:
+                return True
+    return False
+```
+This is concise.
+
+Need maybe "valid subsequence" if at least one bracket in subsequence is nested; nested pair can be one bracket inside another. Pattern "[[]]" enough. Good.
+
+Let's consider if a valid subsequence could be "[[]]" but with extra unmatched outside? We don't care. Subsequence can ignore unmatched.
+
+Could there be valid subsequence with nesting but not pattern "[[]]" if nested bracket is single char not bracket pair? In bracket sequences, brackets are pairs. Nested means one pair contains another pair. Pattern.
+
+Now user says "Return ONLY the complete function in a ```python code block." So final should be code block only. No explanation. Need maybe include exactly function.
+
+Let's ensure no analysis in final.
+

@@ -1,0 +1,45 @@
+### HumanEval/64  pass_frac=0.33 (of K=3)  first-fail bucket=WRONG finish=stop gzip_ratio=0.527 code_src=content
+### PROMPT:
+
+FIX = """
+Add more test cases.
+"""
+
+def vowels_count(s):
+    """Write a function vowels_count which takes a string representing
+    a word as input and returns the number of vowels in the string.
+    Vowels in this case are 'a', 'e', 'i', 'o', 'u'. Here, 'y' is also a
+    vowel, but only when it is at the end of the given word.
+
+    Example:
+    >>> vowels_count("abcde")
+    2
+    >>> vowels_count("ACEDY")
+    3
+    """
+
+### CONTENT:
+```python
+def vowels_count(s):
+    vowels = "aeiou"
+    count = sum(1 for ch in s.lower() if ch in vowels)
+    if s.endswith("y"):
+        count += 1
+    return count
+```
+### REASONING_CONTENT:
+We need answer only complete function in python code block. Need infer task. Need implement vowels_count. Need consider tests. String word input. Count vowels a,e,i,o,u, y only at end. Case? Example "ACEDY": A,E are vowels, Y at end -> 3. So likely case-insensitive. Need count uppercase too. y at end only if last char y or Y. Need return int. Need complete function only. Need no extra. Ensure code block only.
+
+Need think edge cases: empty string, single char y. If s ends with y, count it. Lowercase vowels regardless. Should "y" at end and also maybe y not elsewhere. If y at end and uppercase Y count. Could use s.lower() then count in "aeiou" plus y if endswith y. But if lowercased, uppercase Y becomes y. Good.
+
+Could implement:
+def vowels_count(s):
+    count=sum(1 for ch in s if ch in "aeiou")
+    if s.endswith(("y","Y")): count +=1
+    return count
+This counts uppercase vowels? ch in "aeiou" false for uppercase. Need lower or include uppercase. Use lower = s.lower().
+
+Potential issue if s contains non-ascii? no.
+
+Need final only code block.
+

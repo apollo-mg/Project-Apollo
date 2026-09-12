@@ -1,0 +1,28 @@
+### HumanEval/125  pass_frac=0.67 (of K=3)  first-fail bucket=WRONG finish=stop gzip_ratio=0.530 code_src=content
+### PROMPT:
+
+def split_words(txt):
+    '''
+    Given a string of words, return a list of words split on whitespace, if no whitespaces exists in the text you
+    should split on commas ',' if no commas exists you should return the number of lower-case letters with odd order in the
+    alphabet, ord('a') = 0, ord('b') = 1, ... ord('z') = 25
+    Examples
+    split_words("Hello world!") ➞ ["Hello", "world!"]
+    split_words("Hello,world!") ➞ ["Hello", "world!"]
+    split_words("abcdef") == 3 
+    '''
+
+### CONTENT:
+```python
+def split_words(txt):
+    if any(char.isspace() for char in txt):
+        return txt.split()
+    if ',' in txt:
+        return txt.split(',')
+    return sum(ord(char) % 2 == 1 for char in txt if 'a' <= char <= 'z')
+```
+### REASONING_CONTENT:
+We need answer only complete function in python code block. Need infer task. Need implement split_words(txt). Need return list split on whitespace if whitespace exists, else list split on commas if commas exists, else number of lower-case letters with odd order in alphabet. Need consider punctuation examples. "Hello world!" whitespace split by str.split() likely yields ["Hello","world!"]. "Hello,world!" no whitespace, comma split -> ["Hello","world!"]. "abcdef" odd order letters: a0 even, b1 odd, c2 even, d3 odd, e4 even, f5 odd => 3. Need code.
+
+Need heed "Return ONLY complete function in ```python code block." No explanation. Use cpa_final_answer commentary with answer code block plus marker. Need include exact marker final line.
+

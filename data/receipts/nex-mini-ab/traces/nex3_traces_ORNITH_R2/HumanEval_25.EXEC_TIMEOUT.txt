@@ -1,0 +1,79 @@
+### HumanEval/25  pass_frac=0.67 (of K=3)  first-fail bucket=EXEC_TIMEOUT finish=stop gzip_ratio=0.434 code_src=content
+### PROMPT:
+from typing import List
+
+
+def factorize(n: int) -> List[int]:
+    """ Return list of prime factors of given integer in the order from smallest to largest.
+    Each of the factors should be listed number of times corresponding to how many times it appeares in factorization.
+    Input number should be equal to the product of all factors
+    >>> factorize(8)
+    [2, 2, 2]
+    >>> factorize(25)
+    [5, 5]
+    >>> factorize(70)
+    [2, 5, 7]
+    """
+
+### CONTENT:
+```python
+from typing import List
+
+
+def factorize(n: int) -> List[int]:
+    """ Return list of prime factors of given integer in the order from smallest to largest.
+    Each of the factors should be listed number of times corresponding to how many times it appeares in factorization.
+    Input number should be equal to the product of all factors
+    >>> factorize(8)
+    [2, 2, 2]
+    >>> factorize(25)
+    [5, 5]
+    >>> factorize(70)
+    [2, 5, 7]
+    """
+    factors = []
+    divisor = 2
+    while n > 1:
+        while n % divisor == 0:
+            factors.append(divisor)
+            n //= divisor
+        divisor += 1
+    return factors
+```
+### REASONING_CONTENT:
+The task is to complete the `factorize` function that returns the list of prime factors of a given integer in ascending order.
+
+Let me write a simple factorization algorithm:
+
+```python
+from typing import List
+
+
+def factorize(n: int) -> List[int]:
+    """ Return list of prime factors of given integer in the order from smallest to largest.
+    Each of the factors should be listed number of times corresponding to how many times it appeares in factorization.
+    Input number should be equal to the product of all factors
+    >>> factorize(8)
+    [2, 2, 2]
+    >>> factorize(25)
+    [5, 5]
+    >>> factorize(70)
+    [2, 5, 7]
+    """
+    factors = []
+    divisor = 2
+    while n > 1:
+        while n % divisor == 0:
+            factors.append(divisor)
+            n //= divisor
+        divisor += 1
+    return factors
+```
+
+This should work. Let me verify with the examples:
+- factorize(8): divisor=2, 8%2==0 → factors=[2], n=4; 4%2==0 → factors=[2,2], n=2; 2%2==0 → factors=[2,2,2], n=1. Return [2,2,2]. ✓
+- factorize(25): divisor=2, 25%2!=0; divisor=3, 25%3!=0; divisor=4, 25%4!=0; divisor=5, 25%5==0 → factors=[5], n=5; 5%5==0 → factors=[5,5], n=1. Return [5,5]. ✓
+- factorize(70): divisor=2, 70%2==0 → factors=[2], n=35; divisor=3, 35%3!=0; divisor=4, 35%4!=0; divisor=5, 35%5==0 → factors=[2,5], n=7; divisor=6, 7%6!=0; divisor=7, 7%7==0 → factors=[2,5,7], n=1. Return [2,5,7]. ✓
+
+The function works correctly. The instructions say to return ONLY the complete function in a python code block.
+

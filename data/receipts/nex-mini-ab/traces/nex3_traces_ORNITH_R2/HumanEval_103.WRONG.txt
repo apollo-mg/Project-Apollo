@@ -1,0 +1,91 @@
+### HumanEval/103  pass_frac=0.33 (of K=3)  first-fail bucket=WRONG finish=stop gzip_ratio=0.443 code_src=content
+### PROMPT:
+
+def rounded_avg(n, m):
+    """You are given two positive integers n and m, and your task is to compute the
+    average of the integers from n through m (including n and m). 
+    Round the answer to the nearest integer and convert that to binary.
+    If n is greater than m, return -1.
+    Example:
+    rounded_avg(1, 5) => "0b11"
+    rounded_avg(7, 5) => -1
+    rounded_avg(10, 20) => "0b1111"
+    rounded_avg(20, 33) => "0b11010"
+    """
+
+### CONTENT:
+```python
+def rounded_avg(n, m):
+    """You are given two positive integers n and m, and your task is to compute the
+    average of the integers from n through m (including n and m). 
+    Round the answer to the nearest integer and convert that to binary.
+    If n is greater than m, return -1.
+    Example:
+    rounded_avg(1, 5) => "0b11"
+    rounded_avg(7, 5) => -1
+    rounded_avg(10, 20) => "0b1111"
+    rounded_avg(20, 33) => "0b11010"
+    """
+    if n > m:
+        return -1
+    avg = (n + m) / 2
+    rounded = int(avg + 0.5)
+    return bin(rounded)
+```
+### REASONING_CONTENT:
+Let me analyze this problem:
+
+1. Given two positive integers n and m
+2. Compute the average of integers from n through m (inclusive)
+3. Round to nearest integer
+4. Convert to binary
+5. If n > m, return -1
+
+The average of integers from n to m inclusive is: (n + m) / 2 (since it's an arithmetic sequence, the average is just the mean of first and last)
+
+Wait, let me verify: sum of n to m = (n + m) * (m - n + 1) / 2, count = (m - n + 1), so average = (n + m) / 2.
+
+Let me check the examples:
+- rounded_avg(1, 5): (1 + 5) / 2 = 3, binary = 0b11. ✓
+- rounded_avg(7, 5): 7 > 5, return -1. ✓
+- rounded_avg(10, 20): (10 + 20) / 2 = 15, binary = 0b1111. ✓
+- rounded_avg(20, 33): (20 + 33) / 2 = 26.5, rounded = 27 (round half up) or 26 (banker's rounding). binary of 27 = 0b11010. ✓
+
+So 26.5 rounds to 27, which means standard rounding (round half up). Python's round() uses banker's rounding, so round(26.5) = 26. We need round half up.
+
+Let me use int(x + 0.5) or math.floor(x + 0.5) for round half up.
+
+For 26.5: 26.5 + 0.5 = 27, int = 27. ✓
+
+Let me write the function:
+
+```python
+def rounded_avg(n, m):
+    if n > m:
+        return -1
+    avg = (n + m) / 2
+    rounded = int(avg + 0.5)
+    return bin(rounded)
+```
+
+Let me verify:
+- rounded_avg(1, 5): (1+5)/2 = 3.0, int(3.5) = 3, bin(3) = '0b11'. ✓
+- rounded_avg(20, 33): (20+33)/2 = 26.5, int(27.0) = 27, bin(27) = '0b11010'. ✓
+
+This looks correct. Let me use math.floor to be safe.
+
+Actually int() truncates towards zero, which for positive numbers is fine. But let me use math.floor to be safe.
+
+```python
+import math
+
+def rounded_avg(n, m):
+    if n > m:
+        return -1
+    avg = (n + m) / 2
+    rounded = math.floor(avg + 0.5)
+    return bin(rounded)
+```
+
+This should work.
+

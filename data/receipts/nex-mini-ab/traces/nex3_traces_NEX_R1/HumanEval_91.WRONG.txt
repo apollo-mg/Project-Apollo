@@ -1,0 +1,112 @@
+### HumanEval/91  pass_frac=0.00 (of K=3)  first-fail bucket=WRONG finish=stop gzip_ratio=0.372 code_src=content
+### PROMPT:
+
+def is_bored(S):
+    """
+    You'll be given a string of words, and your task is to count the number
+    of boredoms. A boredom is a sentence that starts with the word "I".
+    Sentences are delimited by '.', '?' or '!'.
+   
+    For example:
+    >>> is_bored("Hello world")
+    0
+    >>> is_bored("The sky is blue. The sun is shining. I love this weather")
+    1
+    """
+
+### CONTENT:
+```python
+def is_bored(S):
+    count = 0
+    start = 0
+
+    for i, ch in enumerate(S):
+        if ch in ".!?":
+            sentence = S[start:i].strip()
+            if sentence and sentence.split(None, 1)[0] == "I":
+                count += 1
+            start = i + 1
+
+    sentence = S[start:].strip()
+    if sentence and sentence.split(None, 1)[0] == "I":
+        count += 1
+
+    return count
+```
+### REASONING_CONTENT:
+We need answer only complete function in python code block. Need infer task. Need implement is_bored(S) count number of boredoms: sentence starts with word "I". Sentences delimited by '.', '?' or '!'. Need handle whitespace? Examples. Need count sentences whose first word exactly "I" maybe case-sensitive? It says starts with word "I". Need consider punctuation. Need parse string split by delimiters. Sentence can start with spaces. "I am bored." count. "I'm bored."? Starts with word "I"? Word boundary? "I'm" first token? If split by punctuation only, sentence starts "I'm", not exactly word I due apostrophe, should not count? They say word "I", likely sentence starts with "I" followed by whitespace or punctuation. Need implement robust.
+
+Need only function. Potential issue: empty S, no delimiters. Count if one sentence starts "I". Need count if "I" as sentence alone. Need not count "I love..." if preceded by delimiter and spaces. Need split all sentences by .?! and strip. Then check startswith_word.
+
+Need maybe count boredom sentence starts with "I" word, case-sensitive. Could use regex: re.match(r'^\s*I(?=\s|[.!?]|$)', sentence). But after split no delimiter. Need ensure word boundary. If sentence starts "I, I am" count? Sentence starts with word I followed comma. "word I" maybe yes. But maybe only whitespace. We can use (?=\s|$) to avoid I'm/Ish. But punctuation after I maybe "I!" sentence? start with word I. Sentence after split is "I", count. If "I. I" first count. If "I'm bored." no count.
+
+Need maybe use split and strip. Complete function no imports? Could import inside? Return only function. If use re, import inside function. Could avoid import with manual. Simpler no import:
+
+def is_bored(S):
+count=0; start=0
+for i,ch in enumerate(S):
+if ch in ".!?":
+sentence=S[start:i].strip()
+if sentence == "I" or sentence.startswith("I "):
+count +=1
+start=i+1
+# final
+...
+But if "I\tam" not count. Could strip and check first token: first_space = len(sentence)-len(sentence.lstrip()); rest=sentence[first_space:]; return rest=="" or rest[0].isspace(). This counts I followed by any whitespace. But if "I\nam". Good. But if "I\tam". Good. If "I am." count. If "I,am." not count. If "I!" after split "I" count. If "I? I" count.
+
+Could use regex with word boundary: r'^\s*I\b' counts I'm? Python \b between I and ' ? Apostrophe is non-word, so boundary yes, would count I'm incorrectly if "word" includes letters? Actually \b word char [A-Za-z0-9_], apostrophe nonword, so boundary after I, so counts I'm. If use \s. Need exact word with whitespace.
+
+Maybe "starts with the word 'I'" implies "I am" not "I'm". Good.
+
+But maybe they expect split on sentence delimiters and check "I" after stripping and splitting first word. If split first word: sentence.split()[0] == "I". This counts "I am", "I\tam", "I" and not I'm. If sentence starts punctuation? "I." split ['I']. Good. If "I? I" first "I". Could implement.
+
+Need consider "I." sentence itself. Count. If S="" no.
+
+Potential hidden tests: "I am bored. I am bored." count 2. "I am happy! How are you? I am sad." count 2. "I am bored?" count. "I am bored. not I" count 1. "I am bored. I am bored!" count. "I am bored. I am bored. " count. "I am bored.I am bored" count? Delimited no space, split yields "I am bored" "I am bored", count second. Good.
+
+Need answer only code block. Use def.
+
+But let's think if there are any pitfalls with sentence boundaries: S could contain multiple delimiters, empty sentences. Should not count empty. Should not count "I" if it's a middle of sentence? Example "This is I am bored" no. "Hello I am bored" no. "I loved it" count? A boredom is a sentence starts with word "I"; yes count. Function name is_bored but count boredoms, not necessarily word bored.
+
+Need maybe case-sensitive? If "i love you" no. If "I love you" yes. If "I " yes. If " I love" yes after strip. If "I\nam" yes.
+
+Could use regex import:
+import re
+return len(re.findall(r'(?<!\w)[^.!?\s]*?\s*I(?=\s|$)', S))? Hmm no.
+
+Simplest:
+def is_bored(S):
+sentences = re.split(r'[.!?]', S)
+return sum(1 for s in sentences if s.strip().split()[:1] == ['I'])
+Need import re inside? If only function, include import inside. But maybe no imports? Could avoid.
+
+Need complete function. Let's craft:
+
+def is_bored(S):
+count = 0
+start = 0
+for i, ch in enumerate(S):
+if ch in ".!?":
+sentence = S[start:i].strip()
+if sentence:
+first = sentence.split(None, 1)[0]
+if first == "I":
+count += 1
+start = i + 1
+sentence = S[start:].strip()
+if sentence and sentence.split(None, 1)[0] == "I":
+count += 1
+return count
+
+This counts "I'm" as first token I'm, no. Counts "I, I..." as first I. If sentence begins "I." after split "I" yes. If sentence begins "I?" after split "I" yes. If sentence begins "I!" yes. If sentence begins "I." with period delimiter, split leaves "I", yes. If sentence begins "I" followed by comma, split token I, yes. Is that okay? "starts with word I" yes. If sentence begins "I-am" token I-am no. Good. If sentence begins "I\t" split. Good.
+
+Could just use split; but "sentence.split(None, 1)[0]" if sentence nonempty. Good.
+
+Need maybe if S contains Unicode whitespace? str.split(None) handles Unicode whitespace. Good.
+
+Need final only code block.
+
+But let's revisit instruction: "Return ONLY the complete function in a ```python code block." So final should be code block with function. No explanation. Good.
+
+Need ensure no analysis in final.
+

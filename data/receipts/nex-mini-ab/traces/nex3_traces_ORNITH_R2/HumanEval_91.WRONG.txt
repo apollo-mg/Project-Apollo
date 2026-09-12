@@ -1,0 +1,112 @@
+### HumanEval/91  pass_frac=0.00 (of K=3)  first-fail bucket=WRONG finish=stop gzip_ratio=0.340 code_src=content
+### PROMPT:
+
+def is_bored(S):
+    """
+    You'll be given a string of words, and your task is to count the number
+    of boredoms. A boredom is a sentence that starts with the word "I".
+    Sentences are delimited by '.', '?' or '!'.
+   
+    For example:
+    >>> is_bored("Hello world")
+    0
+    >>> is_bored("The sky is blue. The sun is shining. I love this weather")
+    1
+    """
+
+### CONTENT:
+```python
+def is_bored(S):
+    """
+    You'll be given a string of words, and your task is to count the number
+    of boredoms. A boredom is a sentence that starts with the word "I".
+    Sentences are delimited by '.', '?' or '!'.
+   
+    For example:
+    >>> is_bored("Hello world")
+    0
+    >>> is_bored("The sky is blue. The sun is shining. I love this weather")
+    1
+    """
+    import re
+    sentences = re.split(r'[.?!]', S)
+    count = 0
+    for sentence in sentences:
+        words = sentence.strip().split()
+        if words and words[0] == "I":
+            count += 1
+    return count
+```
+### REASONING_CONTENT:
+Let me analyze this problem.
+
+We need to count the number of "boredoms" - sentences that start with the word "I".
+
+Sentences are delimited by '.', '?' or '!'.
+
+Let me think about the approach:
+1. Split the string into sentences using '.', '?' or '!' as delimiters.
+2. For each sentence, check if it starts with the word "I".
+
+Let me write the function:
+
+```python
+def is_bored(S):
+    import re
+    # Split by sentence delimiters
+    sentences = re.split(r'[.?!]', S)
+    count = 0
+    for sentence in sentences:
+        # Strip whitespace
+        sentence = sentence.strip()
+        # Check if sentence starts with "I"
+        if sentence.startswith("I ") or sentence == "I":
+            count += 1
+    return count
+```
+
+Wait, let me think more carefully. The sentence starts with the word "I". So we need to check if the first word is "I".
+
+Let me use a regex approach:
+```python
+def is_bored(S):
+    import re
+    sentences = re.split(r'[.?!]', S)
+    count = 0
+    for sentence in sentences:
+        # Check if the sentence starts with "I" followed by a space or end
+        if re.match(r'I(\s|$)', sentence.strip()):
+            count += 1
+    return count
+```
+
+Let me test with the examples:
+- `is_bored("Hello world")` → sentences = ["Hello world"] → doesn't start with "I" → 0. Correct.
+- `is_bored("The sky is blue. The sun is shining. I love this weather")` → sentences = ["The sky is blue", " The sun is shining", " I love this weather"] → only the last one starts with "I" → 1. Correct.
+
+This looks good. Let me refine it.
+
+Actually, let me use word boundary approach. After splitting, strip whitespace, then check if the first word is exactly "I".
+
+```python
+def is_bored(S):
+    import re
+    sentences = re.split(r'[.?!]', S)
+    count = 0
+    for sentence in sentences:
+        sentence = sentence.strip()
+        words = sentence.split()
+        if words and words[0] == "I":
+            count += 1
+    return count
+```
+
+This is cleaner. Let me verify:
+- "Hello world" → words = ["Hello", "world"] → words[0] = "Hello" ≠ "I" → 0. Correct.
+- Split: ["The sky is blue", " The sun is shining", " I love this weather"]
+  - "The sky is blue" → words[0] = "The" → not "I"
+  - " The sun is shining" → stripped → "The sun is shining" → words[0] = "The" → not "I"
+  - " I love this weather" → stripped → "I love this weather" → words[0] = "I" → count = 1. Correct.
+
+This works. Let me finalize.
+

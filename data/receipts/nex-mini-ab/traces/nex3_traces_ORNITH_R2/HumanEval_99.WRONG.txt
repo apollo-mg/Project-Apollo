@@ -1,0 +1,297 @@
+### HumanEval/99  pass_frac=0.33 (of K=3)  first-fail bucket=WRONG finish=stop gzip_ratio=0.259 code_src=content
+### PROMPT:
+
+def closest_integer(value):
+    '''
+    Create a function that takes a value (string) representing a number
+    and returns the closest integer to it. If the number is equidistant
+    from two integers, round it away from zero.
+
+    Examples
+    >>> closest_integer("10")
+    10
+    >>> closest_integer("15.3")
+    15
+
+    Note:
+    Rounding away from zero means that if the given number is equidistant
+    from two integers, the one you should return is the one that is the
+    farthest from zero. For example closest_integer("14.5") should
+    return 15 and closest_integer("-14.5") should return -15.
+    '''
+
+### CONTENT:
+```python
+def closest_integer(value):
+    '''
+    Create a function that takes a value (string) representing a number
+    and returns the closest integer to it. If the number is equidistant
+    from two integers, round it away from zero.
+
+    Examples
+    >>> closest_integer("10")
+    10
+    >>> closest_integer("15.3")
+    15
+
+    Note:
+    Rounding away from zero means that if the given number is equidistant
+    from two integers, the one you should return is the one that is the
+    farthest from zero. For example closest_integer("14.5") should
+    return 15 and closest_integer("-14.5") should return -15.
+    '''
+    num = float(value)
+    lower = int(num)
+    upper = lower + 1 if num >= 0 else lower - 1
+
+    diff_lower = abs(num - lower)
+    diff_upper = abs(num - upper)
+
+    if diff_lower < diff_upper:
+        return lower
+    elif diff_upper < diff_lower:
+        return upper
+    else:
+        # Equidistant from both integers: round away from zero
+        return upper if num >= 0 else lower
+```
+### REASONING_CONTENT:
+The task is to complete the function `closest_integer` that takes a string representing a number and returns the closest integer. If equidistant from two integers, round away from zero.
+
+Let me think about this:
+- Parse the string to a float
+- Find the closest integer
+- If equidistant, round away from zero
+
+For example:
+- "10" -> 10
+- "15.3" -> 15
+- "14.5" -> 15 (round away from zero)
+- "-14.5" -> -15 (round away from zero)
+
+Let me write the function:
+
+```python
+def closest_integer(value):
+    '''
+    Create a function that takes a value (string) representing a number
+    and returns the closest integer to it. If the number is equidistant
+    from two integers, round it away from zero.
+    '''
+    num = float(value)
+    lower = int(num)
+    upper = lower + 1 if num >= 0 else lower - 1
+    
+    # Check distance
+    if abs(num - lower) < abs(num - upper):
+        return lower
+    else:
+        return upper
+```
+
+Wait, let me reconsider. Let me think about the rounding away from zero logic.
+
+For 14.5:
+- lower = 14, upper = 15
+- distance to lower = 0.5, distance to upper = 0.5
+- equidistant, so round away from zero -> 15
+
+For -14.5:
+- lower = -15 (int(-14.5) = -15 in Python), upper = -14
+- distance to lower = 0.5, distance to upper = 0.5
+- equidistant, so round away from zero -> -15
+
+Let me verify int(-14.5):
+- int(-14.5) = -14 in Python? No, int() truncates towards zero, so int(-14.5) = -14.
+
+Wait, let me reconsider. int(-14.5) truncates towards zero, so int(-14.5) = -14.
+
+So for -14.5:
+- lower = -14
+- upper = -15 (since num < 0, upper = lower - 1 = -15)
+- distance to lower = |−14.5 − (−14)| = 0.5
+- distance to upper = |−14.5 − (−15)| = 0.5
+- equidistant, round away from zero -> -15
+
+So the logic: if equidistant, return the one farther from zero.
+
+Let me write a cleaner version:
+
+```python
+def closest_integer(value):
+    num = float(value)
+    lower = int(num)
+    upper = lower + 1 if num >= 0 else lower - 1
+    
+    if abs(num - lower) < abs(num - upper):
+        return lower
+    elif abs(num - lower) > abs(num - upper):
+        return upper
+    else:
+        # equidistant, round away from zero
+        if num >= 0:
+            return upper
+        else:
+            return lower
+```
+
+Actually, a simpler approach using math:
+
+```python
+import math
+
+def closest_integer(value):
+    num = float(value)
+    rounded = math.floor(num + 0.5) if num >= 0 else math.ceil(num - 0.5)
+    return rounded
+```
+
+Wait, let me check this. For 14.5:
+- math.floor(14.5 + 0.5) = math.floor(15.0) = 15 ✓
+
+For -14.5:
+- math.ceil(-14.5 - 0.5) = math.ceil(-15.0) = -15 ✓
+
+For 15.3:
+- math.floor(15.3 + 0.5) = math.floor(15.8) = 15 ✓
+
+For 10:
+- math.floor(10 + 0.5) = math.floor(10.5) = 10 ✓
+
+Hmm, but there's floating point issues. Let me use the distance approach which is cleaner.
+
+Actually, let me use a clean approach with abs:
+
+```python
+def closest_integer(value):
+    num = float(value)
+    lower = int(num)
+    upper = lower + 1 if num >= 0 else lower - 1
+    
+    if abs(num - upper) < abs(num - lower):
+        return upper
+    else:
+        return lower
+```
+
+Wait, this needs care. Let me think again.
+
+For 14.5:
+- lower = 14, upper = 15
+- abs(14.5 - 15) = 0.5, abs(14.5 - 14) = 0.5
+- not strictly less, so return lower = 14 ✗ (should be 15)
+
+So I need to handle the equidistant case specifically.
+
+Let me use a cleaner approach:
+
+```python
+def closest_integer(value):
+    num = float(value)
+    rounded = round(num)
+    # Python's round uses banker's rounding, so need to handle equidistant
+    ...
+```
+
+Python's round uses banker's rounding (round half to even), which won't work for our case. round(14.5) = 14, round(15.5) = 16. So we can't use round directly.
+
+Let me go with the distance approach and handle equidistant:
+
+```python
+def closest_integer(value):
+    num = float(value)
+    lower = int(num)
+    upper = lower + 1 if num >= 0 else lower - 1
+    
+    diff_lower = abs(num - lower)
+    diff_upper = abs(num - upper)
+    
+    if diff_lower < diff_upper:
+        return lower
+    elif diff_upper < diff_lower:
+        return upper
+    else:
+        # equidistant, round away from zero
+        return upper if num >= 0 else lower
+```
+
+Let me verify:
+- "10": num=10.0, lower=10, upper=11, diff_lower=0, diff_upper=1, return 10 ✓
+- "15.3": num=15.3, lower=15, upper=16, diff_lower=0.3, diff_upper=0.7, return 15 ✓
+- "14.5": num=14.5, lower=14, upper=15, diff_lower=0.5, diff_upper=0.5, equidistant, num>=0, return 15 ✓
+- "-14.5": num=-14.5, int(-14.5)=-14, upper=-14-1=-15, diff_lower=|-14.5-(-14)|=0.5, diff_upper=|-14.5-(-15)|=0.5, equidistant, num<0, return -15 ✓
+
+This works.
+
+But wait, there could be floating point precision issues. For example, 0.5 might not be exactly representable. But for most cases this should be fine.
+
+Actually, let me think about potential floating point issues with the comparison. For 14.5, is abs(14.5 - 15) exactly 0.5? 14.5 is exactly representable, 15 is exact, so 14.5 - 15 = -0.5, abs = 0.5. And 14.5 - 14 = 0.5. So both are exactly 0.5. Good.
+
+But for something like 2.675, there might be issues. But the problem is straightforward, so let me keep it simple.
+
+Let me finalize:
+
+```python
+def closest_integer(value):
+    '''
+    Create a function that takes a value (string) representing a number
+    and returns the closest integer to it. If the number is equidistant
+    from two integers, round it away from zero.
+    '''
+    num = float(value)
+    lower = int(num)
+    upper = lower + 1 if num >= 0 else lower - 1
+    
+    diff_lower = abs(num - lower)
+    diff_upper = abs(num - upper)
+    
+    if diff_lower < diff_upper:
+        return lower
+    elif diff_upper < diff_lower:
+        return upper
+    else:
+        return upper if num >= 0 else lower
+```
+
+This looks good. Let me double check the note about rounding away from zero once more.
+
+"Rounding away from zero means that if the given number is equidistant from two integers, the one you should return is the one that is the farthest from zero. For example closest_integer("14.5") should return 15 and closest_integer("-14.5") should return -15."
+
+Yes, my implementation handles this correctly.
+
+Let me also consider edge cases:
+- Negative zero? Probably not relevant.
+- Very large numbers? float conversion might lose precision, but that's fine for this problem.
+
+I think my solution is correct. Let me write the final version.
+
+Actually, I want to make it a bit more robust. Let me reconsider using a simpler mathematical approach.
+
+Actually the distance approach is clean and correct. Let me keep it.
+
+One more consideration: what if the string is already an integer like "10"? float("10") = 10.0, int(10.0) = 10, upper = 11, diff_lower = 0, diff_upper = 1, return 10. ✓
+
+Final answer:
+
+```python
+def closest_integer(value):
+    '''
+    Create a function that takes a value (string) representing a number
+    and returns the closest integer to it. If the number is equidistant
+    from two integers, round it away from zero.
+    '''
+    num = float(value)
+    lower = int(num)
+    upper = lower + 1 if num >= 0 else lower - 1
+    
+    diff_lower = abs(num - lower)
+    diff_upper = abs(num - upper)
+    
+    if diff_lower < diff_upper:
+        return lower
+    elif diff_upper < diff_lower:
+        return upper
+    else:
+        return upper if num >= 0 else lower
+```
+

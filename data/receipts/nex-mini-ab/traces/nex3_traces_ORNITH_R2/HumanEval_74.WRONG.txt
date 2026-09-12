@@ -1,0 +1,96 @@
+### HumanEval/74  pass_frac=0.67 (of K=3)  first-fail bucket=WRONG finish=stop gzip_ratio=0.402 code_src=content
+### PROMPT:
+
+def total_match(lst1, lst2):
+    '''
+    Write a function that accepts two lists of strings and returns the list that has 
+    total number of chars in the all strings of the list less than the other list.
+
+    if the two lists have the same number of chars, return the first list.
+
+    Examples
+    total_match([], []) ➞ []
+    total_match(['hi', 'admin'], ['hI', 'Hi']) ➞ ['hI', 'Hi']
+    total_match(['hi', 'admin'], ['hi', 'hi', 'admin', 'project']) ➞ ['hi', 'admin']
+    total_match(['hi', 'admin'], ['hI', 'hi', 'hi']) ➞ ['hI', 'hi', 'hi']
+    total_match(['4'], ['1', '2', '3', '4', '5']) ➞ ['4']
+    '''
+
+### CONTENT:
+```python
+def total_match(lst1, lst2):
+    '''
+    Write a function that accepts two lists of strings and returns the list that has 
+    total number of chars in the all strings of the list less than the other list.
+
+    if the two lists have the same number of chars, return the first list.
+
+    Examples
+    total_match([], []) ➞ []
+    total_match(['hi', 'admin'], ['hI', 'Hi']) ➞ ['hI', 'Hi']
+    total_match(['hi', 'admin'], ['hi', 'hi', 'admin', 'project']) ➞ ['hi', 'admin']
+    total_match(['hi', 'admin'], ['hI', 'hi', 'hi']) ➞ ['hI', 'hi', 'hi']
+    total_match(['4'], ['1', '2', '3', '4', '5']) ➞ ['4']
+    '''
+    sum1 = sum(len(s) for s in lst1)
+    sum2 = sum(len(s) for s in lst2)
+    if sum1 < sum2:
+        return lst1
+    return lst2
+```
+### REASONING_CONTENT:
+Let me analyze this problem.
+
+The function needs to:
+1. Accept two lists of strings
+2. Return the list that has the total number of chars in all strings of the list LESS THAN the other list
+3. If both lists have the same number of chars, return the first list
+
+Let me verify with the examples:
+
+Example 1: `total_match([], [])` 
+- lst1 count = 0, lst2 count = 0
+- Same, return first list = []
+- ✓
+
+Example 2: `total_match(['hi', 'admin'], ['hI', 'Hi'])`
+- lst1 count = 2 + 5 = 7
+- lst2 count = 2 + 2 = 4
+- lst2 < lst1, return lst2 = ['hI', 'Hi']
+- ✓
+
+Example 3: `total_match(['hi', 'admin'], ['hi', 'hi', 'admin', 'project'])`
+- lst1 count = 2 + 5 = 7
+- lst2 count = 2 + 2 + 5 + 7 = 16
+- lst1 < lst2, return lst1 = ['hi', 'admin']
+- ✓
+
+Example 4: `total_match(['hi', 'admin'], ['hI', 'hi', 'hi'])`
+- lst1 count = 2 + 5 = 7
+- lst2 count = 2 + 2 + 2 = 6
+- lst2 < lst1, return lst2 = ['hI', 'hi', 'hi']
+- ✓
+
+Example 5: `total_match(['4'], ['1', '2', '3', '4', '5'])`
+- lst1 count = 1
+- lst2 count = 5
+- lst1 < lst2, return lst1 = ['4']
+- ✓
+
+So the logic:
+- sum of lengths of lst1 < sum of lengths of lst2 → return lst1
+- else return lst2
+
+Let me write the function:
+
+```python
+def total_match(lst1, lst2):
+    sum1 = sum(len(s) for s in lst1)
+    sum2 = sum(len(s) for s in lst2)
+    if sum1 < sum2:
+        return lst1
+    return lst2
+```
+
+This handles all cases correctly. When equal, sum1 < sum2 is False, so return lst1 (first list).
+

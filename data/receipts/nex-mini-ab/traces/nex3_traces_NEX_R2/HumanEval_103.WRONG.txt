@@ -1,0 +1,31 @@
+### HumanEval/103  pass_frac=0.33 (of K=3)  first-fail bucket=WRONG finish=stop gzip_ratio=0.514 code_src=content
+### PROMPT:
+
+def rounded_avg(n, m):
+    """You are given two positive integers n and m, and your task is to compute the
+    average of the integers from n through m (including n and m). 
+    Round the answer to the nearest integer and convert that to binary.
+    If n is greater than m, return -1.
+    Example:
+    rounded_avg(1, 5) => "0b11"
+    rounded_avg(7, 5) => -1
+    rounded_avg(10, 20) => "0b1111"
+    rounded_avg(20, 33) => "0b11010"
+    """
+
+### CONTENT:
+```python
+def rounded_avg(n, m):
+    if n > m:
+        return -1
+    total = n + m
+    q, r = divmod(total, 2)
+    return bin(q + (1 if r and q % 2 == 0 else 0))
+```
+### REASONING_CONTENT:
+We need answer only complete function in python code block. Need think requirements. Need implement rounded_avg(n,m): average integers n through m inclusive = (n+m)/2. Round to nearest integer and convert to binary. If n>m return -1. Python round behavior banker's rounding. Need infer expected for .5? Need choose likely language? This is common Codewars "Round up to nearest integer"? Let's parse examples: (1+5)/2=3 -> 0b11. (10+20)/2=15 -> 0b1111. (20+33)=53/2=26.5. Example says 0b11010 = 26, not 27. Python round(26.5)=26 due banker's. So they expect round nearest with .5 to even? Interesting. But many coding challenge "rounded_avg" maybe asks "round to nearest integer" and in JS Math.round would 27 -> 0b11011. But given example 20,33 -> 0b11010 indicates 26. So likely use round() in Python (banker's). Need handle positive integers. Return int -1 if n>m, else "0b..." string. Complete function only. Could be:
+def rounded_avg(n,m):
+    if n>m: return -1
+    return bin(round((n+m)/2))
+Need ensure (n+m)/2 in Python3 float, large ints maybe precision issue. Better use integer arithmetic to exactly implement Python round for .5 to even. Since average = (n+m)/2. Need round to nearest integer, ties to even. We can do quotient, remainder: s=n+m. avg_num, rem=divmod(s,2). If rem==0 return num; if rem==1 return num + (1 if num%2 else 0)? Wait Python round(x.5) rounds to nearest even. For s odd, average = q + 0.5. q=floor. If q even, round up to q+1 (odd); if q odd, round down to q (odd). So return q if q odd else q+1. Equivalent q + (not q&1). For positive. For negative not needed. Or use round(s/2) okay but exact maybe. Need final only function code block.
+

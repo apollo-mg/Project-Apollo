@@ -1,0 +1,43 @@
+### HumanEval/118  pass_frac=0.33 (of K=3)  first-fail bucket=WRONG finish=stop gzip_ratio=0.465 code_src=content
+### PROMPT:
+
+def get_closest_vowel(word):
+    """You are given a word. Your task is to find the closest vowel that stands between 
+    two consonants from the right side of the word (case sensitive).
+    
+    Vowels in the beginning and ending doesn't count. Return empty string if you didn't
+    find any vowel met the above condition. 
+
+    You may assume that the given string contains English letter only.
+
+    Example:
+    get_closest_vowel("yogurt") ==> "u"
+    get_closest_vowel("FULL") ==> "U"
+    get_closest_vowel("quick") ==> ""
+    get_closest_vowel("ab") ==> ""
+    """
+
+### CONTENT:
+```python
+def get_closest_vowel(word):
+    vowels = set("aeiouAEIOU")
+    
+    for i in range(len(word) - 1, 0, -1):
+        if word[i] in vowels and word[i - 1] not in vowels and word[i + 1] not in vowels:
+            return word[i]
+    
+    return ""
+```
+### REASONING_CONTENT:
+We need answer only complete function in python code block. Need solve. Need think through spec. "closest vowel that stands between two consonants from the right side of the word (case sensitive)." Need return vowel char. Vowels beginning and ending don't count. Need case sensitive. English letters only. Need identify vowels likely a e i o u A E I O U? y not vowel? Examples yogurt -> "u": word yogurt letters y o g u r t. From right side, positions between two consonants: index1 o between y and g, y consonant? o vowel. index3 u between g and r. From right side closest is u. OK. y not vowel. FULL -> F U L L. U between F and L. Return U. quick -> q u i c k. u between q and i? right neighbor i is vowel, not consonant; i between u and c? left vowel, not. no. ab no. Need implement.
+
+Need only function. But ensure "from right side" means scan reversed and return first vowel satisfying prev and next are consonants in original. Consonants are English letters not vowels? What about y? Vowels in beginning/end don't count. English letter only. Case sensitive. Consonant likely letter not in vowels. Could consider uppercase. Need include uppercase vowels. Maybe vowels set = "aeiouAEIOU". Consonant = ch not vowel. Since letters only, if not vowel then consonant. "case sensitive" means preserve case and maybe vowels uppercase considered vowels? Examples show FULL returns U, so yes uppercase vowels. Could include y? No.
+
+Need decide if "stands between two consonants" means immediate left and right are consonants. Yes.
+
+Return empty if none.
+
+Potential edge cases: length<3 returns "". If vowel at index 1..len-2 and both neighbors not vowels.
+
+Need final only code block. Ensure no extra.
+

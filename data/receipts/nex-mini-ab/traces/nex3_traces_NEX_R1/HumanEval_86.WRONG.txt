@@ -1,0 +1,27 @@
+### HumanEval/86  pass_frac=0.67 (of K=3)  first-fail bucket=WRONG finish=stop gzip_ratio=0.536 code_src=content
+### PROMPT:
+
+def anti_shuffle(s):
+    """
+    Write a function that takes a string and returns an ordered version of it.
+    Ordered version of string, is a string where all words (separated by space)
+    are replaced by a new word where all the characters arranged in
+    ascending order based on ascii value.
+    Note: You should keep the order of words and blank spaces in the sentence.
+
+    For example:
+    anti_shuffle('Hi') returns 'Hi'
+    anti_shuffle('hello') returns 'ehllo'
+    anti_shuffle('Hello World!!!') returns 'Hello !!!Wdlor'
+    """
+
+### CONTENT:
+```python
+def anti_shuffle(s):
+    return ' '.join(''.join(word.split()) if word else word for word in s.split(' '))
+```
+### REASONING_CONTENT:
+We need answer only complete function in python code block. Need infer quirks. Need implement anti_shuffle(s). Need preserve order of words and blank spaces. Important examples: 'Hello World!!!' -> 'Hello !!!Wdlor'. Let's analyze. Words separated by space. For each word, sort chars ascending ascii. But example 'Hello' sorted ascii should 'Hello'? ASCII uppercase H (72), lowercase e101 l108 l108 o111 => H e l l o, yes. 'World!!!' sorted ASCII: !!! (33) before W (87) o111 r114 l108 d100? Actually sorted: !!!Wdlor? Let's sort "World!!!": ! ! ! W d l o r -> "!!!Wdlor" yes. So simple split preserving blanks? Need maintain blank spaces in sentence. "words separated by space" and keep order words and blank spaces. Means split on single space? If multiple spaces, preserve. Could use re.split(' ', s), sort non-space chunks. Or maybe use split(' ') returns empty strings for multiple spaces. Need include leading/trailing spaces. Empty chunks unchanged. Return ''.join(sorted_chars if token else token). Need function only. Could use s.split(' '), but loses? Actually ''.join preserves. For empty string returns [''] okay.
+
+Need final only code block.
+

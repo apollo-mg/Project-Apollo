@@ -1,0 +1,71 @@
+### HumanEval/105  pass_frac=0.67 (of K=3)  first-fail bucket=WRONG finish=stop gzip_ratio=0.575 code_src=content
+### PROMPT:
+
+def by_length(arr):
+    """
+    Given an array of integers, sort the integers that are between 1 and 9 inclusive,
+    reverse the resulting array, and then replace each digit by its corresponding name from
+    "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine".
+
+    For example:
+      arr = [2, 1, 1, 4, 5, 8, 2, 3]   
+            -> sort arr -> [1, 1, 2, 2, 3, 4, 5, 8] 
+            -> reverse arr -> [8, 5, 4, 3, 2, 2, 1, 1]
+      return ["Eight", "Five", "Four", "Three", "Two", "Two", "One", "One"]
+    
+      If the array is empty, return an empty array:
+      arr = []
+      return []
+    
+      If the array has any strange number ignore it:
+      arr = [1, -1 , 55] 
+            -> sort arr -> [-1, 1, 55]
+            -> reverse arr -> [55, 1, -1]
+      return = ['One']
+    """
+
+### CONTENT:
+```python
+def by_length(arr):
+    """
+    Given an array of integers, sort the integers that are between 1 and 9 inclusive,
+    reverse the resulting array, and then replace each digit by its corresponding name from
+    "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine".
+
+    For example:
+      arr = [2, 1, 1, 4, 5, 8, 2, 3]   
+            -> sort arr -> [1, 1, 2, 2, 3, 4, 5, 8] 
+            -> reverse arr -> [8, 5, 4, 3, 2, 2, 1, 1]
+      return ["Eight", "Five", "Four", "Three", "Two", "Two", "One", "One"]
+    
+      If the array is empty, return an empty array:
+      arr = []
+      return []
+    
+      If the array has any strange number ignore it:
+      arr = [1, -1 , 55] 
+            -> sort arr -> [-1, 1, 55]
+            -> reverse arr -> [55, 1, -1]
+      return = ['One']
+    """
+    names = {
+        1: "One",
+        2: "Two",
+        3: "Three",
+        4: "Four",
+        5: "Five",
+        6: "Six",
+        7: "Seven",
+        8: "Eight",
+        9: "Nine"
+    }
+    
+    return [names[num] for num in sorted(num for num in arr if 1 <= num <= 9), reverse=True]
+```
+### REASONING_CONTENT:
+We need answer only complete function in python code block. Need implement. Need consider instructions: user asks complete function. Need output only code block. Need ensure no analysis final? We can provide final. Need code.
+
+Function by_length(arr): sort integers between 1 and 9 inclusive, reverse resulting array, replace digit by corresponding name. "sort arr" in examples includes all then reverse but ignore strange. Equivalent filter digits, sort ascending, reverse, map. Need use list. Could use sorted([num for num in arr if 1 <= num <= 9], reverse=True). Then map dict.
+
+Need output only complete function in ```python code block. No extra.
+

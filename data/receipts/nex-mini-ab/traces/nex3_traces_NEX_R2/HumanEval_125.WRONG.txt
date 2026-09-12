@@ -1,0 +1,31 @@
+### HumanEval/125  pass_frac=0.67 (of K=3)  first-fail bucket=WRONG finish=stop gzip_ratio=0.529 code_src=content
+### PROMPT:
+
+def split_words(txt):
+    '''
+    Given a string of words, return a list of words split on whitespace, if no whitespaces exists in the text you
+    should split on commas ',' if no commas exists you should return the number of lower-case letters with odd order in the
+    alphabet, ord('a') = 0, ord('b') = 1, ... ord('z') = 25
+    Examples
+    split_words("Hello world!") ➞ ["Hello", "world!"]
+    split_words("Hello,world!") ➞ ["Hello", "world!"]
+    split_words("abcdef") == 3 
+    '''
+
+### CONTENT:
+```python
+def split_words(txt):
+    if txt.split():
+        return txt.split()
+    elif ',' in txt:
+        return txt.split(',')
+    else:
+        return sum(1 for ch in txt if ch.islower() and (ord(ch) - ord('a')) % 2 == 1)
+```
+### REASONING_CONTENT:
+We need answer only complete function in python code block. Need infer spec. Function split_words(txt): Given string of words, return list split on whitespace if no whitespaces exists split on commas ',' if no commas exists return number of lower-case letters with odd order in alphabet. Examples Hello world -> ["Hello","world!"]; Hello,world -> ["Hello","world!"]; abcdef ==3. Need implement.
+
+Need consider "no commas exists" means if no whitespace and no comma. Need count lower-case letters with odd alphabet index (b,d,f,h,j,l,n,p,r,t,v,x,z). In "abcdef": b,d,f =3. Need preserve punctuation? split on whitespace or commas. Python str.split() on whitespace strips; split(',') preserves maybe empty strings. Should implement.
+
+Need output only code block no extra.
+

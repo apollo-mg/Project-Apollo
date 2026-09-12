@@ -1,0 +1,58 @@
+### HumanEval/67  pass_frac=0.67 (of K=3)  first-fail bucket=WRONG finish=stop gzip_ratio=0.519 code_src=content
+### PROMPT:
+
+def fruit_distribution(s,n):
+    """
+    In this task, you will be given a string that represents a number of apples and oranges 
+    that are distributed in a basket of fruit this basket contains 
+    apples, oranges, and mango fruits. Given the string that represents the total number of 
+    the oranges and apples and an integer that represent the total number of the fruits 
+    in the basket return the number of the mango fruits in the basket.
+    for examble:
+    fruit_distribution("5 apples and 6 oranges", 19) ->19 - 5 - 6 = 8
+    fruit_distribution("0 apples and 1 oranges",3) -> 3 - 0 - 1 = 2
+    fruit_distribution("2 apples and 3 oranges", 100) -> 100 - 2 - 3 = 95
+    fruit_distribution("100 apples and 1 oranges",120) -> 120 - 100 - 1 = 19
+    """
+
+### CONTENT:
+```python
+def fruit_distribution(s,n):
+    """
+    In this task, you will be given a string that represents a number of apples and oranges 
+    that are distributed in a basket of fruit this basket contains 
+    apples, oranges, and mango fruits. Given the string that represents the total number of 
+    the oranges and apples and an integer that represent the total number of the fruits 
+    in the basket return the number of the mango fruits in the basket.
+    for examble:
+    fruit_distribution("5 apples and 6 oranges", 19) ->19 - 5 - 6 = 8
+    fruit_distribution("0 apples and 1 oranges",3) -> 3 - 0 - 1 = 2
+    fruit_distribution("2 apples and 3 oranges", 100) -> 100 - 2 - 3 = 95
+    fruit_distribution("100 apples and 1 oranges",120) -> 120 - 100 - 1 = 19
+    """
+    parts = s.split()
+    apples = int(parts[0])
+    oranges = int(parts[2])
+    return n - apples - oranges
+```
+### REASONING_CONTENT:
+Let me analyze this problem. I need to parse a string like "5 apples and 6 oranges" and extract the numbers, then subtract them from the total to get the number of mango fruits.
+
+Let me write the function:
+
+```python
+def fruit_distribution(s,n):
+    parts = s.split()
+    apples = int(parts[0])
+    oranges = int(parts[2])
+    return n - apples - oranges
+```
+
+This should work. Let me verify with the examples:
+- "5 apples and 6 oranges", 19 -> parts = ["5", "apples", "and", "6", "oranges"], apples = 5, oranges = 6, return 19 - 5 - 6 = 8 ✓
+- "0 apples and 1 oranges", 3 -> apples = 0, oranges = 1, return 3 - 0 - 1 = 2 ✓
+- "2 apples and 3 oranges", 100 -> return 100 - 2 - 3 = 95 ✓
+- "100 apples and 1 oranges", 120 -> return 120 - 100 - 1 = 19 ✓
+
+This works.
+

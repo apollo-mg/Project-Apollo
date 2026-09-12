@@ -1,0 +1,35 @@
+### HumanEval/106  pass_frac=0.67 (of K=3)  first-fail bucket=WRONG finish=stop gzip_ratio=0.621 code_src=content
+### PROMPT:
+
+def f(n):
+    """ Implement the function f that takes n as a parameter,
+    and returns a list of size n, such that the value of the element at index i is the factorial of i if i is even
+    or the sum of numbers from 1 to i otherwise.
+    i starts from 1.
+    the factorial of i is the multiplication of the numbers from 1 to i (1 * 2 * ... * i).
+    Example:
+    f(5) == [1, 2, 6, 24, 15]
+    """
+
+### CONTENT:
+```python
+def f(n):
+    result = []
+    factorial = 1
+    triangular = 0
+    
+    for i in range(1, n + 1):
+        if i % 2 == 0:
+            factorial *= i
+            result.append(factorial)
+        else:
+            triangular += i
+            result.append(triangular)
+    
+    return result
+```
+### REASONING_CONTENT:
+We need answer only complete function in python code block. Need infer indexing ambiguity. User says takes n, returns list size n, element at index i factorial of i if i even or sum numbers 1..i otherwise. i starts from 1. Example f(5)==[1,2,6,24,15]. Let's check if i starts from 1 and list elements correspond i=1..5: i=1 odd sum 1=1; i=2 even factorial 2=2; i=3 odd sum 1..3=6; i=4 factorial=24; i=5 sum=15. Matches. So list comprehension for i in range(1,n+1): factorial if i even else triangular. Need implement. Could use math.factorial? Simpler iterative. Need only function. Need be careful n maybe 0 returns [].
+
+Need final with code block only.
+

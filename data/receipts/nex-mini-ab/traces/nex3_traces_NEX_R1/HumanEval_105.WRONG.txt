@@ -1,0 +1,55 @@
+### HumanEval/105  pass_frac=0.67 (of K=3)  first-fail bucket=WRONG finish=stop gzip_ratio=0.562 code_src=content
+### PROMPT:
+
+def by_length(arr):
+    """
+    Given an array of integers, sort the integers that are between 1 and 9 inclusive,
+    reverse the resulting array, and then replace each digit by its corresponding name from
+    "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine".
+
+    For example:
+      arr = [2, 1, 1, 4, 5, 8, 2, 3]   
+            -> sort arr -> [1, 1, 2, 2, 3, 4, 5, 8] 
+            -> reverse arr -> [8, 5, 4, 3, 2, 2, 1, 1]
+      return ["Eight", "Five", "Four", "Three", "Two", "Two", "One", "One"]
+    
+      If the array is empty, return an empty array:
+      arr = []
+      return []
+    
+      If the array has any strange number ignore it:
+      arr = [1, -1 , 55] 
+            -> sort arr -> [-1, 1, 55]
+            -> reverse arr -> [55, 1, -1]
+      return = ['One']
+    """
+
+### CONTENT:
+```python
+def by_length(arr):
+    names = {
+        1: "One",
+        2: "Two",
+        3: "Three",
+        4: "Four",
+        5: "Five",
+        6: "Six",
+        7: "Seven",
+        8: "Eight",
+        9: "Nine"
+    }
+    return [names[n] for n in sorted(n for n in arr if 1 <= n <= 9, reverse=True)]
+```
+### REASONING_CONTENT:
+We need answer only complete function in python code block. Need implement. Need consider prompt. Function by_length(arr): sort integers between 1 and 9 inclusive, reverse resulting array, replace each digit by corresponding name. Need probably filter arr to digits 1-9, sort, reverse, map. Need return list of strings. Need only code block.
+
+Need produce final with code.
+
+Need be careful "only complete function in code block" no extra. Use dictionary/list mapping.
+
+Potential ambiguity: "reverse the resulting array" means after filtering? Example [1,-1,55] -> sort all -> [-1,1,55], reverse -> [55,1,-1], return ['One']. This equivalent filtering first then sort/reverse. Use sorted(n for n in arr if 1<=n<=9), reverse=True.
+
+Need complete function with docstring? Could include. Return list comprehension.
+
+Final code block only.
+

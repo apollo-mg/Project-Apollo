@@ -1,0 +1,25 @@
+### HumanEval/163  pass_frac=0.33 (of K=3)  first-fail bucket=EXEC_TIMEOUT finish=stop gzip_ratio=0.504 code_src=content
+### PROMPT:
+
+def generate_integers(a, b):
+    """
+    Given two positive integers a and b, return the even digits between a
+    and b, in ascending order.
+
+    For example:
+    generate_integers(2, 8) => [2, 4, 6, 8]
+    generate_integers(8, 2) => [2, 4, 6, 8]
+    generate_integers(10, 14) => []
+    """
+
+### CONTENT:
+```python
+def generate_integers(a, b):
+    start, end = min(a, b), max(a, b)
+    return [i for i in range(start, end + 1) if i <= 9 and i % 2 == 0]
+```
+### REASONING_CONTENT:
+We need answer only complete function in python code block. Need complete function. Need infer task: "even digits between a and b" positive integers but examples return single even digits 2,4,6,8. So likely even digits between min and max inclusive? If range 10,14 => [] because digits only 0-9? Need function generate_integers(a,b) returns even digits between a and b ascending. Need likely iterate from min(a,b) to max(a,b) inclusive and filter even and digit? Need include 0? Positive integers a,b, even digits are 0,2,4,6,8? "digits" includes 0 but examples don't show. Given positive integers between a and b maybe integers? "even digits" maybe even numbers? But examples: (2,8) [2,4,6,8], (8,2) same, (10,14) [] confirms digits only 0-9, not even integers. So implement.
+
+Need return ONLY complete function in code block. No explanation.
+
