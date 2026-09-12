@@ -89,3 +89,21 @@ uncertainties.** Otherwise the prediction is scored **TIE**, not CONFIRMED or FA
 - **The reference file stays on `.73:/mnt/HDD/kld/`** (about 5.1 GB) and is not committed.
 
 **Scorer:** `tools/score_exl3_kld.py`, committed with this prereg.
+
+## Amendment 1 — 2026-09-12 ~16:20, while the driver was still hashing, before any arm produced a number
+
+Three declarations:
+
+1. **If mean and median disagree, both are reported.** P-K1 to P-K3 are scored on the mean KLD, as
+   written. KLD distributions are long-tailed, so a handful of tokens can move a mean. If E's ordering
+   against G4, G5 or G6 differs between mean and median, the receipt reports both orderings side by side
+   and says which one the mean settles. **The predictions are not rescored on the median.**
+2. **The driver's `pgrep -x llama-perplexity` guard is inert.** `pgrep -x` matches the 15-character
+   process name, and `llama-perplexity` is 16 characters, so that check can never fire. It was found
+   while checking the running process's environment. The exclusivity guards that do work are the
+   GPU-memory check (which refuses above 500 MiB per card) and the orchestrator, which stops the daily
+   driver and refuses to overlap test 1's orchestrator.
+3. **The fork's scoring gate is off.** buun's `process_logits` scores only the last K tokens of each
+   window when `TURBO_SCORE_LAST_ONLY` or `TURBO_SCORE_LAST_K` is set, zero-filling the rest
+   (`perplexity.cpp:363-372`). Neither variable is set in the running driver's environment, checked in
+   `/proc/<pid>/environ`, so every position is scored.
