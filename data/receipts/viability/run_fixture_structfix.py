@@ -122,6 +122,9 @@ EFFORT = None   # set from --effort; passed via chat_template_kwargs, the dial Q
 # 2026-09-11, PREREG_OVERTHINK_INJECTION.md: cap thinking and inject a message before the forced
 # end-of-thinking tag. Both fields are per-request (tools/server/server-schema.cpp:383,415), so the
 # arms interleave on one server with no restart and no time confound. ARM is recorded per item.
+RUN_NCTX = None   # server n_ctx, read from /props at startup and recorded per row
+RUN_MODEL = None  # server model path, likewise
+RUN_HOST = None
 BUDGET = None   # set from --budget; thinking-token cap, None = unrestricted (arm A)
 BUDGET_MSG = None   # set from --budget-message
 ARM = None      # set from --arm; recorded in the jsonl so arms can be separated at scoring time
@@ -235,6 +238,15 @@ def record(**row):
     if JSONL is None:
         return
     row.setdefault("sampling", SAMPLING_NAME)
+    # 2026-09-12: record the configuration IN the row. The n_ctx of the card_xhigh baseline was
+    # only recoverable months later by reverse-engineering the escalated retry budget, and that
+    # archaeology is what caught an 8192-vs-16384 mismatch after the comparison had been published.
+    # tools/compare_runs.py reads these fields; server context is a first-class variable.
+    if EFFORT is not None:
+        row.setdefault("effort", EFFORT)
+    for k, v in (("n_ctx", RUN_NCTX), ("model", RUN_MODEL), ("host", RUN_HOST)):
+        if v:
+            row.setdefault(k, v)
     if ARM is not None:
         row.setdefault("arm_label", ARM)          # keep clear of the fixture's own "arm" field
     if BUDGET is not None:
@@ -369,6 +381,7 @@ def run_cal(host, tier, label, escalate=True):
     print(f"    {tier['scope'].splitlines()[0][:90]}")
     print(f"    gate: {tier['gate']}")
     nctx = server_ctx(host)
+    globals()["RUN_NCTX"] = nctx or None
     nq = tier.get("n_predict", 512)
     if escalate and nctx and nctx - 1024 <= nq:
         print(f"    !! server n_ctx={nctx} cannot hold an escalated retry above n_predict={nq};"
@@ -477,6 +490,7 @@ if __name__ == "__main__":
               "\n  of failure-to-terminate on false-premise items. See RETRACTION_NO_STOP.md.")
     if a.jsonl:
         globals()["JSONL"] = open(a.jsonl, "a", encoding="utf-8")
+    globals()["RUN_HOST"] = a.host
     globals()["BUDGET"] = a.budget
     globals()["BUDGET_MSG"] = a.budget_message
     globals()["ARM"] = a.arm
