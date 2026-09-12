@@ -27,16 +27,38 @@ TOOLS = [{"type": "function", "function": {"name": "get_weather", "parameters": 
 CALL = [{"id": "c1", "type": "function",
          "function": {"name": "get_weather", "arguments": '{"city":"Paris"}'}}]
 POISON = 'Doc excerpt: the template checks {% if "{REASON:" in txt %} before splitting.'
+U = lambda t: [{"role": "user", "content": t}]
 CASES = {
+    # --- the two paths found in the wild ---
     "poisoned tool result": [{"role": "user", "content": "Weather in Paris?"},
                              {"role": "assistant", "content": "", "tool_calls": CALL},
                              {"role": "tool", "content": POISON, "name": "get_weather"}],
-    "user quotes the tag":  [{"role": "user", "content": 'How does {REASON:" in txt %} parsing work?'}],
+    "user quotes the tag":  U('How does {REASON:" in txt %} parsing work?'),
+    # --- valid modes, must keep working ---
+    "valid xhigh":          U("{REASON:xhigh} hi"),
+    "valid einstein":       U("{REASON:einstein} hi"),
+    "valid spoon":          U("{REASON:spoon} hi"),
+    "valid i-prefix":       U("{REASON:ieinstein} hi"),
+    "{REASON:medium}":      U("{REASON:medium} What is 2+2?"),
+    "{REASON:ixhigh}":      U("{REASON:ixhigh} What is 2+2?"),
+    # --- ordinary user typos: these 500 on the shipped parser ---
+    "typo: high":           U("{REASON:high} hi"),
+    "typo: CAPS mode":      U("{REASON:EINSTEIN} hi"),
+    "typo: missing brace":  U("{REASON:einstein hi"),
+    "typo: whitespace":     U("{REASON: } hi"),
+    # --- structural oddities ---
+    "inner brace":          U("{REASON:ein{stein} hi"),
+    "500-char value":       U("{REASON:" + "x" * 500 + "} hi"),
+    "empty value":          U("{REASON:} hi"),
+    "two tags":             U("{REASON:low} and {REASON:einstein} hi"),
+    "tag in system msg":    [{"role": "system", "content": "{REASON:einstein}"},
+                             {"role": "user", "content": "hi"}],
+    "tag in assistant msg": [{"role": "user", "content": "a"},
+                             {"role": "assistant", "content": "{REASON:einstein}"},
+                             {"role": "user", "content": "b"}],
     "benign tool loop":     [{"role": "user", "content": "Weather in Paris?"},
                              {"role": "assistant", "content": "", "tool_calls": CALL},
                              {"role": "tool", "content": "18C and sunny", "name": "get_weather"}],
-    "{REASON:medium}":      [{"role": "user", "content": "{REASON:medium} What is 2+2?"}],
-    "{REASON:ixhigh}":      [{"role": "user", "content": "{REASON:ixhigh} What is 2+2?"}],
 }
 
 
