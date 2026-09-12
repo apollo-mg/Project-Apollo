@@ -73,3 +73,17 @@ roughly **0.1 t/s**. At that speed the secondary as written has one defect and o
 **Unchanged:** P-H4, P-H5 and their thresholds, and the 18 GB start guard. At 15:28 the desktop had
 17.6–17.8 GB available, so **the guard may refuse the secondary.** If it does, P-H4 and P-H5 are NOT
 RUN, and the ~0.1 t/s figure stays a labelled projection, not a result.
+
+## Amendment 2 — 2026-09-12 ~15:45: the secondary is dropped, not run
+
+**P-H4 and P-H5 are NOT RUN.** Two reasons, both decided before any 27B data existed:
+
+- **The question the secondary served is already answered.** A descriptive `-ngl 99` vs `-ngl 0` A/B
+  on the 0.6B (`hip/NOTE_PLACEMENT_AB.md`) shows no EXL3 weight ever reaching VRAM, and `-ngl 99` is
+  slightly slower than `-ngl 0`. O1 is not retirable by us whatever the 27B does.
+- **The cost is too high for a speed figure.** The 27B would add only a speed figure, projected at
+  ~0.1 t/s. Getting it means holding about 14 GB of desktop RAM for 20+ minutes. That exceeds the
+  lab's 10-minute foreground rule, and memory pressure is exactly what triggers the harness's
+  low-memory kills.
+
+The ~0.1 t/s figure remains a projection from the 0.6B, labelled as such, not a result.
