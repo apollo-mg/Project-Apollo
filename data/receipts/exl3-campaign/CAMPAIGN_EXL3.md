@@ -66,7 +66,7 @@ in the inference receipt, is the nominal figure. Disk overstates EXL3's GPU foot
 | O5 | **Slower** | CONFIRMED | 0.646× the daily driver as served; 0.627× matched with MTP on; 0.85× with MTP off. **Possibly fixable upstream:** see "Order", item 4. |
 | O6 | **Quality beyond one perplexity number** | OPEN, **test 3 running** | The test is KLD against the Q8_0 reference, with EXL3 placed on a GGUF size curve by peak VRAM (`PREREG_EXL3_KLD.md`). Task accuracy comes after. **turboderp's `kld_table.json` does not answer this:** every one of its 2,807 bit-steps across 401 tensors falls by exactly 3.2257×, which makes it a fitted allocation curve, not a measurement. |
 | O7 | **Prefill and long context** | PARTIAL | Prefill is at parity at about 15k tokens (153.7 vs 150.1 t/s). Long context is untested. |
-| O8 | **We can't make our own quants** | OPEN | There is no quantizer in buun's tree. Does exllamav3's converter run on sm_60? CUDA 12.4 meets its stated floor, but its kernels may need a newer arch. Read the source first. The answer decides whether we can only consume EXL3 or can also produce it. |
+| O8 | **We can't make our own quants** | OPEN · no blocker found in source | There is no quantizer in buun's tree, but exllamav3 sets no architecture gate, and its sampled kernels use `half2` intrinsics Pascal has natively (`NOTE_EXL3_QUANTIZER_ON_SM60.md`). **That is 3 of 113 CUDA sources**, and torch's own sm_60 support matters as much. **Decisive test, about an hour:** convert Qwen3-0.6B on `.73` and compare its perplexity against turboderp's own 0.6B (20.2864). |
 | O9 | **Supply is limited to what someone else has published** | follows from O8 | If O8 fails, the campaign can only ever cover published quants. That is a per-model check on HF. |
 | O10 | **Load time breaks wake-on-demand** | CONFIRMED as deployed · OPEN on NVMe | `.73` reloads its model on every wake. EXL3 loaded in 322 s off `/mnt/HDD`, against 36 s for the Q6_K off NVMe. That would turn today's 77–99 s cold start into about 6 minutes. On NVMe it should load faster than the Q6_K (16.88 vs 22.88 GB), but that is untested because `/mnt/models` has 9.9 GB free. **Blocked on Mark's disk decision.** |
 | O11 | **Build carries a local patch** | OPEN upstream | Any CUDA below 12.8 needs our 2-line e8m0 guard (`kv-tensor-split/PATCH_e8m0_cuda128_guard.diff`). Offering it upstream is Mark's call. |
@@ -95,7 +95,8 @@ holds beyond perplexity.
 3. **O6 KLD: RUNNING** (`PREREG_EXL3_KLD.md`).
 4. **The MTP verification test** is a `--draft-max` sweep, or an EXL3 int8 GEMV timing at m = 1 to 8. It
    decides whether O5 is a kernel problem buun could fix. That makes it the most valuable next test.
-5. **O8:** read exllamav3's conversion requirements.
+5. ~~O8: read exllamav3's conversion requirements.~~ **DONE, and nothing blocks sm_60 in what was read**
+   (`NOTE_EXL3_QUANTIZER_ON_SM60.md`). What remains is a real conversion on `.73`.
 6. **O6 task accuracy.**
 7. **O4 degrade path and O7 long context,** one long-context run.
 8. **O10 on NVMe,** after Mark's disk decision.

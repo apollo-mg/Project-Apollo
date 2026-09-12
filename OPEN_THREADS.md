@@ -39,7 +39,16 @@ as they close; this is a working file, not a receipt.
     the reference and five arms at `-ub 8`.
   - Results land in `exl3-campaign/kld/`. The 5 GB reference stays on `.73`.
 - **"61% of the bits" was the nominal figure.** VRAM is 64% and disk 74% (fixed in `cc0c9a6`).
-- **Next:** the MTP verification sweep, then O8 (can exllamav3's converter run on sm_60?).
+- **Test 4 (MTP micro-batch sweep) is QUEUED behind test 3** (`orchestrate_mtp.sh`, launched 16:25; it
+  waits for the KLD orchestrator, then takes `.73` itself, builds `llama-bench` there and sweeps
+  `-ub 1,2,4,8,16` on both formats). It measures whether EXL3's int8 path amortizes a multi-row batch —
+  that is, whether the 1.24× is a kernel issue buun could fix. Both fast paths cover 8 rows, so a 4-row
+  verify does not fall off either.
+- **O8 (can we make our own quants?): source reading only, no blocker found**
+  (`NOTE_EXL3_QUANTIZER_ON_SM60.md`). exllamav3 sets no architecture gate, and the sampled kernels use
+  `half2` intrinsics that Pascal has natively. **3 of 113 CUDA sources were read**, so it is not an
+  answer. The decisive test is named and costs about an hour: convert Qwen3-0.6B on `.73` and compare
+  its perplexity against turboderp's own 0.6B (20.2864).
 
 1. ~~**Write the Q6_K injection receipt.**~~ **DONE 2026-09-12 (`6831591`)** —
    `RESULT_OVERTHINK_INJECTION_Q6K.md`. The 03:51 quick score ("P-Q5 favoured") is **withdrawn**: it
