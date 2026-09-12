@@ -9,8 +9,12 @@ as they close; this is a working file, not a receipt.
 - **`.194` is POWERED OFF** (05:59 shutdown after the three-way + Q6_K runs). Everything was copied
   off and verified by sha256 first. Cold boot is ~216 s; BMC at 10.0.0.195 via `tools/s194.sh`.
 - **`.73`** rebooted onto NVIDIA 580.178.04; **34 NVIDIA/CUDA packages held** so unattended-upgrades
-  cannot desync the driver again. Daily driver verified serving after reboot.
-- **9070** free. Ledger timer now **hourly** (was every 3 h).
+  cannot desync the driver again. **It S3-suspends on input idle even at 100% CPU**, and its
+  wake-proxy server does not survive a suspend. The sm_60 qualification worktree and binaries are at
+  `~/buun-sm60-qual/`.
+- **9070** is running the einstein chain (`viability/einstein_chain.sh`, started 13:15): the IQ4_XS
+  primary, then the IQ2_M secondary, ETA ~15:00. The leftover Swift server was stopped. Ledger timer
+  now **hourly** (was every 3 h).
 
 ## Unfinished work, highest value first
 
