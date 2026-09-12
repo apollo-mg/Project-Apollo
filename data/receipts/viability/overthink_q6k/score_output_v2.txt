@@ -1,0 +1,67 @@
+=== Q6_K on .194: 144 generations from data/receipts/viability/overthink_q6k ===
+
+--- unanswerable arm (24 cells per arm) ---
+arm   ABSTAIN  WRONG  NO-STOP  CORRECT    fail  med think   tot raw   tot own  injected
+A          19      3        2        0    5/24       2680    181277    181277         0
+B          21      3        0        0    3/24        892     21393     20565       828
+C          21      3        0        0    3/24        892     29475     20565      8910
+  'tot own' removes the injected budget message, which the server delivers INTO the
+  reasoning stream and which len(reasoning) therefore counts as the model thinking.
+
+--- answerable arm (24 cells per arm) ---
+arm   ABSTAIN  WRONG  NO-STOP  CORRECT    fail  med think   tot raw   tot own  injected
+A           0      0        0       24    0/24        498     12248     12248         0
+B           0      0        0       24    0/24        498     12248     12248         0
+C           0      0        0       24    0/24        498     12248     12248         0
+  'tot own' removes the injected budget message, which the server delivers INTO the
+  reasoning stream and which len(reasoning) therefore counts as the model thinking.
+
+=== Effective sample size: the arms are one generation until the cap binds ===
+  cells total                 24
+  byte-identical across A/B/C 6  <- carry ZERO information about the arm contrast
+  divergent                   18  <- the real n for any A-vs-B-vs-C claim
+
+  The identical cells, scored once (they are the same generation three times):
+    ABSTAINED 3  ANSWERED-WRONG 3  NO-STOP/REC 0  -> 3 failures baked into all three arms
+
+  of those, cells where the OUTCOME actually changed: 2
+  (a cell where the cap bound but all three arms still abstained tells you the cap did
+   no harm; it cannot tell you the message did any good)
+
+    item       rep  A                B                C               
+    CAL-U2       1  NO-STOP/REC      ABSTAINED        ABSTAINED       
+    CAL-U4       3  NO-STOP/REC      ABSTAINED        ABSTAINED       
+    A vs B: 2 of 24 cells differ in outcome
+    B vs C: 0 of 24 cells differ in outcome   <- the contrast has NO cells to stand on
+    A vs C: 2 of 24 cells differ in outcome
+
+  3 of the ANSWERED-WRONG cells are in the byte-identical set: the same
+  generation counted once per arm. No arm could have affected them.
+
+=== Fisher exact on the unanswerable arm (all cells, as pre-registered) ===
+  C 3/24 vs A 5/24   p = 0.701
+  C 3/24 vs B 3/24   p = 1.000
+  B 3/24 vs A 5/24   p = 0.701
+  total failure events across all three arms: 11
+
+=== ADVISOR escape hatch ===
+  emitted AS THE ANSWER in 0 of 144 generations  -> P-O7/P-O8 UNSCOREABLE
+  the word appears in the reasoning of 18 rows -- that is our own injected message,
+  not the model escalating. Scoring it as an emission would be a false positive.
+  distinct answers, unanswerable arm A: ['', '1906', 'UNKNOWN']
+  distinct answers, unanswerable arm B: ['1906', 'UNKNOWN']
+  distinct answers, unanswerable arm C: ['1906', 'UNKNOWN']
+  distinct answers, answerable   arm A: ['123', '1494', '26', '74', 'Regina', 'Sb', 'UDP port 123', 'Williams', 'weber']
+  distinct answers, answerable   arm B: ['123', '1494', '26', '74', 'Regina', 'Sb', 'UDP port 123', 'Williams', 'weber']
+  distinct answers, answerable   arm C: ['123', '1494', '26', '74', 'Regina', 'Sb', 'UDP port 123', 'Williams', 'weber']
+
+=== Configuration recorded per row (what a future comparison can verify) ===
+  effort          14/144 rows  {'xhigh': 14}   <- PARTIAL: recorded mid-run, not for every row
+  n_ctx           14/144 rows  {'16384': 14}   <- PARTIAL: recorded mid-run, not for every row
+  model            0/144 rows  (absent)
+  host            14/144 rows  {'http://10.0.0.194:8095': 14}   <- PARTIAL: recorded mid-run, not for every row
+  budget_tokens   96/144 rows  {'220': 96}   <- PARTIAL: recorded mid-run, not for every row
+  sampling       144/144 rows  {'card': 144}
+  implied n_ctx from escalated-retry budgets: ['>=13312']
+    a '>=' is a LOWER BOUND, not a measurement: the retry hit the 2x ceiling, so the
+    headroom never constrained it. Use the recorded n_ctx field where present.

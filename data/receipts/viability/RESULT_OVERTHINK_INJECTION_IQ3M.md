@@ -16,11 +16,25 @@ sampling at `xhigh`, seeds 1001–1003, 16 CAL items × 3 reps × 3 arms = **144
 | **B** bare cap | **21** | 3 | **0** | **3/24** | 23/24 | 21,158 |
 | **C** injection | 19 | 5 | **0** | 5/24 | 23/24 | 29,240 |
 
-- **The cap works and is free.** NO-STOP goes 1 → 0, and arm C spends **15% of arm A's thinking** on
-  the unanswerable arm, with the answerable arm untouched at 23/24 in every arm.
+- **The cap works and is free.** NO-STOP goes 1 → 0, and arm C spends ~~15%~~ **10.3% of arm A's
+  thinking** on the unanswerable arm, with the answerable arm untouched at 23/24 in every arm.
+
+> **Correction, 2026-09-12.** The thinking totals in the table above are `len(reasoning)`, which
+> **counts our own injected budget message as model thinking** — the server delivers it into the
+> reasoning stream. Removing it, arm B and arm C spend **exactly the same** amount of their own
+> deliberation, 20,330 chars each; the apparent +8,082 gap is the 511-char message × 18 cells minus
+> B's 46-char message × 18. So C does **not** think more than B, and C's share of A is 10.3%, not 15%.
+> Worse, the same inspection shows the message arrives **after the think block has closed** — nothing
+> follows it in the reasoning stream — so it can only influence the final answer, never the
+> deliberation. Stripping the message, B and C are byte-identical on **43 of 48 cells.** Full
+> derivation and the consequences for P-Q4/P-Q5 are in `RESULT_OVERTHINK_INJECTION_Q6K.md`; the
+> numbers are reproducible with `tools/score_overthink.py`.
 - **The injection did not reduce confabulation.** C is nominally *worst*. Fisher p = 1.00 vs A and
   0.70 vs B — no significance either way.
-- **The ADVISOR channel was never used: 0 of 24.** P-O7 and P-O8 are unscoreable.
+- **The ADVISOR channel was never used: 0 of 24.** P-O7 and P-O8 are unscoreable. (Verified on the
+  parsed answer, not on the text: the injected message contains the word "ADVISOR" four times and
+  echoes back through the reasoning field, so a substring search over reasoning reports 18 false
+  emissions. See `RESULT_OVERTHINK_INJECTION_Q6K.md`.)
 
 ## Why this design could not test the injection
 

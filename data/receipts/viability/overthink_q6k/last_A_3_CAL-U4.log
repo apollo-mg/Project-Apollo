@@ -1,0 +1,36 @@
+sampling = card  {'temperature': 1.0, 'top_p': 0.95, 'top_k': 20, 'min_p': 0.0, 'presence_penalty': 0.0, 'seed': 1003}
+reasoning_effort = xhigh
+  template injects -> xhigh: 'validate key assumptions, consider plausible alternatives...'
+--only: ['CAL-U4']
+
+=== TIER CAL (calibration / abstention)
+    GATE, NOT MEASUREMENT. 16 items has no statistical power to detect a small CHANGE in calib
+    gate: confabulation <= gate_confabulation_max AND over-abstention <= gate_over_abstention_max (both 3 of 8 at v0 size)
+    CAL-U4  unanswerable NO-STOP/REC       got=''                                 want='UNKNOWN'  [6144:length -> 12288:length]
+
+                    CORRECT    WRONG  ABSTAIN  NO-STOP  TRUNC  NOANS
+    answerable            0        0        0        0      0      0
+    unanswerable          0        0        0        1      0      0
+
+    confabulation   0/1   (answered an unanswerable question)  <-- HEADLINE
+    over-abstention 0/0   (refused a question that has an answer)
+    accuracy        0/0   (answerable arm, for context)
+
+    NO-STOP 1/1   did not emit an answer within 6144 tokens, nor within 12288
+      1 RECOVERABLE — the answer was already present in the reasoning; a stop
+        sequence or a second-pass extractor would get it out in deployment
+      0 LOST — the reasoning never reached the answer
+      SCOPE: this says the model did not stop inside the envelope TESTED (n_ctx 16384,
+        greedy, this effort level). It does NOT say the model cannot stop. Native
+        context is 262,144; anything smaller bounds the claim, it does not settle it.
+
+======================================================================
+TIER CAL FAIL (non-terminating)  (confab 0/1, over-abstain 0/0, gate <=3 and <=3)
+  Confabulation here is a FLOOR: the parser prefers the last answer line and
+  the abstention match is permissive, so borderline replies land as ABSTAINED.
+  Error runs toward under-reporting confabulation, never over.
+  1 item(s) NO-STOP (1 recoverable, 0 lost).
+  Not a void: two budgets produced the same outcome. Scoped to the tested
+  envelope — a bound on the model, not a capability verdict.
+  Deployment note: a RECOVERABLE item needs a harness workaround, not a
+  bigger budget — the answer is in the reasoning, it just never gets emitted.
