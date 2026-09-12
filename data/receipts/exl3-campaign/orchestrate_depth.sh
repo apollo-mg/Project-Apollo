@@ -35,15 +35,33 @@ fi
 echo $$ > "$PIDF"
 log "orchestrator up (pid $$)"
 
-# 0. Wait for test 4 (the ubatch sweep) to finish -- at most 90 min.
-MPF=$D/mtp/orchestrate.pid
-for i in $(seq 1 180); do
-  [ -f "$MPF" ] && kill -0 "$(cat "$MPF")" 2>/dev/null || break
-  [ "$i" = 1 ] && log "waiting for the MTP sweep orchestrator (pid $(cat "$MPF")) to finish"
+# 0. Wait until .73 is ACTUALLY FREE, and check it BEFORE touching the proxy.
+#    2026-09-12: this script waited on the MTP orchestrator's pidfile, took its ABORT for success, and
+#    started while the KLD run still held both GPUs. Its GPU check refused correctly, but by then it had
+#    stopped and restarted the proxy, and the next ledger run launched the daily driver into a live test
+#    and OOM'd. The precondition is the node being free, not a pidfile being gone.
+others_running () {
+  local f
+  for f in "$D"/kld/orchestrate.pid "$D"/mtp/orchestrate.pid "$D"/depth/orchestrate.pid; do
+    [ "$f" = "$PIDF" ] && continue
+    [ -f "$f" ] && kill -0 "$(cat "$f")" 2>/dev/null && return 0
+  done
+  return 1
+}
+free73 () {   # comm is truncated to 15 chars, so match the prefix, never `pgrep -x llama-perplexity`
+  local out n mem
+  out=$(timeout 30 ssh -o BatchMode=yes -o ConnectTimeout=8 "$N" 'ps -eo comm | grep -c "^llama-"; nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits | sort -n | tail -1' 2>/dev/null) || return 1
+  n=$(printf '%s' "$out" | head -1); mem=$(printf '%s' "$out" | tail -1)
+  [ "$n" = 0 ] && [ "${mem:-9999}" -lt 500 ] 2>/dev/null
+}
+for i in $(seq 1 480); do          # up to 4 h
+  if ! others_running && free73; then break; fi
+  [ "$i" = 1 ] && log "waiting for .73 to be free (another campaign orchestrator, or a live llama process)"
   sleep 30
 done
-if [ -f "$MPF" ] && kill -0 "$(cat "$MPF")" 2>/dev/null; then die "MTP orchestrator still running after 90 min"; fi
-log "MTP orchestrator is done"
+others_running && die "another campaign orchestrator is still running after 4 h"
+free73 || die ".73 never went free after 4 h (a llama process or GPU memory is still held)"
+log ".73 is free"
 
 # 1. Wait for the daily driver to be idle: two consecutive idle reads 30 s apart, at most 20 min.
 reads=0
