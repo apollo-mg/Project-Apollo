@@ -28,7 +28,7 @@ def fmt(x, spec):
 
 print("| arm | rc | disk GB | peak VRAM MiB | mean KLD ± | median KLD | 99% KLD | same top % ± | PPL(Q) |")
 print("|---|---|---|---|---|---|---|---|---|")
-for arm in ("REF", "R2", "E", "G4", "G5", "G6"):
+for arm in ("REF", "R2", "E", "E5", "G4", "G5", "G6"):
     r = rows.get(arm)
     if not r:
         print(f"| {arm} | not run | | | | | | | |")
@@ -66,6 +66,27 @@ else:
     et = g("E", "same_top")
     print(f"- **P-K4**: " + ("NOT TESTABLE (no same-top for E)" if et is None else
                              f"{'CONFIRMED' if et >= 95.0 else 'FALSIFIED'} (E same top {et:.3f}%)"))
+
+if "E5" in rows:
+    print("\n## Amendment 2 — the EXL3 5.00bpw arm\n")
+    e5k, e5e, e5v = g("E5", "kld_mean"), g("E5", "kld_err"), vram("E5")
+    ek, ev = g("E", "kld_mean"), vram("E")
+    g5k, g5e, g5v = g("G5", "kld_mean"), g("G5", "kld_err"), vram("G5")
+    if None in (e5k, ek, e5v, ev, g5k, g5v) or e5v == ev:
+        print("- **P-K5**: NOT TESTABLE (a required arm is missing)")
+    else:
+        # log-linear interpolation of the EXL3 ladder, evaluated at Q4_K_M's VRAM
+        t = (g5v - ev) / (e5v - ev)
+        interp = math.exp(math.log(ek) + t * (math.log(e5k) - math.log(ek)))
+        tol = (e5e or 0) + (g5e or 0)
+        verdict = ("TIE" if abs(interp - g5k) <= tol else "CONFIRMED" if interp < g5k else "FALSIFIED")
+        print(f"- **P-K5**: {verdict} — the EXL3 curve at G5's {g5v} MiB interpolates to {interp:.6f} "
+              f"vs G5's {g5k:.6f} (E {ek:.6f} at {ev} MiB, E5 {e5k:.6f} at {e5v} MiB; tolerance {tol:.6f})")
+    e5t, g5t = g("E5", "same_top"), g("G5", "same_top")
+    print(f"- **P-K6**: " + ("NOT TESTABLE" if None in (e5t, g5t) else
+                             f"{'CONFIRMED' if e5t > g5t else 'FALSIFIED'} (E5 {e5t:.3f}% vs G5 {g5t:.3f}%)"))
+    print(f"- **P-K7**: " + ("NOT TESTABLE" if None in (e5k, ek) else
+                             f"{'CONFIRMED' if e5k < ek else 'FALSIFIED'} (E5 {e5k:.6f} vs E {ek:.6f})"))
 
 print("\n## Headline (descriptive): EXL3 against the GGUF size curve, by peak VRAM\n")
 ev, ek = vram("E"), g("E", "kld_mean")
