@@ -47,21 +47,30 @@ as they close; this is a working file, not a receipt.
   not thinking on/off" hypothesis but changed three variables at once (different quant file,
   different starting file state, MTP on). A controlled version is ~30 min: one model, one restored
   starting state, three efforts.
-- **buun's EXL3 / sm_60 fix — LANDED 2026-09-12 05:27 as `4d90517b1`** ("cuda: restore Pascal builds
-  for native quantization"), reachable at `origin/master` = `9ae8f0f40`. It guards **all four**
-  objects that broke our build: `allreduce-oneshot.cu` (pre-Volta all-reduce), `exl3-dq.cuh` /
-  `exl3-gemv-int8.cuh` / `exl3-gemv.cuh` (scalar SM60 fallbacks, unsigned codebook sums),
-  `int8-channel.cu` (signed helper), and the humming `g2s_pipeline.cuh` barrier header. **Our
-  `LOCAL_PATCH_sm60_guards.diff` on `.73` is superseded — do not re-apply it over this.**
-  - **He is asking us for the Pascal qualification, and says so in the commit message:** *"Validated
-    the full SM60 server build… Runtime fallback and cache checks passed on an RTX 3090; actual
-    Pascal hardware qualification remains pending."* Mark is his only Pascal hardware.
-  - **Cheapest first step is his own new unit test**, not a model run: `tests/test-exl3-byte-dot.cu`
-    (added in the same commit, wired into `tests/CMakeLists.txt`) is an exhaustive EXL3 byte-dot
-    regression — exactly what the scalar sm_60 fallbacks implement. Build + run that before sourcing
-    any EXL3 safetensors.
-  - **Open unknowns:** build wall-clock on `.73`'s 8600K, and whether any EXL3 safetensors model is
-    on the fleet (none known — likely a multi-GB download).
+- **buun's EXL3 / sm_60 fix — QUALIFIED on real P100s 2026-09-12**
+  (`kv-tensor-split/RESULT_SM60_EXL3_QUALIFICATION.md`). `4d90517b1` + our 2-line e8m0 guard builds
+  all of `ggml-cuda` for sm_60, and his `test-exl3-byte-dot` **PASSES on hardware** (exit 0, checked
+  against its `SKIP_RETURN_CODE 77`). Worktree + binaries at `.73:~/buun-sm60-qual/`.
+  - **New bug for him:** unguarded, `humming-fp8.cu` fails on `__nv_fp8_e8m0`, a CUDA **12.8** type.
+    That breaks `ggml-cuda` on **any arch** below 12.8, not just Pascal
+    (`NOTE_HUMMING_FP8_NEEDS_CUDA_128.md`, `PATCH_e8m0_cuda128_guard.diff`). **Mark has not told him
+    yet**; a draft is pending.
+  - **His commit fixed all four objects that broke us at `aad850104`** (exl3 + int8-channel on
+    `__dp4a`, both humming FP8 objects on the cc≥7.0 barrier `#error`) — verified from that build's
+    `-k` log. Guarding the barrier **unmasked a fifth, latent failure** (e8m0: 0 mentions in the old
+    logs, 17 today). I briefly "corrected" this entry to say he fixed only three; that correction was
+    itself wrong, and `75c5dfc`'s commit message carries the same error.
+  - **Our `LOCAL_PATCH_sm60_guards.diff` is superseded** — do not re-apply it.
+  - **Not qualified: EXL3 inference.** No EXL3 model has been run. Candidates: `turboderp/Qwen3-0.6B-exl3`
+    (tiny, load-and-generate check), then `turboderp/Qwen3.8-27B-exl3` (26 branches, 10.8 GB at
+    2.00bpw to 23.0 GB at 6.00bpw — the same base model `.73` already serves as Q6_K). `/mnt/models`
+    has 9.9 GB free; **stage on `/mnt/HDD` (269 GB free).**
+  - **`.73` S3-suspends on input idle even at 100% CPU** — hold it awake with a WoL watchdog for any
+    long unattended job (memory: `wake-on-demand-73`).
+- **DavidAU einstein termination (donboyle's report)** — `viability/PREREG_EINSTEIN_TERMINATION.md`
+  + Amendments 1–2. The pilot reversed the premise: at IQ4_XS the **xhigh control** ran away inside
+  `<think>` and einstein did not. Scored run chained by `einstein_chain.sh`: IQ4_XS primary, then the
+  IQ2_M secondary. 4 of 36 cells previewed by the pilot (same seed) and must be reported both ways.
 - **Tom / FA f16 pool ratchet on Pascal** — source analysis published
   (`kv-tensor-split/NOTE_FA_F16_POOL_RATCHET_PASCAL.md`); **no measurement taken**. Needs `.194`.
 
