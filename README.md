@@ -4,6 +4,34 @@
 
 ---
 
+> **📍 Current status (2026-08-30): most of the orchestration layer below is dormant.**
+> The Message Bus, TS Coordinator, Glass Cockpit, FastContext sidecar and Daydream daemon have
+> not run since early July. The project is in lab mode — hardware empirics on P100 / RDNA4 /
+> Pascal, published as receipts and upstream contributions. What still runs day to day is the
+> wake proxy, the ledger, diagnostics, and the receipts discipline.
+> **See [STATUS.md](STATUS.md) for what is verified live versus dormant.**
+> The architecture described below is accurate as *design*; treat it as a record of what was
+> built, not a description of what is currently running.
+
+---
+
+## Public artifacts
+
+Things here that other people use, with the evidence behind each:
+
+| what | where | status |
+|---|---|---|
+| **Twin-Turbo chat-template fix** — restores tool calling for DavidAU's Qwen3.8-27B tune; the shipped template silently dropped `tool_calls` from history | [`templates/twin-turbo/`](templates/twin-turbo/) | adopted upstream by the model author ([discussion #10](https://huggingface.co/DavidAU/Qwen3.8-27B-TWIN-TURBO-Fable-Cold-Fusion-709-L-Uncensored-NM-DAU-NEO-MTP-GGUF/discussions/10)) |
+| **sm_60 FAST_FP16 carve-out** — Pascal P100s ran half-precision attention math for years; a 3-line gate took median KLD 0.0023 → 0.000001 at no speed cost | [`data/receipts/mtp-sm60/SUMMARY.md`](data/receipts/mtp-sm60/SUMMARY.md) | merged upstream |
+| **D=256 quantized-KV collapse** — `q8_0`/`q4_0` with K *and* V quantized emits garbage on hardware without Turing-MMA or AMD-WMMA; clean on RDNA4, same fork | [`data/receipts/kv-tensor-split/RESULT_RDNA4.md`](data/receipts/kv-tensor-split/RESULT_RDNA4.md) | reported to both forks |
+
+**How this repo reports results.** Predictions are registered before runs, scored honestly
+afterwards, and falsifications are published alongside confirmations. Start at
+[`data/receipts/INDEX.md`](data/receipts/INDEX.md), which is keyed by mechanism rather than by
+experiment.
+
+---
+
 ## 🛑 The Mission
 Project Apollo is a "Sovereign AI" operating system built on the premise that if you don't own the hardware, you don't own the truth. It is designed to run complex, asynchronous, multi-agent workloads entirely locally on consumer-grade and surplus datacenter hardware (like the AMD RX 9070 XT and Nvidia Tesla P100). 
 
