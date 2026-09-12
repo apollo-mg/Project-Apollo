@@ -1,4 +1,4 @@
-# Open threads — as of 2026-09-12 ~05:00
+# Open threads — as of 2026-09-12 (updated midday)
 
 Written to survive a context compaction. **Things we committed to and have not finished**, plus the
 facts that were expensive to establish and would be expensive to re-derive. Update or delete lines
@@ -14,24 +14,28 @@ as they close; this is a working file, not a receipt.
 
 ## Unfinished work, highest value first
 
-1. **Write the Q6_K injection receipt.** Data is complete and scored
-   (`data/receipts/viability/overthink_q6k/score_output.txt`), receipt is NOT written.
-   Headline: A 5/24, B 3/24, C 3/24 on the unanswerable arm; answerable 24/24 in all three arms;
-   NO-STOP 2 → 0. **P-Q5 (Mark) favoured over P-Q4 (Claude)** — the injection reduced failures by 2
-   at Q6_K and by −1 at IQ3_M — but C did **not** beat B, so what is demonstrated is the *cap*, not
-   the *message*. Fisher p = 0.70; four events total. Must carry the confound list below.
-2. **Score the three-way HumanEval+** against P-T1…P-T7 in `nex-mini-ab/PREREG_THREE_WAY.md`.
-   Data retrieved and verified in `data/receipts/nex-mini-ab/` — 4 result files (24 entries each),
-   109 failure traces, all logs, the driver scripts. P-T2 is scored both directly and through NEX;
-   P-T6 on the v2 run only.
+1. ~~**Write the Q6_K injection receipt.**~~ **DONE 2026-09-12 (`6831591`)** —
+   `RESULT_OVERTHINK_INJECTION_Q6K.md`. The 03:51 quick score ("P-Q5 favoured") is **withdrawn**: it
+   credited the injection with the cap's work. B vs C differ in outcome on **0 of 24 cells**. Root
+   cause found — the budget message is the *last* thing in the reasoning stream, so it can only
+   influence the final answer, never deliberation. **P-Q4/P-Q5 are unresolved and this design cannot
+   resolve them.**
+2. ~~**Score the three-way HumanEval+.**~~ **DONE 2026-09-12 (`13d3728`)** —
+   `nex-mini-ab/RESULT_THREE_WAY.md`. 2 confirmed, 5 falsified. Stock Qwen3.6-35B-A3B 94.11% beat
+   both finetunes (ORNITH 90.65%, NEX 89.84/86.99%) while spending 8.6× the tokens.
 3. **Base `IQ3_XXS` control for Swift.** `RESULT_SWIFT_BREVITY_TAX.md` compares bartowski Swift
    `IQ3_XXS` against mradermacher base `i1-IQ3_M` — tune *and* quant *and* packager all move. The
    −26% / +20% allocation asymmetry cannot be attributed to brevity training until this runs.
-4. **`IQ3_M` on `.194` under the Q6_K server config** to settle P-Q4/P-Q5 cleanly. Tonight's two
-   runs differ in node, KV type (`q8_0` vs `f16`) and split (none vs tensor) as well as bit depth.
-5. **A harder unanswerable corpus.** CAL is too easy at 3-bit (arm A fails 4/24), so both injection
-   designs were underpowered. **ADVISOR was never emitted in 48 generations** — nothing was hard
-   enough to warrant escalation, so P-O7/P-O8 remain unscoreable.
+   **Runs on the 9070; no `.194` needed.** Highest-value item that needs no hardware wake.
+4. **Re-open the think block, or the injection idea is dead.** The message currently arrives after
+   thinking closes. A real test needs a mid-stream turn that re-opens `<think>`, or a budget that
+   pauses instead of terminating — an engine-side change. Until then arm C is arm B with extra text.
+5. **A harder unanswerable corpus.** CAL is too easy at both bit depths (arm A fails 4/24 at IQ3_M,
+   5/24 at Q6_K, and 3 of the 5 are one repeated confabulation in cells no arm can influence).
+   **ADVISOR was never emitted as an answer in 288 generations.**
+6. **`IQ3_M` on `.194` under the Q6_K server config** — still worth running as a *bit-depth*
+   measurement (node, KV type and split currently move with bit depth), but it is **no longer the
+   thing that settles the bet**. Demoted from #4.
 
 ## Outward-facing, waiting on others
 
@@ -83,6 +87,15 @@ as they close; this is a working file, not a receipt.
   pad to square on white.
 - **A 3-bit judge missed the only defect verifiable from source** (`BASE r3`, a white neck on white);
   Q6_K caught it. Grade at Q6_K on `.73`, which already serves it with the mmproj.
+- **`len(reasoning)` counts an injected budget message as model thinking.** The server delivers
+  `reasoning_budget_message` *into* the reasoning stream, as its last content. Subtract it before
+  comparing thinking volume across arms, and never substring-search reasoning for a token the
+  injected message itself contains (an ADVISOR search reported 18 emissions against 0 real ones).
+  `tools/score_overthink.py` does both correctly.
+- **Paired per-problem tests beat differencing two pooled rates, and the three-way proves it:** the
+  known-null pair (same weights, different socket) showed a 2.85-point pooled "difference" — within
+  1.5 points of every real cross-model gap — but returned not-significant on the registered sign
+  test, while the real pairs came back p = 0.0023 and p = 0.0079.
 
 ## Standing constraints that must not be lost
 
