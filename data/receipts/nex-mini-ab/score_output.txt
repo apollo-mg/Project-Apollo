@@ -1,0 +1,104 @@
+=== Integrity: the f16 KV guard, checked positively ===
+Amendment 2 restarted the panel because buun's fork arms VBR when -ctk/-ctv are omitted.
+The guard is the ABSENCE of a 'VBR dynamic' line, which on its own proves nothing --
+so the v1 logs are the positive control: the same binary on the same box did log it.
+  v1 INVALID  server_NEX_R1.log      'VBR dynamic' lines: 3
+  v1 INVALID  server_QWEN_R1.log     'VBR dynamic' lines: 3
+  v2 SCORED   server_NEX_R1.log      'VBR dynamic' lines: 0
+  v2 SCORED   server_NEX_R2.log      'VBR dynamic' lines: 0
+  v2 SCORED   server_ORNITH_R2.log   'VBR dynamic' lines: 0
+  v2 SCORED   server_QWEN_R1.log     'VBR dynamic' lines: 0
+
+=== Per arm ===
+arm          pass@1                   sweeps        mean±sd  med tok  med t/s  agg t/s  hours
+NEX_R1       89.84%        87.80/90.85/90.85    89.84±1.44      280    47.93    47.19   2.92
+QWEN_R1      94.11%        93.29/94.51/94.51    94.11±0.57     2408    42.81    42.75   8.32
+ORNITH_R2    90.65%        88.41/91.46/92.07    90.65±1.60      632    42.81    42.44   3.60
+NEX_R2       86.99%        86.59/85.98/88.41    86.99±1.04      270    48.09    47.12   3.24
+
+=== Buckets (492 completions per arm) ===
+arm         EXEC_TIMEOUT     NO_ANSWER          PASS     TRUNCATED         WRONG   consistency
+NEX_R1                 1             4           442             1            44   fully 132 flaky 27 never 5
+QWEN_R1                3             0           463             0            26   fully 151 flaky 5 never 8
+ORNITH_R2              2             0           446             1            43   fully 142 flaky 14 never 8
+NEX_R2                 2             6           428             1            55   fully 122 flaky 36 never 6
+
+EXEC_TIMEOUT is a FIFTH bucket; the prereg registered four (PASS/WRONG/TRUNCATED/
+NO_ANSWER). It counts as a non-pass in pooled pass@1, i.e. it is scored against the arm.
+It lands hardest on QWEN_R1 (3), so it can only understate that arm's lead.
+
+=== Arm windows and overlap (Amendment 1 requires this on every speed claim) ===
+  NEX_R1     2026-09-11 13:02:54 -> 2026-09-11 15:57:58
+  QWEN_R1    2026-09-11 13:03:09 -> 2026-09-11 21:22:11
+  ORNITH_R2  2026-09-11 15:58:54 -> 2026-09-11 19:35:06
+  NEX_R2     2026-09-11 21:23:03 -> 2026-09-12 00:37:26
+
+  NEX_R1     vs QWEN_R1    overlap  2.91 h ( 99.9% of the shorter arm)
+  ORNITH_R2  vs QWEN_R1    overlap  3.60 h (100.0% of the shorter arm)
+  NEX_R2     vs ORNITH_R2  overlap  0.00 h  (NOT concurrent)
+  NEX_R1     vs NEX_R2     overlap  0.00 h  (NOT concurrent)
+
+=== Registered paired sign tests, per problem (N=164) ===
+
+  NEX_R1 vs QWEN_R1   [P-T1 / P-T4  finetune vs its stock base, fully concurrent]
+    pooled gap      -4.27 points (89.84% vs 94.11%)
+    pass counts     NEX_R1 better on 6, QWEN_R1 better on 23, 29 discordant, tied 135
+                    exact two-sided sign test p = 0.0023  SIGNIFICANT
+    mean tokens     NEX_R1 fewer on 12, QWEN_R1 fewer on 152, 164 discordant, p = 4.854e-32
+                    medians 292 vs 2404 tokens/problem
+
+  ORNITH_R2 vs QWEN_R1   [P-T2 direct  the sampling-matched comparison]
+    pooled gap      -3.46 points (90.65% vs 94.11%)
+    pass counts     ORNITH_R2 better on 6, QWEN_R1 better on 14, 20 discordant, tied 144
+                    exact two-sided sign test p = 0.1153  not significant
+    mean tokens     ORNITH_R2 fewer on 6, QWEN_R1 fewer on 158, 164 discordant, p = 2.189e-39
+                    medians 647 vs 2404 tokens/problem
+
+  NEX_R2 vs ORNITH_R2   [P-T3  finetune vs finetune]
+    pooled gap      -3.66 points (86.99% vs 90.65%)
+    pass counts     NEX_R2 better on 12, ORNITH_R2 better on 30, 42 discordant, tied 122
+                    exact two-sided sign test p = 0.0079  SIGNIFICANT
+    mean tokens     NEX_R2 fewer on 25, ORNITH_R2 fewer on 138, 163 discordant, p = 3.888e-20
+                    medians 287 vs 647 tokens/problem
+
+  NEX_R1 vs NEX_R2   [P-T7  DRIFT CONTROL -- same weights, different socket]
+    pooled gap      +2.85 points (89.84% vs 86.99%)
+    pass counts     NEX_R1 better on 21, NEX_R2 better on 11, 32 discordant, tied 132
+                    exact two-sided sign test p = 0.1102  not significant
+    mean tokens     NEX_R1 fewer on 92, NEX_R2 fewer on 71, 163 discordant, p = 0.117
+                    medians 292 vs 287 tokens/problem
+
+=== Sensitivity: P-T3 against NEX's OTHER round (not registered, reported anyway) ===
+P-T3 was registered on NEX_R2. NEX_R2 is NEX's weaker round, so the verdict depends on
+which round it is scored against -- which is exactly what the drift control is for.
+  NEX_R1     vs ORNITH_R2  -0.81 points, 15 vs 23 of 38 discordant, p = 0.2559
+  NEX_R2     vs ORNITH_R2  -3.66 points, 12 vs 30 of 42 discordant, p = 0.0079  SIGNIFICANT
+
+=== Is NEX's decode rate just an answer-length artefact? ===
+NEX's answers are ~8x shorter, and decode slows as the KV grows, so the cross-arm rate
+could be a length effect rather than a model property. Checked two ways:
+  NEX_R1     by length quartile: 47.9@136tok  47.9@225tok  47.9@364tok  47.9@952tok   |  200-400 tok only: 47.94 (n=183)
+  QWEN_R1    by length quartile: 42.9@1247tok  42.9@2001tok  42.8@2714tok  42.6@3914tok   |  200-400 tok only: 43.06 (n=4)
+  ORNITH_R2  by length quartile: 42.8@266tok  42.8@523tok  42.8@757tok  42.7@1330tok   |  200-400 tok only: 42.83 (n=85)
+  NEX_R2     by length quartile: 48.1@135tok  48.1@221tok  48.1@363tok  48.0@866tok   |  200-400 tok only: 48.11 (n=168)
+  The within-arm slope is real but tiny (QWEN 42.9 -> 42.6 t/s across 1247 -> 3914 tokens),
+  and the length-matched rates reproduce the full gap. NEX's edge is not a length artefact.
+
+=== The noise floor this panel measured for itself: 2.85 points ===
+NEX ran in both rounds on different sockets. Every cross-model pooled gap below must be
+read against this, not against zero.
+  NEX_R1     vs QWEN_R1     4.27 points  ABOVE the floor
+  ORNITH_R2  vs QWEN_R1     3.46 points  ABOVE the floor
+  NEX_R2     vs ORNITH_R2   3.66 points  ABOVE the floor
+
+=== Predictions, scored ===
+  P-T1  NEX > QWEN (R1)            89.84 vs 94.11  -> FALSIFIED  (sign test p=0.0023, 29 discordant)
+  P-T2  ORNITH > QWEN (direct)     90.65 vs 94.11  -> FALSIFIED  (sign test p=0.1153, 20 discordant)
+  P-T2' ORNITH > QWEN (thru NEX)   ORNITH-NEX_R2 +3.66, NEX_R1-QWEN -4.27 -> indirect estimate -0.61 -> FALSIFIED
+  P-T3  NEX~ORNITH within 3 pts    |86.99-90.65| = 3.66  -> FALSIFIED  *** but 3.66 is inside the 2.85-point noise floor; the prereg pre-committed that sub-3-point gaps are not distinguishable
+  P-T4  NEX fewer tokens than QWEN 280 vs 2408 median  -> CONFIRMED
+  P-T5  ORNITH TRUNCATED > NEX(R2) 1 vs 1  -> FALSIFIED
+  P-T6  NEX decode within 5%       vs QWEN +12.0%, vs ORNITH +12.3%  -> FALSIFIED
+  P-T7  NEX R1~R2 within 3 pts     |89.84-86.99| = 2.85  -> CONFIRMED  *** a weak confirmation: the prereg said sub-3-point gaps
+                                       are not distinguishable, so this passes a bar it
+                                       also declared unresolvable
