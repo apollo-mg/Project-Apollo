@@ -1,0 +1,54 @@
+### HumanEval/10  pass_frac=0.67 (of K=3)  first-fail bucket=WRONG finish=stop gzip_ratio=0.453 code_src=content
+### PROMPT:
+
+
+def is_palindrome(string: str) -> bool:
+    """ Test if given string is a palindrome """
+    return string == string[::-1]
+
+
+def make_palindrome(string: str) -> str:
+    """ Find the shortest palindrome that begins with a supplied string.
+    Algorithm idea is simple:
+    - Find the longest postfix of supplied string that is a palindrome.
+    - Append to the end of the string reverse of a string prefix that comes before the palindromic suffix.
+    >>> make_palindrome('')
+    ''
+    >>> make_palindrome('cat')
+    'catac'
+    >>> make_palindrome('cata')
+    'catac'
+    """
+
+### CONTENT:
+```python
+def make_palindrome(string: str) -> str:
+    """ Find the shortest palindrome that begins with a supplied string.
+    Algorithm idea is simple:
+    - Find the longest postfix of supplied string that is a palindrome.
+    - Append to the end of the string reverse of a string prefix that comes before the palindromic suffix.
+    >>> make_palindrome('')
+    ''
+    >>> make_palindrome('cat')
+    'catac'
+    >>> make_palindrome('cata')
+    'catac'
+    """
+    for i in range(len(string), -1, -1):
+        if is_palindrome(string[i:]):
+            return string + string[:i][::-1]
+```
+### REASONING_CONTENT:
+We need answer only complete function in python code block. Need infer desired. Need implement make_palindrome. Need be careful. We have existing is_palindrome. Need return only complete function? User says Complete this Python function. Return ONLY the complete function in code block. They likely want make_palindrome function only. Need include docstring? Complete function. Could include helper? "ONLY the complete function" maybe no helpers. But can use is_palindrome defined above. Need output only function.
+
+Need solve: shortest palindrome begins with supplied string. Algorithm: find longest postfix/palindromic suffix, append reverse of prefix before suffix. Examples:
+'' -> ''. longest pal suffix length 4? suffix whole empty. prefix '' reverse ''. result ''.
+'cat': suffix pal longest? 't' length1. prefix 'ca' reverse 'ac' append -> 'catac'. OK.
+'cata': suffix 'ata' length3 pal. prefix 'c' rev 'c' -> 'catac'.
+Need implement efficient? Could use loop over suffix lengths from n down to 1, if is_palindrome(string[i:]), return string + reverse(string[:i]). For empty, i=0? if loop range(n,0,-1) doesn't handle empty. Need handle ''. Could range(n+1,0,-1), for empty i=0, is_palindrome('') true, prefix string[:0]='', append '', returns ''. But also for nonempty whole suffix i=0 true, returns string, correct if whole string palindrome. For 'cat', i=3 suffix 'cat' not, i=2 'at' no, i=1 't' yes append 'ac'. Good.
+Need maybe "begins with supplied string" means minimal length palindrome with original prefix. This method works.
+
+Need consider Unicode, fine. Need maybe "postfix" means suffix. Use is_palindrome. Could include type hints.
+
+Need answer only code block.
+
