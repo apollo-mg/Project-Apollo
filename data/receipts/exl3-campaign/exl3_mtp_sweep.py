@@ -77,6 +77,11 @@ def run(label, model):
               "stderr_tail": p.stderr[-800:]})
         log(f"  FAILED rc={p.returncode}: {e!r}")
         return
+    commit = entries[0].get("build_commit") if entries else None
+    if not commit or not str(commit).startswith("9ae8f0f4"):
+        emit({"arm": label, "stage": "error", "rc": p.returncode, "wall_s": wall,
+              "error": f"llama-bench reports build_commit {commit!r}, not 9ae8f0f4"})
+        sys.exit(f"ABORT: llama-bench reports build_commit {commit!r}, not 9ae8f0f4")
     for e in entries:
         emit({"arm": label, "stage": "bench", "model": model, **{k: e.get(k) for k in KEEP}})
     emit({"arm": label, "stage": "done", "rc": p.returncode, "wall_s": wall, "entries": len(entries)})

@@ -108,8 +108,10 @@ s73 true || die ".73 not reachable over ssh"
 
 # 4. Build llama-bench from the same tree as every other test, and check the commit it reports.
 s73 'make -C ~/buun-sm60-qual/build_sm60qual llama-bench -j4 > ~/llama_bench_build.log 2>&1' || die "llama-bench build failed (see ~/llama_bench_build.log on .73)"
-bv=$(s73 '~/buun-sm60-qual/build_sm60qual/bin/llama-bench --version 2>&1 | head -2')
-case "$bv" in *9ae8f0f4*) log "llama-bench built: $bv" ;; *) die "llama-bench reports the wrong build: $bv" ;; esac
+s73 'test -x ~/buun-sm60-qual/build_sm60qual/bin/llama-bench' || die "llama-bench did not build"
+# llama-bench has no --version (it errors on the flag). The commit it was built from appears as
+# build_commit in every JSON row, and the driver aborts if that is not 9ae8f0f4.
+log "llama-bench built"
 
 # 5. Stage the driver; refuse to mix runs; verify the copy.
 s73 'test ! -e ~/exl3_mtp/results.jsonl' || die "an earlier sweep's results exist on .73 -- refusing to mix runs"
