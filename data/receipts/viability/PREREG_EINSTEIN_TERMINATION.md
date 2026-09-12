@@ -225,3 +225,24 @@ registered.
 `einstein_iq2/` at `-c 16384` as originally registered, chained by `einstein_chain.sh`. The chain
 refuses to start either set unless the live server reports the expected model, the expected context
 and `kv_bpv` 8.5.
+
+---
+
+## Amendment 3 — mechanical definitions for four predictions (2026-09-12, before any arm-C row is read)
+
+The registration defined four outcomes in words. Before scoring can run they need definitions a
+script applies without judgement. **Committed while the scored run is in progress.** Exactly one
+scored row has been read — B / rep 1 / `E-C1`, printed by the runner, which reproduced the pilot
+cell's counts exactly (3,084 tokens, 6,711 ch thinking, 2,602 ch answer). Arm-C rows may already
+exist on disk; **none has been read.**
+
+| id | definition |
+|---|---|
+| P-E2 | Scored on **arm B only** — arm C is capped at 1,024 tokens by design and cannot reach 5,000, so including it would manufacture the confirmation. Decided by a **bound**: `completion_tokens` counts thinking **plus** answer, so `completion_tokens < 5000` proves fewer than 5,000 reasoning tokens exactly. A generation with an empty answer spent every token on reasoning, so its count is exact. Any other generation at ≥ 5,000 is resolved by subtracting the answer's token count, tokenised on a live Qwen3.8 server; if none is available it is reported **unresolved**, and if unresolved rows could flip the verdict, P-E2 is reported unresolved rather than guessed. |
+| P-E5 | **usable** = `finish == "stop"` **and** a non-empty answer (`content`). Whether the answer also meets its item's done-condition (one function / one script / exactly three / exactly two) is reported separately as **compliant** and does not enter P-E5. |
+| P-E6 | A non-terminating generation (`finish == "length"`) ran away **inside `<think>`** if its `content` is empty — every generated token was reasoning. One with non-empty `content` ran away **after** answering. P-E6 is confirmed if every non-terminating generation in every arm is of the first kind, falsified if any is of the second, and **unscoreable** if there are none. |
+| P-E7 | **overrun** = arm B's median thinking ÷ arm A's median thinking, computed separately over the two coding items and the two ideation items. Confirmed if the ideation ratio is larger. **The IQ4_XS pilot already points this way** (7.7× on one ideation item, under 1× on one coding item), so a confirmation carries little independent weight, and the receipt will say so. |
+
+**Thinking** is measured throughout in characters of `reasoning`. This runner configures no budget
+message, so none should be injected; the scorer checks for injected text rather than assuming its
+absence. **Nothing else changes.** Scorer: `tools/score_einstein.py`.
