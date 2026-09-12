@@ -44,25 +44,32 @@ is the specific thing `4d90517b1` could not self-certify, and it now has an answ
 
 ## Build environment hazard worth recording
 
-**`.73` S3-suspends on input idle even at 100% CPU.** The build was suspended mid-flight:
+**`.73` was suspended mid-build by our own wake proxy.** Its 30-minute idle timer counts only API
+requests, so it cannot see a compile, or any other work, running on the node:
 
 ```
-Sep 12 12:39:28  PM: suspend entry (deep)      <- during compilation
-Sep 12 12:51:58  PM: Waking up from S3         <- woken by magic packet from the control plane
+2026-09-12T12:39:17  wake_proxy: idle 1858s >= 1800s — suspending     (control plane)
+Sep 12 12:39:28      kernel: PM: suspend entry (deep)                 (.73, 11 s later)
+Sep 12 12:51:58      kernel: waking up from S3                        (magic packet from the control plane)
 ```
 
-The build **survived intact** (S3 preserves process state) and completed normally afterwards, but:
+**All five of `.73`'s suspends on 2026-09-12 follow a proxy `suspending` line by ~11 s** (00:38, 01:38,
+02:37, 04:38, 12:39); there is no suspend the proxy did not initiate. **The first version of this
+receipt blamed KDE input-idle. That was an unverified guess, and wrong.**
 
-- **Wall-clock timings from `.73` are untrustworthy** unless something holds it awake. The "31 min"
-  above excludes ~12 minutes of suspend.
-- `systemd-inhibit --what=sleep:idle` is **refused over non-interactive ssh** — polkit requires
-  interactive authentication — so the workaround used here was a watchdog on the control plane that
-  pings every 30 s and sends a WoL magic packet when the host goes dark. Non-invasive: nothing on the
-  daily driver was reconfigured.
-- The node's `llama-server` did **not** survive the suspend (both GPUs returned at 0 MiB). This is
-  the wake-proxy's designed lifecycle — the proxy starts a server on wake and the box sleeps when
-  idle — not a fault, and it is why the GPUs were free for the test. Worth knowing before anyone
-  treats a long-lived server on `.73` as durable.
+The build **survived intact** (S3 preserves process state) and completed normally, but:
+
+- **The "31 min" above is wall-clock and includes ~12.5 minutes of suspend**; active compile time was
+  about 18.5 minutes. The first version said it *excluded* the suspend, which was also wrong.
+- The node's `llama-server` did not come back because the proxy deliberately stops it before
+  suspending (a VRAM spill would not fit in `/var`). That is designed behaviour, not a fault, and it
+  is why the GPUs were free for the test.
+- `systemd-inhibit` over non-interactive ssh is refused by polkit, but that is beside the point: the
+  suspend is requested by the proxy. **The fix belongs in `modules/wake_proxy.py`** — for example,
+  skip the idle suspend while a non-proxy GPU or build process is running, or while an inhibit file
+  exists. Not changed here: it is a live service and Mark's call.
+- The workaround used, a WoL watchdog on the control plane, worked — by waking the node back up after
+  our own proxy had put it to sleep.
 
 ## Reproduction
 

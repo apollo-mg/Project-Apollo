@@ -9,8 +9,9 @@ as they close; this is a working file, not a receipt.
 - **`.194` is POWERED OFF** (05:59 shutdown after the three-way + Q6_K runs). Everything was copied
   off and verified by sha256 first. Cold boot is ~216 s; BMC at 10.0.0.195 via `tools/s194.sh`.
 - **`.73`** rebooted onto NVIDIA 580.178.04; **34 NVIDIA/CUDA packages held** so unattended-upgrades
-  cannot desync the driver again. **It S3-suspends on input idle even at 100% CPU**, and its
-  wake-proxy server does not survive a suspend. The sm_60 qualification worktree and binaries are at
+  cannot desync the driver again. **Our own wake proxy suspends it after 30 min without an
+  API request, even mid-job** — all five suspends on 09-12 were proxy-initiated (I first blamed KDE
+  input-idle; wrong) — and it stops its llama-server before suspending. The sm_60 qualification worktree and binaries are at
   `~/buun-sm60-qual/`.
 - **9070** is running the einstein chain (`viability/einstein_chain.sh`, started 13:15): the IQ4_XS
   primary, then the IQ2_M secondary, ETA ~15:00. The leftover Swift server was stopped. Ledger timer
@@ -69,10 +70,12 @@ as they close; this is a working file, not a receipt.
     (tiny, load-and-generate check), then `turboderp/Qwen3.8-27B-exl3` (26 branches, 10.8 GB at
     2.00bpw to 23.0 GB at 6.00bpw — the same base model `.73` already serves as Q6_K). `/mnt/models`
     has 9.9 GB free; **stage on `/mnt/HDD` (269 GB free).**
-  - **`.73` S3-suspends on input idle even at 100% CPU** — hold it awake with a WoL watchdog for any
-    long unattended job (memory: `wake-on-demand-73`).
+  - **`.73` is suspended by our own wake proxy after 30 min without API requests, even mid-job** —
+    pause the proxy or run a WoL watchdog for any long job there (memory: `wake-on-demand-73`).
+    Before suspending it runs `pkill -x llama-server` on the node, which kills **any** llama-server
+    there, a test server included — so for the EXL3 test the proxy must be paused, not raced.
 - **DavidAU einstein termination (donboyle's report)** — `viability/PREREG_EINSTEIN_TERMINATION.md`
-  + Amendments 1–2. The pilot reversed the premise: at IQ4_XS the **xhigh control** ran away inside
+  + Amendments 1–3. The pilot reversed the premise: at IQ4_XS the **xhigh control** ran away inside
   `<think>` and einstein did not. Scored run chained by `einstein_chain.sh`: IQ4_XS primary, then the
   IQ2_M secondary. 4 of 36 cells previewed by the pilot (same seed) and must be reported both ways.
 - **Tom / FA f16 pool ratchet on Pascal** — source analysis published
@@ -89,8 +92,8 @@ as they close; this is a working file, not a receipt.
   front matter to describe the lab that exists, move the Sovereign-AI-OS architecture to
   `ARCHITECTURE.md` as history. Repo is ~97% research artifacts by file count; `modules/` has had
   **0** commits in 30 days, `deploy/` untouched since 2026-06-01.
-- **Einstein-mode behavioural test** — does `{REASON:einstein}` actually produce the ≥5000-token
-  "20 agents" brainstorm the card claims? Template-side it injects +1,082 chars. Never run.
+- ~~**Einstein-mode behavioural test**~~ — **now running** as `PREREG_EINSTEIN_TERMINATION.md`; see
+  the outward-facing entry above.
 
 ## Facts that cost real time to establish
 
