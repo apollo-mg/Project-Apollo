@@ -98,12 +98,20 @@ def post(base_url, body, timeout=300):
         return json.load(r)
 
 
-def ask_image(base_url, png_bytes, prompt, max_tokens, temperature, timeout=300):
+def ask_image(base_url, png_bytes, prompt, max_tokens, temperature, timeout=300, ctk=None):
+    """ctk: chat_template_kwargs sent with EVERY request.
+
+    Sent per request, not only as a launch flag, so that `--base-url` against a server whose own
+    default differs (e.g. `.73`'s daily driver runs reasoning_effort=medium) is still graded with
+    thinking off. Verified 2026-09-11: the per-request override wins over the server default.
+    """
     b64 = base64.b64encode(png_bytes).decode()
     body = {"messages": [{"role": "user", "content": [
                 {"type": "text", "text": prompt},
                 {"type": "image_url", "image_url": {"url": "data:image/png;base64," + b64}}]}],
             "max_tokens": max_tokens, "temperature": temperature}
+    if ctk:
+        body["chat_template_kwargs"] = ctk
     o = post(base_url, body, timeout)
     m = o["choices"][0]["message"]
     return ((m.get("content") or "").strip(),
@@ -138,7 +146,7 @@ CONTROLS = [
 ]
 
 
-def run_controls(base_url, temperature, log):
+def run_controls(base_url, temperature, log, ctk=None):
     """Grade synthetic images with known content. Returns True only if every control passes."""
     from PIL import Image, ImageDraw
     ok = True
@@ -149,7 +157,7 @@ def run_controls(base_url, temperature, log):
         ans, _, _ = ask_image(base_url, buf.getvalue(),
                               "Describe exactly what you see in one short sentence. "
                               "If the image is blank, reply with the single word BLANK.",
-                              50, temperature)
+                              50, temperature, ctk=ctk)
         good = check(ans)
         ok &= good
         log(f"  control {name:12s} {'PASS' if good else 'FAIL'}  -> {ans[:90]!r}")
@@ -206,9 +214,12 @@ def main():
     ap.add_argument("--temperature", type=float, default=0.0)
     ap.add_argument("--max-tokens", type=int, default=120)
     ap.add_argument("--seed", type=int, default=20260911, help="seeds the code labels and image order")
+    ap.add_argument("--chat-template-kwargs", default='{"enable_thinking": false}',
+                    help="JSON sent with every request; overrides a remote server's own default")
     ap.add_argument("--skip-controls", action="store_true", help="NOT recommended; recorded in the manifest")
     a = ap.parse_args()
 
+    ctk = json.loads(a.chat_template_kwargs) if a.chat_template_kwargs else None
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
     logfh = open(out / "run.log", "a")
     def log(m):
@@ -248,7 +259,8 @@ def main():
         "rubric": rubric,
         "reps": a.reps, "temperature": a.temperature, "ctx": a.ctx,
         "max_tokens": a.max_tokens, "seed": a.seed,
-        "enable_thinking": False,
+        "chat_template_kwargs": ctk,
+        "base_url": a.base_url,
         "controls_skipped": bool(a.skip_controls),
         "n_images": len(files),
     }
@@ -269,7 +281,7 @@ def main():
 
         if not a.skip_controls:
             log("positive controls (the run aborts if the model cannot see):")
-            if not run_controls(base, a.temperature, log):
+            if not run_controls(base, a.temperature, log, ctk=ctk):
                 sys.exit("POSITIVE CONTROL FAILED — not grading; the model is not reading the image")
         else:
             log("WARNING: positive controls skipped by request")
@@ -297,7 +309,7 @@ def main():
                 t0 = time.time()
                 try:
                     content, reasoning, tok = ask_image(base, square_white(f), rubric,
-                                                        a.max_tokens, a.temperature)
+                                                        a.max_tokens, a.temperature, ctk=ctk)
                     score, reason = parse_score(content)
                     rec = dict(code=code, rep=rep, score=score, reason=reason, raw=content[:400],
                                reasoning_chars=len(reasoning), tokens=tok,

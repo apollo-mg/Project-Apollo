@@ -120,3 +120,60 @@ and the probe disagree about specific drawings in both directions.
 
 `vlm_grade.py` takes any image set and any rubric file. It is not pelican-specific: the rubric is a
 committed text file, the controls are synthetic, and the manifest pins whatever model is used.
+
+## Addendum — quantising the judge changes the verdict
+
+**2026-09-11.** The same rubric, the same 15 drawings, the same tool, at two grader precisions.
+`vlm_q6k_73/` grades on `.73`'s Q6_K daily driver via `--base-url`; thinking was forced off with a
+**per-request** `chat_template_kwargs` override (that server's own default is
+`reasoning_effort=medium`), verified by `reasoning_chars = 0` on all 45 grades.
+
+**Q6_K is also perfectly self-consistent** — 15/15 identical across three repeats — despite running
+through MTP speculation, VBR KV and a tensor split. Temperature 0 determinism survives all three.
+
+| instrument | ordering |
+|---|---|
+| grader **Q6_K** | DAVIDAU 7.40 > BASE 7.00 > QWOPUS 6.80 |
+| grader **IQ3_XXS** | BASE 6.60 > DAVIDAU 6.40 > QWOPUS 6.00 |
+
+**The top two swap between precisions of the same grader.** Agreement between them is Spearman
+**+0.67** — not 1.0, on identical inputs with a deterministic decoder. The difference is the
+quantisation of the judge and nothing else.
+
+**The low-bit grader is systematically harsher:** Q6_K mean 7.07 vs IQ3_XXS 6.33, and 12 of 15
+drawings scored higher at Q6_K. Mean absolute movement 1.13 points.
+
+### The decisive case: BASE r3
+
+Only one drawing in this set has a defect verified from source rather than from a score.
+`RESULT_PELICAN3.md` establishes that **BASE r3's neck is an unoutlined white stroke on a
+transparent (white-rendering) canvas** — the head visibly floats, and this was confirmed by reading
+the SVG, not by trusting the probe.
+
+| instrument | BASE r3 |
+|---|---|
+| structural probe | 9/10 |
+| grader IQ3_XXS | 7 |
+| Gemini blind | 5 |
+| **grader Q6_K** | **4** — the lowest, and it moved −3 from IQ3_XXS |
+
+On the one drawing where we know the answer independently, **the higher-precision grader is the
+one that caught it.** This is the strongest available evidence that Q6_K is a better instrument
+here and not merely a different one.
+
+**The counter-example, stated honestly:** DAVIDAU r1 moved the other way, 4 → 7, and there IQ3_XXS
+agrees with Gemini (4) while Q6_K does not. One case each way; the BASE r3 case is the one with
+independent ground truth.
+
+**Q6_K also agrees marginally better with the other instruments:** vs Gemini +0.30 (IQ3_XXS +0.24),
+vs the structural probe +0.31 (IQ3_XXS +0.20). Both differences are small at n = 15.
+
+### Consequence
+
+**Grade at Q6_K.** `.73` already serves it with the mmproj loaded, so the better instrument is also
+the one that needs no new download — point `vlm_grade.py` at it with `--base-url` and the
+per-request thinking override.
+
+And the self-referential point this campaign keeps producing: **quantisation costs the judge as well
+as the artist.** A 3-bit grader missed the only verified defect in the set. Any future use of a
+local VLM as a scorer should state its quant in the receipt, exactly as we state the subject's.
