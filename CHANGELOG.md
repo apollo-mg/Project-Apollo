@@ -1212,3 +1212,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **RepositoryUploader:** Handles uploading to repository with SHA-256 checksum computation for integrity verification
   - **IntegrityVerifier:** Verifies integrity of deployed assets with configurable expected checksums
   - **Lifecycle Management:** `FleetOrchestrator` class orchestrates the complete Boot → Train → Zip → Upload → Verify pipeline with state tracking and checkpoint resumption capabilities
+
+- **`tools/vlm_grade.py` — a controlled local vision grader (Claude, 2026-09-11):** scores images
+  against a committed rubric file using a local VLM, reproducibly.
+  - **Why:** a vendor web chat cannot be written into a receipt — model version, system prompt and
+    personalisation are unknowable — and our captioned contact sheet leaked the answer key to one
+    (`data/receipts/svgbench-pelican3/RESULT_VLM_LABEL_LEAK.md`).
+  - **Pins** model + mmproj sha256, binary commit, every flag, rubric hash, sampling and repeats
+    into `manifest.json`.
+  - **Positive controls abort the run** if the model cannot describe synthetic images.
+  - **Blind by construction:** no filenames, labels or prior scores reach the model; the
+    code→file mapping is written separately.
+  - **Resumable**, fsyncs every grade, and refuses to start below 6 GB MemAvailable.
+  - Defaults to Qwen3.8-27B `UD-IQ3_XXS` + `mmproj-F16` on the 9070; `--base-url` reuses a server.
+  - ⚠ `--reasoning-budget 0` does **not** disable thinking on the Qwen3.8 template; use
+    `--chat-template-kwargs '{"enable_thinking":false}'` and verify via `/apply-template`.
