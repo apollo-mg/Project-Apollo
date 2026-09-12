@@ -32,18 +32,34 @@ as they close; this is a working file, not a receipt.
   - Loads take 322 s off `/mnt/HDD` (O10: blocked on NVMe space).
 - **Test 2 (RDNA4): DONE** (`RESULT_EXL3_HIP.md`). EXL3 loads, but every EXL3 matmul runs on the CPU;
   `-ngl 99` is slower than `-ngl 0`. Mark offered buun RDNA4 testing.
-- **Test 3 (KLD) has been RUNNING since 15:53.**
-  - Orchestrator: `exl3-campaign/orchestrate_kld.sh`. The proxy is **paused**, with a 180 min dead-man,
-    so the 16:05 and 17:05 ledger runs will fail.
-  - It copies the Q8_0, UD-IQ4_XS and UD-Q4_K_M to `.73:/mnt/HDD/kld/`, re-hashes them there, then runs
-    the reference and five arms at `-ub 8`.
-  - Results land in `exl3-campaign/kld/`. The 5 GB reference stays on `.73`.
+- **Test 3 (KLD): DONE** (`RESULT_EXL3_KLD.md`, `aa42fe1`), 4 of 5 predictions confirmed.
+  - **At matched VRAM, EXL3 is 24% closer to a Q8_0 reference than UD-IQ4_XS** (0.012002 vs 0.015727) at
+    32 MiB less VRAM. A GGUF needs ~790 MiB more to match its fidelity.
+  - **Perplexity is retired as a fidelity metric here:** it scores Q6_K and Q4_K_M *better than the Q8_0
+    they approximate*, and ranks EXL3 last where KLD ranks it second.
+  - The gate reproduced the reference bit-for-bit (KLD 0.000000, same-top 100%).
+  - **The 5 GB reference stays on `.73:/mnt/HDD/kld/ref.kld`** — any further arm scores against it.
+- **Amendment 2 adds EXL3 5.00bpw (`E5`), queued** (`orchestrate_kld_arm.sh`): 4.00 and 5.00bpw bracket
+  Q4_K_M's VRAM, so the EXL3 curve can be interpolated at the GGUF's size instead of comparing two fixed
+  points.
 - **"61% of the bits" was the nominal figure.** VRAM is 64% and disk 74% (fixed in `cc0c9a6`).
 - **Test 4 (MTP micro-batch sweep) is QUEUED behind test 3** (`orchestrate_mtp.sh`, launched 16:25; it
   waits for the KLD orchestrator, then takes `.73` itself, builds `llama-bench` there and sweeps
   `-ub 1,2,4,8,16` on both formats). It measures whether EXL3's int8 path amortizes a multi-row batch —
   that is, whether the 1.24× is a kernel issue buun could fix. Both fast paths cover 8 rows, so a 4-row
   verify does not fall off either.
+- **Test 6 (MTP depth curve) is QUEUED behind test 4** (`orchestrate_depth.sh`, launched 17:09), at
+  Mark's suggestion that a format with costlier extra rows should want less depth. Per-request
+  `speculative.n_max` varies depth without reloading, so one server per format covers 0,1,2,3,5,7. A
+  cost model fitted to test 1 puts EXL3's optimum near depth 2, worth only 2-3% — the test replaces the
+  model. **The whole chain runs unattended:** each orchestrator waits on the previous one's pidfile,
+  takes `.73` only when the daily driver is idle, and restores the proxy behind a dead-man.
+- **A HIP port of EXL3 looks tractable** (`NOTE_EXL3_HIP_PORT.md`, source reading). Every Ampere-only
+  construct in the int8 GEMV is guarded on `__CUDA_ARCH__`, which HIP does not define, so `cp.async` and
+  `dp4a` already fall back to portable C — **the sm_60 path buun wrote for our P100s is the HIP path.**
+  What blocks a compile: three unguarded PTX idioms in `exl3-dq.cuh`, the Ampere `mma` GEMV needing
+  exclusion, and the two HIP gates. RDNA3/4 can use `__builtin_amdgcn_sudot4` with the first sign flag
+  false. **Mark's 9070 is the only RDNA4 in the collaboration and the build tree is standing.**
 - **O8 (can we make our own quants?): source reading only, no blocker found**
   (`NOTE_EXL3_QUANTIZER_ON_SM60.md`). exllamav3 sets no architecture gate, and the sampled kernels use
   `half2` intrinsics that Pascal has natively. **3 of 113 CUDA sources were read**, so it is not an

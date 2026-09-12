@@ -21,6 +21,10 @@ Every EXL3 deployment on this fleet runs on:
   - **OPEN:** the test and its cost are named.
   - **NOT RETIRABLE BY US:** it needs upstream work or money.
 - **Each test gets its own prereg**, committed before the data it governs.
+- **Match VRAM by choosing the bitrate, on both sides.** EXL3 ships a ladder (2.00–6.00bpw for this
+  model) and GGUF ships recipes at many sizes, so comparing two *fixed* points measures whoever chose
+  the points, not the formats. Mark caught this on 2026-09-12, when test 3 read EXL3 4.00bpw against a
+  GGUF 2 GB larger and I called it a trade-off.
 - **The campaign ends when every entry is settled:** retired, or confirmed or not retirable and
   accepted. Then the switch is Mark's call.
 
