@@ -119,3 +119,28 @@ the longer shapes. Medians absorb it at three reps except where two reps run slo
 | P-IQ4-numa | True | [14769, 13959, 14365, 14045] = 57138 | 104.9 / 96.2 / 105.9 | 12.58 / 12.49 / 11.53 |
 | P-IQ4-b | True | [14769, 13959, 14365, 14045] = 57138 | 117.8 / 103.0 / 112.6 | 12.08 / 12.19 / 11.12 |
 ```
+
+---
+
+## Addendum — 14:02: the post-run verifier
+
+`post_stage1_verify.sh` reloaded each configuration with the driver's exact flags plus `-lv 4`, load only, no requests:
+
+| config | KV cache | pipeline parallelism |
+|---|---|---|
+| F-Q2 | K f16, V f16 | **enabled** |
+| P-Q2 | K f16, V f16 | off |
+| X-Q2 | K f16, V f16 | off |
+| P-IQ4 (P-IQ4-numa and -b use the same flags) | K f16, V f16 | off |
+
+- **The vacuous f16 check hid nothing:** every configuration used f16 KV, as declared.
+- **Pipeline parallelism engaged exactly where the code says it can** (fully offloaded, no tensor overrides) — **and it
+  did not help.** F-Q2's prefill (131.0 / 144.4 / 104.5 tok/s) is no better than X-Q2's with it off (141.4 / 128.9 /
+  141.2). Something serializes prefill regardless; one `nsys` capture of F-Q2 would show what (BACKLOG S8).
+- At `-lv 4` the loader lines do appear (6–7 buffer lines per configuration), in `flashnext_res/verify/load_*.log`.
+
+**A follow-up found reading buun's `common/fit.cpp`:** the auto-fit has a placement mode commented *"everything but
+sparse MoE weights"* (`LAYER_FRACTION_MOE`, line 28) and MoE-cache-aware planning. **Every run here used `-fit off`**,
+the fleet's rule on Pascal since the row-split crashes — which is what forced whole-layer spills. **Whether `-fit` now
+spills Flash-Next's experts on its own, and whether it still crashes on Pascal, is untested**, and belongs with the
+`-ncmoe` follow-up.

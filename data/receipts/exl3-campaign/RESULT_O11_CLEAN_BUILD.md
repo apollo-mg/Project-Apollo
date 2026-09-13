@@ -105,3 +105,10 @@ node's all-reduce setting.
 **Three small items for buun, all test-side:** the GCC 15.2 compile error, `test-exl3-cpu.cpp:220`
 asserting where it should skip below cc 700, and — pending the rerun — whether the NCCL-dependent
 tests should honour `GGML_CUDA_ALLREDUCE` or skip when NCCL cannot initialise.
+
+### Update 14:01 — the NCCL rerun: all 15 pass with the node's setting
+
+`post_stage1_verify.sh` reran `ctest -R "exl3-(shard-matrix|expert)"` with `GGML_CUDA_ALLREDUCE=internal`:
+**100% tests passed, 0 tests failed out of 15** (`ctest_exl3_allreduce_internal.txt`). The twelve aborts were the
+NCCL path alone. **P-O11b, final: 34 of 35 EXL3 tests pass on sm_60 at `c7f114d34`.** The 35th,
+`test-exl3-cpu-cache`, should skip below cc 7.0 and asserts instead. **No EXL3 kernel test fails on Pascal.**
