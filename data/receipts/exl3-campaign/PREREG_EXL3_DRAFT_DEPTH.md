@@ -58,3 +58,32 @@ depth grows, since later draft positions are harder.
   difference is not confounded by loading, but the two arms are separate processes.
 
 **Scorer:** `tools/score_exl3_depth.py`, committed with this prereg.
+
+## Amendment 3 — 2026-09-12 ~19:55: redo it with a server restart per depth
+
+**The per-request method is dead.** Attempt 1's gate (P-S0) showed `speculative.n_max` is ignored under
+`--spec-type draft-mtp`: every requested depth drafted ~7 per step, the server's CLI value
+(`RESULT_EXL3_DEPTH.md`). Depth is a server-level setting on this fork, so the curve needs a restart per
+point.
+
+- **Method:** one server per (arm, depth), started with `--draft-max k`, otherwise the daily driver's
+  exact flags. Everything else — prompt, greedy sampling, 256 tokens, three reps — is unchanged.
+- **Depths: 1, 2, 3, 5.** Four points rather than six, because each EXL3 load costs 318 s off spinning
+  disk. Depth 7 is already measured (attempt 1) and depth 0 comes from test 1's MTP-off arms.
+- **Baselines are test 1's MTP-off figures:** EXL3 11.22 t/s, Q6_K 13.18 t/s greedy, measured on the same
+  node, binary, flags and prompt. **That is a cross-test baseline** and is declared as such.
+- **Arms:** `X` = EXL3 4.00bpw, `Q` = Q6_K.
+
+| id | prediction |
+|---|---|
+| P-S5 | **Gate.** Depth reaches the model: drafted tokens per predicted token at depth 5 exceed those at depth 1 by at least 1.5×. If not, the method failed again and everything below is VOID |
+| P-S6 | EXL3's best depth is ≤ 3 |
+| P-S7 | Q6_K's best depth is ≥ 3 |
+| P-S8 | EXL3's gain at its best depth is below 1.4× |
+| P-S9 | At every depth, EXL3's gain is below Q6_K's |
+
+**Declared:** the earlier P-S0 to P-S4 stay VOID and are not rescored. Attempt 1's depth-7 point is
+carried into the receipt's curve as a fifth point, measured under the same flags with a different server
+lifetime.
+
+**Driver:** `exl3_depth_restart.py`. **Scorer:** `tools/score_exl3_depth_restart.py`.

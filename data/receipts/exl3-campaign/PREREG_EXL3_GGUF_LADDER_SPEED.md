@@ -47,4 +47,28 @@ this fleet is "run Q4_K_M", not EXL3.** That is worth knowing before anyone reco
 - **One prompt, 256 tokens, three reps** — a speed estimate, as in test 1.
 - **This measures the ladder as published by unsloth**, whose recipes differ per upload.
 
-**Driver:** test 1's `exl3_dropin.py` with the two arms substituted, committed before the run.
+**Driver:** `exl3_ladder_speed.py`, committed before the run. **Scorer:** `tools/score_exl3_ladder.py`.
+
+## Amendment 1 — 2026-09-12 ~19:50, before any data: add the EXL3 5.00bpw arm
+
+**Test 3's Amendment 2 changed what this test is for.** EXL3 5.00bpw reads KLD 0.003994 at 16,372 MiB —
+within 1.4× of the daily driver's fidelity on 4.9 GB less VRAM — so **it, not EXL3 4.00bpw, is the
+configuration the quality result points at. Its speed has never been measured.** Recommending it on one
+axis would repeat exactly the error Mark caught.
+
+**New arm:** `E5s` = EXL3 5.00bpw (`/mnt/HDD/exl3/Qwen3.8-27B-exl3-5.00bpw`, pinned `a35e75a7`, verified
+on `.73`). Same flags and stages as the others. Run order: `E5s`, `G4s`, `G5s`.
+
+| id | prediction |
+|---|---|
+| P-G6 | E5s decodes slower than EXL3 4.00bpw's 13.08 t/s — more bits, more bytes per token |
+| P-G7 | G5s decodes faster than E5s, at comparable VRAM (15,448 vs 16,372 MiB) |
+| P-G8 | **No EXL3 arm beats a GGUF on both axes at once.** For each EXL3 arm there is a GGUF that is either faster at equal-or-better KLD, or closer at equal-or-better speed. Falsified if any EXL3 arm dominates every GGUF arm on speed *and* KLD together |
+
+**P-G5 is restated for clarity:** it asked whether UD-Q4_K_M dominates EXL3 outright. Test 3 already
+settled the KLD half in EXL3's favour at matched size, so P-G5 now turns on speed alone and is scored as
+written against **EXL3 4.00bpw**, the arm it was written about.
+
+**Declared:** the two GGUF arms' KLD comes from test 3, measured at `-ub 8` under `-sm layer`, while speed
+here is measured under the daily driver's `-sm tensor` with VBR KV. **The two axes come from different
+configurations** and the receipt must say so wherever it puts them in one table.
