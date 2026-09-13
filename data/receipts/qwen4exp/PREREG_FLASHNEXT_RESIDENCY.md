@@ -305,3 +305,26 @@ hash-listed in `published_sha256.json` and re-downloadable. F-X3 reruns **unchan
 prompts and driver revision — after the Stage 3 launcher finishes, behind a free-space gate of ≥ 45 GB
 (`launch_stage2_retry.sh`). The first attempt's load row stays in `results.jsonl`; the scorer keeps the last
 load row per arm. **P-X1–P-X5 are unchanged and are scored on the retry.**
+
+---
+
+## Amendment 5 — 2026-09-13 ~15:10: S3-FIT was mis-specified; a corrected auto-fit arm is queued (Stage 3b)
+
+**P-S4's failure is the arm's design, not Pascal.** S3-FIT passed `-ngl 99` alongside `-fit on`. The fitter logged
+`failed to fit params to free device memory: n_gpu_layers already set by user to 99, abort` and `fit could not
+prove a viable placement; restoring the pre-fit parameters`; the pinned placement then hit the known card-0
+overflow (`allocating 16847.21 MiB on device 0: cudaMalloc failed: out of memory`, `server_S3-FIT.log`). **No
+crash. Auto-fit on Pascal remains untested** — S3-FIT asked it to fit around a placement it was not allowed to
+change. S3-FIT's own result stays in the record as scored, FALSIFIED as coded, with this cause attached.
+
+**The corrected arm, same build, flags and prompts, run with `--stage3b` after the Stage 2 retry:**
+
+| arm | weights | placement |
+|---|---|---|
+| **S3-FIT2** | UD-IQ4_XS | `-fit on`, **no user `-ngl`** — the common flags otherwise unchanged |
+
+| id | prediction | conf |
+|---|---|---|
+| P-S4b | loads on Pascal without crashing | 0.6 |
+| P-S5b | decode ≥ 1.2× P-IQ4 (11.63) — fit spills experts, not whole layers | 0.5 |
+| P-S6b | decode within ±10% of S3-X4 (21.28) — fit finds a placement as good as the hand-picked `-ncmoe 2` | 0.4 |

@@ -106,7 +106,7 @@ print(f"- **P-BW3** both sockets first-touch ≥ 1.7× one socket: " + ("NOT TES
 print("\n## Stage 2 and Stage 3 arms\n")
 print("| arm | loaded | GPU MiB after load | pp 500 / 1800 / 3600 | tg @500 / 1800 / 3600 |")
 print("|---|---|---|---|---|")
-for a in ("F-X3", "S3-X4", "S3-X4n4", "S3-FIT"):
+for a in ("F-X3", "S3-X4", "S3-X4n4", "S3-FIT", "S3-FIT2"):
     if a in loads:
         L = loads[a]
         pp = " / ".join(f"{med(a, n, 'pp_tps'):.1f}" if med(a, n, "pp_tps") else "—" for n in (500, 1800, 3600))
@@ -145,3 +145,14 @@ print(f"- **P-S4** -fit on loads on Pascal: " + ("NOT RUN" if "S3-FIT" not in lo
 fz = med("S3-FIT", 500, "tg_tps")
 print(f"- **P-S5** auto-fit spills experts (≥ 1.2× P-IQ4): " + ("NOT TESTABLE" if missing(fz, p_iq4) else
       f"{verdict(fz / p_iq4 >= 1.2)} (S3-FIT {fz:.2f} vs P-IQ4 {p_iq4:.2f} = {fz / p_iq4:.2f}×)"))
+
+print("\n## Stage 3b (Amendment 5): the auto-fit retest, corrected\n")
+if "S3-FIT2" not in loads:
+    print("- **P-S4b / P-S5b / P-S6b**: NOT RUN")
+else:
+    L2, f2, x4v = loads["S3-FIT2"], med("S3-FIT2", 500, "tg_tps"), med("S3-X4", 500, "tg_tps")
+    print(f"- **P-S4b** -fit on with no user -ngl loads on Pascal: {verdict(bool(L2.get('ok')))} (GPU after load {L2.get('gpu_after_load')})")
+    print(f"- **P-S5b** auto-fit decode >= 1.2x P-IQ4: " + ("NOT TESTABLE" if missing(f2, p_iq4) else
+          f"{verdict(f2 / p_iq4 >= 1.2)} ({f2:.2f} vs {p_iq4:.2f} = {f2 / p_iq4:.2f}x)"))
+    print(f"- **P-S6b** auto-fit within +-10% of the hand placement S3-X4: " + ("NOT TESTABLE" if missing(f2, x4v) else
+          f"{verdict(abs(f2 / x4v - 1) <= 0.10)} ({f2:.2f} vs {x4v:.2f} = {f2 / x4v - 1:+.1%})"))

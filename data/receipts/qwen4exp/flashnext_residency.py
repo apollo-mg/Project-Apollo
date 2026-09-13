@@ -11,7 +11,7 @@ Stage 1 ran from this file at sha 3699e75d. Later revisions add the EXL3 arm, a 
 verification, a longer load limit, full timings per request, an abort if speculative decoding ever runs, and the
 Stage 3 arms with a per-arm -fit override; none of it changes a Stage 1 arm or Stage 2's arm definition.
 
-Usage (on .194):  python3 flashnext_residency.py [--stage2 | --stage3]
+Usage (on .194):  python3 flashnext_residency.py [--stage2 | --stage3 | --stage3b]
 """
 import hashlib, json, os, re, subprocess, sys, threading, time, urllib.request
 
@@ -54,6 +54,9 @@ STAGE2 = [("F-X3", EXL3, ["-ngl", "99"])]
 STAGE3 = [("S3-X4", IQ4, ["-ngl", "99", "-ncmoe", "2"]),
           ("S3-FIT", IQ4, ["-ngl", "99", "-fit", "on"])]
 STAGE3_FALLBACK = ("S3-X4n4", IQ4, ["-ngl", "99", "-ncmoe", "4"])
+# Stage 3b (Amendment 5): the auto-fit retest as it should have been specified -- no user -ngl, so fit may choose
+# the placement itself. S3-FIT pinned -ngl 99, and fit declines to act on a user-set n_gpu_layers.
+STAGE3B = [("S3-FIT2", IQ4, ["-fit", "on"])]
 
 
 class Abort(Exception):
@@ -325,7 +328,8 @@ def run_arm(label, stem, flags):
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    stage = 3 if "--stage3" in sys.argv else 2 if "--stage2" in sys.argv else 1
+    stage = ("3b" if "--stage3b" in sys.argv else 3 if "--stage3" in sys.argv
+             else 2 if "--stage2" in sys.argv else 1)
     try:
         ver, clk = gates()
         emit({"stage": "gates", "ok": True, "version": ver[:300], "clocks": clk, "run_stage": stage})
@@ -337,6 +341,8 @@ def main():
             queue = list(STAGE2)
         elif stage == 3:
             queue = list(STAGE3)
+        elif stage == "3b":
+            queue = list(STAGE3B)
         else:
             bandwidth()
             queue = list(ARMS)
