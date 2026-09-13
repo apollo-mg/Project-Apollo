@@ -169,3 +169,23 @@ Same build, flags and prompts; `-sm layer`, since `32c2c1479` rejects multi-devi
 - **Layer split is pipelined:** at `-np 1` one card works at a time. These are single-user numbers.
 - **One prompt source, one context length, one GGUF packager** (unsloth UD).
 - **Runtime:** Stage 1 ≈ 1.5 h, about 13 minutes per arm, mostly cold loads from SATA. `.194` idles at 218 W.
+
+---
+
+## Amendment 1 — 2026-09-13 ~12:50, before any arm has run
+
+The Stage 1 launcher is armed but still waiting on the build. Reading buun's `exl3.cu` for a different
+question (Mark: does DFlash use the GPU differently from MTP?) turned up two limits that bear on
+Stage 2's **rationale**. **No prediction changes.** The reasoning behind P-X5 is weaker than written.
+
+- **The int8 path has row and pair ceilings.** Dense matmuls take it only for **m ≤ 8 rows**
+  (`exl3_int8::MAX_M = 8`, commented *"covers speculative verify batches (draft-max 3 default, up to
+  7)"*). MoE matmuls take it only up to **2,048 token-expert pairs** (`EXL3_MOE_PAIRS_MAX`). A 512-token
+  ubatch at 10 experts per token is **5,120 pairs**, so Flash-Next prefill at `-ub 512` does **not** take
+  the int8 path. Which path it takes instead is not established here. P-X5's premise ("~10 rows per
+  expert is EXL3's weak regime") was measured **on the int8 path**, so it may not describe the kernel that
+  actually runs. **P-X5 is scored as registered; the result must name the path that ran before
+  attributing anything to it.**
+- **Every EXL3 speed number so far ran with `GGML_EXL3_INT8` unset** (mode −1: plain int8 for weights of
+  ≤ 6 bits, error-feedback residual for ≥ 7). The fp16 tensor-core GEMV (mode 0) has never been timed on
+  this fleet. Stage 2 runs at the default, like everything before it, so it stays comparable.
