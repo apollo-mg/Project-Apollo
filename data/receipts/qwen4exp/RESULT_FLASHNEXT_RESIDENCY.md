@@ -186,3 +186,49 @@ P-R2 and with the one-card-at-a-time picture in `NOTE_GUITOP_XQ2_UTILIZATION.md`
 footprint — is now available to a GGUF that spills two layers' experts. turboderp's own chart puts UD-IQ4_XS
 (0.0165) slightly ahead of EXL3 3.05bpw (0.0177) in fidelity, so **the remaining question for EXL3 on `.194` is
 whether it can beat 21.3 tok/s at comparable fidelity.** That is what the retry measures.
+
+---
+
+## Addendum — Stage 2 (retry), 15:35–15:51: EXL3 3.05bpw runs on Pascal, and wins on quality per byte
+
+The first attempt died on disk space (Amendment 4). The retry ran the arm unchanged: the 24 files re-verified
+against the manifest in 1,133 s, the model loaded in **about 11 min 40 s** (15:35:48 → first request 15:47:30),
+answered "17 × 23" correctly, and completed every rep. **All five Stage 2 predictions confirmed.**
+
+| id | prediction | result |
+|---|---|---|
+| P-X1 | loads and answers coherently on sm_60 | **CONFIRMED** |
+| P-X2 | all layers resident, ≥ 40,000 MiB on the cards | **CONFIRMED** — 50,060 MiB; the reload reports 50/50 layers |
+| P-X3 | decode ≥ P-IQ4 | **CONFIRMED** — 18.41 vs 11.63 tok/s |
+| P-X4 | decode ≤ F-Q2 | **CONFIRMED** — 18.41 vs 21.05 tok/s |
+| P-X5 | prefill ≤ 0.75× F-Q2 at 1,800 | **CONFIRMED** — 99.3 vs 108.3 (0.69×) |
+
+### The matched-footprint comparison — the cleanest in the campaign
+
+| configuration | GPU MiB | decode 500 / 1,800 / 3,600 | prefill 500 / 1,800 / 3,600 | KLD (turboderp's chart) |
+|---|---|---|---|---|
+| **EXL3 3.05bpw_h5_ng5** | **50,060** | 18.41 / 18.40 / 16.79 | 95.8 / 99.3 / 99.5 | **0.0177** |
+| UD-Q2_K_XL, fully resident | 50,190 | 21.05 / 20.94 / 19.03 | 131.0 / 144.4 / 104.5 | 0.0533 |
+| UD-IQ4_XS, `-ncmoe 2` | 61,566 | 21.28 / 21.37 / 18.97 | 146.5 / 141.6 / 146.0 | 0.0165 |
+
+**The two 50 GB configurations sit 130 MiB apart.** At that footprint EXL3 is **3.0× closer to the reference**
+than the GGUF and decodes at **0.87×** its speed, with prefill at **0.69×**. That is the EXL3 trade stated
+plainly, and it is the first configuration on this fleet where EXL3's advantage is purchasable: on `.73` the
+ladder found GGUF faster at every quality level with VRAM to spare.
+
+**But `.194` also has VRAM to spare.** Spending 11.5 GB more on UD-IQ4_XS with two layers' experts spilled is
+**faster (21.28 vs 18.41) and slightly better (0.0165 vs 0.0177)**. So EXL3 wins the matched-footprint
+comparison and still loses the machine: **the practical pick on `.194` remains UD-IQ4_XS with `-ncmoe 2`.**
+EXL3 3.05bpw becomes the pick on a box where ~50 GB is the ceiling.
+
+**Fidelity here is turboderp's**, from his model card: his corpus, his reference, his method. **We cannot measure
+Flash-Next KLD on this fleet** — a Q8_0 reference is ~190 GB. Our own 27B measurement found a smaller EXL3
+advantage than his charts imply (`exl3-campaign/RESULT_EXL3_COMPRESSION.md`), so treat the 3.0× as his number,
+not ours.
+
+**Two costs the table does not show.** EXL3 took **11.7 minutes to load** against roughly two for the GGUFs,
+because the n-gram table is prepared into a 31 GB temp file first — that alone rules it out for wake-on-demand
+(campaign O10). And **P-X5's attribution is still open:** Amendment 1 established that a 512-token ubatch is
+5,120 token-expert pairs, past the int8 path's 2,048 limit, so prefill takes another path; the dispatch read on
+09-13 says that is reconstruct-to-fp16 plus `cublasGemmEx` for dense matmuls, but the MoE case was not traced.
+**Name the path before attributing the prefill gap to row scaling.**
