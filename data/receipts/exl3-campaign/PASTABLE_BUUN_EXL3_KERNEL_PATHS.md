@@ -32,8 +32,8 @@ speed numbers so far set the mode, so mode 0 is untimed on our side.
 2. `test-exl3-cpu-cache` aborts on sm_60: `[moe-cache] CUDA0 skipped: compute capability 600 is below
    700`, then `GGML_ASSERT(session)` at `test-exl3-cpu.cpp:220`. Looks like it wants to return the skip
    code 77 there instead.
-3. (Our side, still checking.) 12 multi-GPU shard/expert tests abort in
-   `ggml_backend_cuda_comm_allreduce_nccl` when ctest runs without `GGML_CUDA_ALLREDUCE=internal`, which we
-   always set on the P100s. Re-running them with it after the current bench — will report back.
+3. 12 multi-GPU shard/expert tests abort in `ggml_backend_cuda_comm_allreduce_nccl` when ctest runs bare. With
+   `GGML_CUDA_ALLREDUCE=internal`, which we always set on the P100s, all 15 pass. Might be worth having them
+   skip (77) when NCCL can't initialise, so a bare `ctest` on Pascal doesn't read as 12 failures.
 
-Everything else in `ctest -R exl3` passed on sm_60: 22 of 35.
+With that set, 34 of 35 `ctest -R exl3` tests pass on sm_60 — the 35th is item 2. No EXL3 kernel test fails on Pascal.
