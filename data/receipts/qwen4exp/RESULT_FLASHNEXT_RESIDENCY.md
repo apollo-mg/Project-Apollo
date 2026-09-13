@@ -144,3 +144,45 @@ sparse MoE weights"* (`LAYER_FRACTION_MOE`, line 28) and MoE-cache-aware plannin
 the fleet's rule on Pascal since the row-split crashes — which is what forced whole-layer spills. **Whether `-fit` now
 spills Flash-Next's experts on its own, and whether it still crashes on Pascal, is untested**, and belongs with the
 `-ncmoe` follow-up.
+
+---
+
+## Addendum — Stage 3, 14:55–15:02: spilling experts rescues IQ4_XS, and decode here is overhead-bound
+
+| arm | placement | GPU MiB after load | decode 500 / 1,800 / 3,600 | prefill 500 / 1,800 / 3,600 |
+|---|---|---|---|---|
+| **S3-X4** | `-ngl 99 -ncmoe 2` | [15515, 15191, 15591, 15269] = **61,566** | **21.28 / 21.37 / 18.97** | 146.5 / 141.6 / 146.0 |
+| S3-FIT | `-ngl 99 -fit on` | did not load | — | — |
+
+| id | prediction | result |
+|---|---|---|
+| P-S1 | IQ4_XS loads at `-ncmoe 2` | **CONFIRMED** — card 0 at 15,515 MiB, under its 16,384 |
+| P-S2 | expert spill rescues IQ4_XS, ≥ 1.4× P-IQ4 | **CONFIRMED** — 21.28 vs 11.63 tok/s = **1.83×** |
+| P-S3 | the overhead-bound cost model, > 17.5 tok/s | **CONFIRMED** — 21.28 (bandwidth-bound predicted 15.7) |
+| P-S4 | `-fit on` loads on Pascal | **FALSIFIED as coded** — by the arm, not the hardware; see Amendment 5 |
+| P-S5 | auto-fit spills experts | **NOT TESTABLE** — the fitter never ran |
+
+**1. The overflow that kept IQ4_XS off the cards was two layers of experts.** Moving them to the CPU brings card 0
+from 16,847 MiB (the 08-28 request) to 15,515, and the model runs.
+
+**2. Decode on this box is overhead-bound, not bandwidth-bound — the day's most useful placement fact.** IQ4_XS
+carries **1.30×** UD-Q2_K_XL's resident bytes and decodes at **the same speed** (21.28 vs 21.05 tok/s). A cost
+model built on bytes and bandwidth would have predicted 15.7 and mis-ranked every placement choice. **Bits are
+nearly free in decode here; per-token overhead is the scarce thing.**
+
+**3. So the best Flash-Next configuration measured on `.194` today is UD-IQ4_XS with `-ncmoe 2`:** IQ4-class
+fidelity at **21.3 tok/s**, against 11.63 for the same quant with four whole layers spilled, and the same speed as
+a 3-bit quant fully resident. Files already on disk, one flag.
+
+**4. Prefill is unchanged by the placement** (141.6–146.5 tok/s, marginally above F-Q2's), consistent with Stage 1's
+P-R2 and with the one-card-at-a-time picture in `NOTE_GUITOP_XQ2_UTILIZATION.md`.
+
+**5. The protocol flaw repeats:** the first rep at each length is slow again (98.9 / 146.5 / 146.8 tok/s prefill at
+500). Medians absorb it; the fix is a warm-up per length.
+
+**6. The verbose reload confirms the placement:** 49/49 layers offloaded, K and V both f16.
+
+**What it means for Stage 2.** The prize EXL3 3.05bpw was to claim here — IQ4-class fidelity at a resident
+footprint — is now available to a GGUF that spills two layers' experts. turboderp's own chart puts UD-IQ4_XS
+(0.0165) slightly ahead of EXL3 3.05bpw (0.0177) in fidelity, so **the remaining question for EXL3 on `.194` is
+whether it can beat 21.3 tok/s at comparable fidelity.** That is what the retry measures.
