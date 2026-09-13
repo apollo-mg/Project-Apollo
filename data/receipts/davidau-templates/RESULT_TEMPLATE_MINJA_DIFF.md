@@ -85,6 +85,57 @@ serves it.
 | P-T3 | neither engine errors on the JSON-string arguments | **FALSIFIED.** jinja2 does, in both templates' path at line 282 / equivalent |
 | P-T4 | `{REASON:einstein}` injects the persona under both engines | **CONFIRMED for the default, FALSIFIED for tturbo** |
 
+## Why llama.cpp hides finding 1, and transformers cannot
+
+**llama.cpp normalizes `arguments` before the template ever runs.** `common/chat.cpp:3671`:
+
+```cpp
+if (tmpl.original_caps().supports_object_arguments) {
+    workaround::func_args_not_string(params.messages);   // chat.cpp:3142-3160
+}
+```
+
+`func_args_not_string` walks every `tool_calls` entry and, **if `arguments` is a string, parses it into a
+JSON object**. So minja is handed a mapping and `|items` works. transformers passes OpenAI's string
+through untouched, so the same line raises.
+
+**This is why the author cannot reproduce it.** A template written against llama.cpp's normalized
+convention looks correct in every llama.cpp test and breaks the moment anything else loads it — and
+llama.cpp's own capability probe is what selects that convention.
+
+## The patches, verified
+
+Both fixes are in `patched/`, and the same harness was re-run against them:
+
+| case | before | after |
+|---|---|---|
+| tturbo, `{REASON:einstein}` | minja **HTTP 500**; jinja2 silently ignored | **IDENTICAL in both engines, 1887 B**, persona injected |
+| default, tool round trip | jinja2 **TypeError** | jinja2 renders (1755 B); no crash |
+
+**Fix 1 — `chat_template-tturbo.jinja`, one line**, copied from his own default template:
+
+```jinja
+{% set candidate = txt.split("{REASON:")[1].split("}")[0] if (…) else "" %}
++ {% set candidate_key = candidate[1:] if candidate.startswith('i') else candidate %}
+  {% if candidate and candidate_key in ('xhigh', 'medium', 'low', 'einstein', 'spoon') %}
+```
+
+**Fix 2 — `chat_template.jinja`, branch at the container** so a string survives:
+
+```jinja
+{%- if tool_call.arguments is string %}
+    {{- '<parameter=arguments>\n' }}{{- tool_call.arguments }}{{- '\n</parameter>\n' }}
+{%- else %}
+    {%- for args_name, args_value in tool_call.arguments|items %} … {%- endfor %}
+{%- endif %}
+```
+
+**A residual difference remains and cannot be fixed in the template:** with fix 2, llama.cpp still renders
+structured `<parameter=city>` (it parsed the string first) while transformers renders the raw JSON block.
+Both are lossless and neither errors, but they are not byte-identical — because the *runtime*, not the
+template, decides the shape. Making them identical would need a `fromjson` filter, which transformers'
+chat-template environment does not provide.
+
 ## Is the Frogger template a good general Qwen 3.8 template?
 
 **Not as it stands**, on this evidence:
