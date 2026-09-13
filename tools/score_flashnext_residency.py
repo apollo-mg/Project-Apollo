@@ -24,6 +24,13 @@ def gpu_bufs(arm):
     return sum(v for k, v in b.items() if k.startswith("CUDA")) or None
 
 
+def gpu_used(arm):
+    """Summed per-GPU memory right after load. Amendment 2: buun's server prints no model-buffer lines at
+    the default verbosity, so this is the placement measurement actually available."""
+    g = (loads.get(arm) or {}).get("gpu_after_load")
+    return sum(g) if g else None
+
+
 def verdict(ok):
     return "CONFIRMED" if ok else "FALSIFIED"
 
@@ -37,15 +44,15 @@ for a in ("B-L0", "B-L1", "B-R01", "B-IL", "B-FT"):
     print(f"- {a}: {bw.get(a)}")
 
 print("\n## Arms\n")
-print("| arm | loaded | offloaded | CUDA model buffers MiB | pp 500 / 1800 / 3600 | tg @500 / 1800 / 3600 |")
-print("|---|---|---|---|---|---|")
+print("| arm | loaded | GPU MiB after load (per card = sum) | pp 500 / 1800 / 3600 | tg @500 / 1800 / 3600 |")
+print("|---|---|---|---|---|")
 for a in ("F-Q2", "F-IQ1", "P-Q2", "X-Q2", "P-IQ4", "P-IQ4-numa", "P-IQ4-b"):
     if a not in loads:
         continue
     L = loads[a]
     pp = " / ".join(f"{med(a, n, 'pp_tps'):.1f}" if med(a, n, "pp_tps") else "—" for n in (500, 1800, 3600))
     tg = " / ".join(f"{med(a, n, 'tg_tps'):.2f}" if med(a, n, "tg_tps") else "—" for n in (500, 1800, 3600))
-    print(f"| {a} | {L.get('ok')} | {L.get('offloaded')} | {gpu_bufs(a)} | {pp} | {tg} |")
+    print(f"| {a} | {L.get('ok')} | {L.get('gpu_after_load')} = {gpu_used(a)} | {pp} | {tg} |")
 
 print("\n## Predictions\n")
 F = "F-Q2" if "F-Q2" in done else ("F-IQ1" if "F-IQ1" in done else None)
@@ -77,9 +84,11 @@ else:
     print(f"- **P-R5** --numa distribute ≥ +3%: {v} (numa {n_:.2f} vs control mean {ctrl:.2f}: {effect:+.1%}; "
           f"control drift {drift:.1%})")
 
-gf, gx = gpu_bufs("F-Q2"), gpu_bufs("X-Q2")
+gf, gx, basis = gpu_bufs("F-Q2"), gpu_bufs("X-Q2"), "CUDA model buffers"
+if missing(gf, gx):   # Amendment 2: the server log carries no buffer lines at the default verbosity
+    gf, gx, basis = gpu_used("F-Q2"), gpu_used("X-Q2"), "summed GPU memory after load (Amendment 2)"
 print(f"- **P-R6** -ot moves experts (≥2,000 MiB off the GPUs): " + ("NOT TESTABLE" if missing(gf, gx) else
-      f"{verdict(gf - gx >= 2000)} (F-Q2 {gf:.0f} vs X-Q2 {gx:.0f} MiB on CUDA: −{gf - gx:.0f})"))
+      f"{verdict(gf - gx >= 2000)} (F-Q2 {gf:.0f} vs X-Q2 {gx:.0f} MiB, {basis}: −{gf - gx:.0f})"))
 
 l0, l1, r01, ft = bw.get("B-L0"), bw.get("B-L1"), bw.get("B-R01"), bw.get("B-FT")
 if missing(l0, l1):

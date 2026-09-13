@@ -189,3 +189,34 @@ Stage 2's **rationale**. **No prediction changes.** The reasoning behind P-X5 is
 - **Every EXL3 speed number so far ran with `GGML_EXL3_INT8` unset** (mode −1: plain int8 for weights of
   ≤ 6 bits, error-feedback residual for ≥ 7). The fp16 tensor-core GEMV (mode 0) has never been timed on
   this fleet. Stage 2 runs at the default, like everything before it, so it stays comparable.
+
+---
+
+## Amendment 2 — 2026-09-13 ~13:15, after F-Q2, before any arm P-R6 depends on
+
+**The driver's server-log parse found nothing, and one check passed vacuously.** buun's `llama-server`
+at its default verbosity (3) prints none of the loader lines the driver parses — no `model buffer size`,
+no `offloaded N/N layers`, no `K (…)` / `V (…)` cache types. Every load row therefore carries empty
+`model_buffers_mib` and `kv_types`, and **the f16-KV abort never had anything to check**: it aborts only
+on a non-f16 type *found*, and found none. A check that cannot fail — it should have aborted on finding
+nothing. Disclosed rather than patched mid-run: switching later arms to `-lv 4` would make them differ
+from F-Q2 in logging, which is the worse confound.
+
+Three consequences, each settled before the arms that depend on it:
+
+1. **P-R6 is scored on summed GPU memory after load**, which every load row does record
+   (`gpu_after_load`, read by `nvidia-smi` once the server is healthy), in place of summed CUDA model
+   buffers. It moves by the same expert bytes (~3,650 MiB for layers 44–47) and by nothing else that
+   differs between F-Q2 and X-Q2. **Threshold unchanged: ≥ 2,000 MiB.** `tools/score_flashnext_residency.py`
+   is updated in this commit to use model buffers when present and otherwise this, and to name the basis
+   it used. F-Q2 recorded **50,190 MiB** across the four cards (13,481 / 12,447 / 12,447 / 11,815).
+2. **KV type is verified after Stage 1** by re-loading each arm's exact command at higher verbosity —
+   load only, no request, no timing. If any arm's cache is not f16, the arms stay like-for-like
+   (identical flags), but the prereg's KV declaration was violated and the result will say so.
+3. **One log line looked like a KV problem and is not.** Every arm logs
+   `TCQ decode: context-adaptive V alpha enabled`. It comes from `load_tcq_decode_alpha()`
+   (`ggml/src/ggml-cuda/fattn.cu:476`), which `ggml_cuda_flash_attn_ext` calls on its generic path
+   (`:2477`) for any V type; the source comment calls it a *"one-shot loader, harmless for non-TCQ"*.
+   It says nothing about the cache type — item 2 is the positive check.
+
+**F-Q2 is complete and is not re-run:** P-R1–P-R3 use only request timings, none of the empty fields.
