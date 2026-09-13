@@ -137,3 +137,31 @@ record**. If an arm dies partway, it is scored from the log over the intersectio
 completed, and the receipt states the reduced N. The log is a weaker record than the JSON — it carries
 no traces and no `rc_chars` — so a partial run can score P-U1 and P-U2 but **not P-U3**, which needs
 `degen_ratio` over saved traces.
+
+---
+
+## Amendment 2 — 2026-09-13 ~16:05: the arm pair, chosen after test 10 (disclosed as post-data)
+
+**The selection rule was ambiguous and only turned out to be so with the data in hand.** It asked for the EXL3
+point with the largest advantage over "the GGUF lower envelope" without naming which of test 10's two envelopes,
+and the two readings pick different pairs — neither of them the comparison the rule was written to produce:
+
+- **all packagers** → EXL3 3.00bpw against **AD-IQ3_XXS**, a recipe far off the UD curve, which EXL3 beats by default;
+- **UD only** → EXL3 3.50bpw against **UD-IQ4_XS**, 1.5 GB larger and closer to the reference.
+
+**So the pair below was chosen after seeing test 10, and that is recorded rather than papered over.** Mark's call:
+
+| side | file | peak VRAM | mean KLD (test 10) |
+|---|---|---|---|
+| **EXL3** | EXL3 3.00bpw | 10,568 MiB | 0.046152 ± 0.001743 |
+| **GGUF** | UD-IQ3_XXS | 11,532 MiB | 0.047609 ± 0.001210 |
+
+**Why this pair.** The two differ by 3% in KLD, inside the summed uncertainties — a **TIE** by test 3's rule —
+while EXL3 uses **964 MiB less**. It asks what the campaign actually needs to know: **when two files are
+indistinguishable in distribution, do they behave the same on a task, and is the VRAM saving free?** GGUF is not
+handicapped: it holds more VRAM and the marginally lower KLD.
+
+**The registered predictions stand unchanged, and their priors have moved.** P-U1 (EXL3's pass@1 exceeds the
+GGUF's) is now a genuine coin flip rather than a favourite, because the pair is a distribution tie; the
+informative outcomes are **no detectable difference** or a falsification. **A confirmed P-U2 (≥ 5 points) would be
+the surprise** — it would mean KLD is blind to something the task exposes. P-U3 and P-U4 are unaffected.
