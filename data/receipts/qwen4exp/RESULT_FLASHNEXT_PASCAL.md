@@ -156,3 +156,18 @@ GGML_CUDA_ALLREDUCE=internal ./build_sm60/bin/llama-server \
   -c 4096 -np 1 -fit off -fa on --jinja -ngl 44 --host 127.0.0.1 --port 8087
 ```
 `GGML_CUDA_ALLREDUCE=internal` is mandatory on this node. `-ngl 45+` OOMs device 0.
+
+---
+
+**Note added 2026-09-13 — the `-ot` evidence is one row weaker than it reads.** The
+`per_layer_token_embd=CPU` row could never have moved anything. The table is registered as an
+input-layer tensor — `{LLM_TENSOR_PER_LAYER_TOKEN_EMBD, {LLM_TENSOR_LAYER_INPUT, GGML_OP_GET_ROWS}}`,
+`src/llama-arch.cpp:928` (buun master; the tensor-info table is keyed by tensor, not architecture) —
+and llama.cpp keeps input-layer tensors on the CPU at every `-ngl`. That override was a no-op by
+design, not evidence that `-ot` is ignored. **The expert-override rows are still anomalous** — moving
+12 layers of experts to the CPU should have cut device 0's request, and did not — so P2 stays
+UNTESTABLE, on three rows rather than four.
+
+**It also reframes P2.** "PLE table on the CPU, experts resident" is not an exotic placement that
+needs `-ot`: it is what **any fully resident run already is**. This IQ4_XS quant missed that by 4 of 48
+layers. A quant small enough to fit runs the intended experiment with no override at all.
