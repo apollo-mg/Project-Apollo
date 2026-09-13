@@ -101,3 +101,47 @@ print(f"- **P-BW2** remote ≤ 0.7× local: " + ("NOT TESTABLE" if missing(r01, 
       f"{verdict(r01 <= 0.7 * l0)} (0→1 {r01:.1f} vs local {l0:.1f} = {r01 / l0:.2f}×)"))
 print(f"- **P-BW3** both sockets first-touch ≥ 1.7× one socket: " + ("NOT TESTABLE" if missing(ft, l0, l1) else
       f"{verdict(ft >= 1.7 * (l0 + l1) / 2)} ({ft:.1f} vs {(l0 + l1) / 2:.1f} = {ft / ((l0 + l1) / 2):.2f}×)"))
+
+# ---- Stage 2 and Stage 3 (Amendment 3 fixes their scoring rules) ----
+print("\n## Stage 2 and Stage 3 arms\n")
+print("| arm | loaded | GPU MiB after load | pp 500 / 1800 / 3600 | tg @500 / 1800 / 3600 |")
+print("|---|---|---|---|---|")
+for a in ("F-X3", "S3-X4", "S3-X4n4", "S3-FIT"):
+    if a in loads:
+        L = loads[a]
+        pp = " / ".join(f"{med(a, n, 'pp_tps'):.1f}" if med(a, n, "pp_tps") else "—" for n in (500, 1800, 3600))
+        tg = " / ".join(f"{med(a, n, 'tg_tps'):.2f}" if med(a, n, "tg_tps") else "—" for n in (500, 1800, 3600))
+        print(f"| {a} | {L.get('ok')} | {L.get('gpu_after_load')} = {gpu_used(a)} | {pp} | {tg} |")
+
+coh = {r["arm"]: r.get("ok") for r in rows if r.get("stage") == "coherence"}
+p_iq4, f_q2_tg, f_q2_pp = med("P-IQ4", 500, "tg_tps"), med("F-Q2", 500, "tg_tps"), med("F-Q2", 1800, "pp_tps")
+
+print("\n## Stage 2 predictions (EXL3 3.05bpw_h5_ng5)\n")
+if "F-X3" not in loads:
+    print("- **P-X1–P-X5**: NOT RUN")
+else:
+    L = loads["F-X3"]
+    print(f"- **P-X1** loads and answers coherently on sm_60: {verdict(bool(L.get('ok')) and bool(coh.get('F-X3')))}")
+    gx3 = gpu_used("F-X3")
+    print(f"- **P-X2** all layers resident (-ngl 99 loads, ≥ 40,000 MiB on the cards): " +
+          (verdict(bool(L.get('ok')) and (gx3 or 0) >= 40000)) + f" ({gx3} MiB; per-layer count from the -lv 4 reload)")
+    x3tg, x3pp = med("F-X3", 500, "tg_tps"), med("F-X3", 1800, "pp_tps")
+    print(f"- **P-X3** decode ≥ P-IQ4: " + ("NOT TESTABLE" if missing(x3tg, p_iq4) else
+          f"{verdict(x3tg >= p_iq4)} (F-X3 {x3tg:.2f} vs P-IQ4 {p_iq4:.2f} tok/s)"))
+    print(f"- **P-X4** decode ≤ F-Q2: " + ("NOT TESTABLE" if missing(x3tg, f_q2_tg) else
+          f"{verdict(x3tg <= f_q2_tg)} (F-X3 {x3tg:.2f} vs F-Q2 {f_q2_tg:.2f} tok/s)"))
+    print(f"- **P-X5** prefill ≤ 0.75× F-Q2 at 1,800: " + ("NOT TESTABLE" if missing(x3pp, f_q2_pp) else
+          f"{verdict(x3pp <= 0.75 * f_q2_pp)} (F-X3 {x3pp:.1f} vs {0.75 * f_q2_pp:.1f}) — name the kernel path before attributing"))
+
+print("\n## Stage 3 predictions (IQ4_XS expert spill, auto-fit retest)\n")
+x4arm = "S3-X4" if "S3-X4" in done else ("S3-X4n4" if "S3-X4n4" in done else None)
+x4 = med(x4arm, 500, "tg_tps") if x4arm else None
+print(f"- **P-S1** S3-X4 loads at -ncmoe 2: " + ("NOT RUN" if "S3-X4" not in loads else verdict(bool(loads["S3-X4"].get("ok")))))
+print(f"- **P-S2** expert spill rescues IQ4_XS (≥ 1.4× P-IQ4): " + ("NOT TESTABLE" if missing(x4, p_iq4) else
+      f"{verdict(x4 / p_iq4 >= 1.4)} ({x4arm} {x4:.2f} vs P-IQ4 {p_iq4:.2f} = {x4 / p_iq4:.2f}×)"))
+print(f"- **P-S3** overhead-bound cost model (> 17.5 tok/s; bandwidth-bound predicts ~15.7): " +
+      ("NOT TESTABLE" if x4 is None else f"{verdict(x4 > 17.5)} ({x4arm} {x4:.2f} tok/s)"))
+print(f"- **P-S4** -fit on loads on Pascal: " + ("NOT RUN" if "S3-FIT" not in loads else verdict(bool(loads["S3-FIT"].get("ok")))))
+fz = med("S3-FIT", 500, "tg_tps")
+print(f"- **P-S5** auto-fit spills experts (≥ 1.2× P-IQ4): " + ("NOT TESTABLE" if missing(fz, p_iq4) else
+      f"{verdict(fz / p_iq4 >= 1.2)} (S3-FIT {fz:.2f} vs P-IQ4 {p_iq4:.2f} = {fz / p_iq4:.2f}×)"))

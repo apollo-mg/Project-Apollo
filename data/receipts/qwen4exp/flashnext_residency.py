@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 """Driver for PREREG_FLASHNEXT_RESIDENCY.md. Runs ON .194, launched detached.
 
-Stage 1 (default): gates -> host-bandwidth triad -> the GGUF llama-server arms.
+Stage 1 (default):  gates -> host-bandwidth triad -> the GGUF llama-server arms.
 Stage 2 (--stage2): gates -> EXL3 snapshot verified against its manifest -> the F-X3 arm.
+Stage 3 (--stage3): gates -> IQ4_XS with its overflow spilled as experts, then the auto-fit retest.
 One JSONL row per measurement, flushed and fsynced; an arm with an "arm_done" row is skipped on restart.
 Checks ABORT the run -- they never print a warning and carry on.
 
-Stage 1 ran from this file at sha 3699e75d. The Stage 2 revision adds the EXL3 arm, a directory model
-path, manifest verification, a longer load limit, full timings per request, and an abort if speculative
-decoding ever runs; none of it changes a Stage 1 arm.
+Stage 1 ran from this file at sha 3699e75d. Later revisions add the EXL3 arm, a directory model path, manifest
+verification, a longer load limit, full timings per request, an abort if speculative decoding ever runs, and the
+Stage 3 arms with a per-arm -fit override; none of it changes a Stage 1 arm or Stage 2's arm definition.
 
-Usage (on .194):  python3 flashnext_residency.py [--stage2]
+Usage (on .194):  python3 flashnext_residency.py [--stage2 | --stage3]
 """
 import hashlib, json, os, re, subprocess, sys, threading, time, urllib.request
 
@@ -48,6 +49,11 @@ FALLBACK = ("F-IQ1", IQ1, ["-ngl", "99"])   # declared in the prereg: replaces F
 EXL3 = os.path.join(MODELS, "exl3/Qwen3.8-Flash-Next-exl3-3.05bpw_h5_ng5")
 EXL3_MANIFEST = os.path.join(OUT, "manifest_F-X3.txt")
 STAGE2 = [("F-X3", EXL3, ["-ngl", "99"])]
+# Stage 3 (Amendment 3): -ncmoe N spills the experts of the first N layers, which sit on card 0 -- the card that
+# overflowed. S3-X4n4 runs only if S3-X4 fails to load. S3-FIT swaps the common "-fit off" for "-fit on".
+STAGE3 = [("S3-X4", IQ4, ["-ngl", "99", "-ncmoe", "2"]),
+          ("S3-FIT", IQ4, ["-ngl", "99", "-fit", "on"])]
+STAGE3_FALLBACK = ("S3-X4n4", IQ4, ["-ngl", "99", "-ncmoe", "4"])
 
 
 class Abort(Exception):
@@ -83,6 +89,14 @@ def shards(stem):
 def model_path(stem):
     """A snapshot directory loads as itself; a GGUF stem loads from its first shard."""
     return stem if os.path.isdir(stem) else os.path.join(MODELS, shards(stem)[0])
+
+
+def common_for(flags):
+    """An arm that sets -fit itself replaces the common '-fit off' (Stage 3's auto-fit retest)."""
+    if "-fit" not in flags:
+        return COMMON
+    i = COMMON.index("-fit")
+    return COMMON[:i] + COMMON[i + 2:]
 
 
 def sha256(path):
@@ -238,7 +252,7 @@ def parse_log(text):
 def run_arm(label, stem, flags):
     caches = drop_caches()
     logpath = os.path.join(OUT, f"server_{label}.log")
-    cmd = [BIN, "-m", model_path(stem), *COMMON, *flags]
+    cmd = [BIN, "-m", model_path(stem), *common_for(flags), *flags]
     log(f"=== {label}: {' '.join(flags)}  (page cache dropped: {caches})")
     t0 = time.time()
     lf = open(logpath, "w")
@@ -252,7 +266,7 @@ def run_arm(label, stem, flags):
         base = {"arm": label, "model": stem, "flags": flags, "caches_dropped": caches, **info}
         if not ok:
             emit({"stage": "load", "ok": False, "load_s": round(time.time() - t0, 1), **base,
-                  "tail": text[-4000:]})
+                  "tail": text[-4000:], "cmd": cmd})
             log(f"{label}: server did not come up -- recorded")
             return False
         if [t for t in info["kv_types"] if t != "f16"]:
@@ -311,16 +325,18 @@ def run_arm(label, stem, flags):
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    stage2 = "--stage2" in sys.argv
+    stage = 3 if "--stage3" in sys.argv else 2 if "--stage2" in sys.argv else 1
     try:
         ver, clk = gates()
-        emit({"stage": "gates", "ok": True, "version": ver[:300], "clocks": clk, "stage2": stage2})
-        log(f"gates passed{' (stage 2)' if stage2 else ''} -- {ver.splitlines()[0] if ver else ''}")
-        if stage2:
+        emit({"stage": "gates", "ok": True, "version": ver[:300], "clocks": clk, "run_stage": stage})
+        log(f"gates passed (stage {stage}) -- {ver.splitlines()[0] if ver else ''}")
+        if stage == 2:
             t0 = time.time()
             n = verify_manifest(EXL3_MANIFEST)
             log(f"EXL3 snapshot: {n} files verified against its manifest in {time.time() - t0:.0f} s")
             queue = list(STAGE2)
+        elif stage == 3:
+            queue = list(STAGE3)
         else:
             bandwidth()
             queue = list(ARMS)
@@ -330,15 +346,19 @@ def main():
             if label in done:
                 log(f"{label} already complete -- skipping")
                 continue
-            if not run_arm(label, stem, flags) and label == "F-Q2":
+            loaded = run_arm(label, stem, flags)
+            if not loaded and label == "F-Q2":
                 log("F-Q2 did not load -- verifying and running the declared fallback F-IQ1")
                 verify([IQ1], {})
                 queue.insert(0, FALLBACK)
+            if not loaded and label == "S3-X4":
+                log("S3-X4 did not load at -ncmoe 2 -- running the declared fallback S3-X4n4")
+                queue.insert(0, STAGE3_FALLBACK)
     except Exception as e:   # Abort, or anything unexpected: record it, never limp on
         log(f"ABORT: {type(e).__name__}: {e}")
         emit({"stage": "abort", "msg": f"{type(e).__name__}: {e}"})
         sys.exit(1)
-    log("=== STAGE 2 COMPLETE ===" if stage2 else "=== STAGE 1 COMPLETE ===")
+    log(f"=== STAGE {stage} COMPLETE ===")
 
 
 if __name__ == "__main__":

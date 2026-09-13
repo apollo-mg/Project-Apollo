@@ -220,3 +220,66 @@ Three consequences, each settled before the arms that depend on it:
    It says nothing about the cache type — item 2 is the positive check.
 
 **F-Q2 is complete and is not re-run:** P-R1–P-R3 use only request timings, none of the empty fields.
+
+---
+
+## Amendment 3 — 2026-09-13 ~14:10: Stage 3 (expert spill for IQ4_XS, and an auto-fit retest), plus Stage 2's scoring rules
+
+**Written before any Stage 2 or Stage 3 data.** Stage 2 is waiting on its download. Mark: *"Let's queue it after."*
+
+### Why Stage 3
+
+Stage 1 found that spilling four layers' **experts** costs 5.5% of decode, where spilling the **same four layers whole**
+costs 38%. IQ4_XS missed full residency only because **card 0** overflowed (16,847 MiB requested at `-ngl 99`,
+08-28). `-ncmoe N` moves the experts of the first N layers — which sit on card 0 under layer split — to the CPU.
+Separately, buun's auto-fit has a placement mode for *"everything but sparse MoE weights"* (`common/fit.cpp:28`),
+and every run here has used `-fit off`, the fleet's Pascal rule since the row-split crashes.
+
+### Arms — same build, flags, prompts and protocol as Stage 1; run with `--stage3` after Stage 2
+
+| arm | weights | placement |
+|---|---|---|
+| **S3-X4** | UD-IQ4_XS | `-ngl 99 -ncmoe 2` |
+| **S3-X4n4** | UD-IQ4_XS | `-ngl 99 -ncmoe 4` — **only if S3-X4 fails to load** (declared now) |
+| **S3-FIT** | UD-IQ4_XS | `-ngl 99` with **`-fit on`** replacing the common `-fit off` |
+
+A load failure is recorded as data, not an abort — S3-FIT exists to find out whether auto-fit still crashes on Pascal.
+
+### Two cost models, one discriminating prediction
+
+From Stage 1 (ms per token at the 500-token prompt): F-Q2 47.5; P-Q2 76.5, so a whole-layer spill of 4 layers
+costs **+29.0**; X-Q2 50.3, so an expert spill of 4 layers costs **+2.8**; P-IQ4 86.0. IQ4_XS's resident weights are
+**1.30×** UD-Q2_K_XL's (64.88 vs 50.07 GB, n-gram table excluded).
+
+- **Overhead-bound model:** decode time is mostly per-operation cost, not bytes. F-Q2 reads roughly 5 GB of active
+  weights per token in 47.5 ms — about 100 GB/s, several times below what a P100's memory sustains. Scaling the
+  spill costs by 1.30: resident IQ4_XS ≈ 86.0 − 29.0 × 1.30 ≈ 48.3 ms; plus an expert spill of 2 layers
+  (2.8 × ½ × 1.30 ≈ 1.8 ms) → **≈ 20.0 tok/s**.
+- **Bandwidth-bound model:** decode time scales with bytes. 47.5 × 1.30 ≈ 61.8 ms, plus the spill → **≈ 15.7 tok/s**.
+
+**A smart placement scheduler needs one of these as its cost model.** S3-X4 discriminates between them.
+
+| id | prediction | conf |
+|---|---|---|
+| P-S1 | S3-X4 loads at `-ncmoe 2` — card 0 fits | 0.7 |
+| P-S2 | **Expert spill rescues IQ4_XS:** S3-X4 (or S3-X4n4) decode ≥ 1.4× P-IQ4 (≥ 16.3 tok/s) | 0.75 |
+| P-S3 | **The cost-model test:** that decode is > 17.5 tok/s — the overhead-bound model | 0.6 |
+| P-S4 | `-fit on` loads on Pascal without crashing | 0.5 |
+| P-S5 | If it loads, auto-fit's placement decodes ≥ 1.2× P-IQ4 — it spilled experts, not whole layers | 0.45 |
+
+**Scoring:** median of three reps at the 500-token prompt. **P-IQ4 is Stage 1's 11.63**, same build, flags and
+session; no new control arm — Stage 1's controls drifted 3.9%, well inside these margins. S3-FIT's placement is
+recorded from GPU memory after load, and confirmed afterwards by a load-only `-lv 4` reload.
+
+### Stage 2's scoring rules, fixed now because the prereg left them implicit
+
+- **P-X1:** the load row is `ok` **and** the "17 × 23" coherence check passes.
+- **P-X2:** the `-ngl 99` load succeeds **and** summed GPU memory after load is ≥ 40,000 MiB (the weights are on the
+  cards; ~50 GB expected), with the per-layer count confirmed afterwards by a load-only `-lv 4` reload.
+- **P-X3:** F-X3 decode ≥ P-IQ4's 11.63 tok/s (500-token prompt, median).
+- **P-X4:** F-X3 decode ≤ F-Q2's 21.05 tok/s.
+- **P-X5:** F-X3 prefill at 1,800 tokens ≤ 0.75 × F-Q2's 144.4 = **108.3 tok/s**, with Amendment 1's caveat that
+  the kernel path actually taken must be named before attributing it.
+
+Stage 2 and Stage 3 run on the driver revision committed with this amendment; nothing in it changes a Stage 1
+arm or Stage 2's arm definition.
