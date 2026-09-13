@@ -232,3 +232,37 @@ because the n-gram table is prepared into a 31 GB temp file first — that alone
 5,120 token-expert pairs, past the int8 path's 2,048 limit, so prefill takes another path; the dispatch read on
 09-13 says that is reconstruct-to-fp16 plus `cublasGemmEx` for dense matmuls, but the MoE case was not traced.
 **Name the path before attributing the prefill gap to row scaling.**
+
+---
+
+## Addendum — Stage 3b, 15:52–15:58: buun's auto-fit works on Pascal, and lands within 9% of the hand-tuned placement
+
+| arm | placement | GPU MiB after load | decode 500 / 1,800 / 3,600 | prefill 500 / 1,800 / 3,600 |
+|---|---|---|---|---|
+| **S3-FIT2** | `-fit on`, **no user `-ngl`** | [15147, 15191, 15245, 14993] = **60576** | 19.46 / 20.15 / 17.88 | 143.7 / 134.6 / 147.2 |
+
+| id | prediction | result |
+|---|---|---|
+| P-S4b | `-fit on` loads on Pascal | **CONFIRMED** — the S3-FIT failure was the pinned `-ngl 99`, not the hardware |
+| P-S5b | decode ≥ 1.2× P-IQ4 | **CONFIRMED** — 19.46 vs 11.63 tok/s = **1.67×** |
+| P-S6b | within ±10% of the hand placement | **CONFIRMED** — 19.46 vs S3-X4's 21.28 = **-8.6%** |
+
+**The fitter chose the right kind of spill by itself.** Its server log shows `tensor overrides to CPU are used with
+mmap enabled`, so it spilled **experts**, not whole layers — the option Stage 1 measured as roughly seven times
+cheaper per layer. It also logs `MoE cache fit kept stock placement: no selected device satisfies the cache hardware
+policy`: buun's expert cache needs compute capability 7.0, so the P100s never get it.
+
+**This bears on the fleet's `-fit off` habit.** With `-sm layer` pinned, `-fit on` is safe on `.194` and beats our
+hand-set `-ngl 44` by **1.67×**, reaching within 9% of a placement we had to reason out from an 08-28
+VRAM model. `CLAUDE.md`'s rule is about **row** splitting; it should not be read as "never let the fitter place
+tensors". Changing that guidance is Mark's call.
+
+**Ranking on `.194`, all measured today on one build, at the 500-token prompt:**
+
+| configuration | GPU MiB | decode | note |
+|---|---|---|---|
+| UD-IQ4_XS `-ncmoe 2` | 61,566 | 21.28 | hand-placed, the fastest measured |
+| UD-IQ4_XS `-fit on` | 60576 | 19.46 | chosen automatically |
+| UD-Q2_K_XL fully resident | 50,190 | 21.05 | 3-bit-class fidelity |
+| EXL3 3.05bpw | 50,060 | 18.41 | best fidelity per byte |
+| UD-IQ4_XS `-ngl 44` | 57,138 | 11.63 | this morning's configuration |
