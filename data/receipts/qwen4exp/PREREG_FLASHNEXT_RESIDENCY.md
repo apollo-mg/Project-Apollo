@@ -328,3 +328,12 @@ change. S3-FIT's own result stays in the record as scored, FALSIFIED as coded, w
 | P-S4b | loads on Pascal without crashing | 0.6 |
 | P-S5b | decode ≥ 1.2× P-IQ4 (11.63) — fit spills experts, not whole layers | 0.5 |
 | P-S6b | decode within ±10% of S3-X4 (21.28) — fit finds a placement as good as the hand-picked `-ncmoe 2` | 0.4 |
+
+### Correction to Amendment 1 — 2026-09-13 ~15:30
+
+Amendment 1 said every EXL3 speed number had run with `GGML_EXL3_INT8` unset and that mode 0 had never been timed on
+this fleet. **Mode 0 was timed once**, in the sm_60 qualification (`kv-tensor-split/RESULT_EXL3_SM60_INFERENCE.md`,
+P-X6), where — before Ampere — it means reconstruct-to-fp16 plus cuBLAS; the int8 path was 2.9× faster at single-row
+decode. **What has never run here is the fp16 tensor-core GEMV**, which buun gates on `ampere_mma_available`. Past 8
+rows every arch takes reconstruct plus `cublasGemmEx` (TENSOR_OP) — hipBLAS on gfx1201. Stage 2 is unaffected: it
+runs at the default, like every other EXL3 arm.
