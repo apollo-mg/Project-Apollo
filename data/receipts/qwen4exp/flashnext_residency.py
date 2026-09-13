@@ -11,7 +11,9 @@ Stage 1 ran from this file at sha 3699e75d. Later revisions add the EXL3 arm, a 
 verification, a longer load limit, full timings per request, an abort if speculative decoding ever runs, and the
 Stage 3 arms with a per-arm -fit override; none of it changes a Stage 1 arm or Stage 2's arm definition.
 
-Usage (on .194):  python3 flashnext_residency.py [--stage2 | --stage3 | --stage3b]
+Stage 4 (--stage4): gates -> the expert-spill cost ladder, -ncmoe {2,4,8,16,32,48} under --numa distribute.
+
+Usage (on .194):  python3 flashnext_residency.py [--stage2 | --stage3 | --stage3b | --stage4]
 """
 import hashlib, json, os, re, subprocess, sys, threading, time, urllib.request
 
@@ -57,6 +59,15 @@ STAGE3_FALLBACK = ("S3-X4n4", IQ4, ["-ngl", "99", "-ncmoe", "4"])
 # Stage 3b (Amendment 5): the auto-fit retest as it should have been specified -- no user -ngl, so fit may choose
 # the placement itself. S3-FIT pinned -ngl 99, and fit declines to act on a user-set n_gpu_layers.
 STAGE3B = [("S3-FIT2", IQ4, ["-fit", "on"])]
+# Stage 4 (PREREG_FLASHNEXT_SPILL_LADDER.md): the expert-spill cost curve. Six geometric rungs of -ncmoe on
+# IQ4_XS, every one under --numa distribute -- -ncmoe puts expert tensors on the CPU backend, so the binding
+# resource is host memory bandwidth, and Stage 1 measured node-local 22.68 GB/s against cross-socket 7.00.
+# Unpinned, a slope that misses the cost model could be bandwidth or placement, with no way to tell.
+# n_layer = 48 (verify/load_P-IQ4.log: block_count 48), so rung 48 is every layer's experts on the host.
+# -lv 4 on every rung so the f16 KV assertion has lines to inspect: the vacuous-guard defect, third occurrence.
+NCMOE_RUNGS = (2, 4, 8, 16, 32, 48)
+STAGE4 = [(f"L-{n:02d}", IQ4, ["-ngl", "99", "-ncmoe", str(n), "--numa", "distribute", "-lv", "4"])
+          for n in NCMOE_RUNGS]
 
 
 class Abort(Exception):
@@ -272,7 +283,13 @@ def run_arm(label, stem, flags):
                   "tail": text[-4000:], "cmd": cmd})
             log(f"{label}: server did not come up -- recorded")
             return False
-        if [t for t in info["kv_types"] if t != "f16"]:
+        if "-lv" in flags:
+            # A rung that asked for -lv 4 MUST show its KV lines. An empty list here means the check is
+            # vacuous, which is the defect this stage exists not to repeat -- so empty is a failure, not a pass.
+            if info["kv_types"] != ["f16"]:
+                raise Abort(f"{label}: KV types {info['kv_types']} are not exactly ['f16'] "
+                            f"(empty = the guard found nothing to inspect despite -lv 4)")
+        elif [t for t in info["kv_types"] if t != "f16"]:
             raise Abort(f"{label}: KV cache types {info['kv_types']} are not all f16")
         emit({"stage": "load", "ok": True, "load_s": round(time.time() - t0, 1), **base,
               "gpu_after_load": gpu_mib(), "cmd": cmd})
@@ -328,8 +345,8 @@ def run_arm(label, stem, flags):
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    stage = ("3b" if "--stage3b" in sys.argv else 3 if "--stage3" in sys.argv
-             else 2 if "--stage2" in sys.argv else 1)
+    stage = ("3b" if "--stage3b" in sys.argv else 4 if "--stage4" in sys.argv
+             else 3 if "--stage3" in sys.argv else 2 if "--stage2" in sys.argv else 1)
     try:
         ver, clk = gates()
         emit({"stage": "gates", "ok": True, "version": ver[:300], "clocks": clk, "run_stage": stage})
@@ -343,6 +360,8 @@ def main():
             queue = list(STAGE3)
         elif stage == "3b":
             queue = list(STAGE3B)
+        elif stage == 4:
+            queue = list(STAGE4)
         else:
             bandwidth()
             queue = list(ARMS)
