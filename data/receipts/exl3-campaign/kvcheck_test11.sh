@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Amendment 5: after test 11 finishes, reload each arm's exact command with -lv 4, load only, and record the
-# K/V cache types the run itself could not prove. Waits for a NEW completion marker (baseline count first).
+# Amendment 5 (fixed 18:35: `grep -c` prints 0 AND exits 1, so `|| echo 0` made a two-line
+# value and every -gt test threw 'integer expression expected'; count with `grep -E … | wc -l`): after test 11 finishes, reload each arm's exact command with -lv 4, load only, and record the
+# K/V cache types the run itself could not prove. Waits correctly whether armed before or after the run.
 set -u
 W=~/test11; L=$W/kvcheck.log
 BIN=~/buun-c7f114d34/build_sm60/bin/llama-server
@@ -8,15 +9,21 @@ EXL3=~/AI/Models/exl3/Qwen3.8-27B-exl3-3.00bpw
 GGUF=~/AI/Models/qwen27b/Qwen3.8-27B-UD-IQ3_XXS.gguf
 BASE="-c 8192 -np 1 -fa on -ctk f16 -ctv f16 -sm layer -ngl 99 -fit off --jinja --chat-template-file $EXL3/chat_template.jinja --host 127.0.0.1 --port 8103 -lv 4"
 say () { echo "$(date '+%F %T') $*" >> "$L"; }
-N0=$(grep -cE "TEST 11 COMPLETE|ABORT" "$W/driver.log" 2>/dev/null || echo 0)
-say "kv-check up (pid $$), baseline markers $N0"
-for i in $(seq 1 240); do
-  N=$(grep -cE "TEST 11 COMPLETE|ABORT" "$W/driver.log" 2>/dev/null || echo 0)
-  [ "${N:-0}" -gt "${N0:-0}" ] && break
-  sleep 30
-done
-N=$(grep -cE "TEST 11 COMPLETE|ABORT" "$W/driver.log" 2>/dev/null || echo 0)
-[ "${N:-0}" -gt "${N0:-0}" ] || { say "gave up waiting for test 11"; exit 1; }
+markers () { grep -E "TEST 11 COMPLETE|ABORT" "$W/driver.log" 2>/dev/null | wc -l; }
+N0=$(markers)
+# Two modes, because the baseline-count idiom is only correct when armed BEFORE the run:
+#   armed early (N0 = 0) -> wait for the count to rise, so a stale marker cannot fire the waiter;
+#   run post-hoc (N0 > 0) -> the run this checks has already finished; proceed on the marker present.
+if [ "${N0:-0}" -gt 0 ]; then
+  say "kv-check up (pid $$), post-hoc: $N0 marker(s) already present -- $(grep -E 'TEST 11 COMPLETE|ABORT' "$W/driver.log" | tail -1)"
+else
+  say "kv-check up (pid $$), armed before completion, baseline markers 0"
+  for i in $(seq 1 240); do
+    [ "$(markers)" -gt "$N0" ] && break
+    sleep 30
+  done
+  [ "$(markers)" -gt "$N0" ] || { say "gave up waiting for test 11"; exit 1; }
+fi
 for i in $(seq 1 60); do pgrep -x llama-server >/dev/null || break; sleep 10; done
 pgrep -x llama-server >/dev/null && { say "ABORT: a server is still running"; exit 1; }
 check () {   # arm model gpus node
