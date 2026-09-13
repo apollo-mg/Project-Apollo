@@ -86,10 +86,12 @@ def minja_render(body):
 
 def jinja2_render(text, body):
     import jinja2
-    env = jinja2.Environment(trim_blocks=False, lstrip_blocks=False,
+    # transformers renders chat templates with trim_blocks and lstrip_blocks ON; matching it matters,
+    # otherwise every comparison differs by whitespace alone.
+    env = jinja2.Environment(trim_blocks=True, lstrip_blocks=True,
                              undefined=jinja2.ChainableUndefined, extensions=["jinja2.ext.loopcontrols"])
-    env.policies["json.dumps_kwargs"] = {"ensure_ascii": False, "separators": (",", ":")}
-    env.filters["tojson"] = lambda v, **kw: json.dumps(v, ensure_ascii=False, separators=(",", ":"))
+    env.policies["json.dumps_kwargs"] = {"ensure_ascii": False}
+    env.filters["tojson"] = lambda v, **kw: json.dumps(v, ensure_ascii=False)
     tpl = env.from_string(text)
     return tpl.render(messages=body["messages"], tools=body.get("tools"), add_generation_prompt=True,
                       bos_token="", eos_token="<|im_end|>", **body.get("chat_template_kwargs", {}))
@@ -119,6 +121,8 @@ def main():
                 m_err = j_err = None
                 try:
                     m = minja_render(body)
+                except urllib.error.HTTPError as e:          # the body says what it objected to
+                    m_err = f"HTTP {e.code}: {e.read().decode('utf-8', 'replace')[:300]}"
                 except Exception as e:
                     m_err = repr(e)
                 try:

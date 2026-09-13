@@ -107,10 +107,18 @@ as they close; this is a working file, not a receipt.
 
 ## Outward-facing, waiting on others
 
-- **DavidAU / `toolcall2.jinja`** — reported a release blocker (crashes when `tool_calls.arguments`
-  is a JSON string; guard lost in the merge). Patched file and report are pushed. He asked us to
-  test *before* re-GGUFing; awaiting his fix. **Untested by us: whether llama.cpp's minja parser
-  behaves the same as Python jinja2 here** — the authoritative check is loading it in llama-server.
+- **DavidAU templates — our patch SHIPPED, and two new bugs found 2026-09-13**
+  (`davidau-templates/RESULT_TEMPLATE_MINJA_DIFF.md`). His `chat_template.jinja` is now byte-identical to
+  the toolcall2 file we patched. The minja-vs-jinja2 differential we had flagged as untested is now run:
+  - **The default template crashes in transformers** on OpenAI-standard tool calls: line 282 iterates
+    `tool_call.arguments|items`, and minja parses a JSON string where Python jinja2 raises. Our guard at
+    284 protects each *value*, not the container, so it never fires. The safetensors repo ships this file.
+  - **The Frogger template (`-tturbo`, froggeric v22.5.0 + his Twin-Turbo layer) uses `candidate_key`
+    without defining it** (line 228; his own default defines it one line earlier). Measured: minja returns
+    **HTTP 500** on any `{REASON:...}` message, while jinja2 **silently ignores the mode and leaves the
+    raw tag in the prompt**. So einstein/spoon do not work through that template in either engine.
+  - Worth stealing from it: it detects a runtime that already injected its own tool protocol
+    (LM Studio MLX's `[TOOL_REQUEST]`) and stands down instead of emitting a second one.
 - **saifvj's premature-turn-end** — his medium/low/xhigh test supports the "injected instruction,
   not thinking on/off" hypothesis but changed three variables at once (different quant file,
   different starting file state, MTP on). A controlled version is ~30 min: one model, one restored
