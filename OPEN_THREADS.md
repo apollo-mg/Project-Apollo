@@ -46,6 +46,14 @@ as they close; this is a working file, not a receipt.
   daily driver's fidelity on **4.9 GB less VRAM**. Mark caught the false choice that produced the earlier
   "GGUF wins at +2 GB" reading.
 - **"61% of the bits" was the nominal figure.** VRAM is 64% and disk 74% (fixed in `cc0c9a6`).
+- **Test 7 (the decision table): DONE** (`RESULT_EXL3_LADDER_SPEED.md`). **GGUF is faster at every
+  quality level; EXL3 is smaller at every one.** On `.73` the Q6_K daily driver is both faster (20.25 vs
+  14.14 t/s) and closer (0.0028 vs 0.0040) than EXL3 5.00bpw, for 4.9 GB more VRAM this node has spare —
+  **so EXL3's advantage is real but unpurchasable here.** Two surprises: EXL3 5.00bpw decodes *faster*
+  than 4.00bpw (staging turns on at bits >= 5), and EXL3 prefills fastest of all five (159.9 t/s).
+- **Test 6 redone (depth curve): DONE** (`RESULT_EXL3_DEPTH.md`, Amendment 3). **EXL3 wants
+  `--draft-max 1`, Q6_K wants 2**, worth +3.9% over the daily driver's 3. EXL3 gains less at every depth
+  and is a net loss by depth 5. Mark's hypothesis, confirmed with a setting attached.
 - **Test 4 (MTP micro-batch sweep): DONE** (`RESULT_EXL3_MTP_SWEEP.md`), all five predictions confirmed
   on the re-run. **A 4-row verify costs EXL3's int8 GEMV 2.08× a single row where GGUF's MMVQ pays
   1.37×** (A(4) 1.92 vs 2.92), which predicts test 1's MTP asymmetry to within a few points. **So most of
