@@ -123,3 +123,23 @@ the smaller file. Ours is genuine unsloth UD-IQ3_XXS, one cut earlier.
 label needed the revision. The prereg declared the GGUFs size-checked only, which is exactly the gap this
 closes — a size check would not have caught a re-cut of a *different* size either, but it never compared
 against anything published. Test 11 pins the revision in its own gate.
+
+### Provenance sweep, 16:25 — the rest of the UD curve is hash-verified
+
+Prompted by the re-cut above, every unsloth file in this curve was hashed and checked against the repo's
+last 30 revisions (`usable/provenance_sweep.log`):
+
+| arm | file | provenance |
+|---|---|---|
+| G2u | UD-Q2_K_XL | **matches unsloth's current publication** |
+| G3u | UD-IQ3_XXS | revision **`f9758630`** (2026-08-19; re-cut the same day) |
+| G4 | UD-IQ4_XS | **matches current** |
+| G5 | UD-Q4_K_M | **matches current** |
+
+**So the UD curve — the one this receipt quotes — is now hash-verified**, three files against today's
+publication and one against a named revision, rather than size-checked as the prereg declared. The check was
+run after the measurements, on the same bytes, so it changes provenance and not a number.
+
+**Still unverified:** the AD-IQ2_XS, AD-IQ3_XXS and i1-IQ3_M files (other packagers, no published hashes
+recorded here) and the Q6_K reference. They sit on the all-packagers curve, which this receipt already
+declines to quote.
