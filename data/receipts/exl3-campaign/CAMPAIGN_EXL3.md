@@ -3,10 +3,11 @@
 **Opened 2026-09-12**, after `kv-tensor-split/RESULT_EXL3_SM60_INFERENCE.md`. Mark's framing: *work from
 ground truth until we run out of reasonable reasons not to use it instead.*
 
-**Scope — this is "EXL3 on the P100 nodes", not "EXL3 instead of GGUF."** In buun's fork, all of
-`exl3.cu` is compiled out under HIP. On RDNA4, EXL3 loads, but every EXL3 matmul runs on the CPU
-(`RESULT_EXL3_HIP.md`). So the control plane, the only always-on box, cannot serve EXL3 at GPU speed.
-Every EXL3 deployment on this fleet runs on:
+**Scope — widened on 2026-09-13: the whole fleet, not just the P100 nodes.** The campaign opened
+"EXL3 on the P100 nodes" because `exl3.cu` was compiled out under HIP. buun's `da458765d` fixed that, and
+the 9070 now runs EXL3 on the GPU (`RESULT_EXL3_RDNA4.md`). **That also moves EXL3 into the regime where
+it should win:** the 9070 has ~13.2 GB usable, so the Q6_K daily driver does not fit there at all, and the
+choice is between an IQ3-class GGUF and EXL3 at 3.00–3.50bpw. The nodes:
 
 - **`.73`**, which sleeps. It takes 10 s to wake and 77–99 s from a cold request to its first completion.
 - **`.194`**, which costs a 216 s cold boot and 218 W at idle.
@@ -81,7 +82,7 @@ a 16 GB card, long context if VBR needs the freed 8 GB, or any box where Q6_K's 
 
 | # | objection | status | evidence, or the test that settles it |
 |---|---|---|---|
-| O1 | **Can't serve from the control plane (HIP)** | CONFIRMED on hardware · NOT RETIRABLE BY US · **port looks tractable** | RDNA4 loads EXL3 and answers correctly, but no EXL3 weight reaches VRAM. A 0.6B decodes at 6.47 t/s, and `-ngl 99` is slower than `-ngl 0` (`RESULT_EXL3_HIP.md`). **A port is smaller than it looks:** every Ampere-only construct already falls back for sm_60, and HIP takes those same branches; what blocks a compile is three unguarded PTX idioms in the trellis decoder, the Ampere GEMV needing exclusion, and the two HIP gates (`NOTE_EXL3_HIP_PORT.md`). Only upstream can do it; Mark offered buun RDNA4 testing and the build tree is standing. |
+| O1 | **Can't serve from the control plane (HIP)** | **RETIRED 2026-09-13** | buun's `da458765d` enables standalone EXL3 on wave32 devices, and it works on the 9070: **0.6B 64.56 t/s (10× yesterday's CPU path), 27B @ 3.00bpw 22.88 t/s on the int8 path, and all 11 of his EXL3 tests pass on gfx1201** (`RESULT_EXL3_RDNA4.md`). `-ngl 99` now beats `-ngl 0` by 8.6×, where yesterday it lost. His implementation matches `NOTE_EXL3_HIP_PORT.md` idiom for idiom. **One build bug for him:** `HIP_ARCHITECTURES is empty for target test-exl3-byte-dot` when tests are enabled. |
 | O2 | **Loses MTP** | RETIRED, with a cost | MTP engages on EXL3 at GGUF's acceptance rate but buys 1.24× instead of 1.69×. The cost is carried in O5. |
 | O3 | **Loses vision** | RETIRED | The daily driver's existing `mmproj-F16.gguf` attaches to the EXL3 model and reads the probe. |
 | O4 | **Doesn't compose with VBR KV** | RETIRED at load · degrade path OPEN | EXL3 and GGUF log the identical VBR controller init. Both stayed at the f16 entry tier through 14,852 tokens, so VBR's degraded tiers were never exercised with EXL3 weights. Test: a long-context run that forces VBR to degrade. |

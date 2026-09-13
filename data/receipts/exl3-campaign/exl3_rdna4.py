@@ -138,9 +138,10 @@ def run_tests():
     text = p.stdout + p.stderr
     with open(os.path.join(OUT, "ctest.log"), "w") as f:
         f.write(text)
+    # ctest prints "<status>   <seconds>"; keep only the first word, or every test reads as a failure.
     results = re.findall(r"Test\s+#\d+:\s+(\S+)\s+\.+\s*(\*{3}\s*)?(\w[\w ]*)", text)
     emit({"stage": "ctest", "rc": p.returncode,
-          "tests": [{"name": n, "status": s.strip()} for n, _, s in results],
+          "tests": [{"name": n, "status": s.split()[0] if s.split() else s} for n, _, s in results],
           "summary": text.strip().splitlines()[-1] if text.strip() else ""})
     for n, _, s in results:
         log(f"  {n}: {s.strip()}")
@@ -192,7 +193,7 @@ def score():
     print(f"- **P-R1**: " + ("NOT TESTABLE (no libggml-hip.so found)" if cuda_only is None else
                              f"{verdict(cuda_only == 0 and exl3 > 0)} ('EXL3 is CUDA only' x{cuda_only}, 'exl3' x{exl3})"))
     if ct:
-        tests = ct[-1]["tests"]
+        tests = [{"name": t["name"], "status": str(t["status"]).split()[0]} for t in ct[-1]["tests"]]
         bad = [t for t in tests if t["status"] not in ("Passed", "Skipped")]
         print(f"- **P-R2**: {verdict(bool(tests) and not bad)} ({len(tests)} tests; " +
               ", ".join(f"{t['name']} {t['status']}" for t in tests[:6]) + (f"; failures: {bad}" if bad else "") + ")")
