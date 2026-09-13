@@ -283,3 +283,25 @@ recorded from GPU memory after load, and confirmed afterwards by a load-only `-l
 
 Stage 2 and Stage 3 run on the driver revision committed with this amendment; nothing in it changes a Stage 1
 arm or Stage 2's arm definition.
+
+---
+
+## Amendment 4 — 2026-09-13 ~15:00: Stage 2's first attempt failed on disk space; a retry is queued after Stage 3
+
+**F-X3 did not load, and the cause is environmental, not EXL3.** The snapshot verified (24 files in 1,181 s),
+loading began 14:50:11, and 4 min 44 s later the server exited with `llama_model_load: error loading model:
+write error: No space left on device` (`flashnext_res/server_F-X3.log:62`). No OOM kill appears in the kernel log.
+
+**Why.** buun's safetensors loader *prepares* each streamable tensor into a temp file before using it —
+`prepare_file()` in `src/llama-safetensors-loader.cpp`, which writes to **`$LLAMA_CACHE` if set, otherwise the
+model directory**, beside a comment about draining dirty pages "while preparing a large table". The n-gram
+table is 32.64 GB, and `.194` had 17 GB free once the 80 GB snapshot landed. The Stage 2 orchestrator's disk
+gate was sized for the files (snapshot + 5 GB), not for the loader's staging. **I checked the opt-in
+`--repack-cache` before launch and wrongly concluded nothing else would write.**
+
+**Remedy, with no change to the arm.** The Stage 1 fallback quant UD-IQ1_S (68 GB) was never needed — F-Q2
+loaded — and is deleted under Mark's standing approval to free space unlikely to be needed; it is
+hash-listed in `published_sha256.json` and re-downloadable. F-X3 reruns **unchanged** — same build, flags,
+prompts and driver revision — after the Stage 3 launcher finishes, behind a free-space gate of ≥ 45 GB
+(`launch_stage2_retry.sh`). The first attempt's load row stays in `results.jsonl`; the scorer keeps the last
+load row per arm. **P-X1–P-X5 are unchanged and are scored on the retry.**
