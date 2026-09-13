@@ -1,7 +1,8 @@
 #!/bin/bash
 # Orchestrates PREREG_EXL3_COMPRESSION.md (test 10) from the control plane. Launch detached FROM A
-# FOREGROUND CALL. Runs six new KLD arms plus a cross-build bridge against the reference already on .73,
-# appending to test 3's results.jsonl. Every check ABORTS; any abort after the proxy stops restores it.
+# FOREGROUND CALL. Runs eight new KLD arms plus a cross-build bridge against the reference already on
+# .73, appending to test 3's results.jsonl. Every check ABORTS; any abort after the proxy stops restores
+# it. Amendment 1 adds the two unsloth arms and the sm_60 EXL3 test-suite gate.
 set -u
 cd /mnt/TG_2TB/Projects/Apollo || exit 1
 D=data/receipts/exl3-campaign
@@ -14,12 +15,17 @@ M=/mnt/TG_2TB/AI/Models
 DM=apollo-proxy-deadman-comp-$(date +%H%M%S)
 PROXY_STOPPED=0
 DM_ARMED=0
+NEWBIN=/mnt/HDD/buun-da458/build_sm60/bin/llama-perplexity
+NEWTREE=/mnt/HDD/buun-da458/build_sm60
+MIN_FREE_GB=100
 # label | source on the control plane | destination on .73 | driver to use
 ARMS=(
   "E25|$M/exl3/Qwen3.8-27B-exl3-2.50bpw|/mnt/HDD/exl3/Qwen3.8-27B-exl3-2.50bpw|old"
   "E30|$M/exl3/Qwen3.8-27B-exl3-3.00bpw|/mnt/HDD/exl3/Qwen3.8-27B-exl3-3.00bpw|old"
   "E35|$M/exl3/Qwen3.8-27B-exl3-3.50bpw|/mnt/HDD/exl3/Qwen3.8-27B-exl3-3.50bpw|old"
+  "G2u|$M/Qwen3.8-27B-UD-Q2_K_XL.gguf|/mnt/HDD/kld/Qwen3.8-27B-UD-Q2_K_XL.gguf|old"
   "G2x|$M/Qwen3.8-27B-AD-IQ2_XS.gguf|/mnt/HDD/kld/Qwen3.8-27B-AD-IQ2_XS.gguf|old"
+  "G3u|$M/Qwen 3.8/27B/Qwen3.8-27B-UD-IQ3_XXS.gguf|/mnt/HDD/kld/Qwen3.8-27B-UD-IQ3_XXS.gguf|old"
   "G3xx|$M/Qwen3.8-27B-AD-IQ3_XXS.gguf|/mnt/HDD/kld/Qwen3.8-27B-AD-IQ3_XXS.gguf|old"
   "G3m|$M/pelican3/Qwen3.8-27B.i1-IQ3_M.gguf|/mnt/HDD/kld/Qwen3.8-27B.i1-IQ3_M.gguf|old"
   "BRIDGE|$M/exl3/Qwen3.8-27B-exl3-3.00bpw|/mnt/HDD/exl3/Qwen3.8-27B-exl3-3.00bpw|new"
@@ -38,6 +44,14 @@ restore () {
 }
 die () { log "ABORT: $*"; restore; rm -f "$PIDF"; exit 1; }
 alive () { local st; st=$(timeout 20 ssh -o BatchMode=yes "$N" "kill -0 $1 2>/dev/null && echo ALIVE || echo DEAD" 2>/dev/null); [ "$st" != "DEAD" ]; }
+
+# Stop any server and wait for BOTH cards to fall under 500 MiB -- the driver's own preflight aborts
+# otherwise. Called before arm 1 and again after the test suite, which also claims GPU memory.
+clear_gpus () {
+  local r
+  r=$(s73 'pkill -x llama-server; for i in $(seq 1 90); do u=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits | sort -n | tail -1); pgrep -x llama-server >/dev/null || [ "$u" -ge 500 ] || { echo CLEAR; exit 0; }; sleep 1; done; echo BUSY')
+  [ "$r" = CLEAR ] || return 1
+}
 
 if [ -f "$PIDF" ] && kill -0 "$(cat "$PIDF")" 2>/dev/null; then
   echo "another compression orchestrator is running -- refusing"; exit 1
@@ -68,11 +82,17 @@ others_running && die "another campaign orchestrator is still running after 4 h"
 free73 || die ".73 never went free after 4 h"
 log ".73 is free"
 
-systemd-run --user --unit="$DM" --on-active=300m /usr/bin/systemctl --user start apollo-wake-proxy >/dev/null 2>&1 \
+# Nine arms stage ~86 GB. A mid-run ENOSPC would abort after hours of GPU time, so gate on it now.
+FREEGB=$(s73 "df -BG --output=avail /mnt/HDD | tail -1 | tr -dc 0-9")
+[ -n "$FREEGB" ] || die "could not read free space on .73"
+[ "$FREEGB" -ge "$MIN_FREE_GB" ] || die "only ${FREEGB} GB free on .73 /mnt/HDD, need ${MIN_FREE_GB}"
+log "${FREEGB} GB free on .73"
+
+systemd-run --user --unit="$DM" --on-active=420m /usr/bin/systemctl --user start apollo-wake-proxy >/dev/null 2>&1 \
   || die "could not arm the dead-man timer"
 systemctl --user is-active --quiet "$DM.timer" || die "dead-man timer is not active"
 DM_ARMED=1
-log "dead-man $DM armed (restarts the proxy in 300 min)"
+log "dead-man $DM armed (restarts the proxy in 420 min)"
 systemctl --user stop apollo-wake-proxy
 PROXY_STOPPED=1
 [ "$(systemctl --user is-active apollo-wake-proxy)" != active ] || die "proxy did not stop"
@@ -87,13 +107,30 @@ s73 true || die ".73 not reachable over ssh"
 
 scp -q -o BatchMode=yes "$D/exl3_kld_arm.py" "$N:exl3_kld_arm.py" || die "driver copy failed"
 [ "$(sha256sum "$D/exl3_kld_arm.py" | awk '{print $1}')" = "$(s73 'sha256sum ~/exl3_kld_arm.py' | awk '{print $1}')" ] || die "staged driver differs"
-NEWBIN=/mnt/HDD/buun-da458/build_sm60/bin/llama-perplexity
 s73 "test -x $NEWBIN" || die "the da458765d build has no llama-perplexity yet"
 log "drivers staged"
 
-r=$(s73 'pkill -x llama-server; for i in $(seq 1 60); do u=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits | sort -n | tail -1); pgrep -x llama-server >/dev/null || [ "$u" -ge 500 ] || { echo CLEAR; exit 0; }; sleep 1; done; echo BUSY')
-[ "$r" = CLEAR ] || die "GPUs on .73 did not clear (got: $r)"
+clear_gpus || die "GPUs on .73 did not clear before the test suite"
 log "GPUs clear"
+
+# P-O11b, Amendment 1 section 5: buun's EXL3 unit tests on sm_60. RECORDED, NOT BLOCKING -- the six
+# main arms run on the old build, so a failure qualifies BRIDGE rather than voiding the curve.
+# `ctest` exits 0 when it finds no tests at all, so the pass is "4 of 4 ran", never the exit code.
+CT=$(s73 "cd $NEWTREE && timeout 900 ctest -R exl3 --output-on-failure 2>&1 | tail -40" || true)
+printf '%s\n' "$CT" > "$OUTL/ctest_exl3_sm60.txt"
+CT_SUMMARY=$(printf '%s\n' "$CT" | grep -E "tests passed|tests failed out of" | tail -1)
+CT_TOTAL=$(printf '%s\n' "$CT_SUMMARY" | grep -oE "out of [0-9]+" | grep -oE "[0-9]+")
+CT_FAILED=$(printf '%s\n' "$CT_SUMMARY" | grep -oE "[0-9]+ tests failed" | grep -oE "^[0-9]+")
+if [ "${CT_TOTAL:-0}" -eq 4 ] && [ "${CT_FAILED:-1}" -eq 0 ]; then
+  log "P-O11b CONFIRMED: 4/4 EXL3 tests pass on sm_60 -- $CT_SUMMARY"
+elif [ "${CT_TOTAL:-0}" -eq 4 ]; then
+  log "P-O11b FALSIFIED: ${CT_FAILED} of 4 EXL3 tests fail on sm_60 -- see ctest_exl3_sm60.txt"
+else
+  log "P-O11b NOT RUN: ctest reported ${CT_TOTAL:-no} tests, expected 4 -- see ctest_exl3_sm60.txt"
+fi
+
+clear_gpus || die "GPUs on .73 did not clear after the test suite"
+log "GPUs clear, starting arms"
 
 for entry in "${ARMS[@]}"; do
   IFS='|' read -r LABEL SRC DST WHICH <<< "$entry"

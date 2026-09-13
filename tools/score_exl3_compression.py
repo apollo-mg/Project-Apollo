@@ -2,13 +2,17 @@
 """Score PREREG_EXL3_COMPRESSION.md (EXL3 campaign, test 10) from the shared KLD results.jsonl.
 
 Usage: score_exl3_compression.py data/receipts/exl3-campaign/kld/results.jsonl
+
+Amendment 1: curves are reduced to their LOWER ENVELOPE before any interpolation, and P-C1/P-C2 are
+scored twice -- against every GGUF a user might download, and against the unsloth UD-* recipe alone.
 """
 import json, math, sys
 
 EXL3 = {"E25": "EXL3 2.50bpw", "E30": "EXL3 3.00bpw", "E35": "EXL3 3.50bpw",
         "E": "EXL3 4.00bpw", "E5": "EXL3 5.00bpw"}
-GGUF = {"G2x": "AD-IQ2_XS", "G3xx": "AD-IQ3_XXS", "G3m": "i1-IQ3_M",
-        "G4": "UD-IQ4_XS", "G5": "UD-Q4_K_M", "G6": "Q6_K"}
+GGUF = {"G2u": "UD-Q2_K_XL", "G2x": "AD-IQ2_XS", "G3xx": "AD-IQ3_XXS", "G3u": "UD-IQ3_XXS",
+        "G3m": "i1-IQ3_M", "G4": "UD-IQ4_XS", "G5": "UD-Q4_K_M", "G6": "Q6_K"}
+UD = ["G2u", "G3u", "G4", "G5"]          # one packager, one dynamic recipe -- the controlled curve
 
 rows = {}
 for line in open(sys.argv[1]):
@@ -31,9 +35,25 @@ def err(a):
     return (rows.get(a) or {}).get("kld_err") or 0.0
 
 
-def curve(names):
-    pts = [(vram(a), kld(a), a) for a in names if vram(a) and kld(a)]
-    return sorted(pts)
+def points(names):
+    return sorted((vram(a), kld(a), a) for a in names if vram(a) and kld(a))
+
+
+def envelope(pts):
+    """Lower envelope: walking ascending VRAM, keep a point only if it beats every smaller one.
+
+    A curve through every point can double back, and interpolating across a near-vertical segment
+    between two arms of almost identical size produces a meaningless exchange rate. Dropping the
+    dominated points also hands the format its best possible showing at each size.
+    """
+    keep, dropped, best = [], [], float("inf")
+    for v, k, a in pts:
+        if k < best:
+            keep.append((v, k, a))
+            best = k
+        else:
+            dropped.append((v, k, a, keep[-1]))
+    return keep, dropped
 
 
 def interp(pts, v):
@@ -73,7 +93,21 @@ for group in (EXL3, GGUF):
             print(f"| {a} | {name} | {vram(a)} | {kld(a):.6f} ± {err(a):.6f} | "
                   f"{r.get('kld_median', float('nan')):.6f} | {r.get('same_top', float('nan')):.3f} |")
 
-E, G = curve(EXL3), curve(GGUF)
+E, Edrop = envelope(points(EXL3))
+G, Gdrop = envelope(points(GGUF))
+U, Udrop = envelope(points(UD))
+
+print("\n## Dominated points (Amendment 1: curves are lower envelopes)\n")
+names = {**EXL3, **GGUF}
+any_drop = False
+for label, dropped in (("all-GGUF", Gdrop), ("UD-only", Udrop), ("EXL3", Edrop)):
+    for v, k, a, (bv, bk, ba) in dropped:
+        any_drop = True
+        print(f"- **{label}**: {names[a]} ({k:.6f} at {v} MiB) is beaten by {names[ba]} "
+              f"({bk:.6f} at {bv} MiB) — smaller *and* closer to the reference, so it is off the curve")
+if not any_drop:
+    print("- none: every measured point improves on everything smaller than it")
+
 print("\n## Predictions\n")
 
 b, e30 = rows.get("BRIDGE"), rows.get("E30")
@@ -85,21 +119,34 @@ if b and e30:
 else:
     print("- **P-C0** (bridge): NOT RUN")
 
-checks = []
-for v, k, a in E:
-    gi = interp(G, v)
-    if gi:
-        checks.append((a, v, k, gi, k < gi))
-print(f"- **P-C1**: " + (verdict(all(c[4] for c in checks)) if checks else "NOT TESTABLE") +
-      " (" + "; ".join(f"{a} {k:.5f} vs GGUF {gi:.5f} at {v} MiB" for a, v, k, gi, _ in checks) + ")")
 
-if len(checks) >= 2:
-    small, large = checks[0], checks[-1]
-    gap_s = math.log(small[3]) - math.log(small[2])
-    gap_l = math.log(large[3]) - math.log(large[2])
-    print(f"- **P-C2**: {verdict(gap_s > gap_l)} (log-gap {gap_s:.3f} at {small[1]} MiB vs {gap_l:.3f} at {large[1]} MiB)")
-else:
-    print("- **P-C2**: NOT TESTABLE")
+def c1_c2(curve, tag):
+    """P-C1 and P-C2 against one GGUF curve, reporting every EXL3 point that could not be scored."""
+    checks, excluded = [], []
+    for v, k, a in E:
+        gi = interp(curve, v)
+        if gi:
+            checks.append((a, v, k, gi, k < gi))
+        else:
+            side = "below" if not [p for p in curve if p[0] <= v] else "above"
+            excluded.append(f"{EXL3[a]} at {v} MiB ({side} the curve's range)")
+    print(f"- **P-C1 ({tag})**: " + (verdict(all(c[4] for c in checks)) if checks else "NOT TESTABLE") +
+          " (" + "; ".join(f"{EXL3[a]} {k:.5f} vs GGUF {gi:.5f} at {v} MiB"
+                           for a, v, k, gi, _ in checks) + ")")
+    if excluded:
+        print(f"    - **excluded, not silently dropped:** " + "; ".join(excluded))
+    if len(checks) >= 2:
+        small, large = checks[0], checks[-1]
+        gap_s = math.log(small[3]) - math.log(small[2])
+        gap_l = math.log(large[3]) - math.log(large[2])
+        print(f"- **P-C2 ({tag})**: {verdict(gap_s > gap_l)} (log-gap {gap_s:.3f} at {small[1]} MiB "
+              f"vs {gap_l:.3f} at {large[1]} MiB — span scored: {small[1]}–{large[1]} MiB)")
+    else:
+        print(f"- **P-C2 ({tag})**: NOT TESTABLE (fewer than two bracketed EXL3 points)")
+
+
+c1_c2(G, "all packagers")
+c1_c2(U, "UD-only, controlled")
 
 
 def pair(a, b_, label):
@@ -115,12 +162,16 @@ def pair(a, b_, label):
 
 print(pair("E25", "G2x", "P-C3"))
 print(pair("E30", "G3xx", "P-C4"))
+print(pair("E30", "G2u", "P-C5 (Mark's crossover: 3.00bpw vs UD-Q2_K_XL)"))
 
 print("\n## The compression exchange rate: VRAM a GGUF needs to match each EXL3 point\n")
-for v, k, a in E:
-    need = inverse(G, k)
-    if need:
-        print(f"- **{EXL3[a]}** reaches KLD {k:.6f} at **{v} MiB**; a GGUF needs **{need:.0f} MiB** "
-              f"for the same fidelity — **{need - v:+.0f} MiB ({(need / v - 1) * 100:+.1f}%)**")
-    else:
-        print(f"- **{EXL3[a]}**: KLD {k:.6f} at {v} MiB — outside the GGUF curve's measured range")
+for curve, tag in ((G, "all packagers"), (U, "UD-only")):
+    print(f"**{tag}**\n")
+    for v, k, a in E:
+        need = inverse(curve, k)
+        if need:
+            print(f"- **{EXL3[a]}** reaches KLD {k:.6f} at **{v} MiB**; a GGUF needs **{need:.0f} MiB** "
+                  f"for the same fidelity — **{need - v:+.0f} MiB ({(need / v - 1) * 100:+.1f}%)**")
+        else:
+            print(f"- **{EXL3[a]}**: KLD {k:.6f} at {v} MiB — no GGUF on this curve reaches it")
+    print()
