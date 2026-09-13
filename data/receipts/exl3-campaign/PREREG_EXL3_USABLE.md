@@ -90,3 +90,50 @@ detectable difference**, with the discordant-pair counts shown.
 
 **Driver:** `exl3_usable.py` (to be written with this prereg's scorer, before the run).
 **Scorer:** `tools/score_exl3_usable.py`, committed before any arm runs.
+
+---
+
+## Amendment 1 — 2026-09-13 ~11:40, still before any arm runs
+
+Written after **reading `hep_eval.py` rather than trusting my memory of it**. Three corrections; the
+predictions P-U1–P-U4 are unchanged.
+
+### 1. The K=3 outermost-sweep design is withdrawn as moot, and replaced
+
+The harness fires its K completions **inside** `run_one`, one problem at a time — sweeps are inner, and
+"outermost sweeps, harness unmodified" was not achievable as written. More to the point it was **moot**:
+at temperature 0 with a single in-flight request the run is byte-deterministic, so three sweeps would
+produce three identical results.
+
+**The primary measurement is therefore `HEP_TEMP=0`, `HEP_K=1`** — one deterministic pass of 164
+problems per arm, scored as a **paired two-sided sign test** over the 164 problems. For comparing two
+quantizations of one model this is the cleaner instrument anyway: it removes sampling noise entirely,
+so every difference between the arms is attributable to the weights.
+
+**Consequence for P-U1/P-U2, declared now:** `pass@1` at K=1 is an existence proof per problem, so the
+pooled figure is reported as **"solved 164/164 greedy"**, never as a deployment rate. The ≥5-point bar
+for P-U2 is unchanged and applies to that greedy figure.
+
+**A temperature-recommended `K=3` run is a secondary, optional extension**, run only if the greedy
+result is interesting and the node is free. It is explicitly *not* what P-U1–P-U4 are scored on.
+
+### 2. The determinism requirement was already met, and is now verified rather than assumed
+
+`hep_eval.py:49` hardcodes `WORKERS = 1`, commented *"single in-flight -> one server slot -> no
+batch-nondeterminism confound"*. The prereg's `-np 1` condition stands, and the harness cannot violate
+it — checked by reading the line, not by inferring it from the run's behaviour.
+
+### 3. The harness violates the incremental-persistence rule, and the mitigation is declared
+
+`hep_eval.py` calls `json.dump` **once, after all 164 problems finish**. A run that dies at problem 150
+leaves no JSON at all — precisely the failure [[incremental-persistence-rule]] exists to prevent.
+
+**The harness will not be modified**, because its scoring logic is what makes these numbers comparable
+to the Puzzle/Laguna panel, and editing it to fix persistence would silently fork that comparison.
+
+**Instead:** each arm's stdout is captured with `tee` to a per-arm log, and its per-problem line
+(`[ n/164] HumanEval/x pass_frac=... buckets=... toks=...`) is **declared to be the incremental
+record**. If an arm dies partway, it is scored from the log over the intersection of problems both arms
+completed, and the receipt states the reduced N. The log is a weaker record than the JSON — it carries
+no traces and no `rc_chars` — so a partial run can score P-U1 and P-U2 but **not P-U3**, which needs
+`degen_ratio` over saved traces.
