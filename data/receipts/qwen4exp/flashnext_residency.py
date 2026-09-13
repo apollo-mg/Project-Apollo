@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
-"""Stage 1 driver for PREREG_FLASHNEXT_RESIDENCY.md. Runs ON .194, launched detached.
+"""Driver for PREREG_FLASHNEXT_RESIDENCY.md. Runs ON .194, launched detached.
 
-Phases: gates -> host-bandwidth triad -> llama-server arms. One JSONL row per measurement, flushed and
-fsynced; an arm with an "arm_done" row is skipped on restart. Checks ABORT the run -- they never print a
-warning and carry on.
+Stage 1 (default): gates -> host-bandwidth triad -> the GGUF llama-server arms.
+Stage 2 (--stage2): gates -> EXL3 snapshot verified against its manifest -> the F-X3 arm.
+One JSONL row per measurement, flushed and fsynced; an arm with an "arm_done" row is skipped on restart.
+Checks ABORT the run -- they never print a warning and carry on.
 
-Usage (on .194):  python3 flashnext_residency.py
+Stage 1 ran from this file at sha 3699e75d. The Stage 2 revision adds the EXL3 arm, a directory model
+path, manifest verification, a longer load limit, full timings per request, and an abort if speculative
+decoding ever runs; none of it changes a Stage 1 arm.
+
+Usage (on .194):  python3 flashnext_residency.py [--stage2]
 """
 import hashlib, json, os, re, subprocess, sys, threading, time, urllib.request
 
@@ -38,6 +43,11 @@ ARMS = [
     ("P-IQ4-b", IQ4, ["-ngl", "44"]),
 ]
 FALLBACK = ("F-IQ1", IQ1, ["-ngl", "99"])   # declared in the prereg: replaces F-Q2 only if it fails to load
+# Stage 2: turboderp 3.05bpw_h5_ng5 at 69e33439, a snapshot DIRECTORY; -sm layer (32c2c1479 rejects
+# multi-device EXL3 tensor split). The manifest comes from hf_fetch's verified copy on the control plane.
+EXL3 = os.path.join(MODELS, "exl3/Qwen3.8-Flash-Next-exl3-3.05bpw_h5_ng5")
+EXL3_MANIFEST = os.path.join(OUT, "manifest_F-X3.txt")
+STAGE2 = [("F-X3", EXL3, ["-ngl", "99"])]
 
 
 class Abort(Exception):
@@ -70,6 +80,11 @@ def shards(stem):
     return [f"{stem}-0000{i}-of-00003.gguf" for i in (1, 2, 3)]
 
 
+def model_path(stem):
+    """A snapshot directory loads as itself; a GGUF stem loads from its first shard."""
+    return stem if os.path.isdir(stem) else os.path.join(MODELS, shards(stem)[0])
+
+
 def sha256(path):
     return subprocess.run(["sha256sum", path], capture_output=True, text=True, check=True).stdout.split()[0]
 
@@ -82,7 +97,8 @@ def gpu_mib():
 
 def heavy():
     """Anything that would contend for memory bandwidth, disk or the GPUs during a measurement."""
-    names = {"cmake", "make", "gmake", "ninja", "nvcc", "cicc", "ptxas", "cc1plus", "sha256sum", "llama-server"}
+    names = {"cmake", "make", "gmake", "ninja", "nvcc", "cicc", "ptxas", "cc1plus", "sha256sum", "llama-server",
+             "rsync", "ctest"}
     comms = subprocess.run(["ps", "-eo", "comm"], capture_output=True, text=True).stdout.split()
     return sorted({c for c in comms if c in names})
 
@@ -98,6 +114,26 @@ def verify(stems, have):
             got = have.get(rel) or sha256(os.path.join(MODELS, rel))
             if got != want:
                 raise Abort(f"{rel}: sha256 {got} != published {want}")
+
+
+def verify_manifest(path):
+    """Stage 2: every file of the EXL3 snapshot against the manifest from the verified control-plane copy."""
+    if not os.path.exists(path):
+        raise Abort(f"no manifest at {path}")
+    n = 0
+    with open(path) as f:
+        for line in f:
+            if not line.strip():
+                continue
+            want, rel = line.split(maxsplit=1)
+            rel = rel.strip()
+            got = sha256(os.path.join(EXL3, rel))
+            if got != want:
+                raise Abort(f"{rel}: sha256 {got} != manifest {want}")
+            n += 1
+    if n == 0:
+        raise Abort(f"manifest {path} lists no files")
+    return n
 
 
 def gates():
@@ -161,7 +197,8 @@ def http(path, payload=None, timeout=1200):
         return json.loads(r.read())
 
 
-def healthy(p, limit=1500):
+def healthy(p, limit=3600):
+    # 3600 s: the 27B EXL3 took 318 s to load on .73, and the Flash-Next snapshot is ~6x larger
     t0 = time.time()
     while time.time() - t0 < limit:
         if p.poll() is not None:
@@ -201,7 +238,7 @@ def parse_log(text):
 def run_arm(label, stem, flags):
     caches = drop_caches()
     logpath = os.path.join(OUT, f"server_{label}.log")
-    cmd = [BIN, "-m", os.path.join(MODELS, shards(stem)[0]), *COMMON, *flags]
+    cmd = [BIN, "-m", model_path(stem), *COMMON, *flags]
     log(f"=== {label}: {' '.join(flags)}  (page cache dropped: {caches})")
     t0 = time.time()
     lf = open(logpath, "w")
@@ -248,7 +285,10 @@ def run_arm(label, stem, flags):
                       "prompt_sha": hashlib.sha256(json.dumps(prompt).encode()).hexdigest()[:16],
                       "prompt_n": t.get("prompt_n"), "pp_tps": t.get("prompt_per_second"),
                       "predicted_n": t.get("predicted_n"), "tg_tps": t.get("predicted_per_second"),
-                      "prompt_ms": t.get("prompt_ms"), "predicted_ms": t.get("predicted_ms")})
+                      "prompt_ms": t.get("prompt_ms"), "predicted_ms": t.get("predicted_ms"), "timings": t})
+                if t.get("draft_n"):
+                    raise Abort(f"{label}: speculative decoding ran (draft_n={t.get('draft_n')}); "
+                                "the prereg runs every arm without it")
                 log(f"{label} len={n} rep={rep}: pp {t.get('prompt_per_second') or 0:.1f}  "
                     f"tg {t.get('predicted_per_second') or 0:.2f} tok/s")
         emit({"stage": "arm_done", "arm": label, "peak_mib": peak.peak, "wall_s": round(time.time() - t0, 1)})
@@ -271,13 +311,20 @@ def run_arm(label, stem, flags):
 
 def main():
     os.makedirs(OUT, exist_ok=True)
+    stage2 = "--stage2" in sys.argv
     try:
         ver, clk = gates()
-        emit({"stage": "gates", "ok": True, "version": ver[:300], "clocks": clk})
-        log(f"gates passed -- {ver.splitlines()[0] if ver else ''}")
-        bandwidth()
+        emit({"stage": "gates", "ok": True, "version": ver[:300], "clocks": clk, "stage2": stage2})
+        log(f"gates passed{' (stage 2)' if stage2 else ''} -- {ver.splitlines()[0] if ver else ''}")
+        if stage2:
+            t0 = time.time()
+            n = verify_manifest(EXL3_MANIFEST)
+            log(f"EXL3 snapshot: {n} files verified against its manifest in {time.time() - t0:.0f} s")
+            queue = list(STAGE2)
+        else:
+            bandwidth()
+            queue = list(ARMS)
         done = {r["arm"] for r in rows() if r.get("stage") == "arm_done"}
-        queue = list(ARMS)
         while queue:
             label, stem, flags = queue.pop(0)
             if label in done:
@@ -291,7 +338,7 @@ def main():
         log(f"ABORT: {type(e).__name__}: {e}")
         emit({"stage": "abort", "msg": f"{type(e).__name__}: {e}"})
         sys.exit(1)
-    log("=== STAGE 1 COMPLETE ===")
+    log("=== STAGE 2 COMPLETE ===" if stage2 else "=== STAGE 1 COMPLETE ===")
 
 
 if __name__ == "__main__":
