@@ -229,3 +229,20 @@ have them. Fixed here, before the run.
 
 **4. Everything else stands:** temperature 0, K=1, thinking off, one pinned template, `-np 1`, arms on separate
 sockets and GPU pairs, wall-clock not scored.
+
+---
+
+## Amendment 5 — 2026-09-13 ~16:50, both arms running: the KV check is vacuous here too
+
+**Recorded while the run is in flight, before any result.** Both arms logged `KV []`: buun's server prints no
+`K (…)` / `V (…)` lines at its default verbosity, so the driver's guard — *abort if a found type is not f16* —
+had nothing to inspect. **A check that cannot fail.** The identical defect was found and disclosed this morning
+in `qwen4exp/PREREG_FLASHNEXT_RESIDENCY.md` Amendment 2; I did not carry the fix into this driver.
+
+**What is and is not affected.** Both arms pass `-ctk f16 -ctv f16` explicitly on the same command line, so the
+KV type **cannot differ between them** — the paired comparison is intact either way. What is unproven is the
+*absolute* claim that both ran f16 rather than buun's VBR default.
+
+**The real check, after the run:** reload each arm's exact command with `-lv 4`, load only, no requests, and
+record the K/V types — the same procedure that supplied the positive check for Stage 1 of the Flash-Next test.
+Recorded in the result whichever way it lands.
