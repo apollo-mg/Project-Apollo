@@ -11,7 +11,8 @@ Usage (on .73):  python3 exl3_kld_arm.py <label> <model dir or file> <manifest>
 """
 import json, os, re, subprocess, sys, time
 
-BIN = os.path.expanduser("~/buun-sm60-qual/build_sm60qual/bin/llama-perplexity")
+# EXL3_KLD_BIN lets the cross-build bridge arm run the same driver against a different build.
+BIN = os.environ.get("EXL3_KLD_BIN") or os.path.expanduser("~/buun-sm60-qual/build_sm60qual/bin/llama-perplexity")
 OUT = os.path.expanduser("~/exl3_kld")
 RES = os.path.join(OUT, "results.jsonl")
 BASE = "/mnt/HDD/kld/ref.kld"
@@ -95,7 +96,7 @@ def main():
         text = f.read()
     disk = (sum(os.path.getsize(os.path.join(d, f)) for d, _, fs in os.walk(model) for f in fs)
             if os.path.isdir(model) else os.path.getsize(model))
-    row = {"arm": label, "model": model, "flags": FLAGS, "stage": "run", "rc": p.returncode,
+    row = {"arm": label, "model": model, "flags": FLAGS, "bin": BIN, "stage": "run", "rc": p.returncode,
            "wall_s": round(time.time() - t0, 1), "peak_mib": peak, "disk_bytes": disk,
            "failed_decode": "failed to decode" in text}
     for keys, pattern in PATTERNS.items():
