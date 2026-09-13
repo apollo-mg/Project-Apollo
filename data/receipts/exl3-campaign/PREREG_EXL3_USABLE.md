@@ -165,3 +165,67 @@ handicapped: it holds more VRAM and the marginally lower KLD.
 GGUF's) is now a genuine coin flip rather than a favourite, because the pair is a distribution tie; the
 informative outcomes are **no detectable difference** or a falsification. **A confirmed P-U2 (≥ 5 points) would be
 the surprise** — it would mean KLD is blind to something the task exposes. P-U3 and P-U4 are unaffected.
+
+---
+
+## Amendment 3 — 2026-09-13 ~16:15: the test moves to `.194`, the arms run side by side, thinking off
+
+Mark: *"move the test to .194 since it'll complete faster, and .73 can be allowed to sleep."*
+
+**Node: `.194`, four P100s — one socket and two cards per arm.** EXL3 on GPUs 0–1 under
+`numactl --cpunodebind=0 --membind=0`; the GGUF on GPUs 2–3 under node 1 (topology from
+`scripts/startup/llama_cluster_ctl_194.sh`, verified 2026-07-06). Stage 1's triad measured cross-socket reads at
+**7.0 GB/s against 22.7 local**, so binding each arm to its own socket keeps the two out of each other's memory.
+Each arm's harness process is bound to the same socket as its server.
+
+**The arms therefore run at the same time. Declared consequences:**
+- **Wall-clock times are not comparable between arms and are not scored.** Test 11 scores correctness.
+- **Determinism is unaffected:** each server runs `-np 1` at temperature 0, so neither arm's load can change the
+  other's output ([[agent-benchmark-determinism]]).
+- If either server dies, its arm is scored over the problems both completed, per Amendment 1.
+
+**Thinking is off** — `chat_template_kwargs: {"enable_thinking": false}`, identical in both arms. **Why:** on two
+P100s the EXL3 arm decodes about 8 tok/s, which makes a thinking-on pass of 164 problems roughly **six hours per
+arm** against about **1.5 with it off**. HumanEval+ scores the code, not the chain, and A6 already found `medium`
+(which injects nothing) beating the `xhigh` default on every axis. **A thinking-on run remains available as an
+extension**, and is the first thing to try if the off run is a tie.
+
+**Provenance, an upgrade on test 10.** Both files are copied to `.194` and verified there: the EXL3 snapshot
+against a manifest of the hf_fetch-verified control-plane copy, and **the GGUF against unsloth's published
+sha256** — test 10's GGUFs were size-checked only.
+
+**Pinned identically across arms:** the 27B EXL3 snapshot's `chat_template.jinja` via `--chat-template-file`
+(byte-identical to stock Qwen3.8; the copy's sha256 is recorded at staging), `-c 8192 -np 1 -fa on -ctk f16
+-ctv f16 -sm layer -ngl 99 -fit off`, `HEP_TEMP=0 HEP_K=1 HEP_MAXTOK=4096 HEP_THINK=0`. `-sm layer` is required:
+`32c2c1479` rejects multi-device EXL3 tensor split.
+
+---
+
+## Amendment 4 — 2026-09-13 ~16:25: the GGUF arm's provenance, the dataset, and how P-U3 is actually measured
+
+**1. The GGUF arm is unsloth's UD-IQ3_XXS at revision `f9758630` (2026-08-19), and that is now proven, not
+assumed.** Staging aborted because our copy — 11,913,559,104 B, sha256 `0a6129dc…` — does not match the file
+unsloth publishes today (10,934,860,704 B, `c0b7c303…`). Walking the repo's history: **`f9758630` carries our
+exact size and hash, and every later revision carries the smaller re-cut.** unsloth re-cut the file the same day.
+`tools/hf_fetch.py`'s docstring warns about exactly this; here is a documented instance.
+
+**We keep our copy and pin the revision.** The pair in Amendment 2 rests on the KLD test 10 measured **for this
+file**; the current cut is a different file with unmeasured fidelity. The staging gate now verifies against
+`0a6129dc…` and records the revision.
+
+**Consequence for test 10:** its G3u point is "unsloth UD-IQ3_XXS **at revision f9758630**", not "the file
+unsloth publishes today". A note goes into `RESULT_EXL3_COMPRESSION.md`; the measurement is unaffected.
+
+**2. Dataset.** `humanevalplus.jsonl` already on `.194` at `~/hep/`, 11,317,638 bytes — matching
+`fetch_dataset.py`'s recorded fingerprint for the file the Puzzle and Laguna legs used. The driver asserts that
+byte count and 164 problems before it spends any inference, alongside `hep_eval.py`'s own preflight, which proves
+the grader passes a canonical solution.
+
+**3. P-U3 is scored on what the harness records.** The prereg said "fewer degenerate outputs (`degen_ratio`)", but
+`hep_eval.py` computes `degen_ratio` only for the one saved failing trace per problem, not per sample. **P-U3 is
+therefore scored on two recorded quantities:** the count of degeneracy-shaped buckets (`TRUNCATED` + `NO_ANSWER`)
+over the 164 samples, and mean output tokens; the saved traces' gzip ratios are reported alongside when both arms
+have them. Fixed here, before the run.
+
+**4. Everything else stands:** temperature 0, K=1, thinking off, one pinned template, `-np 1`, arms on separate
+sockets and GPU pairs, wall-clock not scored.
