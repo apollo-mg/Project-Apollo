@@ -101,3 +101,24 @@ without interpolating a plot.
 
 **Driver:** `flashnext_residency.py --stage4`, extending the file every prior stage used rather than a new one.
 **Scorer:** `tools/score_flashnext_spill.py`, committed with this prereg, before the first rung.
+
+---
+
+## Amendment 1 — 2026-09-13 18:55, during rung 2's load: `-lv 4` is on while the rungs are *timed*
+
+Recorded as soon as it was noticed, before any rung produced a number. The prereg turned `-lv 4` on to make the
+f16 KV assertion inspectable — but it stays on through the measured requests, not just the load, and at debug
+verbosity llama-server writes log lines during generation. **That is measurement overhead I introduced.**
+
+**What it does and does not touch:**
+- **The slope (P-L1) and the exchange rate are unaffected.** `-lv 4` is on for all six rungs identically, so a
+  constant per-token cost lands in the *intercept*, not the marginal cost per spilled layer. The ladder's
+  internal comparisons are clean.
+- **P-L4 is the one exposed.** `S3-X4` ran without `-lv 4` *and* without `--numa distribute`, so rung 2 differs
+  from it in **two** ways, not one. **P-L4 is therefore demoted from a numa control to a
+  "same-flags-plus-two-changes" sanity check**, and a miss cannot be attributed to numa alone. Scored as
+  written, read with this caveat, and the receipt will say so.
+
+**Not fixed by restarting.** Re-running without `-lv 4` would restore the vacuous KV guard — the defect this
+stage exists not to repeat for a third time — and dropping it only from the timed portion is not something the
+server supports mid-run. **The trade is deliberate: a real KV check is worth a constant in the intercept.**
