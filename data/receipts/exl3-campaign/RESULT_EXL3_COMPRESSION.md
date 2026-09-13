@@ -109,3 +109,17 @@ the options before test 11 launches.
 - **Test 3's rows predate the `bin` field**; per test 3's receipt they ran on `9ae8f0f40`, as the BRIDGE confirms.
 
 Working notes written mid-run, before the last three arms: `NOTES_TEST10_PARTIAL.md`.
+
+---
+
+### Provenance note added 16:25 — G3u's file is unsloth revision `f9758630`, not today's published cut
+
+Staging test 11 hash-checked this file and it did **not** match what unsloth publishes now
+(10,934,860,704 B, `c0b7c303…`). Walking the repo's history: **our copy is revision `f9758630`, 2026-08-19,
+11,913,559,104 B, `0a6129dc…`** — and unsloth re-cut UD-IQ3_XXS the same day, so every later revision carries
+the smaller file. Ours is genuine unsloth UD-IQ3_XXS, one cut earlier.
+
+**Read the G3u row, and the "UD curve" built through it, as revision `f9758630`.** The measurement stands; the
+label needed the revision. The prereg declared the GGUFs size-checked only, which is exactly the gap this
+closes — a size check would not have caught a re-cut of a *different* size either, but it never compared
+against anything published. Test 11 pins the revision in its own gate.
