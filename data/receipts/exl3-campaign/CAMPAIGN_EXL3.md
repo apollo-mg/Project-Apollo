@@ -59,6 +59,24 @@ in the inference receipt, is the nominal figure. Disk overstates EXL3's GPU foot
 - **Superseded and still valid:** the charter's earlier ~0.45× estimate is superseded. 0.85× remains the
   MTP-off figure.
 
+## The decision table (2026-09-12)
+
+Speed under the daily driver's flags (tests 1 and 7); KLD against a Q8_0 reference at `-ub 8` under
+`-sm layer` (test 3). **Two configurations, one table — read the columns separately.**
+
+| option | served t/s | mean KLD | VRAM (KLD run) | prefill t/s |
+|---|---|---|---|---|
+| UD-IQ4_XS | **24.60** | 0.015727 | 13,500 MiB | 134.8 |
+| UD-Q4_K_M | 23.13 | 0.007840 | 15,448 MiB | 140.5 |
+| **Q6_K, the daily driver** | 20.25 | **0.002770** | 21,276 MiB | 151.2 |
+| EXL3 5.00bpw | 14.14 | 0.003994 | 16,372 MiB | **159.9** |
+| EXL3 4.00bpw | 13.08 | 0.012002 | 13,468 MiB | 153.7 |
+
+**GGUF is faster at every quality level; EXL3 is smaller at every quality level.** On `.73` the daily
+driver is both faster *and* closer than EXL3 5.00bpw, for 4.9 GB more VRAM that this node has to spare —
+so **EXL3's advantage is real but currently unpurchasable here.** It becomes purchasable where VRAM binds:
+a 16 GB card, long context if VBR needs the freed 8 GB, or any box where Q6_K's 21 GB does not fit.
+
 ## The ledger
 
 | # | objection | status | evidence, or the test that settles it |
@@ -67,7 +85,7 @@ in the inference receipt, is the nominal figure. Disk overstates EXL3's GPU foot
 | O2 | **Loses MTP** | RETIRED, with a cost | MTP engages on EXL3 at GGUF's acceptance rate but buys 1.24× instead of 1.69×. The cost is carried in O5. |
 | O3 | **Loses vision** | RETIRED | The daily driver's existing `mmproj-F16.gguf` attaches to the EXL3 model and reads the probe. |
 | O4 | **Doesn't compose with VBR KV** | RETIRED at load · degrade path OPEN | EXL3 and GGUF log the identical VBR controller init. Both stayed at the f16 entry tier through 14,852 tokens, so VBR's degraded tiers were never exercised with EXL3 weights. Test: a long-context run that forces VBR to degrade. |
-| O5 | **Slower** | CONFIRMED · **cause identified, fixable upstream** | 0.646× the daily driver as served, 0.627× matched with MTP on, 0.85× with MTP off. **The gap is mostly kernel row-scaling:** a 4-row verify batch costs EXL3's int8 GEMV **2.08×** a single row where GGUF's MMVQ pays **1.37×** (`RESULT_EXL3_MTP_SWEEP.md`), which predicts the measured MTP asymmetry to within a few points. The kernel is compute-bound on trellis decode on Pascal (~94 GB/s of 732), so per-row decode costs nearly full price. **Depth is tunable and confirms it:** EXL3's optimum is `--draft-max 1` (1.29x) where Q6_K's is 2 (1.70x), worth +3.9% over the daily driver's depth 3; by depth 5 MTP is already a net loss for EXL3 and still a 1.33x gain for Q6_K (`RESULT_EXL3_DEPTH.md`). |
+| O5 | **Slower** | CONFIRMED · **cause identified, fixable upstream** | 0.646× the daily driver as served, 0.627× matched with MTP on, 0.85× with MTP off. **The gap is mostly kernel row-scaling:** a 4-row verify batch costs EXL3's int8 GEMV **2.08×** a single row where GGUF's MMVQ pays **1.37×** (`RESULT_EXL3_MTP_SWEEP.md`), which predicts the measured MTP asymmetry to within a few points. The kernel is compute-bound on trellis decode on Pascal (~94 GB/s of 732), so per-row decode costs nearly full price. **Depth is tunable and confirms it:** EXL3's optimum is `--draft-max 1` (1.29x) where Q6_K's is 2 (1.70x), worth +3.9% over the daily driver's depth 3; by depth 5 MTP is already a net loss for EXL3 and still a 1.33x gain for Q6_K (`RESULT_EXL3_DEPTH.md`). **Across the ladder, GGUF is faster at every quality level** (`RESULT_EXL3_LADDER_SPEED.md`) — and, unexpectedly, **EXL3 5.00bpw decodes faster than 4.00bpw** (14.14 vs 13.08), which the source suggests is shared-memory row staging turning on only at bits >= 5. |
 | O6 | **Quality beyond one perplexity number** | **RETIRED for distribution** · task accuracy still OPEN | **Matched by bitrate, EXL3's curve is below GGUF's at both comparable sizes** (`RESULT_EXL3_KLD.md`): 24% closer than UD-IQ4_XS at ~13.5 GB, and 28% closer than UD-Q4_K_M at its own 15,448 MiB. **The advantage widens with fidelity** — a GGUF needs ~790 MiB more VRAM to match EXL3 at KLD 0.012, but ~2.9 GB more at 0.004. EXL3 5.00bpw comes within 1.4× of the daily driver's fidelity on **4.9 GB less VRAM**. **Perplexity is retired as a fidelity metric here:** it ranks the same files the other way and scores two quants *better than the reference they approximate*. |
 | O7 | **Prefill and long context** | PARTIAL | Prefill is at parity at about 15k tokens (153.7 vs 150.1 t/s). Long context is untested. |
 | O8 | **We can't make our own quants** | OPEN · no blocker found in source | There is no quantizer in buun's tree, but exllamav3 sets no architecture gate, and its sampled kernels use `half2` intrinsics Pascal has natively (`NOTE_EXL3_QUANTIZER_ON_SM60.md`). **That is 3 of 113 CUDA sources**, and torch's own sm_60 support matters as much. **Decisive test, about an hour:** convert Qwen3-0.6B on `.73` and compare its perplexity against turboderp's own 0.6B (20.2864). |
@@ -78,7 +96,7 @@ in the inference receipt, is the nominal figure. Disk overstates EXL3's GPU foot
 **What EXL3 buys, so far: VRAM at equal quality.** Matched by bitrate, its KLD curve sits below GGUF's at
 every size measured, and the gap grows with fidelity — ~790 MiB at KLD 0.012, **~2.9 GB at 0.004**. At the
 daily driver's config that shows up as 8.1 GB freed, which is room for context or a second model.
-**What it costs: ~35% of decode speed**, most of it a kernel property (O5) rather than the format.
+**What it costs: 30-40% of decode speed at matched quality**, most of it a kernel property (O5) rather than the format. **Whether the trade is worth making depends on which resource is scarce** — on `.73`, VRAM is not.
 
 ## Design notes
 
@@ -103,16 +121,13 @@ daily driver's config that shows up as 8.1 GB freed, which is room for context o
 4. ~~Test 6, MTP depth.~~ **DONE, gate failed** (`RESULT_EXL3_DEPTH.md`): per-request depth is ignored
    for MTP, so the curve is unmeasured — but depth 7 makes MTP a **net loss** for EXL3 (0.78×) where
    Q6_K still gains (1.10×).
-5. **Test 3, Amendment 2 (EXL3 5.00bpw): RUNNING.** It makes the comparison at Q4_K_M's size
-   like-for-like.
-6. **Test 4, the micro-batch cost curve: RE-RUNNING** after attempt 1's cold-start control failure
-   (`PREREG_EXL3_MTP_SWEEP.md`, Amendment 1). It decides whether O5's MTP gap is a kernel property buun
-   could fix.
+5. ~~Test 3, Amendment 2 (EXL3 5.00bpw).~~ **DONE:** EXL3's curve is below GGUF's at both sizes.
+6. ~~Test 4, the micro-batch cost curve.~~ **DONE** (`RESULT_EXL3_MTP_SWEEP.md`): 2.08x vs 1.37x for a 4-row batch — the MTP gap is a kernel property.
+6b. ~~Test 7, the ladder's served speed.~~ **DONE** (`RESULT_EXL3_LADDER_SPEED.md`): the decision table above.
 7. ~~O8: read exllamav3's conversion requirements.~~ **DONE, nothing blocks sm_60 in what was read**
    (`NOTE_EXL3_QUANTIZER_ON_SM60.md`). What remains is a real conversion on `.73`.
 8. ~~O9 supply.~~ **RETIRED** (`NOTE_EXL3_SUPPLY.md`).
-9. **The depth curve, properly:** a server restart per depth (1, 2, 3, 5), ~32 min, since the
-   per-request field does not work.
+9. ~~The depth curve, properly.~~ **DONE** (`RESULT_EXL3_DEPTH.md`, Amendment 3): EXL3 wants `--draft-max 1`, Q6_K wants 2.
 10. **O6 task accuracy** — the verdict metric. KLD settles distribution, not whether answers get worse.
 11. **O4 degrade path and O7 long context,** one long-context run (`PREREG_EXL3_LONGCTX.md`, written and
     awaiting Mark).

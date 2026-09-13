@@ -1,0 +1,25 @@
+| arm | loaded | load s | VRAM MiB | vision | greedy t/s | acc | sampled t/s | prefill t/s | KLD (test 3) |
+|---|---|---|---|---|---|---|---|---|---|
+| E5s | True | 301 | 20630 | yes | 14.30 | 0.658 | 14.14 | 159.9 | 0.003994 at 16372 MiB |
+| G4s | True | 202 | 17994 | yes | 26.96 | 0.767 | 24.60 | 134.8 | 0.015727 at 13500 MiB |
+| G5s | True | 232 | 19942 | yes | 24.10 | 0.686 | 23.13 | 140.5 | 0.007840 at 15448 MiB |
+| E  (EXL3 4.00) | (test 1) | | | | 13.96 | | 13.08 | | 0.012002 at 13468 MiB |
+| D  (Q6_K) | (test 1) | | | | 22.38 | | 20.25 | | 0.002770 at 21276 MiB |
+
+## Predictions
+
+- **P-G1**: CONFIRMED (loads and probe reads: E5s True/True, G4s True/True, G5s True/True)
+- **P-G2**: CONFIRMED (G4s 24.60, G5s 23.13 vs EXL3 4.00's 13.08)
+- **P-G3**: CONFIRMED (G4s 24.60 vs G5s 23.13)
+- **P-G5**: CONFIRMED (G5s 23.13 vs EXL3 4.00's 13.08; its KLD is already lower)
+- **P-G6**: FALSIFIED (E5s 14.14 vs EXL3 4.00's 13.08)
+- **P-G7**: CONFIRMED (G5s 23.13 vs E5s 14.14)
+- **P-G8**: CONFIRMED (no EXL3 arm beats every GGUF arm on speed and KLD together)
+
+## The decision table (speed here, KLD from test 3 at -ub 8 / -sm layer)
+
+- **E5s**: 14.14 t/s served, KLD 0.003994, 16372 MiB
+- **G4s**: 24.60 t/s served, KLD 0.015727, 13500 MiB
+- **G5s**: 23.13 t/s served, KLD 0.007840, 15448 MiB
+- **E  (EXL3 4.00)**: 13.08 t/s served, KLD 0.012002, 13468 MiB
+- **D  (Q6_K)**: 20.25 t/s served, KLD 0.002770, 21276 MiB
