@@ -71,3 +71,27 @@ tensor splitting"*. EXL3 stays on `-sm layer` across devices, which is what test
 - **The NaN question behind upstream's deny list is still unresolved**, and buun's re-admission does not
   resolve it: the generic CPU-vs-device arm still compares `if (nmse_val > 1e-4)`, which `nan` passes
   ([[tensor-split-denylist]]).
+
+---
+
+## Correction — 2026-09-13 ~12:10, same day
+
+Two errors in *"The item with the largest stake for this fleet"* above. Found when Mark raised EXL3 for
+Flash-Next on `.194` and I re-read `RESULT_FLASHNEXT_PREFILL.md` against this note.
+
+1. **Wrong resource.** I wrote that EXL3N "lands on the resource `RESULT_FLASHNEXT_PREFILL.md` measured
+   as saturated." That receipt attributes the flat ~35 tok/s prefill to **streaming offloaded
+   experts** from host RAM — ~1,800 prompt tokens touch essentially every expert. The PLE table is read
+   by **sparse gather**, one row per token per layer, and that sparsity is the architecture's whole
+   pitch. Cutting bytes per gather barely moves total host traffic. **EXL3N is a host-RAM *capacity*
+   feature**, which is exactly how `d528c300c` frames the problem it solves: a BF16→F32 conversion
+   doubling resident RAM and pushing decode into paging.
+2. **Wrong baseline.** "Roughly 5× fewer bytes" compared 3-bit EXL3N against a **BF16** table. Ours is
+   not BF16: 26.82 GiB against buun's ~100 GB BF16 figure is **roughly 4.5 bits per element** already.
+   Against that, 3-bit EXL3N is about a third smaller, not 5×.
+
+**Retracted in consequence:** EXL3N does **not** "compete for the same win" as filling `.194`'s memory
+channels. **What does is EXL3 on the experts.** If they become fully VRAM-resident, expert streaming
+stops and host bandwidth largely stops mattering for this model — so for Flash-Next throughput, EXL3
+residency and more DIMMs are **substitutes, not complements**. DIMMs still carry DS4, whose experts sit
+on the CPU by design (`-ncmoe 40`), and capacity in general.
