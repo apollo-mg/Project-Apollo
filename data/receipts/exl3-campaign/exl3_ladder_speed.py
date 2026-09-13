@@ -18,7 +18,7 @@ MMPROJ = "/mnt/models/AI_Models/Qwen 3.8/mmproj-F16.gguf"
 TXT = "/mnt/HDD/exl3/wiki.test.raw"
 PROBE = os.path.join(OUT, "vision_probe.png")
 # All three were hash-verified on .73 during test 3 (the two GGUFs) and its Amendment 2 (the EXL3).
-ARMS = [("E5s", "/mnt/HDD/exl3/Qwen3.8-27B-exl3-5.00bpw", 19929041352),
+ARMS = [("E5s", "/mnt/HDD/exl3/Qwen3.8-27B-exl3-5.00bpw", 19901680029),   # safetensors only, both copies agree
         ("G4s", "/mnt/HDD/kld/Qwen3.8-27B-UD-IQ4_XS.gguf", 14252845984),
         ("G5s", "/mnt/HDD/kld/Qwen3.8-27B-UD-Q4_K_M.gguf", 16464440224)]
 # The daily driver's command, as in test 1.
