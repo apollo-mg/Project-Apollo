@@ -51,11 +51,41 @@ to test 1's depth-3 run — same binary, node, prompt, greedy sampling and 256-t
 
 *(Descriptive: a cross-test comparison against test 1, not a preregistered claim.)*
 
-## What is still unknown
+## The curve, measured (Amendment 3, run 20:26–20:53)
 
-**The curve between depths 1 and 5 — the actual question.** It needs a server restart per depth:
-roughly 25 minutes for EXL3 at four depths (318 s to load each time off spinning disk) plus about 7
-minutes for Q6_K. Named as a follow-up rather than run tonight.
+Redone with **a server restart per depth**, since the per-request field is inert. Same flags, prompt and
+greedy settings; baselines are test 1's MTP-off arms. Scored by `tools/score_exl3_depth_restart.py`; raw
+in `depth2/`.
+
+| | MTP off | depth 1 | depth 2 | depth 3 | depth 5 | depth 7 |
+|---|---|---|---|---|---|---|
+| **EXL3 4.00bpw** t/s | 11.22 | **14.50** | 13.98 | 13.96 | 10.67 | 8.72 |
+| gain | 1.00 | **1.29×** | 1.25× | 1.24× | 0.95× | 0.78× |
+| **Q6_K** t/s | 13.18 | 21.87 | **22.39** | 22.22 | 17.48 | 14.44 |
+| gain | 1.00 | 1.66× | **1.70×** | 1.69× | 1.33× | 1.10× |
+| drafted per token | – | 0.54 | 0.83 | 0.85 | 1.58 | – |
+
+| id | prediction | result |
+|---|---|---|
+| P-S5 | **Gate:** drafted per token at depth 5 ≥ 1.5× that at depth 1 | **CONFIRMED.** 0.54 → 1.58 in both arms: depth now reaches the model |
+| P-S6 | EXL3's best depth ≤ 3 | **CONFIRMED.** It is **1** |
+| P-S7 | Q6_K's best depth ≥ 3 | **FALSIFIED.** It is **2**, though 2 and 3 differ by 0.8% |
+| P-S8 | EXL3's gain at its best depth < 1.4× | **CONFIRMED.** 1.29× |
+| P-S9 | EXL3 gains less than Q6_K at every depth | **CONFIRMED.** 1.29/1.66, 1.25/1.70, 1.24/1.69, 0.95/1.33 |
+
+**The deployment settings: EXL3 wants `--draft-max 1`, Q6_K wants 2.** Mark's hypothesis — that a format
+whose extra rows cost more should want less depth — holds, and test 4 supplies the reason: EXL3 pays
+2.08× for a 4-row verify where GGUF pays 1.37×.
+
+**What it is worth:** running EXL3 at depth 1 instead of the daily driver's 3 recovers **+3.9%**
+(14.50 vs 13.96 t/s). It does not close the gap — best against best is 22.39 ÷ 14.50 = **0.648×**, the
+same 0.65 as test 1 — but it is free.
+
+**EXL3 crosses below break-even sooner.** By depth 5 MTP is already a net loss for EXL3 (0.95×) while
+Q6_K still gains 1.33×; by depth 7 it is 0.78× against 1.10×.
+
+*(The MTP-off baselines are test 1's, measured on the same node, binary, flags and prompt earlier the
+same day — a cross-test baseline, declared.)*
 
 ## Deviations
 

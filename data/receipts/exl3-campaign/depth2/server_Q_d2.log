@@ -1,0 +1,89 @@
+0.00.023.463 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.023.921 W srv  llama_server: -----------------
+0.00.023.923 W srv  llama_server: CORS is set to allow all origins ('*') and no API key is set
+0.00.023.923 W srv  llama_server: this can be a security risk (cross-origin attacks)
+0.00.023.923 W srv  llama_server: more info: https://github.com/ggml-org/llama.cpp/pull/25655
+0.00.023.923 W srv  llama_server: -----------------
+0.00.025.562 I srv    load_model: loading model '/mnt/models/AI_Models/Qwen 3.8/Qwen3.8-27B-Q6_K.gguf'
+0.31.191.362 I VBR dynamic turbo runtime controller: KV budget auto (remaining VRAM, resolved by fit), entry tier f16, floor 2.25 bits/value, price-ordered decode-time degrades
+0.31.191.654 I cmn  common_param: VBR codec auto: selected turbo from model KV geometry
+0.31.415.281 W NCCL not compiled in; falling back to internal AllReduce.  Recompile with -DGGML_CUDA_NCCL=ON for best multi-GPU performance.
+0.31.416.427 W internal AllReduce init failed (n_devices != 2?); falling back to meta-backend butterfly
+VMEAN tap: no live V layers — add disabled
+0.31.581.036 I cmn          init: llama threadpool init, n_threads = 6
+TCQ decode: context-adaptive V alpha enabled
+0.31.901.709 I srv    load_model: creating MTP draft context against the target model '/mnt/models/AI_Models/Qwen 3.8/Qwen3.8-27B-Q6_K.gguf'
+0.31.901.769 W NCCL not compiled in; falling back to internal AllReduce.  Recompile with -DGGML_CUDA_NCCL=ON for best multi-GPU performance.
+0.31.901.771 W internal AllReduce init failed (n_devices != 2?); falling back to meta-backend butterfly
+VMEAN tap: no live V layers — add disabled
+0.32.051.506 W load_hparams: Qwen-VL models require at minimum 1024 image tokens to function correctly on grounding tasks
+0.32.051.510 W load_hparams: if you encounter problems with accuracy, try adding --image-min-tokens 1024
+0.32.051.510 W load_hparams: more info: https://github.com/ggml-org/llama.cpp/issues/16842
+
+0.33.406.039 I srv    load_model: loaded multimodal model, '/mnt/models/AI_Models/Qwen 3.8/mmproj-F16.gguf'
+0.33.406.071 I srv    load_model: computation-frontier ratchet: legacy reads authoritative, flip after 1024 qualifying agreements
+0.33.406.076 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 262144, kv_unified = 'true'
+0.33.406.992 W set_sampler: backend sampling not supported with SPLIT_MODE_TENSOR; using CPU
+0.33.406.995 W spec common_specu: backend offload failed for seq_id=0; using CPU sampler
+0.33.407.371 I slot   load_model: id  0 | task -1 | speculative decoding context initialized
+0.33.408.155 I srv    load_model: dynamic VBR idle caching will store projected artifacts; fixed KV state images remain disabled
+0.33.409.037 I srv    load_model: decayed-frequency host-cache authority is enabled
+0.33.442.370 I srv    load_model: VBR_ARTIFACT_CAPTURE store ready attention_children=1 lanes=2 requested_ring=67108864 constructed_ring=67108864 chunk=8388608
+0.33.457.010 I srv          init: chat template supports preserving reasoning, consider enabling it via --reasoning-preserve
+0.33.457.380 I srv  llama_server: model loaded
+0.33.457.499 I srv  llama_server: listening on http://127.0.0.1:8190
+0.34.797.199 I slot cache_plan_s: id  0 | task -1 | selected slot by LRU, t_last = -1 (best rejected sim = 0.000)
+0.34.797.800 I slot launch_slot_: id  0 | task 0 | processing task, is_child = 0
+0.34.797.988 I slot   operator(): id  0 | task 0 | edit/divergence sample (cached/incoming/lcp/reusable/rewind/append/cache_prompt) = (0/12/0/0/0/12/1)
+0.35.226.514 W slot   operator(): id  0 | task 0 | created context checkpoint 1 of 32 (pos_min = 7, pos_max = 7, n_tokens = 8, size = 149.677 MiB)
+0.35.529.707 I slot print_timing: id  0 | task 0 | prompt eval time =     571.78 ms /    12 tokens (   47.65 ms per token,    20.99 tokens per second)
+0.35.529.711 I slot print_timing: id  0 | task 0 |        eval time =     158.73 ms /     4 tokens (   52.91 ms per token,    18.90 tokens per second)
+0.35.529.711 I slot print_timing: id  0 | task 0 |       total time =     730.51 ms /    16 tokens
+0.35.529.713 I slot print_timing: id  0 | task 0 |    graphs reused =          0
+0.35.529.715 I slot print_timing: id  0 | task 0 | draft acceptance = 1.00000 (    2 accepted /     2 generated), mean len =  3.00
+0.35.529.716 I slot print_timing: id  0 | task 0 | verify/rollback histogram (draft/rejected:cycles) = (2/0:1)
+0.35.529.809 I slot      release: id  0 | task 0 | stop processing: n_tokens = 15, truncated = 0
+0.35.612.594 I slot cache_plan_s: id  0 | task -1 | selected slot by decayed retention value, t_last = 43212630580 (best rejected sim = 0.000)
+0.35.612.713 I slot launch_slot_: id  0 | task 4 | processing task, is_child = 0
+0.35.612.723 I slot   operator(): id  0 | task 4 | edit/divergence sample (cached/incoming/lcp/reusable/rewind/append/cache_prompt) = (15/11/0/0/15/11/0)
+0.35.974.890 W slot   operator(): id  0 | task 4 | created context checkpoint 1 of 32 (pos_min = 6, pos_max = 6, n_tokens = 7, size = 149.673 MiB)
+0.40.615.015 I slot print_timing: id  0 | task 4 | n_gen =    100, tg =  22.11 t/s, tg_3s =  22.33 t/s
+0.43.628.576 I slot print_timing: id  0 | task 4 | n_gen =    168, tg =  22.30 t/s, tg_3s =  22.56 t/s
+0.46.645.474 I slot print_timing: id  0 | task 4 | n_gen =    235, tg =  22.27 t/s, tg_3s =  22.21 t/s
+0.47.624.591 I slot print_timing: id  0 | task 4 | prompt eval time =     524.84 ms /    11 tokens (   47.71 ms per token,    20.96 tokens per second)
+0.47.624.595 I slot print_timing: id  0 | task 4 |        eval time =   11486.31 ms /   256 tokens (   45.04 ms per token,    22.20 tokens per second)
+0.47.624.596 I slot print_timing: id  0 | task 4 |       total time =   12011.15 ms /   267 tokens
+0.47.624.597 I slot print_timing: id  0 | task 4 |    graphs reused =        104
+0.47.624.599 I slot print_timing: id  0 | task 4 | draft acceptance = 0.70616 (  149 accepted /   211 generated), mean len =  2.41
+0.47.624.601 I slot print_timing: id  0 | task 4 | verify/rollback histogram (draft/rejected:cycles) = (1/0:1, 2/0:60, 2/1:28, 2/2:17)
+0.47.624.673 I slot      release: id  0 | task 4 | stop processing: n_tokens = 266, truncated = 0
+0.47.701.409 I slot cache_plan_s: id  0 | task -1 | selected slot by LCP similarity, f_sim_best = 1.000 (> 0.100 thold), f_keep = 0.041
+0.47.701.508 I slot launch_slot_: id  0 | task 113 | processing task, is_child = 0
+0.47.701.516 I slot   operator(): id  0 | task 113 | edit/divergence sample (cached/incoming/lcp/reusable/rewind/append/cache_prompt) = (266/11/11/0/255/0/0)
+0.48.040.060 W slot   operator(): id  0 | task 113 | created context checkpoint 1 of 32 (pos_min = 6, pos_max = 6, n_tokens = 7, size = 149.673 MiB)
+0.52.598.518 I slot print_timing: id  0 | task 113 | n_gen =    100, tg =  22.41 t/s, tg_3s =  22.63 t/s
+0.55.699.665 I slot print_timing: id  0 | task 113 | n_gen =    170, tg =  22.48 t/s, tg_3s =  22.57 t/s
+0.58.800.536 I slot print_timing: id  0 | task 113 | n_gen =    239, tg =  22.41 t/s, tg_3s =  22.25 t/s
+0.59.556.711 I slot print_timing: id  0 | task 113 | prompt eval time =     478.86 ms /    11 tokens (   43.53 ms per token,    22.97 tokens per second)
+0.59.556.717 I slot print_timing: id  0 | task 113 |        eval time =   11375.41 ms /   256 tokens (   44.61 ms per token,    22.42 tokens per second)
+0.59.556.719 I slot print_timing: id  0 | task 113 |       total time =   11854.28 ms /   267 tokens
+0.59.556.720 I slot print_timing: id  0 | task 113 |    graphs reused =        208
+0.59.556.725 I slot print_timing: id  0 | task 113 | draft acceptance = 0.70616 (  149 accepted /   211 generated), mean len =  2.41
+0.59.556.730 I slot print_timing: id  0 | task 113 | verify/rollback histogram (draft/rejected:cycles) = (1/0:1, 2/0:60, 2/1:28, 2/2:17)
+0.59.556.746 I slot      release: id  0 | task 113 | stop processing: n_tokens = 266, truncated = 0
+0.59.641.986 I slot cache_plan_s: id  0 | task -1 | selected slot by LCP similarity, f_sim_best = 1.000 (> 0.100 thold), f_keep = 0.041
+0.59.642.087 I slot launch_slot_: id  0 | task 222 | processing task, is_child = 0
+0.59.642.095 I slot   operator(): id  0 | task 222 | edit/divergence sample (cached/incoming/lcp/reusable/rewind/append/cache_prompt) = (266/11/11/0/255/0/0)
+0.59.986.333 W slot   operator(): id  0 | task 222 | created context checkpoint 1 of 32 (pos_min = 6, pos_max = 6, n_tokens = 7, size = 149.673 MiB)
+1.04.543.662 I slot print_timing: id  0 | task 222 | n_gen =    100, tg =  22.42 t/s, tg_3s =  22.64 t/s
+1.07.646.604 I slot print_timing: id  0 | task 222 | n_gen =    170, tg =  22.48 t/s, tg_3s =  22.56 t/s
+1.10.647.029 I slot print_timing: id  0 | task 222 | n_gen =    236, tg =  22.34 t/s, tg_3s =  22.00 t/s
+1.11.516.277 I slot print_timing: id  0 | task 222 | prompt eval time =     485.18 ms /    11 tokens (   44.11 ms per token,    22.67 tokens per second)
+1.11.516.282 I slot print_timing: id  0 | task 222 |        eval time =   11388.27 ms /   256 tokens (   44.66 ms per token,    22.39 tokens per second)
+1.11.516.284 I slot print_timing: id  0 | task 222 |       total time =   11873.45 ms /   267 tokens
+1.11.516.285 I slot print_timing: id  0 | task 222 |    graphs reused =        312
+1.11.516.289 I slot print_timing: id  0 | task 222 | draft acceptance = 0.70616 (  149 accepted /   211 generated), mean len =  2.41
+1.11.516.293 I slot print_timing: id  0 | task 222 | verify/rollback histogram (draft/rejected:cycles) = (1/0:1, 2/0:60, 2/1:28, 2/2:17)
+1.11.516.311 I slot      release: id  0 | task 222 | stop processing: n_tokens = 266, truncated = 0
+1.11.588.310 I srv    operator(): operator(): cleaning up before exit...
+1.11.590.663 I srv       destroy: CACHE_AUTHORITY_SUMMARY configured=1 commits=4 refusals=0 retries=0 rollbacks=0
