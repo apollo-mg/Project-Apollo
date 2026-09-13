@@ -72,3 +72,36 @@ axis is `peak_mib` sampled every 2 s, and any stray allocation during an arm cor
   name but no message.
 - The 10 passing tests are recorded in `kld/ctest_exl3_sm60.txt` but are **not** claimed as a partial
   pass: a suite that cannot find two thirds of its executables has not been run.
+
+---
+
+## Addendum — 2026-09-13 ~13:10: P-O11b rerun with every target built (`.194`, buun `c7f114d34`)
+
+The "24 Not Run" above were unbuilt targets. For the Flash-Next residency test, `.194` built every
+executable `ctest -R exl3` registers (`test-exl3-byte-dot`, `-cache-large-pool`, `-cpu`, `-dense-batch`,
+`-residual-policy`, `-tensor-split`) at **`c7f114d34`** and ran the suite on 4× P100 before Stage 1
+began. Full output: `ctest_exl3_c7f114d34.txt`; registered list: `ctest_exl3_list.txt`.
+
+**35 registered, 22 passed, 13 aborted — and the 13 have two causes, neither of them an EXL3 kernel.**
+
+| tests | count | abort message | reading |
+|---|---|---|---|
+| `test-exl3-cpu-cache` (#89) | 1 | `[moe-cache] CUDA0 skipped: compute capability 600 is below 700`, then `tests/test-exl3-cpu.cpp:220: GGML_ASSERT(session) failed` | **A test bug.** The MoE cache correctly refuses sm_60 (it needs cc ≥ 700) and says so; the test then asserts that a session exists instead of returning its registered skip code 77. |
+| `shard-matrix-0-*`, `shard-matrix-2-*`, every `expert-*` | 12 | `CUDA error: unhandled cuda error … function=ggml_backend_cuda_comm_allreduce_nccl`, device=1 | **The NCCL all-reduce path.** Every real run on this node sets `GGML_CUDA_ALLREDUCE=internal`, which `RESULT_FLASHNEXT_PASCAL.md` calls mandatory here, and **the launcher ran ctest without it.** Not yet shown to pass with it — **rerun queued for after Stage 1**, which holds the GPUs now. |
+
+**This settles this morning's confound for #89.** It aborted at `da458765d` on `.73` and at `c7f114d34`
+on `.194`, and passed on gfx1201. The message says why: **architecture, not commit.** The MoE cache's
+cc ≥ 700 floor makes the test unrunnable on Pascal, and the test reports that as a failure.
+
+**P-O11b, rescored: PARTIAL.** Every test that ran without touching NCCL or the MoE cache passed on
+sm_60 — 22 of 35, including byte-dot, dense-batch, residual-policy, cache-large-pool, shard-bytes,
+shard-async and shard-matrix-1-*. One test should skip and does not; twelve await the rerun with the
+node's all-reduce setting.
+
+**Also found on the way:** a full build of `c7f114d34` fails under GCC 15.2 at
+`tests/test-cache-plan-record.cpp:826` — an ambiguous nlohmann-json `operator==` between an
+`ordered_json` element and a `json` array. Host code, unrelated to CUDA. Explicit targets were built instead.
+
+**Three small items for buun, all test-side:** the GCC 15.2 compile error, `test-exl3-cpu.cpp:220`
+asserting where it should skip below cc 700, and — pending the rerun — whether the NCCL-dependent
+tests should honour `GGML_CUDA_ALLREDUCE` or skip when NCCL cannot initialise.
