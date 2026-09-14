@@ -24,6 +24,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is not mounted at all), and **a clean result gets the same scrutiny as a surprising one** — ask
   whether a thing ran before asking what it means.
 
+- **`-lm dio` is gated on a binary upgrade, not a config edit (Claude, 2026-09-14) — corrects my own
+  recommendation from earlier the same day.** I proposed "get `-lm dio` into the startup scripts first,
+  fifteen minutes." **Wrong.** Checked `--help` on every binary the scripts actually invoke:
+
+  | binary | `-lm` |
+  |---|---|
+  | all 4 control-plane builds (turboquant `build_rocm` + `build`, gemma4, prism) | **no** |
+  | `.194` `llama-cpp-turboquant/build` — this is `PROD_BIN` in `llama_cluster_ctl_194.sh` | **no** |
+  | `.194` `buun-llama-cpp/build`, `.unsloth/llama.cpp/build` | **no** |
+  | `.194` `tq-pr324/build_sm60_c232` (**version 10588, c232282aa**), `tq-pr324/build_sm60`, `tq_ab_old/build_ab` | **yes** |
+
+  Adding the flag to the 19 `scripts/startup/*.sh` would have made every one of them fail to start.
+  The flag's help text confirms the shape: `-lm, --load-mode MODE (default: mmap)`, with `--mmap`,
+  `--mlock` and `-dio` all marked **DEPRECATED in favor of `--load-mode`**. So the 4.3× load-time win
+  (595s → 137s) is real but **only reachable from the newer builds**, and taking it fleet-wide means
+  moving production onto one of them — a real decision with its own bridge arm, not a config tweak.
+  Convenient: `c232282aa` is also the build that fixed the qwen4exp tensor-split deny list, so the
+  Flash-Next work can use it today without touching production.
+  **Lesson, same as the rest of today: I recommended an action without checking the thing could accept
+  it.** `tools/DESIGN_INTENT_CONTINUITY.md`.
+
 - **Campaign digest, 2026-09-12 → 09-14 (Claude):** recorded here so the reasons survive; numbers and
   method live in the receipts.
   - **EXL3 usability, test 11** — `data/receipts/exl3-campaign/RESULT_EXL3_USABLE.md`. 152 vs 151 of
