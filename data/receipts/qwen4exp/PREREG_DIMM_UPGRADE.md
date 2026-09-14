@@ -96,3 +96,37 @@ A1/B1/E1/F1, 1Rx4 on C1/D1/G1/H1 — but never within a channel, since every cha
 
 **Scorer:** the Stage 4 scorer (`tools/score_flashnext_spill.py`) is reused unchanged for the ladder half;
 the triad half is a direct table comparison against the baselines above.
+
+---
+
+## Amendment 1 — 2026-09-14 09:47, before purchase: capacity also shows up at **load time**, and that is free to measure
+
+Observed live while starting Flash-Next UD-IQ4_XS `-ncmoe 2` from a cold page cache (the tensor-split tests
+had displaced it with Q2_K_XL). **This was not anticipated in the prereg above, and it is recorded before the
+DIMMs are bought.**
+
+The GPU side finished quickly — all four cards reached their ~60 GB `-ncmoe 2` footprint early. What took the
+remaining time was the **28.8 GB CPU-resident PLE table** competing for a page cache that was already full
+(`free`: 60 total, **0 free**, 57 buff/cache). Measured mid-load:
+
+| quantity | value |
+|---|---|
+| **major faults** | **14,147,784** and climbing (~4 KB each ≈ 54 GB faulted from disk) |
+| sustained read throughput | **~95 MB/s** — about 24k IOPS at 4 KB, i.e. *random* reads |
+| the same SSD, sequential | ~500 MB/s |
+| cold load, insufficient RAM | **~16 min** (this run) |
+| warm load, same model and flags | **~2 min** (`RESULT_FLASHNEXT_RESIDENCY.md`) |
+
+**Eviction pressure converts a sequential load into a random one, costing ~5×.** The decode ladder sees this
+capacity limit only as a marginal-cost bump at rung 48; load time shows it as a 7–8× penalty.
+
+**P-D7, committed now:** after the upgrade, a **cold-cache** load of Flash-Next UD-IQ4_XS at `-ncmoe 2`
+completes in **≤ 6 minutes**, with major faults **below 4 million**. At 128 GB the 84.7 GB working set fits,
+so the access pattern should revert to sequential.
+
+**Declared limits on P-D7:** cold-cache load time is noisier than the decode measurements — it depends on what
+the page cache happened to hold and on SSD state — so it is scored as a **single ordinal check, not a ratio**,
+and it is **not** evidence for or against P-D5. Drop caches (`echo 3 > /proc/sys/vm/drop_caches`) immediately
+before both the baseline and the post-upgrade run, or the comparison is meaningless. **The pre-upgrade
+baseline for P-D7 must be re-measured under that dropped-cache protocol** — the ~16 min above was an
+incidental observation, not a controlled one, and is quoted here only as the motivation.
