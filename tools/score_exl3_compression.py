@@ -11,8 +11,13 @@ import json, math, sys
 EXL3 = {"E25": "EXL3 2.50bpw", "E30": "EXL3 3.00bpw", "E35": "EXL3 3.50bpw",
         "E": "EXL3 4.00bpw", "E5": "EXL3 5.00bpw"}
 GGUF = {"G2u": "UD-Q2_K_XL", "G2x": "AD-IQ2_XS", "G3xx": "AD-IQ3_XXS", "G3u": "UD-IQ3_XXS",
-        "G3m": "i1-IQ3_M", "G4": "UD-IQ4_XS", "G5": "UD-Q4_K_M", "G6": "Q6_K"}
-UD = ["G2u", "G3u", "G4", "G5"]          # one packager, one dynamic recipe -- the controlled curve
+        "G3m": "i1-IQ3_M", "G4": "UD-IQ4_XS", "G5": "UD-Q4_K_M", "G6": "Q6_K",
+        # Added 2026-09-14 for PREREG_EXL3_UD3_XL.md. REGISTRY ONLY -- no scoring logic changed;
+        # without the entry the arm is silently dropped from the envelope, which is how a "no
+        # change" result was nearly reported. BRIDGE-IQ4XS is deliberately NOT registered: it is
+        # the same file as G4 and would duplicate that point on the curve.
+        "G3XL": "UD-Q3_K_XL", "G4XL": "UD-Q4_K_XL"}
+UD = ["G2u", "G3u", "G3XL", "G4", "G4XL", "G5"]   # one packager, one dynamic recipe -- the controlled curve
 
 rows = {}
 for line in open(sys.argv[1]):
