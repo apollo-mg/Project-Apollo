@@ -137,3 +137,56 @@ and it is **not** evidence for or against P-D5. Drop caches (`echo 3 > /proc/sys
 before both the baseline and the post-upgrade run, or the comparison is meaningless. **The pre-upgrade
 baseline for P-D7 must be re-measured under that dropped-cache protocol** — the ~16 min above was an
 incidental observation, not a controlled one, and is quoted here only as the motivation.
+
+---
+
+## Amendment 2 — 2026-09-14 11:15: **P-D7 is WITHDRAWN, and Amendment 1's mechanism was wrong**
+
+Measured before purchase, which is the only reason this was caught. `loadmode/` holds the run.
+
+**Three load modes, Flash-Next UD-IQ4_XS `-ncmoe 2`, `drop_caches` before each:**
+
+| `-lm` | load | major faults | read | throughput |
+|---|---|---|---|---|
+| **auto** (mmap, the default) | **595 s** | **15,674,082** | 59.9 GB | ~103 MB/s |
+| **none** | **141 s** | 1,147 | 60.6 GB | ~430 MB/s |
+| **dio** | **137 s** | 1,140 | 60.5 GB | ~442 MB/s |
+
+**mmap costs 4.3×.** `none` and `dio` are equivalent within noise.
+
+### Amendment 1's explanation was wrong
+
+It said: *"Eviction pressure converts a sequential load into a random one, costing ~5×."* **There was no
+eviction pressure.** The `auto` run above began with **44 GB free** after a forced `drop_caches` and still
+took 595 s with 15.7 M major faults. Compared against the earlier incidental run (653 s with the page cache
+full), **having 44 GB free bought only ~9%** — nothing like what a capacity mechanism would give.
+
+**The real mechanism: mmap faults the file in 4 KB at a time.** 15.7 M faults is what caps throughput near
+100 MB/s on a drive that streams at ~450. Free RAM does not help because the faults are the cost, not the
+eviction. llama.cpp prints the fix on every one of these loads — *"tensor overrides to CPU are used with
+mmap enabled — consider using --load-mode none"* — and it was scrolled past three times today.
+
+### P-D7 is withdrawn, not scored
+
+P-D7 predicted a cold load **≤ 6 min** and **< 4 M major faults** after the upgrade. **`-lm dio` achieves
+137 s and 1,140 faults on the existing 64 GB.** The prediction would have confirmed trivially and the
+receipt would have credited the DIMMs for a flag. **It is withdrawn as confounded rather than scored**, and
+**load time is no longer an argument for buying RAM.**
+
+### What this does and does not do to the purchase
+
+- **P-D5 (the bandwidth fork) is untouched.** It is the reason to buy, and it remains open.
+- **The runtime capacity question is untouched and now sharper.** `-lm none`/`dio` must hold the CPU-side
+  tensors *resident* — no file to page from. At `-ncmoe 2` that is ~30 GB (27.5 PLE + 2 layers) and fits in
+  60 GB. **At rung 48 the CPU side is ~83 GB and cannot fit**, so deep spill may still require mmap and its
+  4.3× penalty, or fail outright under `none`. **Untested — asserted as an open question, not a finding.**
+  If it holds, the honest form of the capacity argument is *"128 GB lets deep-spill configurations use the
+  fast loader"*, which is narrower and more specific than what Amendment 1 claimed.
+- **Every measurement in Stage 4 used mmap**, including all six ladder rungs. Load times there are inflated;
+  **decode numbers are unaffected** (loading finishes before any request is served).
+
+### Consequence for Stage 5's protocol
+
+**The post-upgrade reruns must pin `-lm` explicitly** and use the same mode as the baseline, or a 4.3×
+loader difference will contaminate the comparison. The Stage 4 ladder rerun should pin **`-lm dio`**, and
+the pre-upgrade baseline for any load-time claim must be re-measured under it.
