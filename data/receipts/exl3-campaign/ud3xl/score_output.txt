@@ -1,0 +1,53 @@
+| arm | model | peak VRAM MiB | mean KLD ± | median | same top % |
+|---|---|---|---|---|---|
+| E25 | EXL3 2.50bpw | 9116 | 0.093392 ± 0.002338 | 0.035375 | 87.255 |
+| E30 | EXL3 3.00bpw | 10568 | 0.046152 ± 0.001743 | 0.015718 | 90.657 |
+| E35 | EXL3 3.50bpw | 12016 | 0.024979 ± 0.000723 | 0.009096 | 93.284 |
+| E | EXL3 4.00bpw | 13468 | 0.012002 ± 0.000379 | 0.004101 | 95.431 |
+| E5 | EXL3 5.00bpw | 16372 | 0.003994 ± 0.000227 | 0.001400 | 97.235 |
+| G2u | UD-Q2_K_XL | 9404 | 0.084223 ± 0.001985 | 0.035129 | 87.284 |
+| G2x | AD-IQ2_XS | 9272 | 0.174453 ± 0.003276 | 0.085753 | 81.735 |
+| G3xx | AD-IQ3_XXS | 11358 | 0.073686 ± 0.001611 | 0.032909 | 88.529 |
+| G3u | UD-IQ3_XXS | 11532 | 0.047609 ± 0.001210 | 0.019074 | 90.882 |
+| G3m | i1-IQ3_M | 12240 | 0.061330 ± 0.001436 | 0.027907 | 89.843 |
+| G4 | UD-IQ4_XS | 13500 | 0.015727 ± 0.000383 | 0.006376 | 94.245 |
+| G5 | UD-Q4_K_M | 15448 | 0.007840 ± 0.000232 | 0.002917 | 96.225 |
+| G6 | Q6_K | 21276 | 0.002770 ± 0.000240 | 0.000986 | 97.657 |
+| G3XL | UD-Q3_K_XL | 12446 | 0.024951 ± 0.000804 | 0.009543 | 93.225 |
+| G4XL | UD-Q4_K_XL | 16494 | 0.005607 ± 0.000241 | 0.002127 | 96.647 |
+
+## Dominated points (Amendment 1: curves are lower envelopes)
+
+- **all-GGUF**: i1-IQ3_M (0.061330 at 12240 MiB) is beaten by UD-IQ3_XXS (0.047609 at 11532 MiB) — smaller *and* closer to the reference, so it is off the curve
+
+## Predictions
+
+- **P-C0** (bridge): CONFIRMED (da458765d 0.046152 vs 9ae8f0f40 0.046152, |diff| 0.000000 vs tolerance 0.003486)
+- **P-C1 (all packagers)**: CONFIRMED (EXL3 3.00bpw 0.04615 vs GGUF 0.07778 at 10568 MiB; EXL3 3.50bpw 0.02498 vs GGUF 0.03381 at 12016 MiB; EXL3 4.00bpw 0.01200 vs GGUF 0.01595 at 13468 MiB; EXL3 5.00bpw 0.00399 vs GGUF 0.00583 at 16372 MiB)
+    - **excluded, not silently dropped:** EXL3 2.50bpw at 9116 MiB (below the curve's range)
+- **P-C2 (all packagers)**: CONFIRMED (log-gap 0.522 at 10568 MiB vs 0.378 at 16372 MiB — span scored: 10568–16372 MiB)
+- **P-C1 (UD-only, controlled)**: CONFIRMED (EXL3 3.00bpw 0.04615 vs GGUF 0.06165 at 10568 MiB; EXL3 3.50bpw 0.02498 vs GGUF 0.03381 at 12016 MiB; EXL3 4.00bpw 0.01200 vs GGUF 0.01595 at 13468 MiB; EXL3 5.00bpw 0.00399 vs GGUF 0.00583 at 16372 MiB)
+    - **excluded, not silently dropped:** EXL3 2.50bpw at 9116 MiB (below the curve's range)
+- **P-C2 (UD-only, controlled)**: FALSIFIED (log-gap 0.289 at 10568 MiB vs 0.378 at 16372 MiB — span scored: 10568–16372 MiB)
+- **P-C3**: CONFIRMED (E25 0.093392 at 9116 MiB vs G2x 0.174453 at 9272 MiB)
+- **P-C4**: CONFIRMED (E30 0.046152 at 10568 MiB vs G3xx 0.073686 at 11358 MiB)
+- **P-C5 (Mark's crossover: 3.00bpw vs UD-Q2_K_XL)**: CONFIRMED (E30 0.046152 at 10568 MiB vs G2u 0.084223 at 9404 MiB)
+
+## The compression exchange rate: VRAM a GGUF needs to match each EXL3 point
+
+**all packagers**
+
+- **EXL3 2.50bpw** reaches KLD 0.093392 at **9116 MiB**; a GGUF needs **9385 MiB** for the same fidelity — **+269 MiB (+3.0%)**
+- **EXL3 3.00bpw** reaches KLD 0.046152 at **10568 MiB**; a GGUF needs **11576 MiB** for the same fidelity — **+1008 MiB (+9.5%)**
+- **EXL3 3.50bpw** reaches KLD 0.024979 at **12016 MiB**; a GGUF needs **12444 MiB** for the same fidelity — **+428 MiB (+3.6%)**
+- **EXL3 4.00bpw** reaches KLD 0.012002 at **13468 MiB**; a GGUF needs **14256 MiB** for the same fidelity — **+788 MiB (+5.9%)**
+- **EXL3 5.00bpw** reaches KLD 0.003994 at **16372 MiB**; a GGUF needs **18794 MiB** for the same fidelity — **+2422 MiB (+14.8%)**
+
+**UD-only**
+
+- **EXL3 2.50bpw**: KLD 0.093392 at 9116 MiB — no GGUF on this curve reaches it
+- **EXL3 3.00bpw** reaches KLD 0.046152 at **10568 MiB**; a GGUF needs **11576 MiB** for the same fidelity — **+1008 MiB (+9.5%)**
+- **EXL3 3.50bpw** reaches KLD 0.024979 at **12016 MiB**; a GGUF needs **12444 MiB** for the same fidelity — **+428 MiB (+3.6%)**
+- **EXL3 4.00bpw** reaches KLD 0.012002 at **13468 MiB**; a GGUF needs **14256 MiB** for the same fidelity — **+788 MiB (+5.9%)**
+- **EXL3 5.00bpw**: KLD 0.003994 at 16372 MiB — no GGUF on this curve reaches it
+
