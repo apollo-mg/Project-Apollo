@@ -1,0 +1,101 @@
+# Prereg — where the expert-spill break actually is, and whether NUMA placement causes it
+
+**Written 2026-09-14, before any rung of this stage has produced a number.** Stage 5 of the qwen4exp
+campaign. Follows `RESULT_FLASHNEXT_SPILL_LADDER.md` (Stage 4, 2026-09-13), which found two marginal-cost
+regimes — ~2.1 ms per spilled layer below `-ncmoe` 16, ~1.3 above — and explicitly could not test why:
+*"Testing it needs per-node memory placement captured during a run, which nothing here records."*
+
+## What this stage is for
+
+Stage 4 bracketed the break with **wide** steps (8 → 16 → 32), so "the break is at 16" is an assertion
+about an interval, not a measurement. Two questions, in priority order:
+
+1. **Where is the break, and is it a step or a ramp?** Dense rungs through the interval.
+2. **Is NUMA placement the mechanism?** Capture per-node placement every rung, then try to *intervene*.
+
+Question 2 is the actionable one. If shallow spill is expensive because a couple of layers' expert
+tensors land on one socket (~22.7 GB/s) while deep spill spreads across both (45.1 GB/s aggregate), then
+**forcing interleaved placement should make shallow spill as cheap per byte as deep spill** — which would
+directly fix the finding that "spilling two layers to just barely fit is the worst deal on the curve."
+
+## Build, and why a bridge is unavoidable
+
+**The Stage 4 build no longer exists on `.194`.** That run recorded buun `c7f114d34`; today
+`buun-llama-cpp/build` is **version 9792 (`87c351d28`)** and the tree HEAD has moved to `3823c9eb6`.
+There is no same-build option, so every cross-stage comparison needs a bridge regardless of choice.
+
+**This stage runs `tq-pr324/build_sm60_c232` — version 10588 (`c232282aa`).** Chosen because it carries
+both `-lm` and the qwen4exp fixes. Model: `AI/Models/flashnext/Qwen3.8-Flash-Next-UD-IQ4_XS-0000{1,2,3}-of-00003.gguf`.
+Hardware: `.194`, 4× P100 sm_60, 2× Xeon E5-2650v3, 2 NUMA nodes (31,772 / 30,197 MB), DDR4-2133,
+150 W / 1063 MHz per [[gpu-clock-benchmark-discipline]]. `-sm layer`, KV `f16` verified per rung from
+`-lv 4`, page cache dropped before every rung.
+
+**The bridge is on marginals across the three shared rungs (8, 16, 32), not on absolute tok/s at one
+point.** A single rung within ±10% cannot license comparison across ~800 commits *and* a fork change.
+If the marginal *structure* reproduces while absolute throughput shifts, the shape is build-independent —
+a stronger claim than an absolute bridge could make. If the marginals also move, Stage 4's curve was
+build-specific, which is equally worth knowing. Either way the dense ladder stands on its own.
+
+## Arms
+
+Executed in this order so the cheap gates fail first.
+
+**Stage 5a — load-mode probe (gate, 2 runs).** `-ncmoe 16`, `--numa distribute`, `-lm mmap` vs `-lm dio`.
+mmap leaves spilled expert bytes as file-backed pages placed by first touch — which is the very thing
+`--numa distribute` manipulates — while `dio` reads into buffers placed by the allocating thread.
+**Taking `dio` for its 4.3× load win while measuring placement would confound the load mode with P-B4.**
+This probe settles it empirically instead. `dio` must also be confirmed *engaged* from the log, not
+merely parsed: `-lm dio` is accepted by this build but absent from its `--help` mode list.
+
+**Stage 5b — dense ladder (10 runs).** `-ncmoe` ∈ **{8, 10, 12, 14, 16, 18, 20, 24, 28, 32}**,
+`--numa distribute`, load mode as decided by 5a. Per rung: GPU MiB after load, decode and prefill at
+500 / 1800 / 3600 ctx, and **per-node placement** from `numastat -p` plus aggregated `/proc/<pid>/numa_maps`.
+
+**Stage 5c — intervention (2 runs).** At `-ncmoe` **8** and **24**: external `numactl --interleave=all`
+with **`--numa numactl`** (the mode that defers to the external CPU map), against the 5b `--numa distribute`
+runs at the same rungs as controls. **Not** `numactl --interleave=all` wrapped around `--numa distribute`,
+which would have the two strategies fighting.
+
+## Predictions
+
+Bands are **ratios wherever possible**, because absolute ms/layer figures come from a build this stage is
+not running.
+
+| id | prediction | falsified if |
+|---|---|---|
+| **P-B0** | load mode does not move placement: node-imbalance `I` differs by ≤ 0.05 absolute between mmap and dio at rung 16, and decode within ±3% | either exceeded → **ladder runs `mmap`**, recorded as a planned deviation, load time eaten |
+| **P-B1** | the two regimes reproduce: mean marginal ms/layer over 8→16 ≥ **1.4×** the mean over 20→32 | ratio < 1.4 |
+| **P-B2** | the break sits where Stage 4 put it: the largest single step-to-step drop in marginal ms/layer has its midpoint in **[14, 24]** | midpoint outside |
+| **P-B3** | the transition is a **step, not a ramp**: ≥ 50% of the total shallow→deep marginal decline occurs across one step | decline spread over ≥ 4 consecutive steps each carrying < 25% |
+| **P-B4** | placement tracks depth: `I = |anon₀ − anon₁| / (anon₀ + anon₁)` falls with spill depth, `I(8) − I(32) ≥ 0.10` | difference < 0.10 |
+| **P-B5** | MiB freed per spilled layer constant within ±15% (replicates Stage 4's P-L0, which held at 3.1%) | any rung outside |
+| **P-B6** | **the actionable one.** If P-B4 confirms, interleave at rung 8 improves decode ≥ 5% vs the distribute control | < 5% improvement |
+
+**P-B6 is scored only if `numa_maps` shows placement actually differed between the intervention and its
+control.** If the two placements are indistinguishable the intervention was inert and P-B6 is **NOT
+TESTABLE**, never "no effect" — an inert knob reporting a null is the [[readiness-probes-lie]] shape this
+campaign has hit repeatedly, most recently when `offloaded 49/49 layers` proved unusable as a spill probe.
+
+**P-B2 and P-B3 are independent.** Stage 4 can locate the break only to within 8→32; it cannot
+distinguish a sharp step at 16 from a smooth ramp across the whole interval. **P-B3 is the question the
+dense sampling exists to answer**, and a ramp would be the more interesting outcome — it would mean there
+is no single "correct" operating point, only a gradient.
+
+## Scoring
+
+`tools/score_flashnext_break.py`, committed before the first rung produces a number. Marginal ms/layer is
+computed between *adjacent* rungs, never from a fit — Stage 4's headline was nearly lost to a linear model
+returning R² = 0.9907 across a real structural break. **Quote marginals; a fitted slope is not evidence of
+linearity.**
+
+## Cost
+
+6 rungs took 89 minutes in Stage 4. 14 runs here ≈ **3 hours at mmap load times**, less if 5a clears `dio`.
+
+## Known limits, stated in advance
+
+- One model, one quant, one box. IQ4_XS on DDR4-2133 and two Haswell-EP sockets.
+- The baseline is rung 8, not zero spill — `-ncmoe 0` does not fit (Stage 3 P-S1).
+- `numastat -p` attributes file-backed and anonymous pages differently by load mode, which is exactly why
+  P-B0 gates the stage rather than being assumed.
+- A confirmed P-B6 would be a result about *this* NUMA topology, not a general claim about expert spill.
