@@ -143,3 +143,41 @@ run after the measurements, on the same bytes, so it changes provenance and not 
 **Still unverified:** the AD-IQ2_XS, AD-IQ3_XXS and i1-IQ3_M files (other packagers, no published hashes
 recorded here) and the Q6_K reference. They sit on the all-packagers curve, which this receipt already
 declines to quote.
+
+---
+
+### CORRECTION added 2026-09-14 — the 1.45× at 3.50bpw was an interpolation artifact
+
+Full result: `RESULT_EXL3_UD3_XL.md`. Prereg `PREREG_EXL3_UD3_XL.md`, committed before the files were fetched.
+
+**This receipt measured no GGUF within 2 GB of EXL3 3.50bpw.** Its nearest points were UD-IQ3_XXS
+(11,532 MiB) and UD-IQ4_XS (13,500 MiB), and the 1.45× came from interpolating between them. unsloth
+publishes a **`UD-*_XL` family that this receipt never fetched** — including **UD-Q3_K_XL, which lands
+inside that gap**:
+
+| | VRAM | mean KLD |
+|---|---|---|
+| EXL3 3.50bpw (E35) | 12,016 MiB | 0.024979 ± 0.000723 |
+| **UD-Q3_K_XL** (measured 2026-09-14) | 12,446 MiB | **0.024951 ± 0.000804** |
+
+**Identical fidelity, 0.11% apart. EXL3's advantage at that point is not 1.45× — it is 430 MiB (3.6%) of
+VRAM at the same KLD.**
+
+**UD-Q4_K_XL** (16,494 MiB, 0.005607) likewise replaces an interpolation across the 5.8 GB gap between
+UD-Q4_K_M and Q6_K. It leaves EXL3 5.00bpw ahead **1.40× at 122 MiB (0.7%) difference** — the cleanest
+matched-VRAM pair in the campaign, and stronger evidence than the number it replaces.
+
+**Corrected exchange rates** (all other points unchanged):
+
+| EXL3 point | as published above | corrected |
+|---|---|---|
+| 3.50bpw | +662 MiB (+5.5%) | **+428 MiB (+3.6%)** |
+| 5.00bpw | +2,854 MiB (+17.4%) | **+2,422 MiB (+14.8%)** |
+
+**Read this receipt's Finding 1 and 2 as "1.33–1.35×, worth 3.6–9.5% of VRAM, 1.40× and 14.8% at 5 bpw."**
+Not 1.33–1.45× / 5–10% / 17.4%.
+
+**The measurements in this receipt are unchanged and were reproduced exactly** — UD-IQ4_XS re-ran on a
+different node, a different build and a regenerated reference and returned 0.015727 at 13,500 MiB, identical
+to six decimals. **What was wrong was not a number but a missing point**, and the interpolation that stood in
+for it.
