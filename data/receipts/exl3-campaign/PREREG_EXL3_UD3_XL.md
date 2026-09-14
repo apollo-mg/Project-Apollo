@@ -65,3 +65,54 @@ the envelope at 12,016 MiB is the log-linear interpolation between UD-IQ3_XXS (1
   against a real neighbouring point rather than an assumption — a strictly stronger claim than it has today.
 
 **Scorer:** `tools/score_exl3_compression.py`, unchanged, run over the extended `results.jsonl`.
+
+---
+
+## Amendment 1 — 2026-09-14 13:55, before any download: the run moves to `.194`, and a BRIDGE gate is added
+
+**Node changed from `.73` to `.194`.** Checked before committing to either:
+
+- **`.73` is serving Mark's daily driver** (`llama-server`, both cards, 14,048 + 12,912 MiB) and is
+  disk-starved on every mount — `/` 20 GB free, `/mnt/models` 9.9 GB, `/mnt/optane` 9.3 GB. **No single
+  mount holds even one of the two files plus a reference.** It has since returned to S3 sleep.
+- **`.194` is idle with 61 GB free** on one filesystem, and already holds `wiki.test.raw` and
+  `UD-IQ4_XS`.
+- **Neither node holds the Q8_0 reference or its base-logits file**, so that cost is identical either way
+  and `.73` has no remaining advantage.
+
+### The reference has to be regenerated, and that is not a free step
+
+`exl3_kld_arm.py:67` requires a **base-logits file** (`--kl-divergence-base`), not the Q8_0 GGUF. Test 3
+produced it on `.73` and it is gone. So this run: fetch **Qwen3.8-27B-Q8_0 @ `4ca72078`** (27.05 GiB,
+hash-verified), regenerate the base on `.194` **with byte-identical flags** —
+`-ngl 99 -sm layer -c 512 -b 512 -ub 8 --chunks 40 -fa on -ctk f16 -ctv f16` — then run the arms against it.
+
+### BRIDGE — a new gate, and the run is VOID without it
+
+Test 10's numbers were produced on `.73` with **two** P100s. Comparing new points measured on `.194`
+against that curve assumes cross-node equivalence, which is **untested**. Test 10 tested cross-*build*
+equivalence and found identical KLD to six decimals; this is the same instrument applied to a new variable.
+
+- **`UD-IQ4_XS` is already on `.194` and is re-run first**, at no download cost.
+- **It must reproduce test 10's `0.015727` within ±1%.** Outside that band, **the run is VOID** and reported
+  as a cross-node discrepancy — the new arms are not compared to test 10's curve at all.
+- Any nonzero delta inside the band is recorded in the receipt rather than rounded away.
+- **All arms run on two GPUs** (`CUDA_VISIBLE_DEVICES=0,1`) to match `.73`'s device count, so the only
+  remaining difference is the host.
+
+### Disk plan, given 61 GB free
+
+Sequential, with deletes between: Q8_0 (27) + base (~5) + Q3_K_XL (12.2) → run → delete Q3_K_XL →
+Q4_K_XL (16.4) → run. **Peak usage leaves ~13 GB free.** Each file is hash-verified against unsloth's
+published sha256 before it runs:
+
+| file | published sha256 |
+|---|---|
+| `UD-Q3_K_XL` | `8c2a45ff85e7674ca185ec8eb6cdeab0e617ed9d8018caed0b64380eb2a67a5e` |
+| `UD-Q4_K_XL` | `3f227079003add2511437e5b1e94812e363385225bf6a9b47b0054a72bc8b01e` |
+
+**Not touched:** 145.2 GB of stale KLD artifacts from earlier campaigns sit on `.194`
+(`puzzle_lab/w1/q8_base_logits.bin` 68.6 GB and seven `.kld`/`.dat` files). Per standing guidance these are
+**moved, not deleted**, and that is a separate decision — this run fits without them.
+
+**Predictions P-X1 through P-X4 are unchanged.**
