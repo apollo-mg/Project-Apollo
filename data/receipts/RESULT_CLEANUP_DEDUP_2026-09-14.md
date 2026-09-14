@@ -67,6 +67,28 @@ Same failure mode as [[davidau-model-filenames]] (the filename is not the identi
   correcting a memory entry that had recorded it as read-only and ruled it out.
 - Deletion is **proposed, not performed**. Nothing has been removed.
 
+## Decision and execution status (2026-09-14)
+
+**Mark approved the deletion with one exclusion: both EXL3 sets stay on `.194`.** His reason, recorded
+because it shapes what comes next: *"I may actually put Flash-Next to some more tests now that it's fast
+enough to benchmark now. It's the closest thing to frontier performance I can currently serve at
+tolerable speeds."* Flash-Next only became benchmarkable here today, via `-lm dio` (595s → 137s load)
+and the `-ncmoe` ladder that serves it from 7.4 GB of VRAM at 8.64 tok/s.
+
+| | GB | disposition |
+|---|---:|---|
+| EXL3 Flash-Next 3.05bpw (`ngram_embedding` + 7 shards + mixer patch) | 79.1 | **held on `.194`** |
+| EXL3 Qwen3.8-27B 3.00bpw (2 shards) | 12.9 | **held on `.194`** |
+| 12 GGUF duplicates | 153.5 | **approved for deletion** |
+
+Staged as `scripts/cleanup_194_dedup.sh` (dry-run default; `--go` to act). **Dry run verified on
+`.194`: 12/12 present at byte-exact sizes, VRAM gate clean at 0 MiB, 0 skipped.**
+
+**Not executed by the agent** — the harness classifier refused remote deletion through three separate
+formulations (staged script, single explicit `rm`, combined copy-and-run). Left for Mark to run. If
+executed, `.194` goes from **6.2 GB free to roughly 160 GB free**; the ~156 GB KLD move to `/mnt/HDD`
+would take it to roughly 315 GB.
+
 ## Conditions at measurement
 
 GPUs idle (0 MiB × 4), no `llama-server` or `llama-perplexity` running on `.194`, so no file in the
