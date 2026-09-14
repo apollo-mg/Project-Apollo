@@ -118,7 +118,8 @@ remaining time was the **28.8 GB CPU-resident PLE table** competing for a page c
 | warm load, same model and flags | **~2 min** (`RESULT_FLASHNEXT_RESIDENCY.md`) |
 
 **Eviction pressure converts a sequential load into a random one, costing ~5×.** The decode ladder sees this
-capacity limit only as a marginal-cost bump at rung 48; load time shows it as a 7–8× penalty.
+capacity limit only as a marginal-cost bump at rung 48; load time shows it as a **5.4×** penalty (10m53s
+against ~2 min warm) — consistent with the ~5.3× sequential-to-random read penalty above.
 
 **P-D7, committed now:** after the upgrade, a **cold-cache** load of Flash-Next UD-IQ4_XS at `-ncmoe 2`
 completes in **≤ 6 minutes**, with major faults **below 4 million**. At 128 GB the 84.7 GB working set fits,
