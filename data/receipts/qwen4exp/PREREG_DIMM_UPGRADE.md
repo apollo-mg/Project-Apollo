@@ -114,7 +114,7 @@ remaining time was the **28.8 GB CPU-resident PLE table** competing for a page c
 | **major faults** | **14,147,784** and climbing (~4 KB each ≈ 54 GB faulted from disk) |
 | sustained read throughput | **~95 MB/s** — about 24k IOPS at 4 KB, i.e. *random* reads |
 | the same SSD, sequential | ~500 MB/s |
-| cold load, insufficient RAM | **~16 min** (this run) |
+| cold load, insufficient RAM | **10 min 53 s** (this run, 09:37:41 → 09:48:34) |
 | warm load, same model and flags | **~2 min** (`RESULT_FLASHNEXT_RESIDENCY.md`) |
 
 **Eviction pressure converts a sequential load into a random one, costing ~5×.** The decode ladder sees this
@@ -123,6 +123,12 @@ capacity limit only as a marginal-cost bump at rung 48; load time shows it as a 
 **P-D7, committed now:** after the upgrade, a **cold-cache** load of Flash-Next UD-IQ4_XS at `-ncmoe 2`
 completes in **≤ 6 minutes**, with major faults **below 4 million**. At 128 GB the 84.7 GB working set fits,
 so the access pattern should revert to sequential.
+
+**Corrected 09:52, same day:** this row first read "~16 min", extrapolated mid-load from the ~95 MB/s
+read rate. **The run actually completed in 10 min 53 s** — the tail read faster than the middle, so the
+projection was pessimistic by ~1.5×. P-D7's ≤ 6 min bar is unchanged and still a real prediction (1.8×
+against the corrected baseline), but the motivating figure was wrong and is fixed here rather than left to
+be compared against.
 
 **Declared limits on P-D7:** cold-cache load time is noisier than the decode measurements — it depends on what
 the page cache happened to hold and on SSD state — so it is scored as a **single ordinal check, not a ratio**,
