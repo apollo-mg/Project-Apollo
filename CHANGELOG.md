@@ -7,6 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Changelog revived, and the missing piece named (Claude + Mark, 2026-09-14):** Mark asked to bring
+  back "an ever-growing Apollo changelog … so we can reflect back and audit things easily down the
+  road," motivated by
+  [*Coding Agents Don't Need Longer History, They Need Intent Continuity*](https://towardsdatascience.com/coding-agents-dont-need-longer-history-they-need-intent-continuity).
+  **This file already was that changelog** — it had simply gone unwritten since 2026-09-11 — and the
+  ledger (`tools/LEDGER_SPEC.md`, `ledger_health.sh`: ok) already implements the article's extractor,
+  retrieval and checker, stating the same thesis independently and earlier: *"Reasons, not events."*
+  So nothing new was built. **What the article names that Apollo lacks is the verification layer**, the
+  one component its own numbers credit with the gain (retrieval alone 4/8 tasks, retrieval +
+  verification 8/8; 100% of required fields recovered vs 57%). Full write-up and the evidence —
+  four verification failures in a single session, none of them retrieval failures — in
+  **`tools/DESIGN_INTENT_CONTINUITY.md`**. Two rules proposed there, not yet implemented:
+  **mutable state carries a measured-on date and is re-measured before use** (memory claimed
+  `/mnt/TG_2TB` had 71 GB free when it has 1.1 TB, and that `/mnt/nas` was mounted read-only when it
+  is not mounted at all), and **a clean result gets the same scrutiny as a surprising one** — ask
+  whether a thing ran before asking what it means.
+
+- **Campaign digest, 2026-09-12 → 09-14 (Claude):** recorded here so the reasons survive; numbers and
+  method live in the receipts.
+  - **EXL3 usability, test 11** — `data/receipts/exl3-campaign/RESULT_EXL3_USABLE.md`. 152 vs 151 of
+    164, p=1.000, 95% CI [−2.7, +3.4]. The CI excludes the 5-point bar, so this is a *task* tie, not
+    just a distribution tie. **9 of 13 failures are identical in both arms** — the quant is not what
+    is failing.
+  - **Test 10's headline was wrong and is corrected** — the 1.45× advantage was an interpolation
+    artifact across a near-vertical segment; the defensible figure is **1.33–1.35×**. The
+    lower-envelope reduction (Amendment 1) exists because of this.
+  - **UD `*_XL` arms** — `RESULT_EXL3_UD3_XL.md`. BRIDGE reproduced 0.015727 **exactly** across
+    builds, which is what licences comparing the new points to test 10's curve at all.
+  - **Flash-Next spill ladder** — `data/receipts/qwen4exp/RESULT_FLASHNEXT_SPILL_LADDER.md`. Two
+    regimes, not one line: MiB-per-tok/s runs 1,203 → 3,953 across the ladder. **A four-point fit was
+    called linear here and broke at the fifth point.**
+  - **`-lm dio` is a 4.3× load-time fix** (595s → 137s) and applies fleet-wide — not yet in
+    `scripts/startup/`.
+  - **`-sm tensor` vs `-sm layer` on P100s** — `RESULT_SPLITMODE_SWEEP_27B.md`. Answer sent to buun
+    only after re-verification: dense is clean at 2/3/4 cards; the qwen4exp deny list
+    ([[tensor-split-denylist]]) has been fixed upstream since c232282aa. Tensor peaks at **3** cards,
+    not 4.
+  - **sm_60 dense path** — `RESULT_SM60_DENSE_PATH.md`. `ggml_cuda_should_use_mmq` returns
+    `cc >= PASCAL && n_experts > 0` below cc 610, so **MMQ on Pascal is MoE-only**; dense GGUF
+    dequantizes to fp16 and goes through cuBLAS. Q6_K and EXL3 converge at 106.3 tok/s, ~30% of FP16
+    peak. Produced for an80sPWNstar's HGEMM-56 thread.
+  - **Salience-27B-R6** — `NOTE_SALIENCE_R6_SHAKEDOWN.md` + its correction. MTP does work
+    (14.43 tok/s, acceptance 0.698); it was first declared untestable because **`--spec-type
+    draft-mtp` was never passed** — llama.cpp's "unused tensor … ignoring" is a default-off notice,
+    not a missing capability. A bug report to bartowski was nearly sent about a non-bug.
+  - **DIMM upgrade preregistered before the RAM was bought** — `PREREG_DIMM_UPGRADE.md`, P-D1..P-D6
+    plus controls; Amendment 2 **withdraws P-D7**. Meetup is Wednesday, 64 GB DDR4 ECC.
+
 - **venv torch stack migrated to ROCm 7.2 (Claude, 2026-08-09):** `venv_cachyos` moved from
   `torch 2.10.0.dev20250926+rocm6.3` (a nightly, three ROCm minors behind the system's 7.2.4) to
   **`torch 2.13.0+rocm7.2` / `torchvision 0.28.0` / `torchaudio 2.11.0`**. Driven by
