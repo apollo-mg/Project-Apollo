@@ -36,6 +36,30 @@ the check — not "coherent", but "the same computation".
 **So the 08-28 result was real, was qwen4exp-specific, and is now stale.** It must not be repeated as a
 current multi-P100 tensor-split bug.
 
+### Correction, same day — the correctness fix landed earlier; what `c7f114d34` bought is speed
+
+Written after checking Mark's observation that this was "the first result where tensor splitting is
+slower." **It is not, and the earlier one changes what this note's headline should be.**
+`RESULT_d929da17b_VERIFY.md` §2 already recorded tensor split as slower *with correct output*, and
+labelled itself "the first valid comparison". Three points, not two:
+
+| build | `-sm tensor` | `-sm layer` | tensor correct? |
+|---|---|---|---|
+| `c232282aa` (08-28) | 6.14 | 15.85 | **no** — `////////////////` |
+| `d929da17b` | 6.20 | 15.85 | yes — 2.56× slower |
+| **`c7f114d34` (today)** | **12.30** | 17.59 | yes — **1.43× slower** |
+
+**So correctness was restored by `d929da17b`, and `c7f114d34` roughly doubled tensor-split throughput
+(6.20 → 12.30) while keeping it — closing the gap from 2.56× to 1.43×.** Today's run is the *second*
+valid tensor-slower result and the *first* to show the speed recovery. The note above credits
+`c7f114d34` with a correctness fix it did not make; corrected here rather than silently edited.
+
+**And §3's interpretation below is better supported than "interpretation" implies:**
+`RESULT_d929da17b_VERIFY.md` argued the same cause from topology — a per-layer all-reduce across 48
+layers on a box with `GPU0<->GPU1 PHB`, `GPU2<->GPU3 PHB` and cross-domain `SYS`, no NVLink — and
+recorded that it contradicted an earlier "1.5–3× headroom" estimate. Still not isolated by
+measurement here, but it is a second independent arrival at the same explanation.
+
 ## 3. The answer to buun's question: layer, for this model
 
 **Layer is 1.43× faster on Flash-Next** (17.59 vs 12.30) and uses 2.8 GB less VRAM.
