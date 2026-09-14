@@ -1,0 +1,51 @@
+The user wants an SVG of a pelican riding a bicycle. Let me create a decent cartoon-style SVG with a bicycle (wheels, frame, handlebars, seat, pedals) and a pelican sitting on the seat, with its large beak and throat pouch.
+
+Let me plan the coordinates. Canvas is 800x600.
+
+Bicycle: rear wheel center (250, 420), front wheel center (530, 420), radius 80. Frame: bottom bracket (370, 420). Seat tube goes from (370,420) to seat (330, 290). Down tube from (370,420) to head tube bottom (490, 350)... Top tube from seat cluster (340, 300) to (490, 310). Head tube goes from (490, 310) to (500, 345), fork goes from (500, 345) to front wheel hub (530, 420). Chainstay from bottom bracket (370,420) to rear hub (250,420). Seat stay from (335, 300) to (250, 420). Handlebars around (490, 290).
+
+Pelican sitting on the seat (330, 290). Body is an ellipse around (330, 230), head at (360, 140)? The pelican faces right. The head is around (370, 130), beak extends to the right and downward, with the pouch. Wings extend to the handlebars: wing from body to handlebar grip (500, 290). Legs from body to the pedals.
+
+Pelican colors: body white, beak orange/yellow, pouch a lighter orange.
+
+Pedals: crank arms from (370,420), radius ~30. Pedals at (400, 445) and (340, 395). Feet webbed, orange.
+
+Let me write out the SVG with reasonable detail: spokes, ground line, maybe an eye, small wings.
+
+Spokes: lines from hub to rim at various angles.
+
+Let me write it out:
+
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+  <!-- sky -->
+  <rect width="800" height="600" fill="#cfe8f5"/>
+  <circle cx="680" cy="90" r="45" fill="#ffd95e"/>
+  <ellipse cx="150" cy="100" rx="60" ry="22" fill="#ffffff" opacity="0.8"/>
+  <ellipse cx="210" cy="120" rx="45" ry="18" fill="#ffffff" opacity="0.8"/>
+  <!-- ground -->
+  <rect y="500" width="800" height="100" fill="#9bd47a"/>
+  <line x1="0" y1="500" x2="800" y2="500" stroke="#7cb55d" stroke-width="4"/>
+```
+
+Wait, wheel radius 80, center y=420, so the bottom of the wheels is at 500. Good.
+
+Wheels: circles with dark stroke, inner rim, hub, spokes.
+
+Frame stroke: #d33 or #e63946, width 8.
+
+Pelican body: ellipse cx 320 cy 220 rx 70 ry 55, white fill, gray stroke. Tail feathers on the left side. Neck: a path curving up from (365, 190) to the head at (395, 130). Head is a circle at (400, 125) with radius 26. Beak: from the head to a tip at (530, 155); pouch curves down to about y 200. Eye at (408, 118).
+
+Wings/arms: path from body (350, 220) to handlebar (500, 285) — the wing extends to the handlebars.
+
+Legs: from lower body (300, 270) and (330, 270) to the pedal positions (340, 395) and (400, 445)? That's long. Lower the body: seat top is at y ~ 290, pelican sits on top so body center at 235 with ry 50 → bottom at 285. Legs are orange lines about 110px from (310,275) to pedal (355, 405). Pedals: crank radius 32, angle: pedal 1 (402, 436), pedal 2 (338, 404). Feet: webbed toes at pedal positions.
+
+Handlebars: from the top of the head tube (490, 305), curve upward... handlebar post goes up from (495, 310) to (500, 275), bar is horizontal from (470, 275) to (530, 268), with grips.
+
+Let me finalize the numbers and write the code. Spokes: for each wheel, 8 lines every 45°. I could calculate: for center (250,420) r=66, spokes to points at angles 0, 45, ...: (250±66, 420), (420±66) → (316,420), (184,420), (250,486), (250,354), diagonals: 66/√2≈46.7 → (296.7, 466.7), etc. I'll approximate.
+
+Front wheel center (530, 420).
+
+Add a chain: a line from rear hub to chainring? Simple: circle of chainring r=18 at (370,420), chain lines going to rear hub.
+
+Let me write the complete SVG.

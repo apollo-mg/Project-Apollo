@@ -76,3 +76,65 @@ sees should not be the 64×30 grid** — mode 3 is an argument for giving it mor
 
 Artifacts: `pelican_informal/` — `repN.svg`, `repN_goal2.svg`, renders, `repN_goal2.content.txt` (full fault
 lists), `run.log`.
+
+---
+
+## Amendment 1 — 2026-09-14 11:45: **the headline was arm-specific and is corrected**
+
+The matched re-run (`pelican_matched/`, `--reasoning-effort medium`, thinking **on**, everything else as the
+panel sets it) completes the 2×2. **The claim above — "never rewards a revision, twice punishes one" — holds
+only for the thinking-OFF arm.**
+
+| arm | rep 1 | rep 2 | rep 3 | revisions |
+|---|---|---|---|---|
+| **thinking OFF** | 10 → **7** | 10 → **9** | 10 → 10 | **2 down, 1 flat, 0 up** |
+| **thinking ON** | 10 → 10 | **9 → 10** | **9 → 10** | **0 down, 1 flat, 2 up** |
+
+**A clean reversal.** With thinking on, revisions hold or improve. The earlier headline was true of the data
+it was written on and false as a general statement about the scorer; it is corrected here rather than edited
+away.
+
+**Likely reason, not measured:** the thinking-off revisions made bold structural changes — scale the bird up,
+merge it into the frame — which is exactly what trips the connectivity checks. The thinking-on revisions are
+more surgical, fixing named relations without redrawing the composition. If that is right, the scorer is not
+"anti-revision" but **anti-large-structural-change**, which is a narrower and more accurate charge.
+
+### What survives unchanged, and is the stronger result
+
+**The ceiling and the two broken checks.** Across all **twelve** drawings the scores are 7, 9 × 3, and 10 × 8
+— the instrument has almost no dynamic range — and **every one of the four non-perfect scores comes from just
+two checks**:
+
+- `assembly_coherent` (3 of 4). **Demonstrably broken** — see `pelican_matched/SUN_REPRO.md`: deleting one
+  decorative `<circle>` (the sun) moves a drawing from 9/10 to 10/10, and the defect is *conditional on the
+  rest being well-drawn*, because the fragment threshold is relative to the main component.
+- `two_lower_clusters` / `clusters_separated` / `structure_between` (the remaining 1, all three at once).
+  Wheel detection collapses when the bird bridges the wheels — V2 note #4.
+
+**Neither depends on which arm produced the drawing.** The sun repro is the artifact to hand a v2 candidate,
+precisely because it is a one-element diff rather than a judgement call about which of two pictures is better.
+
+### Answering the question the re-run was for
+
+**Thinking on produces visibly better first drawings and the scorer cannot see it.** Thinking-on rep 1 pass 1
+is the best first draw of the session — pouched beak *and* a correct bicycle *and* a saddle the bird sits on —
+and scores 10/10, the same as a thinking-off draw with a goose-like head and no pouch. Two thinking-on first
+draws score **9**, *below* the thinking-off drawings they beat, both on the sun defect.
+
+Cost: 10,181 output tokens across three reps against 8,719 with thinking off (**+17%**), plus reasoning blocks
+of 3,668 / 2,315 / 2,809 chars where thinking-off produced none.
+
+**An observation worth controlling for in v2, n=3 and untested:** thinking-on pass 1 looks comparable in
+quality to thinking-off pass 2. If the reasoning block buys roughly what the render-feedback loop buys, then
+the panel — which gives pass 1 a thinking budget — is not cleanly isolating *seeing the render* from *thinking
+longer*. The control is a token-matched arm: thinking-off pass 1 + revision, against thinking-on pass 1 alone.
+
+### Limits on this amendment
+
+- Still n=3 per arm, one model, one prompt, `goal` framing only.
+- "Visibly better" remains my judgement, not a blind rating.
+- **Still not a panel arm**: four P100s not an RX 9070 XT, `c7f114d34` not `3823c9eb6`, `max_tokens` 8000
+  approximating the panel's 480 s cap, and `-lv 4` added so the KV assertion could fail.
+- **The KV is mixed, not q8_0.** `-ctk/-ctv q8_0` on this hybrid architecture logs `K (f16) K (q8_0) V (f16)
+  V (q8_0)` — the attention cache quantizes, the recurrent state stays f16. The panel's dense 27B has no such
+  split, so "matched KV flags" is true of the flags and only partly true of the cache.
