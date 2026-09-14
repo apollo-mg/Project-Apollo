@@ -18,23 +18,44 @@ tensors land on one socket (~22.7 GB/s) while deep spill spreads across both (45
 **forcing interleaved placement should make shallow spill as cheap per byte as deep spill** — which would
 directly fix the finding that "spilling two layers to just barely fit is the worst deal on the curve."
 
-## Build, and why a bridge is unavoidable
+## Build
 
-**The Stage 4 build no longer exists on `.194`.** That run recorded buun `c7f114d34`; today
-`buun-llama-cpp/build` is **version 9792 (`87c351d28`)** and the tree HEAD has moved to `3823c9eb6`.
-There is no same-build option, so every cross-stage comparison needs a bridge regardless of choice.
+> ### Amendment 1 — 2026-09-14, before any rung of this stage has produced a number
+>
+> **The original text of this section was wrong and is withdrawn.** It said *"The Stage 4 build no longer
+> exists on `.194`… there is no same-build option, so every cross-stage comparison needs a bridge"*, and
+> selected `tq-pr324/build_sm60_c232` on that basis.
+>
+> **The Stage 4 build exists**: `/home/mark/buun-c7f114d34/build_sm60/bin/llama-server`, **build 12007,
+> commit `c7f114d34`** — the exact binary `flashnext_residency.py` names in `BIN`. I concluded it was
+> absent because I listed builds with `find … | head -8` and read absence-from-a-truncated-list as
+> absence. **There are 26 `llama-server` builds on `.194`; I looked at 8.** Identical in shape to the
+> `DFlash2` false mismatch earlier today and to the whole of `tools/DESIGN_INTENT_CONTINUITY.md`: a
+> clean, confident answer from a check that could not have seen the thing it ruled out.
+>
+> **Consequences, all improvements:**
+> - **Stage 5 runs `buun-c7f114d34/build_sm60` — the same binary as Stage 4.** No fork change, no ~800
+>   commits, no build variable.
+> - **No bridge is needed for build equivalence.** The three shared rungs (8, 16, 32) instead become a
+>   **replication check**: same build, same box, one day apart. That measures run-to-run reproducibility,
+>   which Stage 4 never established and which every marginal in that receipt silently depends on.
+> - `c7f114d34` supports **`-lm` with `dio` explicitly listed**, plus `--numa {distribute,isolate,numactl}`
+>   and `-ncmoe`. So Stage 5a still applies unchanged and the intervention knob is available.
+> - **Ratio-based bands are kept anyway.** They were adopted to survive a build change that is no longer
+>   happening, but a ratio is the right way to state a claim about curvature regardless.
+>
+> **P-BRIDGE is replaced by P-B7** below.
 
-**This stage runs `tq-pr324/build_sm60_c232` — version 10588 (`c232282aa`).** Chosen because it carries
-both `-lm` and the qwen4exp fixes. Model: `AI/Models/flashnext/Qwen3.8-Flash-Next-UD-IQ4_XS-0000{1,2,3}-of-00003.gguf`.
+**This stage runs `buun-c7f114d34/build_sm60` — build 12007, commit `c7f114d34`, the Stage 4 binary.**
+Model: `AI/Models/flashnext/Qwen3.8-Flash-Next-UD-IQ4_XS-0000{1,2,3}-of-00003.gguf`.
 Hardware: `.194`, 4× P100 sm_60, 2× Xeon E5-2650v3, 2 NUMA nodes (31,772 / 30,197 MB), DDR4-2133,
 150 W / 1063 MHz per [[gpu-clock-benchmark-discipline]]. `-sm layer`, KV `f16` verified per rung from
 `-lv 4`, page cache dropped before every rung.
 
-**The bridge is on marginals across the three shared rungs (8, 16, 32), not on absolute tok/s at one
-point.** A single rung within ±10% cannot license comparison across ~800 commits *and* a fork change.
-If the marginal *structure* reproduces while absolute throughput shifts, the shape is build-independent —
-a stronger claim than an absolute bridge could make. If the marginals also move, Stage 4's curve was
-build-specific, which is equally worth knowing. Either way the dense ladder stands on its own.
+**Per Amendment 1 there is no build gap to bridge.** The three shared rungs (8, 16, 32) are instead a
+**replication check against Stage 4's own numbers** — same binary, same box, one day apart. Stage 4
+reported 17.60 / 13.57 / 10.75 tok/s at those rungs and never established run-to-run reproducibility,
+which every marginal in that receipt depends on. Scored as **P-B7**.
 
 ## Arms
 
@@ -70,6 +91,13 @@ not running.
 | **P-B4** | placement tracks depth: `I = |anon₀ − anon₁| / (anon₀ + anon₁)` falls with spill depth, `I(8) − I(32) ≥ 0.10` | difference < 0.10 |
 | **P-B5** | MiB freed per spilled layer constant within ±15% (replicates Stage 4's P-L0, which held at 3.1%) | any rung outside |
 | **P-B6** | **the actionable one.** If P-B4 confirms, interleave at rung 8 improves decode ≥ 5% vs the distribute control | < 5% improvement |
+| **P-B7** | **replication** (replaces P-BRIDGE, Amendment 1): rungs 8 / 16 / 32 reproduce Stage 4's 17.60 / 13.57 / 10.75 tok/s within **±5%** each, same binary one day apart | any of the three outside ±5% |
+
+**P-B7 failing would be the most consequential outcome in this stage.** Stage 4's entire marginal
+structure — the 2.11-vs-1.21 ms/layer break that motivated Stage 5 — assumes those numbers are
+reproducible. Nothing has ever tested that. If a rung moves more than 5% on an identical binary and box,
+the break may be run-to-run noise rather than structure, and **P-B1 through P-B3 become uninterpretable
+regardless of how they score.** Read P-B7 first.
 
 **P-B6 is scored only if `numa_maps` shows placement actually differed between the intervention and its
 control.** If the two placements are indistinguishable the intervention was inert and P-B6 is **NOT
