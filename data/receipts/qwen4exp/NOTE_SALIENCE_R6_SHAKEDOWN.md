@@ -74,3 +74,56 @@ already found a case where a gap was **a stopping-rule failure, not an answering
 - Both models were run with `--jinja` and their own shipped templates, which differ.
 
 Artifacts: `salience/` — `shake.log`, `fetch.log`.
+
+---
+
+## CORRECTION 2026-09-14 17:45 — §1 was wrong. MTP works; I failed to enable it
+
+**Section 1 above says R6's MTP claim "cannot be tested from this GGUF". That is false.** Mark found the
+flag in bartowski's own model card, in a section I had not read:
+
+> *MTP layers act as a built-in draft model, letting llama.cpp run speculative decoding for faster
+> generation. To use them, add the following flag: `--spec-type draft-mtp`*
+
+Our build lists it (`--spec-type none,draft-simple,draft-eagle3,draft-mtp,draft-dflash,…`). **The
+`unused tensor blk.64.* -- ignoring` warning is what llama.cpp prints when speculative decoding is
+*not requested*.** It is a default-off notice, not a missing capability. I read it as the latter.
+
+### Measured, with the flag
+
+| arm | decode | acceptance | `blk.64 … ignoring` warnings |
+|---|---|---|---|
+| no MTP | 8.10 tok/s | — | **15** |
+| **`--spec-type draft-mtp --draft-max 2`** | **14.43 tok/s** | **0.698** (111/159) | **0** |
+| `--draft-max 3` | 13.52 tok/s | 0.616 (109/177) | 0 |
+
+**The warnings going 15 → 0 is the proof the tensors are in use**, not an inference. MTP is worth
+**1.78×** at depth 2, and depth 3 is worse — acceptance falls as the draft lengthens, the same shape the
+campaign measured on stock.
+
+### Against stock, the claim holds — modestly
+
+| | acceptance @ depth 2 | MTP speedup |
+|---|---|---|
+| stock Qwen3.8-27B Q6_K | 0.688 | 1.70× |
+| **Salience-27B-R6 Q6_K** | **0.698** | **1.78×** |
+
+**+1.5% acceptance, +4.7% speedup** — small, but in the direction R6 claims, on the metric it names.
+Single measurement per arm; a real test would need repeats and more than one prompt.
+
+### What this error nearly cost
+
+§1 recommended reporting to bartowski that *"extracting `blk.64` to a separate `mtp-*.gguf` would make the
+model's headline feature usable."* **That would have been a bug report about a non-bug, for a feature
+documented in the same README I had partly read** — sent to a maintainer who had done the work correctly.
+
+**The failure mode, which is the fourth of its shape today:** I treated *absence of evidence* as *evidence
+of absence* without checking whether the thing was switched on. Identical in structure to the scorer that
+silently dropped `G3XL` and reported "no change"; to the waiter that fired on noise; to calling two SVG sets
+indistinguishable after examining two of three pairs. **A clean-looking negative result deserves the same
+scrutiny as a surprising positive one** — ask "did this actually run?" before "what does it mean?".
+
+### Revised verdict
+
+**Deep-test both axes.** The MTP claim is measurable and marginally supported; the economy claim shows the
+stronger signal (45% less chain at comparable answer length). Both now have baselines on this fleet.
