@@ -248,11 +248,35 @@ is no single "correct" operating point, only a gradient.
 > Predicted residency: rung 18 ≈ 22,500 · rung 20 ≈ 24,800 · **rung 24 ≈ 29,400 (still fits)** ·
 > **rung 28 ≈ 34,000 (cannot fit)**.
 >
-> **If P-B9 confirms, Stage 4's headline needs rewriting.** "Spill gets 3.3× cheaper per byte with
+> ~~**If P-B9 confirms, Stage 4's headline needs rewriting.** "Spill gets 3.3× cheaper per byte with
 > depth" would become *"below ~25 layers the allocator can put everything on the wrong socket and
 > usually does; above it, it cannot."* That reframes the result from a property of expert spill into a
 > **fixable placement artifact** — and predicts `numactl --membind=0` recovers most of the shallow-rung
-> penalty, which no arm in this stage currently tests.
+> penalty, which no arm in this stage currently tests.~~
+>
+> **RETRACTED 2026-09-14 21:35, before rungs 24 and 28 ran. The inference has the sign backwards.**
+>
+> | span | tonight | Stage 4 |
+> |---|---:|---:|
+> | 8 → 16 marginal | **1.676** ms/layer | 2.11 |
+> | 16 → 32 marginal | **1.150** | 1.21 |
+> | break ratio | **1.46×** | **1.74×** |
+>
+> The deep marginal replicates within 5%. The shallow one is 21% low **because D-08's bad placement made
+> rung 8 slower**, and a slower shallow endpoint *lowers* the 8→16 slope. **Bad shallow placement makes
+> the shallow regime look cheaper, shrinking the break.** Tonight's run has the badly-placed rung 8 and
+> the *smaller* break (1.46× vs 1.74×).
+>
+> So placement noise **understates** the break; it cannot be its cause. **The two-regime break is real
+> and is not a placement artifact.**
+>
+> **What survives:** P-B9 is still a live test — it predicts `I` collapses at the capacity boundary, and
+> rungs 24/28 still decide it. The capacity arithmetic is untouched. **What dies:** the claim that
+> confirming P-B9 would reframe Stage 4's headline. That inference does not follow either way.
+>
+> A `numactl --membind=0` arm is still worth running, but for the opposite reason to the one given
+> above: **to remove the lottery so the break can be measured cleanly**, not to explain it away. On
+> tonight's evidence a clean measurement would show a break **larger** than 1.74×.
 >
 > **Relationship to P-B4, stated plainly:** the demotion in Amendment 4 stands on method — a ≥ 0.10 band
 > was indefensible against 0.116 run-to-run noise. But the *observed* spread is **0.466** (I(8) 0.588 vs
