@@ -179,6 +179,42 @@ is no single "correct" operating point, only a gradient.
 > **If P-B8 confirms, the efficiency chart gains a second axis**: deep-spill configurations can be
 > underclocked for perf-per-watt at a smaller throughput cost than shallow ones.
 
+> ### Amendment 4 — 2026-09-14 20:58, mid-run. **P-B4 is DEMOTED to descriptive.**
+>
+> Written after D-16's placement and **before its decode numbers existed**, so this is a reaction to a
+> defect in the prediction, not to the result it would have produced.
+>
+> **P-B4's effect size is smaller than the noise in its own metric.** Two runs of the *same rung* with
+> the same flags:
+>
+> | run | rung | clock | node 0 / node 1 MiB | total | `I` |
+> |---|---|---|---|---:|---:|
+> | `M-mmap` | 16 | 1063 | 17,633 / 2,445 | 20,079 | **0.7564** |
+> | `D-16` | 16 | 1189 | 16,468 / 3,609 | 20,077 | **0.6405** |
+>
+> **The total host residency is deterministic to 2 MiB. The split across sockets swung 0.116** — larger
+> than the ≥ 0.10 difference P-B4 predicts across the *whole* ladder. With one observation per rung,
+> P-B4 can be confirmed or falsified by the placement lottery alone.
+>
+> Caveat kept honest: those two runs differ in clock as well as in run, so clock timing may shift which
+> thread faults first. That would be its own finding, and it still does not rescue a 0.10 band measured
+> once per rung.
+>
+> **What changes:** P-B4 is reported as a **description of the observed placement distribution across
+> ten rungs**, with no CONFIRMED/FALSIFIED verdict. **The band is not being widened** — loosening a band
+> after seeing data is the move preregistration exists to prevent. The ladder establishes the variance
+> for the first time so that a *future* stage can state a band that means something, ideally with
+> repeated runs at a fixed rung.
+>
+> **P-B6 is unaffected and gains importance.** `numactl --interleave=all` sets an actual memory policy,
+> so it should drive `I` toward zero — an effect far outside this ±0.12 noise. It remains gated on
+> `numa_maps` showing placement actually moved.
+>
+> **Root cause is now on record** ([[numa-distribute-is-threads-only]]): `GGML_NUMA_STRATEGY_DISTRIBUTE`
+> only calls `pthread_setaffinity_np`, and the sole `mbind` in ggml sits in the AllReduce path that is
+> inert on sm_60. **Nothing in this stack places memory.** First touch decides, and thread scheduling
+> is not reproducible — so the lottery is the expected behaviour, not an anomaly.
+
 ## Scoring
 
 `tools/score_flashnext_break.py`, committed before the first rung produces a number. Marginal ms/layer is

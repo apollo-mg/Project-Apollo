@@ -144,14 +144,24 @@ def main(path):
         print("- **P-B2 / P-B3**: NOT TESTABLE (fewer than three marginals)")
 
     # P-B4: does placement track depth?
+    # Amendment 4: DESCRIPTIVE ONLY. Two runs of rung 16 differed by I = 0.116, larger than the 0.10
+    # effect this once predicted across the whole ladder, so one sample per rung cannot carry a verdict.
+    # The band is deliberately NOT widened -- loosening after seeing data defeats preregistration.
     i8, i32 = imbalance(runs, "D-08"), imbalance(runs, "D-32")
-    if i8 is not None and i32 is not None:
-        d = i8 - i32
-        print(f"- **P-B4 (placement tracks depth)**: {verdict(d >= 0.10)} — I(8) {i8:.4f}, "
-              f"I(32) {i32:.4f}, difference **{d:+.4f}** (band ≥ 0.10)")
+    allI = [(n, imbalance(runs, a)) for n, a in rungs if imbalance(runs, a) is not None]
+    if allI:
+        vals = [v for _, v in allI]
+        print(f"- **P-B4 (placement vs depth)**: **DESCRIPTIVE, no verdict** (Amendment 4) — I by rung: "
+              + ", ".join(f"{n}:{v:.3f}" for n, v in allI))
+        print(f"    - range {min(vals):.3f}–{max(vals):.3f}, spread {max(vals) - min(vals):.3f}; "
+              f"run-to-run swing at a FIXED rung was 0.116, so a trend smaller than that is not a result")
+        if i8 is not None and i32 is not None:
+            print(f"    - I(8) {i8:.4f} vs I(32) {i32:.4f}, difference {i8 - i32:+.4f} "
+                  f"(what the retired band asked for: ≥ 0.10 — reported, not scored)")
+        d = (i8 - i32) if (i8 is not None and i32 is not None) else None
     else:
         d = None
-        print("- **P-B4**: NOT TESTABLE (placement missing at rung 8 or 32)")
+        print("- **P-B4**: NOT TESTABLE (no placement recorded)")
 
     # P-B5: MiB freed per spilled layer.
     per = []
