@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **qwen4exp Stage 5 — the spill measurement has a ~3% noise floor (Claude, 2026-09-14 20:07 → 09-15 00:35):**
+  19 runs on `.194`, prereg `PREREG_FLASHNEXT_BREAK.md` with six dated amendments, result in
+  `RESULT_FLASHNEXT_BREAK.md`. **Set out to locate Stage 4's marginal-cost break with a dense ladder and
+  could not** — adjacent-rung marginals ran **−1.109 to +2.795 ms/layer**, including 166 GB/s on DDR4-2133
+  and a negative value (spilling four more layers "sped it up").
+  - **Cause: ~2–4% run-to-run variance at fixed configuration, binary, clock and byte-identical NUMA
+    placement.** Never measured before in this campaign; every band written before this assumed it was
+    negligible. **Dense sampling was the wrong instrument** — Stage 4's 16→32 step has SNR ≈ 7, this
+    stage's 8→10 step has SNR ≈ 1.5. Finer resolution shrinks the signal while the floor holds.
+  - **`--numa distribute` places threads, not memory** (source-verified). Nothing in the ggml path binds
+    memory on sm_60, so first touch decides; node-0 share wandered 21–83% with no relation to rung.
+    `--membind=0` is byte-deterministic (0.2 MiB across two runs) **and costs 5–6%**.
+  - **`-lm dio`: 3.91× faster load, 99.6% of pages on one node, ~4% slower decode.** It does **not** go
+    into the startup scripts — and `dio_log_hits = 0` on both arms, so a log-string probe would have
+    reported the opposite of the truth.
+  - **The one clean signal: clock elasticity rises with spill depth** — −0.03 at rung 8, 0.72 at 16, 0.92
+    at 32. **At `-ncmoe 8`, cutting 250 W → 150 W costs nothing measurable**: 400 W saved across four
+    cards, 1.67× tokens per watt, at the fleet's existing boot default.
+  - **A clock confound was caught only because `gates()` records clock state.** `.194` rebooted 09-14
+    08:52 to the 150 W boot default while Stage 4 ran at 1189/250; the apparent 10% replication failure
+    matched the 10.6% clock cut. Without that line the stage would have declared Stage 4 irreproducible.
+  - **Four hypotheses proposed and killed** (H1, H2, H4 twice — once for having the sign backwards).
+    **Eight corrections**, four of them the same mistake: comparing an arm that had not finished its
+    reps. That one is now blocked mechanically in the scorer rather than left to discipline.
+  - **`PREREG_DIMM_UPGRADE.md` Amendment 3** written before Wednesday's purchase: P-D5 (+27% predicted) is
+    safe, but the pre-upgrade bridge and the P-D6 control both had ±5% bands on single runs that noise
+    alone could breach. Both now need **three runs, not three reps**, scored at ctx 1800/3600, rep 0
+    discarded as known bias. **A DIMM upgrade moving decode < ~4% is not measurable by this method.**
+
 - **Changelog revived, and the missing piece named (Claude + Mark, 2026-09-14):** Mark asked to bring
   back "an ever-growing Apollo changelog … so we can reflect back and audit things easily down the
   road," motivated by
