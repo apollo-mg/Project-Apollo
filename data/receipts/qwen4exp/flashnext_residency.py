@@ -87,11 +87,22 @@ STAGE5B = [(f"D-{n:02d}", IQ4, ["-ncmoe", str(n)] + BASE5) for n in BREAK_RUNGS]
 # externally to 1063 MHz / 150 W before this stage and recorded in the gates row. Rung 16 at that clock
 # is already in hand from M-mmap, so only 8 and 32 are needed to complete the set.
 STAGE5D = [(f"C-{n:02d}", IQ4, ["-ncmoe", str(n)] + BASE5) for n in (8, 32)]
-# 5c: the intervention. External `numactl --interleave=all` paired with `--numa numactl` (the mode that
-# defers to the external CPU map). NOT --interleave wrapped around --numa distribute, which would have two
-# placement strategies fighting. Controls are the same rungs in 5b.
-STAGE5C = [(f"I-{n:02d}", IQ4, ["-ncmoe", str(n), "-ngl", "99", "--numa", "numactl", "-lv", "4"],
-            ["numactl", "--interleave=all"]) for n in (8, 24)]
+# 5c (Amendment 6): --membind=0 replaces the original --interleave=all arm. 5b showed first touch is
+# the only thing placing memory and that marginals are consequently uninterpretable, so the question is
+# no longer "does a policy take effect" but "does pinning make the measurement reproducible". Interleave
+# would deliberately put half the pages on the wrong socket for a shallow rung, where every consuming
+# GPU is on node 0. B-16a/B-16b are the same configuration twice -- the run-to-run variance test that
+# nothing in this campaign has ever done. B-08 asks whether pinning recovers D-08's -4.5 percent.
+# Rung 16 needs 20,816 MiB against node 0's 31,772, so --membind=0 fits with headroom.
+# --membind=0 ONLY. NOT --cpunodebind=0, which would cut the thread pool from 40 CPUs to node 0's 20
+# and make these arms differ from their 5b controls in parallelism as well as memory policy.
+# Paired with --numa distribute, identical to 5b: numactl sets the MEMORY policy, ggml sets THREAD
+# affinity, and the two are orthogonal -- unlike interleave-vs-distribute, which would have been two
+# placement strategies fighting. Memory policy is the only variable against D-16 and D-08.
+MEMBIND0 = ["numactl", "--membind=0"]
+STAGE5C = [("B-16a", IQ4, ["-ncmoe", "16"] + BASE5, MEMBIND0),
+           ("B-16b", IQ4, ["-ncmoe", "16"] + BASE5, MEMBIND0),
+           ("B-08", IQ4, ["-ncmoe", "8"] + BASE5, MEMBIND0)]
 
 
 class Abort(Exception):

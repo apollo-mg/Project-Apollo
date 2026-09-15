@@ -284,6 +284,45 @@ is no single "correct" operating point, only a gradient.
 > true and was simply predicted with a band too tight to mean anything. **The band was wrong, not the
 > idea** — and P-B9 now says *why* it varies, which P-B4 never did.
 
+> ### Amendment 6 — 2026-09-14 23:18. **Stage 5c is replaced: `--membind=0` instead of `--interleave=all`.**
+>
+> Mark's call, after 5b showed the ladder cannot measure marginals at all
+> (`RESULT_FLASHNEXT_BREAK.md`). Written before any 5c arm has run.
+>
+> **Why the original arm is now the weaker experiment.** 5c was specified as external
+> `numactl --interleave=all` with `--numa numactl`, to test whether *any* memory policy changes
+> placement. But interleaving deliberately puts ~50% of pages on the wrong socket for a shallow rung,
+> where every consuming GPU is on node 0. It would answer "does a policy take effect" — which 5b already
+> answered by showing first touch is the only thing acting — rather than the question that now matters.
+>
+> **The question that now matters: does pinning make the measurement reproducible?** Nothing in this
+> campaign has ever measured run-to-run variance in decode at a fixed configuration. Every marginal,
+> exchange rate and cost model published so far assumes it is small, and 5b showed it is not.
+>
+> **Arms** (`numactl --membind=0` + `--numa numactl`; rung 16 needs 20,816 MiB against node 0's 31,772,
+> so it fits with headroom):
+>
+> | arm | rung | purpose |
+> |---|---|---|
+> | `B-16a`, `B-16b` | 16 | **the variance test** — same configuration, twice |
+> | `B-08` | 8 | does pinning recover D-08's −4.5%? It landed 21% on node 0 |
+>
+> Controls are the 5b arms at the same rungs: D-16 (83% node 0, 13.58 tok/s) and D-08 (21%, 16.61).
+>
+> | id | prediction | falsified if |
+> |---|---|---|
+> | **P-B10** | **pinning is deterministic**: `B-16a` and `B-16b` both show ≥ 95% of pages on node 0, and their imbalance differs by < 0.02 | either fails |
+> | **P-B11** | **pinning collapses decode variance**: \|B-16a − B-16b\| ≤ **1.5%**, against the 0.10 imbalance swing and 4.5-point decode spread seen between unpinned runs of rung 16 | difference > 1.5% |
+> | **P-B12** | **pinning recovers the badly-placed rung**: `B-08` decode ≥ D-08's 16.61 by ≥ 2%, and lands within ±2% of Stage 4's L-08 (17.39 @1800) | gain < 2% |
+>
+> **P-B12 is the one with consequences.** If pinning takes D-08 from −4.5% back to Stage 4's value, then
+> Stage 4's numbers were measured under *favourable* placement and are recoverable — the campaign's
+> published spill results stand, provided future runs pin. If B-08 does **not** recover, the deficit is
+> something other than placement and 5b's whole interpretation is wrong.
+>
+> **Two runs is not a variance estimate.** P-B11 tests whether two pinned runs agree, which is necessary
+> but not sufficient; a proper estimate needs five or more and is out of scope tonight.
+
 ## Scoring
 
 `tools/score_flashnext_break.py`, committed before the first rung produces a number. Marginal ms/layer is
