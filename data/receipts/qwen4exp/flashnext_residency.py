@@ -78,8 +78,15 @@ BASE5 = ["-ngl", "99", "--numa", "distribute", "-lv", "4"]
 # thread. Taking dio for its load-time win while measuring placement would confound P-B4 with the mode.
 STAGE5A = [("M-mmap", IQ4, ["-ngl", "99", "-ncmoe", "16", "--numa", "distribute", "-lv", "4", "-lm", "mmap"]),
            ("M-dio", IQ4, ["-ngl", "99", "-ncmoe", "16", "--numa", "distribute", "-lv", "4", "-lm", "dio"])]
-BREAK_RUNGS = (8, 10, 12, 14, 16, 18, 20, 24, 28, 32)
+# Ordered so the three rungs Stage 4 shares (8, 16, 32) run FIRST: P-B7 decides whether anything else
+# in this stage is interpretable, so it should not be waiting behind seven fill-in rungs. Resume is by
+# arm_done, so order affects only what lands first, never correctness.
+BREAK_RUNGS = (8, 16, 32, 10, 12, 14, 18, 20, 24, 28)
 STAGE5B = [(f"D-{n:02d}", IQ4, ["-ncmoe", str(n)] + BASE5) for n in BREAK_RUNGS]
+# Stage 5d (Amendment 3): the clock ladder. Identical flags to 5b -- the variable is system state, set
+# externally to 1063 MHz / 150 W before this stage and recorded in the gates row. Rung 16 at that clock
+# is already in hand from M-mmap, so only 8 and 32 are needed to complete the set.
+STAGE5D = [(f"C-{n:02d}", IQ4, ["-ncmoe", str(n)] + BASE5) for n in (8, 32)]
 # 5c: the intervention. External `numactl --interleave=all` paired with `--numa numactl` (the mode that
 # defers to the external CPU map). NOT --interleave wrapped around --numa distribute, which would have two
 # placement strategies fighting. Controls are the same rungs in 5b.
@@ -418,6 +425,7 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     stage = ("5a" if "--stage5a" in sys.argv else "5b" if "--stage5b" in sys.argv
              else "5c" if "--stage5c" in sys.argv
+             else "5d" if "--stage5d" in sys.argv
              else "3b" if "--stage3b" in sys.argv else 4 if "--stage4" in sys.argv
              else 3 if "--stage3" in sys.argv else 2 if "--stage2" in sys.argv else 1)
     try:
@@ -441,6 +449,8 @@ def main():
             queue = list(STAGE5B)
         elif stage == "5c":
             queue = list(STAGE5C)
+        elif stage == "5d":
+            queue = list(STAGE5D)
         else:
             bandwidth()
             queue = list(ARMS)

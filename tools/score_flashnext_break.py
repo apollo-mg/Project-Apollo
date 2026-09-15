@@ -180,6 +180,29 @@ def main(path):
                   f"**{gain * 100:+.1f}%**, placement moved {pc:.4f} → {pi:.4f} — descriptive; "
                   f"a large gain here too would mean the effect is not specific to shallow spill")
 
+    # P-B8: clock elasticity vs spill depth (Amendment 3). 1189 MHz arms are D-/M-; 1063 MHz are C-,
+    # plus M-mmap which supplies rung 16 at the low clock. Sensitivity = fractional decode lost to the
+    # 10.6% clock cut. Deep spill is host-bound, so it should care less about GPU MHz.
+    print("\n## P-B8 — clock elasticity by spill depth (1189 MHz / 250 W vs 1063 MHz / 150 W)\n")
+    sens = {}
+    for n, lo_arm in ((8, "C-08"), (16, "M-mmap"), (32, "C-32")):
+        hi, lo = decode(req, f"D-{n:02d}"), decode(req, lo_arm)
+        if hi and lo:
+            sens[n] = (hi - lo) / hi
+            print(f"- rung **{n}**: {hi:.2f} @1189 vs {lo:.2f} @1063 — **{sens[n] * 100:.1f}%** lost "
+                  f"to a 10.6% clock cut (elasticity {sens[n] / 0.106:.2f})")
+        else:
+            print(f"- rung {n}: NOT TESTABLE (missing {'D-%02d' % n if not hi else lo_arm})")
+    if 8 in sens and 32 in sens:
+        drop = sens[8] - sens[32]
+        print(f"- **P-B8**: {verdict(drop >= 0.03)} — sensitivity {sens[8] * 100:.1f}% at rung 8 vs "
+              f"{sens[32] * 100:.1f}% at rung 32, **{drop * 100:+.1f} points** (band ≥ 3.0)")
+        if drop >= 0.03:
+            print("    - deep-spill configurations can be underclocked for perf-per-watt at a smaller "
+                  "throughput cost than shallow ones — a second axis for the efficiency chart")
+    else:
+        print("- **P-B8**: NOT TESTABLE (need both rungs 8 and 32 at both clocks)")
+
     # P-B0: the load-mode gate.
     mm, dio = runs.get("M-mmap"), runs.get("M-dio")
     if mm and dio:

@@ -125,6 +125,47 @@ is no single "correct" operating point, only a gradient.
 > that DirectIO engaged is `M-dio`'s **load time against `M-mmap`'s** — a probe that cannot succeed unless
 > the thing happened. Log hits for `direct-io` are counted and recorded, but they do not gate anything.
 
+> ### Amendment 3 — 2026-09-14 20:30, after Stage 5a, before any 5b/5c/5d rung
+>
+> **1. P-B0 is FALSIFIED on both limbs. The ladder runs `mmap`, as the prereg pre-declared.**
+>
+> | arm | load | imbalance `I` | node 0 / node 1 MiB | decode @1800 |
+> |---|---:|---:|---|---:|
+> | `M-mmap` | 606.7 s | **0.7564** | 17,633 / 2,445 | **12.58** |
+> | `M-dio` | **155.3 s** | **0.9963** | 20,683 / **38** | 11.32 |
+>
+> `dio` puts **99.6%** of resident pages on one node against mmap's 87.8% — `ΔI = 0.2399` against a
+> ≤ 0.05 band — and decodes **6.8% slower** against a ±3% band. Taking `dio` for its load-time win
+> would have made P-B4 a measurement of the load mode. **The gate was worth its 25 minutes.**
+>
+> **`dio` is nonetheless real and fast: 3.91× on load (606.7 s → 155.3 s), close to the 4.3× on record.**
+> Both things are true, and the fleet-wide adoption note now carries a caveat: fast to load, hostile to
+> NUMA balance, measurably slower to decode when experts are spilled.
+>
+> **`dio_log_hits = 0` on both arms.** The log never mentions direct-io even though DirectIO plainly
+> engaged. **A log-string probe would have reported the opposite of the truth.** Load time was the probe
+> that could not succeed unless the thing happened ([[readiness-probes-lie]]).
+>
+> **2. Clock state changed between stages, and it is not a replication failure.** Stage 4 ran at
+> **1189 MHz / 250 W**; `.194` rebooted **2026-09-14 08:52:45** and came up at the fleet's
+> **1063 MHz / 150 W** boot default ([[gpu-clock-benchmark-discipline]]), which is what Stage 5a ran at.
+> Caught only because `gates()` records clocks. Cards were 39–46 °C with throttle reasons `0x0`, so this
+> is a cap, not thermal. **5b and 5c restore 1189 MHz / 250 W to match Stage 4**, which is what makes
+> P-B7 a real test.
+>
+> **3. New arm — Stage 5d, the clock ladder (Mark's call, for the efficiency chart).** Rungs **8 and 32
+> at 1063 MHz / 150 W**; rung 16 at that clock is already measured (`M-mmap`, 12.58). Paired against the
+> same rungs at 1189 MHz / 250 W from 5b.
+>
+> | id | prediction | falsified if |
+> |---|---|---|
+> | **P-B8** | **clock sensitivity falls with spill depth**: decode's fractional response to the 10.6% clock cut is **smaller at rung 32 than at rung 8**, by ≥ 3 points — deep spill is host-bound and should care less about GPU MHz | rung 32's sensitivity ≥ rung 8's − 3 points |
+>
+> **Anchor already in hand:** at rung 16 the 10.6% clock cut cost **7.5%** (13.60 → 12.58), i.e. decode
+> is roughly 70% clock-elastic there. P-B8 predicts that elasticity keeps dropping as spill deepens.
+> **If P-B8 confirms, the efficiency chart gains a second axis**: deep-spill configurations can be
+> underclocked for perf-per-watt at a smaller throughput cost than shallow ones.
+
 ## Scoring
 
 `tools/score_flashnext_break.py`, committed before the first rung produces a number. Marginal ms/layer is
