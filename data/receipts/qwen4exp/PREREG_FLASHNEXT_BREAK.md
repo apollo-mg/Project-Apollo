@@ -129,14 +129,27 @@ is no single "correct" operating point, only a gradient.
 >
 > **1. P-B0 is FALSIFIED on both limbs. The ladder runs `mmap`, as the prereg pre-declared.**
 >
-> | arm | load | imbalance `I` | node 0 / node 1 MiB | decode @1800 |
+> | arm | load | imbalance `I` | node 0 / node 1 MiB | decode 500 / 1800 / 3600 |
 > |---|---:|---:|---|---:|
-> | `M-mmap` | 606.7 s | **0.7564** | 17,633 / 2,445 | **12.58** |
-> | `M-dio` | **155.3 s** | **0.9963** | 20,683 / **38** | 11.32 |
+> | `M-mmap` | 606.7 s | **0.7564** | 17,633 / 2,445 | **12.61 / 12.58 / 11.97** |
+> | `M-dio` | **155.3 s** | **0.9963** | 20,683 / **38** | 12.08 / 12.12 / 11.53 |
+> | delta | −3.91× | +0.2399 | | **−4.18% / −3.61% / −3.67%** |
 >
-> `dio` puts **99.6%** of resident pages on one node against mmap's 87.8% — `ΔI = 0.2399` against a
-> ≤ 0.05 band — and decodes **6.8% slower** against a ±3% band. Taking `dio` for its load-time win
-> would have made P-B4 a measurement of the load mode. **The gate was worth its 25 minutes.**
+> **The two limbs fail very differently, and the distinction matters.**
+> **Placement fails overwhelmingly**: `dio` puts **99.6%** of resident pages on one node against mmap's
+> 87.8% — `ΔI = 0.2399` against a ≤ 0.05 band, nearly 5× over, with node 1 holding 38 MiB.
+> **Decode fails narrowly**: −3.6 to −4.2% against a ±3% band — consistent in sign and size across all
+> three context lengths, but thin enough that different rep spacing could move it across the line.
+>
+> The decision rests on the placement limb, which is what the gate exists for and is not close. Taking
+> `dio` for its load-time win would have made P-B4 a measurement of the load mode.
+> **The gate was worth its 25 minutes.**
+>
+> **Correction, appended not edited away:** this amendment first recorded the decode deficit as **6.8%**.
+> That figure came from **rep 0 alone** at ctx 1800 (11.32 tok/s) while the arm was still running — the
+> median over three reps is 12.12, so the real deficit is **3.6%**. Written twenty minutes after I had
+> warned in this same session not to read a single rep as a result. The scorer takes medians precisely
+> because one slow rep is a stall, not a measurement.
 >
 > **`dio` is nonetheless real and fast: 3.91× on load (606.7 s → 155.3 s), close to the 4.3× on record.**
 > Both things are true, and the fleet-wide adoption note now carries a caveat: fast to load, hostile to
