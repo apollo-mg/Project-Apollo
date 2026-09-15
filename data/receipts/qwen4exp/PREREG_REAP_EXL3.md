@@ -52,6 +52,50 @@ REAP-384 could be *its quantizer* rather than *pruning*.
 **The headline may not say "pruning costs X".** It may only say "this 73 GiB build beats/loses to this
 80 GiB build", which is still the first number published for either.
 
+## Amendment 1 — 2026-09-15, before any download. **The prior already exists, and it is sharper than P-R1.**
+
+This prereg was written without retrieving `knowledge-vs-reasoning/RESULT_differential_knowledge_vs_code.md`
+(2026-08-07), which measured exactly this question on a different REAP model and **already has a mechanism**:
+
+> *"REAP scores experts by router-gate × activation-norm over that set, so an expert that never fires on
+> `evol-codealpaca` reads as low-saliency and is removed. Factual recall does not fire on code."*
+
+Result, `GLM-4.7-Flash-Q6_K` (29.94 B) vs `GLM-4.7-Flash-REAP-23B-A3B-Q6_K` (23.00 B), paired design:
+
+| axis | base | pruned | delta |
+|---|---:|---:|---:|
+| **code** — HumanEval+ pass@1, 164 problems | 82.32% | **83.54%** | **+1.22 pp** |
+| **knowledge** | — | — | **−56 pp** (P-R1 falsified by the premise, not the margin) |
+
+Damage was **broad and uniform** (+33–48 pp across T1–T4), not tail-selective.
+
+**Consequences for this stage:**
+
+1. **P-R1 as written is measuring the wrong axis.** A single mean KLD against a general corpus mixes a
+   preserved axis with a destroyed one and reports their average, which is a number about nothing.
+   **P-R1 is replaced by P-R1a/P-R1b below.**
+2. **sh0wie's REAP-288 card reports HumanEval 93.9 → 91.5** — a *code* benchmark, the axis this fleet's
+   own data says is preserved. Their 2.4-point drop is inside both the noise and the prediction. **They
+   measured the axis that cannot lose**, and their calibration corpus (~686K tokens of agentic-coding
+   traffic) has the same code bias as Cerebras's.
+
+| id | prediction | falsified if |
+|---|---|---|
+| **P-R1a** | **code axis: REAP-384 ties or beats stock at matched VRAM** — consistent with +1.22 pp at 25% pruning, and 384/512 is a *lighter* 25% prune | REAP loses by more than the paired margin |
+| **P-R1b** | **knowledge axis: REAP-384 is materially worse**, and the gap is far larger than the code gap | knowledge gap ≤ code gap |
+| **P-R1c** | **the split is the finding**: \|knowledge delta\| ≥ 5× \|code delta\| | ratio < 5× |
+
+**Mark's stated prior is refined, not discarded.** *"A smaller model beats a REAP of ~ size"* holds on
+knowledge and **is contradicted on code by this fleet's own measurement**. The honest version is:
+**pruning buys code-per-byte and sells knowledge-per-byte**, and which one wins depends entirely on
+which axis you benchmark — which is why almost every published REAP card reports code.
+
+**Recorded as a process failure too.** This prereg proposed an experiment whose directly relevant prior
+result was five weeks old and sitting in `data/receipts/`. Nothing connected them; the retrieval was
+available and the *connection* was not made. That is the exact failure `tools/DESIGN_INTENT_CONTINUITY.md`
+describes — not a retrieval problem, a verification-and-linkage problem — and it is the clearest instance
+of it recorded so far, because the prior was not merely relevant but decisive.
+
 ## Method
 
 Same harness as the EXL3 campaign: `llama-perplexity`-derived KLD against a stored f16 reference on the
