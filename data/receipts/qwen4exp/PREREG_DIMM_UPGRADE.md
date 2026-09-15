@@ -190,3 +190,46 @@ receipt would have credited the DIMMs for a flag. **It is withdrawn as confounde
 **The post-upgrade reruns must pin `-lm` explicitly** and use the same mode as the baseline, or a 4.3×
 loader difference will contaminate the comparison. The Stage 4 ladder rerun should pin **`-lm dio`**, and
 the pre-upgrade baseline for any load-time claim must be re-measured under it.
+
+## Amendment 3 — 2026-09-15 00:20. **A measured noise floor, and two gates that cannot survive it**
+
+Written **before the DIMMs are purchased and before any arm of this experiment runs**, from evidence
+produced by a different experiment (`RESULT_FLASHNEXT_BREAK.md`, Stage 5, 2026-09-14). This is new
+information about the instrument, not a reaction to this experiment's data.
+
+**Measured: decode on `.194` varies 2-4% run-to-run at fixed configuration, fixed binary, fixed clock
+and byte-identical NUMA placement** (`B-16a` vs `B-16b`: -2.59% / -0.22% / -3.74%). Observed excursions
+reach **7.0%** (`D-08` at ctx 500 against its own Stage 4 point). Nothing in this campaign had ever
+measured this; every band written before today assumed it was negligible.
+
+**P-D5 is unaffected and remains the reason to buy.** It predicts 8.64 -> >= 11 tok/s, **+27%**, which is
+roughly 7x the noise floor. Likewise P-D2 (+54%) and P-D3 (+55%).
+
+**Two gates are threatened, both of them tight bands on single runs:**
+
+| gate | band as written | risk |
+|---|---|---|
+| pre-upgrade bridge, "must reproduce 2026-09-13 within **5%**" | 5% | **A noise excursion aborts a valid experiment before the machine is opened.** Tonight an identical-binary rung missed by 7.0% at ctx 500 |
+| **P-D6 control**, rung 2 stays 22.33 **+-5%** | 5% | A chance breach is *defined* to mean "P-D5 is contaminated", so noise would discard the real result |
+
+**Changes, all of which tighten evidence rather than loosen conclusions:**
+
+1. **Both gates are scored on ctx 1800 and 3600, not ctx 500.** Ctx 500 carried the largest deviations
+   all night (7.0% vs 4.5% and 3.9% at the same rung) — least work per token, so the most exposure to
+   fixed per-token variation.
+2. **Both gates require 3 RUNS, not 3 reps within one run.** Reps within a run share a placement draw
+   and a page-cache state; they do not sample the thing that actually varies. **The gate is the median
+   of three run medians.** This costs ~45 min per side and is the only way either band means anything.
+3. **Bands stay at 5%** — on the median of three runs, not on one. A single run's band would have to
+   widen to ~10% to be honest, which would make P-D6 useless as a control. Repeats buy the tightness.
+4. **Rep 0 of every run is discarded before taking a median.** It is systematically 4-10% slow in every
+   arm measured (the 64-token warmup never faults in the spilled experts). This is a known bias, not
+   noise, and it is not defensible to leave it in.
+5. **Record NUMA placement** (`/proc/<pid>/numa_maps`) on every arm. It does not explain the variance —
+   pinning was tested and made throughput *worse* — but it is now cheap, and an unmeasured variable is
+   how Stage 4's exchange-rate table ended up unfalsifiable.
+
+**The threshold this sets, stated plainly: a DIMM upgrade that moves decode by less than ~4% is not
+measurable by this campaign's method, however many channels it populates.** P-D5 expects 27%, so the
+purchase decision is unaffected — but any secondary claim below that threshold must be reported as
+"within noise", not as a small improvement.
