@@ -1,5 +1,14 @@
 # MTP on an agent benchmark: same score, 35 % scenario instability, and a logprob defect
 
+> ### ⚠ Artifact availability
+>
+> **Checked 2026-09-15: a model this receipt depends on can no longer be obtained as the build measured here.** The result stands; it is no longer independently reproducible from upstream. Local copies and fingerprints: `data/receipts/MODEL_PROVENANCE.json`, audit: `data/receipts/RESULT_MODEL_AVAILABILITY_AUDIT.md`.
+>
+> - **`Qwen3.6-35B-A3B-UD-IQ2_M.gguf`** — measured at **11,882,969,376 bytes**. `unsloth/Qwen3.6-35B-A3B-GGUF` still lists this exact filename, but at **11,522,702,304 bytes** — the repo re-quantized and overwrote in place. Downloading it today yields a *different build* under the same name and label.
+>
+> No platform policy change was involved; this is ordinary repository churn. Recorded because a reader cannot otherwise tell the artifact is unobtainable.
+
+
 RX 9070 XT 16 GB, `llama_cpp_turboquant` (TheTom), `Qwen3.6-35B-A3B-UD-IQ2_M`.
 Arms differ **only** by `--spec-type draft-mtp --spec-draft-n-max 2`.
 `-c 65536`, f16 KV, `-np 1`, `--cache-ram 0`, temperature 0, stevibe's HA-20 runner unmodified.

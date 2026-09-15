@@ -1,5 +1,14 @@
 # turbo4 stability repro bundle — for buun's RDNA4 card
 
+> ### ⚠ Artifact availability
+>
+> **Checked 2026-09-15: a model this receipt depends on can no longer be obtained as the build measured here.** The result stands; it is no longer independently reproducible from upstream. Local copies and fingerprints: `data/receipts/MODEL_PROVENANCE.json`, audit: `data/receipts/RESULT_MODEL_AVAILABILITY_AUDIT.md`.
+>
+> - **`Qwopus3.5-27B-v3-Q2_K.gguf`** — measured at **10,711,660,416 bytes**. `Jackrong/Qwopus3.5-27B-v3-GGUF` **no longer ships a Q2_K** — its smallest quant is now Q3_K_M.
+>
+> No platform policy change was involved; this is ordinary repository churn. Recorded because a reader cannot otherwise tell the artifact is unobtainable.
+
+
 One script. Run it when the 9070 is up; it answers "does the turbo4 nondeterminism reproduce on
 my own hardware" in about 25 minutes, and it validates itself while doing so.
 

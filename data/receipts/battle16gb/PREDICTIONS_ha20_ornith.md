@@ -1,5 +1,14 @@
 # Predictions — Ornith-1.0-35B-A3B IQ2_M on HermesAgent-20 (Battle for 16GB, third contender)
 
+> ### ⚠ Artifact availability
+>
+> **Checked 2026-09-15: a model this receipt depends on can no longer be obtained as the build measured here.** The result stands; it is no longer independently reproducible from upstream. Local copies and fingerprints: `data/receipts/MODEL_PROVENANCE.json`, audit: `data/receipts/RESULT_MODEL_AVAILABILITY_AUDIT.md`.
+>
+> - **`Ornith-1.0-35B-UD-IQ2_M.gguf`** — measured at **11,563,424,160 bytes**. `ornith-ai/Ornith-1.0-35B-A3B` is **gated or deleted** (HF returns an auth error). Only Ornith-1.5 is public, and it ships no IQ2_M.
+>
+> No platform policy change was involved; this is ordinary repository churn. Recorded because a reader cannot otherwise tell the artifact is unobtainable.
+
+
 Logged 2026-07-29 **before any scenario was run**. Scored after.
 
 Prior results, same card, same 64k f16 stack, temp 0, K=1:

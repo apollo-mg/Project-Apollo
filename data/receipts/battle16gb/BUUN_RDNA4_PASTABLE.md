@@ -1,5 +1,14 @@
 # Discord pastable for buun — RDNA4: a turbo4 nondeterminism/NaN bug, and where the 6× isn't
 
+> ### ⚠ Artifact availability
+>
+> **Checked 2026-09-15: a model this receipt depends on can no longer be obtained as the build measured here.** The result stands; it is no longer independently reproducible from upstream. Local copies and fingerprints: `data/receipts/MODEL_PROVENANCE.json`, audit: `data/receipts/RESULT_MODEL_AVAILABILITY_AUDIT.md`.
+>
+> - **`Qwopus3.5-27B-v3-Q2_K.gguf`** — measured at **10,711,660,416 bytes**. `Jackrong/Qwopus3.5-27B-v3-GGUF` **no longer ships a Q2_K** — its smallest quant is now Q3_K_M.
+>
+> No platform policy change was involved; this is ordinary repository churn. Recorded because a reader cannot otherwise tell the artifact is unobtainable.
+
+
 Draft for Mark to review and send. Numbers from `buun_isolate/results.tsv`,
 `buun_isolate/regression.log`, `buun_isolate/nanrate/nanrate.log`, and the 2026-07-23
 `RDNA4_AB_FINDINGS.md`.

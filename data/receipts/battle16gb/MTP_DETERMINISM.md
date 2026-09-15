@@ -1,5 +1,14 @@
 # MTP speculative decoding on Qwen3.6-35B-A3B: +25 % decode, and it breaks determinism
 
+> ### ⚠ Artifact availability
+>
+> **Checked 2026-09-15: a model this receipt depends on can no longer be obtained as the build measured here.** The result stands; it is no longer independently reproducible from upstream. Local copies and fingerprints: `data/receipts/MODEL_PROVENANCE.json`, audit: `data/receipts/RESULT_MODEL_AVAILABILITY_AUDIT.md`.
+>
+> - **`Qwen3.6-35B-A3B-UD-IQ2_M.gguf`** — measured at **11,882,969,376 bytes**. `unsloth/Qwen3.6-35B-A3B-GGUF` still lists this exact filename, but at **11,522,702,304 bytes** — the repo re-quantized and overwrote in place. Downloading it today yields a *different build* under the same name and label.
+>
+> No platform policy change was involved; this is ordinary repository churn. Recorded because a reader cannot otherwise tell the artifact is unobtainable.
+
+
 RX 9070 XT 16 GB (gfx1201), 10.0.0.5. Engine `llama_cpp_turboquant` (TheTom). Date 2026-07-29.
 Model `Qwen3.6-35B-A3B-UD-IQ2_M` (11.07 GiB, ~2.5 bpw, Unsloth imatrix).
 Serving identical across arms: `-c 65536`, f16 KV, `-b 1024 -ub 512`, `-cb -fa on -np 1
