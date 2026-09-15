@@ -68,6 +68,23 @@ STAGE3B = [("S3-FIT2", IQ4, ["-fit", "on"])]
 NCMOE_RUNGS = (2, 4, 8, 16, 32, 48)
 STAGE4 = [(f"L-{n:02d}", IQ4, ["-ngl", "99", "-ncmoe", str(n), "--numa", "distribute", "-lv", "4"])
           for n in NCMOE_RUNGS]
+# Stage 5 (PREREG_FLASHNEXT_BREAK.md): Stage 4 bracketed the marginal-cost break with wide steps
+# (8 -> 16 -> 32), so "the break is at 16" is a claim about an interval. Dense rungs resolve it, and every
+# arm now captures per-node placement -- the measurement Stage 4 named as the reason its NUMA explanation
+# stayed a hypothesis. Same BIN as Stage 4 (c7f114d34), so 8/16/32 are a replication check, not a bridge.
+BASE5 = ["-ngl", "99", "--numa", "distribute", "-lv", "4"]
+# 5a: the load-mode gate. mmap leaves spilled expert bytes as file-backed pages placed by first touch --
+# which is what --numa distribute manipulates -- while dio reads into buffers placed by the allocating
+# thread. Taking dio for its load-time win while measuring placement would confound P-B4 with the mode.
+STAGE5A = [("M-mmap", IQ4, ["-ngl", "99", "-ncmoe", "16", "--numa", "distribute", "-lv", "4", "-lm", "mmap"]),
+           ("M-dio", IQ4, ["-ngl", "99", "-ncmoe", "16", "--numa", "distribute", "-lv", "4", "-lm", "dio"])]
+BREAK_RUNGS = (8, 10, 12, 14, 16, 18, 20, 24, 28, 32)
+STAGE5B = [(f"D-{n:02d}", IQ4, ["-ncmoe", str(n)] + BASE5) for n in BREAK_RUNGS]
+# 5c: the intervention. External `numactl --interleave=all` paired with `--numa numactl` (the mode that
+# defers to the external CPU map). NOT --interleave wrapped around --numa distribute, which would have two
+# placement strategies fighting. Controls are the same rungs in 5b.
+STAGE5C = [(f"I-{n:02d}", IQ4, ["-ncmoe", str(n), "-ngl", "99", "--numa", "numactl", "-lv", "4"],
+            ["numactl", "--interleave=all"]) for n in (8, 24)]
 
 
 class Abort(Exception):
@@ -252,6 +269,42 @@ class Peak(threading.Thread):
             self.halt.wait(2)
 
 
+def numa_placement(pid):
+    """Per-node resident pages for a live process, from /proc/<pid>/numa_maps.
+
+    Stage 4 could not test its own NUMA explanation because nothing recorded placement. This is that
+    measurement. Reported three ways because the load mode decides which one holds the expert bytes:
+    under mmap they are file-backed pages, under dio they are anonymous buffers. The prereg's imbalance
+    I is therefore defined on TOTAL pages, which is the only class-agnostic figure; anon and file are
+    recorded alongside so a shift between classes is visible rather than silently changing what I means.
+    """
+    tot, anon, filed = {}, {}, {}
+    try:
+        with open(f"/proc/{pid}/numa_maps") as f:
+            for line in f:
+                parts = line.split()
+                bucket = filed if any(p.startswith("file=") for p in parts) else anon
+                for p in parts:
+                    m = re.fullmatch(r"N(\d+)=(\d+)", p)
+                    if m:
+                        n, pages = int(m.group(1)), int(m.group(2))
+                        tot[n] = tot.get(n, 0) + pages
+                        bucket[n] = bucket.get(n, 0) + pages
+    except (FileNotFoundError, ProcessLookupError, PermissionError) as e:
+        return {"error": f"{type(e).__name__}: {e}"}
+    if not tot:
+        return {"error": "numa_maps yielded no N<node>= entries"}
+    mib = lambda d: {str(k): round(v * 4096 / 2**20, 1) for k, v in sorted(d.items())}
+    hi, lo = max(tot.values()), min(tot.values())
+    return {"total_mib": mib(tot), "anon_mib": mib(anon), "file_mib": mib(filed),
+            "nodes": len(tot), "imbalance": round((hi - lo) / (hi + lo), 4) if (hi + lo) else None}
+
+
+def numastat(pid):
+    p = subprocess.run(["numastat", "-p", str(pid)], capture_output=True, text=True)
+    return p.stdout.strip()[-1500:] if p.returncode == 0 else f"rc={p.returncode}"
+
+
 def parse_log(text):
     bufs = {}
     for m in re.finditer(r"(\S+) model buffer size\s*=\s*([\d.]+) MiB", text):
@@ -263,11 +316,11 @@ def parse_log(text):
             "n_threads": int(thr.group(1)) if thr else None}
 
 
-def run_arm(label, stem, flags):
+def run_arm(label, stem, flags, pre=None):
     caches = drop_caches()
     logpath = os.path.join(OUT, f"server_{label}.log")
-    cmd = [BIN, "-m", model_path(stem), *common_for(flags), *flags]
-    log(f"=== {label}: {' '.join(flags)}  (page cache dropped: {caches})")
+    cmd = list(pre or []) + [BIN, "-m", model_path(stem), *common_for(flags), *flags]
+    log(f"=== {label}: {' '.join(list(pre or []) + flags)}  (page cache dropped: {caches})")
     t0 = time.time()
     lf = open(logpath, "w")
     p = subprocess.Popen(cmd, stdout=lf, stderr=subprocess.STDOUT, env=ENV)
@@ -291,8 +344,23 @@ def run_arm(label, stem, flags):
                             f"(empty = the guard found nothing to inspect despite -lv 4)")
         elif [t for t in info["kv_types"] if t != "f16"]:
             raise Abort(f"{label}: KV cache types {info['kv_types']} are not all f16")
+        # numactl execs in place, so p.pid is llama-server itself -- but verify rather than assume,
+        # because reading another process's numa_maps would silently produce plausible wrong numbers.
+        try:
+            comm = open(f"/proc/{p.pid}/comm").read().strip()
+        except OSError:
+            comm = "?"
+        if comm != "llama-server":
+            raise Abort(f"{label}: pid {p.pid} is {comm!r}, not llama-server -- placement would be wrong")
+        place = numa_placement(p.pid)
         emit({"stage": "load", "ok": True, "load_s": round(time.time() - t0, 1), **base,
-              "gpu_after_load": gpu_mib(), "cmd": cmd})
+              "gpu_after_load": gpu_mib(), "cmd": cmd, "pre": list(pre or []), "comm": comm,
+              "placement_after_load": place, "numastat_after_load": numastat(p.pid),
+              # Functional evidence, not a log string: -lm dio is accepted by builds that do not document
+              # it, so "the flag parsed" proves nothing. The scorer gates on load_s against the mmap arm.
+              "dio_requested": "dio" in flags,
+              "dio_log_hits": len(re.findall(r"(?i)direct\s*-?\s*io", text))})
+        log(f"{label}: placement after load {place.get('total_mib')} imbalance {place.get('imbalance')}")
 
         r = http("/v1/chat/completions", {
             "messages": [{"role": "user", "content": "What is 17 × 23? Reply with only the number."}],
@@ -325,7 +393,10 @@ def run_arm(label, stem, flags):
                                 "the prereg runs every arm without it")
                 log(f"{label} len={n} rep={rep}: pp {t.get('prompt_per_second') or 0:.1f}  "
                     f"tg {t.get('predicted_per_second') or 0:.2f} tok/s")
-        emit({"stage": "arm_done", "arm": label, "peak_mib": peak.peak, "wall_s": round(time.time() - t0, 1)})
+        # Placement is re-read after the timed requests: pages move as they are touched, and the figure
+        # that matters for decode is the one that held while decode was running, not at load.
+        emit({"stage": "arm_done", "arm": label, "peak_mib": peak.peak, "wall_s": round(time.time() - t0, 1),
+              "placement_after_run": numa_placement(p.pid), "numastat_after_run": numastat(p.pid)})
         return True
     finally:
         peak.halt.set()
@@ -345,7 +416,9 @@ def run_arm(label, stem, flags):
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    stage = ("3b" if "--stage3b" in sys.argv else 4 if "--stage4" in sys.argv
+    stage = ("5a" if "--stage5a" in sys.argv else "5b" if "--stage5b" in sys.argv
+             else "5c" if "--stage5c" in sys.argv
+             else "3b" if "--stage3b" in sys.argv else 4 if "--stage4" in sys.argv
              else 3 if "--stage3" in sys.argv else 2 if "--stage2" in sys.argv else 1)
     try:
         ver, clk = gates()
@@ -362,16 +435,24 @@ def main():
             queue = list(STAGE3B)
         elif stage == 4:
             queue = list(STAGE4)
+        elif stage == "5a":
+            queue = list(STAGE5A)
+        elif stage == "5b":
+            queue = list(STAGE5B)
+        elif stage == "5c":
+            queue = list(STAGE5C)
         else:
             bandwidth()
             queue = list(ARMS)
         done = {r["arm"] for r in rows() if r.get("stage") == "arm_done"}
         while queue:
-            label, stem, flags = queue.pop(0)
+            item = queue.pop(0)
+            label, stem, flags = item[0], item[1], item[2]
+            pre = item[3] if len(item) > 3 else None   # Stage 5c arms carry an external numactl prefix
             if label in done:
                 log(f"{label} already complete -- skipping")
                 continue
-            loaded = run_arm(label, stem, flags)
+            loaded = run_arm(label, stem, flags, pre)
             if not loaded and label == "F-Q2":
                 log("F-Q2 did not load -- verifying and running the declared fallback F-IQ1")
                 verify([IQ1], {})

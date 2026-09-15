@@ -88,7 +88,7 @@ not running.
 | **P-B1** | the two regimes reproduce: mean marginal ms/layer over 8→16 ≥ **1.4×** the mean over 20→32 | ratio < 1.4 |
 | **P-B2** | the break sits where Stage 4 put it: the largest single step-to-step drop in marginal ms/layer has its midpoint in **[14, 24]** | midpoint outside |
 | **P-B3** | the transition is a **step, not a ramp**: ≥ 50% of the total shallow→deep marginal decline occurs across one step | decline spread over ≥ 4 consecutive steps each carrying < 25% |
-| **P-B4** | placement tracks depth: `I = |anon₀ − anon₁| / (anon₀ + anon₁)` falls with spill depth, `I(8) − I(32) ≥ 0.10` | difference < 0.10 |
+| **P-B4** | placement tracks depth: `I = |T₀ − T₁| / (T₀ + T₁)` over **total** resident pages falls with spill depth, `I(8) − I(32) ≥ 0.10` | difference < 0.10 |
 | **P-B5** | MiB freed per spilled layer constant within ±15% (replicates Stage 4's P-L0, which held at 3.1%) | any rung outside |
 | **P-B6** | **the actionable one.** If P-B4 confirms, interleave at rung 8 improves decode ≥ 5% vs the distribute control | < 5% improvement |
 | **P-B7** | **replication** (replaces P-BRIDGE, Amendment 1): rungs 8 / 16 / 32 reproduce Stage 4's 17.60 / 13.57 / 10.75 tok/s within **±5%** each, same binary one day apart | any of the three outside ±5% |
@@ -108,6 +108,22 @@ campaign has hit repeatedly, most recently when `offloaded 49/49 layers` proved 
 distinguish a sharp step at 16 from a smooth ramp across the whole interval. **P-B3 is the question the
 dense sampling exists to answer**, and a ramp would be the more interesting outcome — it would mean there
 is no single "correct" operating point, only a gradient.
+
+> ### Amendment 2 — 2026-09-14, before any rung of this stage has produced a number
+>
+> **P-B4's imbalance `I` is defined on TOTAL resident pages, not anonymous pages** (the original text said
+> anon). Writing the parser exposed the problem: under `mmap` the spilled expert bytes are **file-backed**
+> pages and under `dio` they are **anonymous** buffers, so an anon-only `I` would measure a different
+> quantity in each arm — and would read as near-zero under mmap for reasons that have nothing to do with
+> placement. Total is the only class-agnostic figure. **Anon and file are recorded separately alongside
+> it**, so a shift between classes stays visible instead of silently changing what `I` means.
+>
+> This is the same confound P-B0 gates, showing up a second time in the metric's own definition.
+>
+> **Also recorded:** `-lm dio` is verified **functionally, not by log string.** The flag is accepted by
+> builds that do not document it, so "it parsed" proves nothing ([[readiness-probes-lie]]). The evidence
+> that DirectIO engaged is `M-dio`'s **load time against `M-mmap`'s** — a probe that cannot succeed unless
+> the thing happened. Log hits for `direct-io` are counted and recorded, but they do not gate anything.
 
 ## Scoring
 
