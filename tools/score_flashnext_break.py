@@ -40,10 +40,22 @@ def load(path):
     return runs, done, req
 
 
-def decode(req, arm, length=1800):
-    """Median decode tok/s at one context length -- median over reps, not mean: one slow rep is a stall."""
+REPS_EXPECTED = 3
+
+
+def decode(req, arm, length=1800, partial_ok=False):
+    """Median decode tok/s at one context length, or None if the arm has not finished that length.
+
+    Refuses to return a value from fewer than REPS_EXPECTED reps. Rep 0 is systematically 4-10% slow --
+    the 64-token warmup never faults in the spilled expert pages -- so a partial arm's median is biased
+    low and comparing it against a complete arm invents a deficit. That mistake was made four separate
+    times on 2026-09-14 by a reader who knew the rule each time, so the guard is mechanical rather than
+    a matter of remembering. Pass partial_ok=True only to display progress, never to compare arms.
+    """
     v = [r["tg_tps"] for r in req.get(arm, []) if r.get("len") == length and r.get("tg_tps")]
-    return statistics.median(v) if v else None
+    if not v or (len(v) < REPS_EXPECTED and not partial_ok):
+        return None
+    return statistics.median(v)
 
 
 def peak_sum(runs, arm):
