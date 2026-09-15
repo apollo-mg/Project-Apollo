@@ -61,7 +61,19 @@ case "${1:-status}" in
     fi
     echo "graceful shutdown (measured ~16s)..."
     ssh -o ConnectTimeout=5 "$HOST" 'sudo systemctl poweroff' >/dev/null 2>&1
-    for _ in $(seq 1 45); do [ "$(pwr)" = off ] && { echo "off. standby draw: $(watts)"; exit 0; }; sleep 2; done
+    # Settle before reading watts: the PSU sensor lags the chassis state by ~20s, so reading it the
+    # instant the chassis reports off returns the last ON figure. Measured 2026-09-15: 237 W
+    # immediately after poweroff, 0 W twenty seconds later. Reporting the stale value made standby
+    # look worse than running idle (218 W) and would have justified a hardware hunt for nothing.
+    for _ in $(seq 1 45); do
+      if [ "$(pwr)" = off ]; then
+        echo "off. (settling 20s before reading standby draw -- the PSU sensor lags)"
+        sleep 20
+        echo "standby draw: $(watts)"
+        exit 0
+      fi
+      sleep 2
+    done
     echo "still on after 90s -- check manually"; exit 1 ;;
   *) echo "usage: $0 {on|off [--force]|status}"; exit 2 ;;
 esac
