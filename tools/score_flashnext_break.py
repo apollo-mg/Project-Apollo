@@ -11,7 +11,14 @@ nearly lost to a linear fit returning R² = 0.9907 straight through a real struc
 """
 import json, math, statistics, sys
 
-STAGE4 = {8: 17.60, 16: 13.57, 32: 10.75}   # the rungs Stage 4 shared with this ladder, same binary
+# The rungs Stage 4 shares with this ladder, same binary, as {ctx: tok/s} from
+# RESULT_FLASHNEXT_SPILL_LADDER.md's "decode 500 / 1800 / 3600" column. Keyed by length deliberately:
+# the first committed version of this file held only the ctx-500 value per rung and compared it against
+# decode() at its 1800 default, which would have scored a LENGTH MISMATCH as a replication failure.
+# Compare like to like at every length, and report the worst deviation.
+STAGE4 = {8:  {500: 17.60, 1800: 17.39, 3600: 15.84},
+          16: {500: 13.57, 1800: 13.60, 3600: 12.84},
+          32: {500: 10.75, 1800: 10.72, 3600: 10.29}}
 
 
 def load(path):
@@ -84,13 +91,17 @@ def main(path):
 
     # P-B7 first: everything else is uninterpretable if the replication fails.
     rep, worst = [], 0.0
-    for n, want in STAGE4.items():
+    for n, per_len in sorted(STAGE4.items()):
         a = f"D-{n:02d}"
-        got = decode(req, a)
-        if got:
-            dev = abs(got - want) / want
-            worst = max(worst, dev)
-            rep.append(f"{a} {got:.2f} vs Stage 4 {want:.2f} ({dev * 100:+.1f}%)")
+        cells = []
+        for L, want in sorted(per_len.items()):
+            got = decode(req, a, L)
+            if got:
+                dev = (got - want) / want
+                worst = max(worst, abs(dev))
+                cells.append(f"@{L} {got:.2f}/{want:.2f} ({dev * 100:+.1f}%)")
+        if cells:
+            rep.append(f"{a} " + " ".join(cells))
     if rep:
         ok7 = worst <= 0.05
         print(f"- **P-B7 (replication, read this first)**: {verdict(ok7)} — " + "; ".join(rep) +
