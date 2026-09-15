@@ -201,6 +201,28 @@ def main(path):
                   f"**{gain * 100:+.1f}%**, placement moved {pc:.4f} → {pi:.4f} — descriptive; "
                   f"a large gain here too would mean the effect is not specific to shallow spill")
 
+    # P-B9 (Amendment 5): the regimes are a capacity effect. Node 0 is 31,772 MiB; host residency is
+    # ~1150 MiB per spilled layer, so a rung above ~25 cannot fit on one node and must straddle both.
+    i24, i28 = imbalance(runs, "D-24"), imbalance(runs, "D-28")
+    if i24 is not None and i28 is not None:
+        ok9 = i24 > 0.35 and i28 < 0.35
+        print(f"- **P-B9 (capacity boundary)**: {verdict(ok9)} — I(24) {i24:.3f} (want > 0.35), "
+              f"I(28) {i28:.3f} (want < 0.35)")
+        if ok9:
+            print("    - imbalance collapses where host residency stops fitting in one node. Stage 4's "
+                  "'spill is cheaper in bulk' is then a placement artifact, not a property of spill, "
+                  "and numactl --membind=0 should recover most of the shallow-rung penalty")
+    else:
+        print("- **P-B9**: NOT TESTABLE (need rungs 24 and 28)")
+    print("\n  host residency by rung (fit: ~1150 MiB/layer + 1800):")
+    for n, a in rungs:
+        pl = (runs.get(a) or {}).get("placement_after_run") or {}
+        tot = pl.get("total_mib") or {}
+        if tot:
+            t = sum(tot.values())
+            fits = "fits one node" if t < 30000 else "**exceeds one node**"
+            print(f"    - rung {n}: {t:,.0f} MiB, I={pl.get('imbalance')}, {fits}")
+
     # P-B8: clock elasticity vs spill depth (Amendment 3). 1189 MHz arms are D-/M-; 1063 MHz are C-,
     # plus M-mmap which supplies rung 16 at the low clock. Sensitivity = fractional decode lost to the
     # 10.6% clock cut. Deep spill is host-bound, so it should care less about GPU MHz.

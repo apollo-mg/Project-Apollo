@@ -215,6 +215,51 @@ is no single "correct" operating point, only a gradient.
 > inert on sm_60. **Nothing in this stack places memory.** First touch decides, and thread scheduling
 > is not reproducible — so the lottery is the expected behaviour, not an anomaly.
 
+> ### Amendment 5 — 2026-09-14 21:14. **New prediction P-B9, committed before rungs 18/20/24/28 run.**
+>
+> Written from the first three rungs (8, 16, 32). **Rungs 10, 12, 14, 18, 20, 24 and 28 have not
+> started**, and P-B9 is decided entirely by 24 and 28, so this is a genuine forward prediction.
+>
+> **Observation.** Host residency and placement across the three rungs measured so far:
+>
+> | rung | host MiB | node-0 share | `I` |
+> |---:|---:|---:|---:|
+> | 8 | 11,001 | 21% | 0.588 |
+> | 16 | 20,077 | 83% | 0.654 |
+> | 32 | **38,711** | 44% | **0.122** |
+>
+> **Host residency is ~1,150 MiB per spilled layer** (9,076 / 8 = 1,134.5; 18,634 / 16 = 1,164.6 —
+> consistent to 2.6%), so `host_mib(n) ≈ 1150·n + 1800`.
+>
+> **Hypothesis H4 — the regimes are a CAPACITY effect, not a bandwidth or scheduling one.** Node 0 holds
+> **31,772 MiB**, node 1 **30,197 MiB**. A rung whose host residency fits inside one node *can* land
+> almost entirely on one node, and with nothing in ggml placing memory
+> ([[numa-distribute-is-threads-only]]) it often does — a lottery that is wrong more often than right,
+> since all consumers sit on node 0 below rung ~24. **A rung that exceeds one node's capacity has no
+> choice but to straddle both**, and average locality improves by force.
+>
+> By the fit, residency passes ~30,000 MiB usable (node total minus OS and page cache) at **rung ≈ 25**.
+> **Stage 4 put its marginal-cost break between 16 and 32.**
+>
+> | id | prediction | falsified if |
+> |---|---|---|
+> | **P-B9** | imbalance collapses at the capacity boundary, not gradually: **`I` > 0.35 at rung 24 and `I` < 0.35 at rung 28** | either rung falls the other side of 0.35 |
+>
+> Predicted residency: rung 18 ≈ 22,500 · rung 20 ≈ 24,800 · **rung 24 ≈ 29,400 (still fits)** ·
+> **rung 28 ≈ 34,000 (cannot fit)**.
+>
+> **If P-B9 confirms, Stage 4's headline needs rewriting.** "Spill gets 3.3× cheaper per byte with
+> depth" would become *"below ~25 layers the allocator can put everything on the wrong socket and
+> usually does; above it, it cannot."* That reframes the result from a property of expert spill into a
+> **fixable placement artifact** — and predicts `numactl --membind=0` recovers most of the shallow-rung
+> penalty, which no arm in this stage currently tests.
+>
+> **Relationship to P-B4, stated plainly:** the demotion in Amendment 4 stands on method — a ≥ 0.10 band
+> was indefensible against 0.116 run-to-run noise. But the *observed* spread is **0.466** (I(8) 0.588 vs
+> I(32) 0.122), four times that noise, so the underlying claim that placement varies with depth looks
+> true and was simply predicted with a band too tight to mean anything. **The band was wrong, not the
+> idea** — and P-B9 now says *why* it varies, which P-B4 never did.
+
 ## Scoring
 
 `tools/score_flashnext_break.py`, committed before the first rung produces a number. Marginal ms/layer is
