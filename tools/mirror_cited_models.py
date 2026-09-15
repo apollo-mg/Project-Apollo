@@ -23,7 +23,7 @@ Two rules the audit earned the hard way:
 Direction is chosen per file: a model whose only copy is on the NAS is mirrored to TG_2TB, and
 everything else is mirrored to the NAS. The point is two volumes, not a particular one.
 """
-import hashlib, json, os, shutil, subprocess, sys
+import hashlib, json, os, re, shutil, subprocess, sys
 
 REPO = "/mnt/TG_2TB/Projects/Apollo"
 NAS = "/mnt/HDD/apollo-mirror"
@@ -31,6 +31,13 @@ LOCAL = "/mnt/TG_2TB/AI/Models/_mirror"
 STATE = os.path.join(REPO, "data/receipts/MODEL_MIRROR.json")
 CHUNK = 16 * 1024 * 1024
 MIN_CITATIONS = 13
+
+# A second selection rule, added 2026-09-15 at Mark's request. Receipt citations protect what the
+# published work depends on; this protects what is hardest to RE-ACQUIRE. Decensored/abliterated
+# derivatives are the category most exposed to a repository going away, and the audit has a live
+# example: ornith-ai/Ornith-1.0-35B-A3B now returns an auth error, so its IQ2_M is simply gone.
+# These are community fine-tunes, often from single uploaders, frequently not mirrored anywhere.
+KEEP_PATTERN = re.compile(r"abliterat|heretic|uncen|unheretic|decensor", re.I)
 
 
 def fingerprint(path):
@@ -69,9 +76,23 @@ def volume(p):
     return "home"
 
 
-def index():
+INDEX_CACHE = "/tmp/apollo_model_index.tsv"
+
+
+def index(max_age_s=3600):
     """Every model file on locally mounted storage. Nodes are surveyed separately -- a copy that
-    exists only on a compute node does NOT count as redundancy: nodes get wiped and reinstalled."""
+    exists only on a compute node does NOT count as redundancy: nodes get wiped and reinstalled.
+
+    Cached: walking /mnt/HDD over CIFS takes minutes and every subcommand needs the same index.
+    Delete INDEX_CACHE or pass max_age_s=0 to force a rescan after moving files around.
+    """
+    import time
+    if max_age_s and os.path.exists(INDEX_CACHE) and time.time() - os.path.getmtime(INDEX_CACHE) < max_age_s:
+        found = {}
+        for line in open(INDEX_CACHE):
+            sz, p = line.rstrip("\n").split("\t", 1)
+            found.setdefault(p.rsplit("/", 1)[-1], []).append((int(sz), p))
+        return found
     found = {}
     roots = ["/mnt/TG_2TB/AI/Models", "/home/mark", "/run/media/mark/Games 2TB", "/mnt/HDD"]
     for r in roots:
@@ -87,14 +108,23 @@ def index():
                         found.setdefault(fn, []).append((os.path.getsize(p), p))
                     except OSError:
                         pass
+    with open(INDEX_CACHE, "w") as f:
+        for fn, lst in found.items():
+            for sz, p in lst:
+                f.write(f"{sz}\t{p}\n")
     return found
 
 
 def plan():
     cites, have = citations(), index()
     jobs = []
-    for name, n in sorted(cites.items(), key=lambda x: -x[1]):
-        if n < MIN_CITATIONS or name not in have:
+    candidates = {n: c for n, c in cites.items() if c >= MIN_CITATIONS}
+    # plus every single-copy file matching KEEP_PATTERN, whether or not a receipt cites it
+    for name in have:
+        if KEEP_PATTERN.search(name):
+            candidates.setdefault(name, 0)
+    for name, n in sorted(candidates.items(), key=lambda x: -x[1]):
+        if name not in have:
             continue
         copies = have[name]
         vols = {volume(p) for _, p in copies}
