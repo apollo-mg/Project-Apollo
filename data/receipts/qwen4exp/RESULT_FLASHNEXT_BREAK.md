@@ -196,6 +196,34 @@ pinning genuinely fixes it byte-exactly, and pinning genuinely does not help thr
 separate true facts, and none of them is the explanation for the marginal chaos. The explanation is the
 noise floor.
 
+## Stage 5d — the clock arm. P-B8 falsified with the sign inverted, and the night's cleanest signal
+
+Rungs 8 and 32 at **1063 MHz / 150 W** against the 5b arms at **1189 MHz / 250 W** (a 10.6% clock cut
+and a 40% power cut). Rung 16 at the low clock comes from `M-mmap`. Run at Mark's request for the
+efficiency chart.
+
+| rung | 500 | 1800 | 3600 | mean loss | elasticity |
+|---:|---:|---:|---:|---:|---:|
+| 8 | −0.7% | +0.1% | −0.3% | **−0.3%** | **−0.03** |
+| 16 | +7.9% | +7.4% | +7.5% | **+7.6%** | **0.72** |
+| 32 | +9.6% | +10.1% | +9.4% | **+9.7%** | **0.92** |
+
+**P-B8 FALSIFIED.** It predicted elasticity would *fall* with spill depth by ≥ 3 points, reasoning that
+deep spill is host-bound and should care less about GPU clock. **Elasticity rises monotonically from
+zero to nearly proportional** — a 10.0 point move in the opposite direction.
+
+**This is the only result tonight comfortably clear of the noise floor.** 7.6% and 9.7% against ~3%,
+and consistent to within 0.7 points across three context lengths. Rung 8's zero is equally consistent
+(−0.7 / +0.1 / −0.3). Everything else this stage measured was 1–2× the floor; this is 2–3×.
+
+**The practical finding: at `-ncmoe 8`, the 250 W → 150 W cut costs nothing measurable.** Four cards at
+150 W instead of 250 is **400 W saved** for **1.67× the tokens per watt**, which is the fleet's own boot
+default. At rung 32 the same cut costs ~10% — still a perf-per-watt gain, no longer free.
+
+**No mechanism is claimed.** The intuitive account (more spill → more CPU work → GPU clock matters less)
+predicts the opposite of the measurement, so how the spilled and resident paths overlap is not what this
+stage assumed. That deserves its own experiment, not a paragraph of speculation.
+
 ## What to do next
 
 **Superseded by 5c.** The list below was written before the pinning arms ran and its first item is

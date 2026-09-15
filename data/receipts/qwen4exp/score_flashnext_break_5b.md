@@ -56,10 +56,10 @@
 
 ## P-B8 — clock elasticity by spill depth (1189 MHz / 250 W vs 1063 MHz / 150 W)
 
-- rung 8: NOT TESTABLE (missing C-08)
+- rung **8**: 16.61 @1189 vs 16.60 @1063 — **0.1%** lost to a 10.6% clock cut (elasticity 0.00)
 - rung **16**: 13.58 @1189 vs 12.58 @1063 — **7.4%** lost to a 10.6% clock cut (elasticity 0.70)
-- rung 32: NOT TESTABLE (missing C-32)
-- **P-B8**: NOT TESTABLE (need both rungs 8 and 32 at both clocks)
+- rung **32**: 10.87 @1189 vs 9.77 @1063 — **10.1%** lost to a 10.6% clock cut (elasticity 0.95)
+- **P-B8**: FALSIFIED — sensitivity 0.1% at rung 8 vs 10.1% at rung 32, **-10.0 points** (band ≥ 3.0)
 
 - **P-B0 (load-mode gate)**: FALSIFIED — load 606.7s → 155.3s; I 0.7564 vs 0.9963 (Δ 0.2399, band ≤ 0.05); decode 12.58 vs 12.12 (-3.6%, band ±3%)
     - **dio engaged: True** — functional evidence (load time), not a log string. log hits for 'direct-io': 0
