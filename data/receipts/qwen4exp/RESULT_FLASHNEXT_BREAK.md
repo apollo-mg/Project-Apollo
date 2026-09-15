@@ -1,4 +1,12 @@
-# Result — the expert-spill curve cannot be measured on this box until memory is pinned
+# Result — the spill curve has a ~3% noise floor, and dense sampling is the wrong instrument for it
+
+> **Note on this document's own history.** Its original title was *"the expert-spill curve cannot be
+> measured on this box until memory is pinned."* **Stage 5c falsified that**: pinning works perfectly
+> (placement reproducible to 0.2 MiB) and makes throughput **worse** by 5–6%, while decode still varies
+> up to 3.7% run-to-run under byte-identical placement. The placement narrative in the middle sections
+> was written before 5c ran and is **over-attributed** — it is kept, with this warning, because the
+> reasoning is auditable and the corrections are the point. **Read the Stage 5c section for what the
+> evidence actually supports.**
 
 **Run 2026-09-14, 20:07–23:09, `.194`** (4× P100 sm_60, 2× Xeon E5-2650v3, 2 NUMA nodes, DDR4-2133).
 Pre-registered in `PREREG_FLASHNEXT_BREAK.md` with five amendments, every one dated and committed before
@@ -11,8 +19,13 @@ rungs are a replication check, not a bridge. Driver `flashnext_residency.py --st
 
 Stage 5 set out to locate a marginal-cost break that Stage 4 had bracketed between `-ncmoe` 8 and 32.
 **It could not, and the reason is the finding:** adjacent-rung marginals on this ladder run from
-**−1.109 to +2.795 ms per spilled layer**, a range that includes a physically impossible value, because
-**nothing in the stack places memory and first touch is not reproducible.**
+**−1.109 to +2.795 ms per spilled layer**, a range that includes two physically impossible values.
+
+**The cause is a ~2–4% run-to-run noise floor, measured in 5c under byte-identical placement** — not
+placement, which was this stage's working hypothesis for three hours and is over-attributed throughout
+the middle of this document. Dense rungs shrink the signal per step while the noise floor stays fixed:
+Stage 4's 16→32 step moves decode 21% (SNR ≈ 7), this stage's 8→10 step moves it 4.6% (SNR ≈ 1.5).
+**Finer sampling is what broke the measurement.**
 
 | step | ms / layer | implied GB/s |
 |---|---:|---:|
@@ -28,7 +41,9 @@ Stage 5 set out to locate a marginal-cost break that Stage 4 had bracketed betwe
 
 **166 GB/s is impossible** on DDR4-2133 (measured 22.68 node-local, 45.1 aggregate first-touch).
 **A negative marginal is impossible full stop** — spilling four more layers cannot make decoding faster.
-Both steps coincide with a large placement shift:
+Both steps coincide with a large placement shift, which is what led this stage to blame placement —
+but 5c showed two runs at **identical** placement differ by up to 3.7%, which is enough to produce both
+artifacts on its own. The placement coincidence is real and is not sufficient evidence of causation:
 
 - **10 → 12**: D-12 landed at `I = 0.028`, the most balanced rung measured. Better locality paid for two
   extra spilled layers almost exactly.
