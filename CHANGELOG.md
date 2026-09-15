@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Three published receipts lost their artifacts — to ordinary repo churn, not policy (Claude, 2026-09-15):**
+  Audit in `data/receipts/RESULT_MODEL_AVAILABILITY_AUDIT.md`, triggered by Nvidia's agreement to acquire
+  Hugging Face and Mark's concern about model availability. **The platform risk turned out not to be the
+  story.**
+  - **`Qwen3.6-35B-A3B-UD-IQ2_M.gguf`** — cited by 6+ receipts including `MTP_DETERMINISM` and
+    `MTP_CACHEPROMPT_FALSIFICATION`. `unsloth/Qwen3.6-35B-A3B-GGUF` **still lists that exact filename**,
+    at **11,522,702,304 bytes** against the **11,882,969,376** measured. Re-quantized and overwritten in
+    place. **Only the recorded byte size caught it** — a re-download would have silently substituted a
+    different build under an identical name and label.
+  - **`Qwopus3.5-27B-v3-Q2_K.gguf`** — cited by 5 receipts including the RDNA4 bundle. The quant was
+    **pruned from its repo**; smallest is now Q3_K_M.
+  - **`Ornith-1.0-35B-UD-IQ2_M.gguf`** — repo now returns an auth error. **Gated or deleted.**
+  - **12 receipts annotated** with a header note saying the artifact is unobtainable and why — additive
+    only, 9 lines each, zero deletions. The results stand; independent reproducibility from upstream
+    does not.
+  - **`MODEL_PROVENANCE.json` is stale as a locator**: of 24 entries, **1 is still at its recorded
+    path**, 16 moved, 7 gone. Its fingerprints (sha256 of first and last 16 MiB + exact size) still
+    identify correctly, so that design works — but it **records no source repo**, which is why recovery
+    required guessing repo names and querying HF by byte size.
+  - **24 of 29 heavily-cited models had exactly one copy.** `tools/mirror_cited_models.py` now mirrors
+    every receipt-cited model to a second volume, fingerprint-verified at the destination before being
+    recorded, resumable. 23 models, 349.9 GiB, running 09-15. A copy on a compute node deliberately does
+    **not** count as redundancy.
+  - Fleet inventory: NAS 1,858.7 GiB · TG_2TB 617.9 · `.194` 457.4 · `.73` 297.7 · Games 201.6 · home 50.9.
+
 - **qwen4exp Stage 5 — the spill measurement has a ~3% noise floor (Claude, 2026-09-14 20:07 → 09-15 00:35):**
   19 runs on `.194`, prereg `PREREG_FLASHNEXT_BREAK.md` with six dated amendments, result in
   `RESULT_FLASHNEXT_BREAK.md`. **Set out to locate Stage 4's marginal-cost break with a dense ladder and
