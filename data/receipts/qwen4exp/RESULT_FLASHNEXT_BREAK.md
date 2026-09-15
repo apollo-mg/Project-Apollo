@@ -138,16 +138,70 @@ this stage would have concluded Stage 4 was irreproducible and destroyed a corre
 Anchor for the clock arm, still to run: at rung 16 a 10.6% clock cut cost **7.5%** of decode — decode is
 roughly 70% clock-elastic there, so ~30% of the time is already host-bound.
 
+## Stage 5c — pinning, and the finding that reframes everything above
+
+`numactl --membind=0` with `--numa distribute`, identical to the 5b arms in every other respect.
+
+| arm | rung | node 0 / node 1 | `I` | decode 500 / 1800 / 3600 |
+|---|---|---|---:|---:|
+| `B-16a` | 16 | 20,072.0 / **5.0** | 0.9995 | 12.89 / 12.71 / 12.26 |
+| `B-16b` | 16 | 20,071.8 / **4.9** | 0.9995 | 12.56 / 12.69 / 11.80 |
+| `D-16` (control) | 16 | 17,278 / 3,538 | 0.654 | 13.69 / 13.58 / 12.95 |
+| `B-08` | 8 | 10,975.4 / **2.0** | 0.9996 | 16.13 / 16.04 / 14.94 |
+| `D-08` (control) | 8 | 2,416 / 9,322 | 0.588 | 16.37 / 16.61 / 15.22 |
+
+**P-B10 CONFIRMED, decisively.** Two pinned runs placed memory identically to **0.2 MiB out of 20 GB**
+(20,072.0 vs 20,071.8), against an unpinned swing of 0.10 in imbalance at the same rung. Pinning works.
+
+**P-B11 FALSIFIED.** With byte-identical placement, decode still differs by **−2.59% / −0.22% / −3.74%**
+against a ±1.5% band. **Placement was never the main source of run-to-run variance.**
+
+**P-B12 FALSIFIED.** Pinning made the badly-placed rung **slower** (−1.5 to −3.4% vs D-08), not faster.
+And at rung 16, pinning cost **5–6%** against the unpinned 83/17 control. **Concentrating all pages on
+the consuming GPU's node is worse than the lottery's typical outcome** — consistent with memory-
+controller contention or a straggler effect, which this stage cannot separate.
+
+### The dense ladder was the wrong instrument, and the arithmetic says so
+
+There is **~2–4% irreducible run-to-run variance at fixed configuration and fixed placement.** Propagate
+that through a marginal:
+
+| span | decode change | signal | noise | SNR |
+|---|---|---:|---:|---:|
+| Stage 4, 16 → 32 | 13.60 → 10.72 | **21%** | ~3% | **≈ 7** |
+| Stage 5, 8 → 10 | 16.61 → 15.84 | **4.6%** | ~3% | **≈ 1.5** |
+
+**Closer rungs shrink the signal while the noise floor stays put.** The 166 GB/s step and the negative
+−1.109 ms/layer step are not placement artifacts — they are two rungs' worth of ±3% noise compounding
+across a 4% signal. **Stage 4's wide geometric rungs were the correct design; this stage's dense ladder
+was self-defeating**, and computing the SNR beforehand would have shown it in five minutes.
+
+**The placement story in the sections above is over-attributed.** Placement genuinely varies (21–83%),
+pinning genuinely fixes it byte-exactly, and pinning genuinely does not help throughput. Those are three
+separate true facts, and none of them is the explanation for the marginal chaos. The explanation is the
+noise floor.
+
 ## What to do next
 
-1. **Pin memory and re-measure.** `numactl --membind=0` with `--numa numactl` at a fixed rung, repeated,
-   against the `--numa distribute` control. Until placement is controlled, **no marginal from this ladder
-   or from Stage 4 means what it appears to mean.**
-2. **Repeat runs at one rung.** Nothing in this campaign has ever measured run-to-run variance in decode.
-   Every marginal, exchange rate and cost model published so far assumes it is small; the two rung-16
-   runs here differ by placement alone.
-3. **`PREREG_DIMM_UPGRADE.md` needs a `--membind` control** before Wednesday, or the before/after DIMM
-   comparison inherits exactly this noise and will not be interpretable.
+**Superseded by 5c.** The list below was written before the pinning arms ran and its first item is
+wrong: pinning does not rescue the measurement, it costs 5-6%. What replaces it:
+
+1. **Publish an error bar, then design to it.** The measured noise floor is **~2-4% at fixed everything**.
+   Every marginal, exchange rate and cost model in this campaign has been quoted without one.
+   `RESULT_FLASHNEXT_SPILL_LADDER.md`'s exchange-rate table needs revisiting on this basis -- its
+   MiB-per-tok/s figures divide by a *difference* in tok/s, which is exactly where a 3% noise floor does
+   the most damage.
+2. **Size steps by SNR, not by curiosity.** A step must move decode by **>= 15%** to carry a marginal
+   worth quoting against a 3% floor. That means geometric rungs, as Stage 4 used, and it means the break
+   cannot be localised more finely than one geometric step without many repeats per rung.
+3. **Repeats, not resolution.** Five runs at each of three widely spaced rungs would settle the break
+   better than ten rungs measured once. This stage spent its budget on the wrong axis.
+4. **`PREREG_DIMM_UPGRADE.md` needs a noise floor before Wednesday.** Its predictions were written
+   without one. A DIMM upgrade that moves throughput less than ~4% is **not measurable by the method
+   this campaign has been using**, regardless of channel count -- and that threshold should be in the
+   prereg before the RAM arrives, not discovered afterwards.
+5. **Fix the warmup.** Rep 0 is 4-10% slow in every arm because a 64-token completion never faults in
+   the spilled experts. A real generation as warmup would remove a known bias for free.
 
 ## Limits
 
