@@ -7,6 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **SCALE 1.7.3 on gfx1201: both atlas #1119 defects reproduced, plus a third nobody had filed (Claude, 2026-09-17):**
+  `tools/scale-probe/` (two standalone repros, SPDX Apache-2.0, needing only SCALE and a GPU) and
+  `data/receipts/scale-gfx1201/` (two preregs, two scored results). Run on the RX 9070 XT — **16 GB
+  consumer** gfx1201, against Atlas's 32 GB R9700 reference. **Neither #1119 defect is fixed in 1.7.3**,
+  so Avarok's PR #1107 workarounds stay.
+  - **`cudaMemGetInfo` charges exactly 4.00x** the requested bytes. Swept chunk size (4/11/32 MiB) to
+    show it is a clean *multiplier*, not fixed per-allocation bookkeeping: overhead scales with the
+    request (12/33/96 MiB), ratio holds, reachable fraction flat at **~24.6% of the board**. The free
+    counter pins at a **nonzero** floor (56.25 MiB) and **337 further allocations still succeed**, so a
+    `free == 0` check never fires. Full recovery on process exit ⇒ runtime accounting, not a leak.
+  - **`cuModuleGetFunction` returns `CUDA_SUCCESS`** + a non-NULL handle for an absent symbol; failure
+    defers to launch as `CUDA_ERROR_INVALID_IMAGE`. New narrowing: `cuModuleGetGlobal` *does* fail at
+    lookup, so the two module paths disagree and the function path is the odd one out.
+  - **Third defect, unrelated and unfiled: SCALE 1.7.3 does not compile against glibc 2.41+.** Its
+    force-included `builtins.h` declares `__host__ __device__ double rsqrt(double)`, colliding with the
+    C23 math functions glibc exposes whenever `_GNU_SOURCE` is set (which clang does automatically for
+    C++). Invisible on SCALE's supported distros; blocks Arch/Rawhide entirely. `-U_GNU_SOURCE` works
+    around it but then breaks `<vector>`/`<string>` via `<cwchar>`.
+  - Honest scoring: P-S4 predicted the 16 GB board would be hurt *disproportionately*; the sweep showed
+    the fraction is **board-invariant**, so the premise is falsified and the first draft's headline was
+    withdrawn. An instrument defect is also logged — the probe's own phantom-exhaustion detector gated
+    on `free < chunk` and reported a clean run on a board pinned for 337 allocations.
+
+- **DIMM upgrade campaign closed with a falsification: you cannot buy your way out of spilled decode (Claude, 2026-09-16):**
+  `tools/score_dimm.py` (mechanical scorer), driver `--dimm-before`/`--dimm-after` stages with a clock
+  gate, Amendment 4 to `PREREG_DIMM_UPGRADE.md`, and receipts `RESULT_DIMM_BEFORE.md` /
+  `RESULT_DIMM_AFTER.md`. `.194` 64 GB→128 GB, 4→8 channels, **trained at 2133** (P-D1 held).
+  Bandwidth ~1.77x (22.68→40.16 GB/s node-local, 45.14→80.28 first-touch) and **prefill tracked it
+  (+71%)**, but **decode moved +2–11%** against a preregistered ≥+26%. **P-D5 FALSIFIED: spilled
+  *decode* is latency/working-set-bound, not bandwidth-bound; spilled *prefill* is bandwidth-bound.**
+  P-D4 also falsified informatively (cross-socket rose 7.00→12.79, so that path is not purely QPI-bound).
+  Verdict: worth it for capacity and prompt-heavy work, not for spilled-decode serving.
+  **Known gap:** the raw after-run rows were never copied off `.194` (only `dimm_after.png` was); they
+  sit at `~/flashnext_res/results.jsonl` there, pending retrieval — flagged in the receipt.
+
+- **Ledger retrospective mining — cross-corpus aggregates over the dev diaries (Claude, 2026-09-16):**
+  `tools/ledger_retro.py` mines all of `data/dev_diaries/` (902 parts, 119 days) for recurring-failure
+  *rates over time* and a rough self-calibration score. Complements the per-entry semantic
+  `ledger_index`/`ledger_query` by answering what they cannot: which mistakes recur, how often, and
+  whether they are getting rarer. Pattern-based by design, per the LEDGER_SPEC principle of extracting
+  mechanically rather than asking a model to discover what mattered.
+
+- **Model MRI resurrected — MoE expert-routing capture + analysis toolset (Claude, 2026-09-16):**
+  `tools/model-mri/`: `llama-moe-capture` (buun-llama-cpp `cb_eval` hook dumps per-layer per-token
+  `ffn_moe_probs`) + Python analysis (utilization heatmap, adjacent-token locality, entropy, base-vs-
+  fine-tune routing diff). Motivated by the edge0 "prediction-is-routing" SSD-MoE-streaming paper. First
+  findings in `data/receipts/model-mri/RESULT_MOE_ROUTING_MRI.md` (exploratory, N=1 corpus): on
+  Cyber-Tiel-Coder-35B-A3B, prose routes *more* locally than code (0.45 vs 0.33 adjacent-token top-8
+  overlap, both above edge0's ~0.25 general baseline); vs its `Qwen3.6-35B-A3B` base (same UD-Q5_K_XL
+  quant), the coder fine-tune **preserves ~75–86% of base routing and concentrates its rewiring in the
+  last ~4 layers, targeted at code** — specialization is late and domain-local. Softmax-top-k family only;
+  sigmoid-group (DeepSeek/GLM) support is a noted TODO.
+
 - **Three published receipts lost their artifacts — to ordinary repo churn, not policy (Claude, 2026-09-15):**
   Audit in `data/receipts/RESULT_MODEL_AVAILABILITY_AUDIT.md`, triggered by Nvidia's agreement to acquire
   Hugging Face and Mark's concern about model availability. **The platform risk turned out not to be the
