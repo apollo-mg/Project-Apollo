@@ -1,0 +1,34 @@
+sysfs ground truth: /sys/class/drm/card1/device/mem_info_vram_used
+device       : AMD Radeon RX 9070 XT - gfx1201 (AMD) <amdgcn-amd-amdhsa--gfx1201>
+chunk        : 11 MiB   max allocs: 700
+
+--- baseline (context created, nothing else allocated) ---
+  cudaMemGetInfo total : 15.922 GiB
+  cudaMemGetInfo free  : 15.625 GiB
+  runtime implies used : 0.297 GiB
+  sysfs actually used  : 2.601 GiB   <-- ground truth
+
+  #1     requested   0.011 GiB | rt free  15.582 GiB | rt charged   0.043 GiB | sysfs used   0.011 GiB | charge 4.00x
+  #2     requested   0.021 GiB | rt free  15.539 GiB | rt charged   0.086 GiB | sysfs used   0.022 GiB | charge 4.00x
+  #3     requested   0.032 GiB | rt free  15.459 GiB | rt charged   0.166 GiB | sysfs used   0.032 GiB | charge 5.15x
+  #4     requested   0.043 GiB | rt free  15.416 GiB | rt charged   0.209 GiB | sysfs used   0.043 GiB | charge 4.86x
+  #5     requested   0.054 GiB | rt free  15.410 GiB | rt charged   0.215 GiB | sysfs used   0.054 GiB | charge 4.00x
+  #100   requested   1.074 GiB | rt free  11.328 GiB | rt charged   4.297 GiB | sysfs used   1.076 GiB | charge 4.00x
+  #200   requested   2.148 GiB | rt free   7.031 GiB | rt charged   8.594 GiB | sysfs used   2.153 GiB | charge 4.00x
+  #300   requested   3.223 GiB | rt free   2.735 GiB | rt charged  12.891 GiB | sysfs used   3.229 GiB | charge 4.00x
+  #400   requested   4.297 GiB | rt free   0.055 GiB | rt charged  15.570 GiB | sysfs used   4.305 GiB | charge 3.62x
+  #500   requested   5.371 GiB | rt free   0.055 GiB | rt charged  15.570 GiB | sysfs used   5.382 GiB | charge 2.90x
+  #600   requested   6.445 GiB | rt free   0.055 GiB | rt charged  15.570 GiB | sysfs used   6.458 GiB | charge 2.42x
+  #700   requested   7.520 GiB | rt free   0.055 GiB | rt charged  15.570 GiB | sysfs used   7.534 GiB | charge 2.07x
+
+--- releasing 700 allocations ---
+  cudaMemGetInfo free  : 7.574 GiB  (baseline was 15.625 GiB)
+  sysfs actually used  : 10.135 GiB  (baseline was 2.601 GiB)
+
+================ VERDICT ================
+allocations completed   : 700 of 700 attempted
+total actually requested: 7.520 GiB
+phantom exhaustion      : NO -- runtime free tracked real usage
+recovery after free     : 48.5% of baseline free restored (NO RECOVERY)
+csv                     : /mnt/TG_2TB/Projects/Apollo/data/receipts/scale-gfx1201/meminfo_probe.csv
+=========================================
