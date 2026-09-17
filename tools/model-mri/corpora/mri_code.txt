@@ -1,0 +1,57 @@
+import heapq
+from collections import defaultdict
+from dataclasses import dataclass, field
+
+
+@dataclass(order=True)
+class Task:
+    priority: int
+    name: str = field(compare=False)
+    deps: list = field(default_factory=list, compare=False)
+
+
+class Scheduler:
+    """A small dependency-aware task scheduler with a priority queue."""
+
+    def __init__(self):
+        self._tasks = {}
+        self._done = set()
+        self._indeg = defaultdict(int)
+
+    def add(self, task: Task) -> None:
+        if task.name in self._tasks:
+            raise ValueError(f"duplicate task: {task.name}")
+        self._tasks[task.name] = task
+        for dep in task.deps:
+            self._indeg[task.name] += 1
+
+    def _ready(self):
+        heap = []
+        for name, task in self._tasks.items():
+            if self._indeg[name] == 0:
+                heapq.heappush(heap, task)
+        return heap
+
+    def run(self):
+        heap = self._ready()
+        order = []
+        while heap:
+            task = heapq.heappop(heap)
+            order.append(task.name)
+            self._done.add(task.name)
+            for other in self._tasks.values():
+                if task.name in other.deps and other.name not in self._done:
+                    self._indeg[other.name] -= 1
+                    if self._indeg[other.name] == 0:
+                        heapq.heappush(heap, other)
+        if len(order) != len(self._tasks):
+            raise RuntimeError("cycle detected: not all tasks scheduled")
+        return order
+
+
+if __name__ == "__main__":
+    s = Scheduler()
+    s.add(Task(2, "compile", deps=["fetch"]))
+    s.add(Task(1, "fetch"))
+    s.add(Task(3, "test", deps=["compile"]))
+    print(s.run())
