@@ -174,6 +174,17 @@ Also noted from `scaleinfo`, for the upstream report: constant memory is reporte
 W4A16 prefill GEMM retiled for RDNA 4 -- an LDS ceiling below the hardware's constrains
 exactly that retiling.
 
+## Filed upstream 2026-09-17
+
+- **Spectral Compute:** https://github.com/spectral-compute/scale-validation/issues/67
+  (the 4.00x over-charge), https://github.com/spectral-compute/scale-validation/issues/69
+  (the glibc 2.41+ compile failure). Both carry `scale_bugreport_sanitized.txt` -- the raw bundle
+  was scrubbed of the hostname and the root filesystem UUID before publication.
+- **Atlas #1119:** commented with the 1.7.3 reproduction, the chunk-size sweep, the
+  in-process-vs-exit recovery refinement, and the unreconciled 22064 question.
+- **Discord:** pointer posted in the SCALE channel linking all three tickets.
+- Drafts as submitted are in `drafts/`.
+
 ## Not tested here
 
 The `cuModuleGetFunction` defect (returns `CUDA_SUCCESS` with an unusable handle for an

@@ -102,6 +102,12 @@ Identical to `RESULT_SCALE_MEMINFO.md`: RX 9070 XT / gfx1201, SCALE 1.7.3 (sha25
 `869afb15e6a947c7966cdf9408633eab6390b21ddae3755538eba3127c6871da`), ROCm 7.2.4, CachyOS
 kernel 7.2.3-1-cachyos, glibc 2.44, gcc 16.2.1.
 
+## Filed upstream 2026-09-17
+
+Spectral Compute: https://github.com/spectral-compute/scale-validation/issues/68, carrying
+`modulegetfn_probe.log` and the sanitized `scale_bugreport`. Also covered in the Atlas #1119
+comment and the Discord pointer. Draft as submitted is in `drafts/`.
+
 ## Status of #1119 after both probes
 
 | defect | 1.7.1 (Atlas, R9700 32 GB) | 1.7.3 (here, RX 9070 XT 16 GB) |
