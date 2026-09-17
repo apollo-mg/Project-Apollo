@@ -233,3 +233,67 @@ roughly 7x the noise floor. Likewise P-D2 (+54%) and P-D3 (+55%).
 measurable by this campaign's method, however many channels it populates.** P-D5 expects 27%, so the
 purchase decision is unaffected — but any secondary claim below that threshold must be reported as
 "within noise", not as a small improvement.
+
+---
+
+## Amendment 4 — 2026-09-15 12:18, **before the "before" run**. Re-anchor P-D5 so it survives re-baselining, and lock the after-run's reproduction
+
+Amendment 3 moved the *controls* to ctx 1800/3600 and to 3-run medians, but left P-D5 stated as
+`8.64 → ≥ 11 tok/s` — a bar anchored to a **single run at ctx 500** that this very baseline is about to
+replace. If tonight's fresh 3-run before-median lands at 9.1, "≥ 11" silently becomes +21%; at 8.2 it
+becomes +34%. The threshold must not be chosen after seeing tomorrow's data. Two fixes, both committed
+now, before the `--dimm-before` arms run.
+
+### 1. P-D5 is a ratio derived from the frozen before-data, not an absolute tok/s
+
+The `≥ 11.0` came from decomposing rung-48's 115.7 ms/token into 71.3 ms of spill-attributable host reads
+that a ~1.54× bandwidth gain shortens. **That 71.3 ms is exactly `rung48 − rung2` per-token time** — rung 2
+carries the shared GPU-side attention with almost no host traffic (that is what P-D6 asserts), so the
+subtraction cancels attention and leaves the spill time. The DIMM upgrade speeds only that portion:
+
+```
+predicted rung48 after-time(c) = rung2_time(c) + [rung48_time(c) − rung2_time(c)] / B
+predicted speedup(c)           = rung48_time(c) / after-time(c)          B = 1.54  (the P-D2 node-local floor)
+```
+
+At ctx 500 with the old numbers this returns 71.0 ms of spill, 90.9 ms after-time, **+27.4% → 11.01 tok/s**
+— it reproduces the prereg's own arithmetic to the decimal. It is the **same** prediction, re-expressed so
+it is computed from tonight's *frozen 3-run before-medians* (`rung2_time(c)`, `rung48_time(c)`) at the
+**scoring ctx**, and it self-adjusts for the attention dilution that makes a flat +27% wrong at longer ctx
+(spill time is ~ctx-constant; attention grows, so the spill *fraction* — and the achievable speedup —
+shrinks as ctx rises). Verify `rung48 − rung2 ≈ 71 ms` and ~ctx-stable when the before-data lands; a large
+drift means the rung-2 "no host traffic" assumption is false and P-D5's decomposition must be re-derived.
+
+- **P-D5 is scored at ctx 1800 and 3600** (the quiet ctx, consistent with the controls). Ctx 500 is still
+  recorded, as the direct cross-check against the 8.64 → 11.0 lineage above.
+- **Bands scale with the derived speedup** `s(c)`: `≥ s(c)` → bandwidth-bound (A); `1 + 0.55·(s(c)−1)` to
+  `s(c)` → mixed; below that → not bandwidth-bound (B). B = 1.54 is the floor; if P-D2 measures higher, the
+  band is recomputed from the *measured* node-local ratio before the after-arms are scored, once, and that
+  substitution is logged.
+
+### 2. The lottery clause — 3 launches may not stabilise the fork, and that is a reportable outcome
+
+Rung 48 needs both NUMA nodes to fit (PLE 27.5 GB + spilled experts > one node's 31.8 GB), so it **cannot
+be `--membind`-pinned** and inherits the first-touch placement lottery. Three launches sample it three
+times; they do not guarantee it converges. So: **record the full spread across the three launches**
+(max − min of the per-launch medians, per rung, per ctx) — it is the only error bar the after-comparison
+has. **If the rung-48 before-spread at the scoring ctx is ≥ the predicted rise `s(c)−1`, P-D5 is declared
+UNMEASURABLE by this method and reported as such — not forced to a pass or a fail.** A fork you cannot
+resolve above its own noise is a finding about the instrument, exactly as Stage 5 was.
+
+### 3. The after-run is one command, and it verifies the world hasn't drifted
+
+Opening the chassis reboots the host, which reverts the GPU clock to the **1063/150 boot default** — an ~8%
+decode confound that would falsify P-D5 by clock alone. The driver now closes that hole:
+
+- **`gates()` aborts** unless all four cards read **1189 MHz / 250 W** for the dimm stages. After the swap,
+  before `--dimm-after`, re-set and let the gate confirm it:
+  `sudo nvidia-smi -pm 1 && sudo nvidia-smi -ac 715,1189 && sudo nvidia-smi -pl 250`
+- The **gates row records `driver_sha`** (sha256 of the driver file that ran) and the run verifies the
+  **IQ4 shard sha256** against `flashnext_sha256.txt` — filenames lied twice this week; bytes do not.
+- **Before:** `python3 flashnext_residency.py --dimm-before` → `DB-{02,16,48}-L{0,1,2}` (9 launches).
+  **After:** `python3 flashnext_residency.py --dimm-after` → `DA-…`, identical arms, same clock, same driver.
+- Each rung is launched **three separate times** (independent placement draws), not three reps inside one
+  launch; within a launch the existing 3 reps × {500,1800,3600} run and rep 0 is discarded by the scorer.
+  Rung 16 is added between the 2/48 controls to separate the DDR4 bandwidth effect from the SATA
+  page-cache confound Amendment 3 §"confound" named.

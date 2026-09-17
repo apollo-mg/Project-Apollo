@@ -13,7 +13,11 @@ Stage 3 arms with a per-arm -fit override; none of it changes a Stage 1 arm or S
 
 Stage 4 (--stage4): gates -> the expert-spill cost ladder, -ncmoe {2,4,8,16,32,48} under --numa distribute.
 
-Usage (on .194):  python3 flashnext_residency.py [--stage2 | --stage3 | --stage3b | --stage4]
+Usage (on .194):  python3 flashnext_residency.py
+    [--stage2|--stage3|--stage3b|--stage4|--stage5a|--stage5b|--stage5c|--stage5d
+     |--dimm-before|--dimm-after]
+The dimm stages assert 1189 MHz / 250 W at the gate (a chassis reboot for the RAM swap reverts the
+clock) and launch each spill rung three times for independent placement draws; see PREREG_DIMM_UPGRADE.md.
 """
 import hashlib, json, os, re, subprocess, sys, threading, time, urllib.request
 
@@ -28,6 +32,10 @@ MODELS = os.path.join(H, "AI/Models")
 PUBLISHED = os.path.join(OUT, "published_sha256.json")
 WIKI = os.path.join(OUT, "wiki.test.raw")
 WIKI_SHA = "173c87a53759e0201f33e0ccf978e510c2042d7f2cb78229d9a50d79b9e7dd08"
+try:   # byte-exact identity of THIS driver, recorded in the gates row so the after-run can prove it
+    DRIVER_SHA = hashlib.sha256(open(__file__, "rb").read()).hexdigest()   # reproduced the same code
+except OSError:
+    DRIVER_SHA = "?"
 PORT = 8093
 COMMON = ["-c", "4096", "-np", "1", "-b", "2048", "-ub", "512", "-fa", "on", "--jinja", "-fit", "off",
           "-sm", "layer", "-ctk", "f16", "-ctv", "f16", "--host", "127.0.0.1", "--port", str(PORT)]
@@ -103,6 +111,28 @@ MEMBIND0 = ["numactl", "--membind=0"]
 STAGE5C = [("B-16a", IQ4, ["-ncmoe", "16"] + BASE5, MEMBIND0),
            ("B-16b", IQ4, ["-ncmoe", "16"] + BASE5, MEMBIND0),
            ("B-08", IQ4, ["-ncmoe", "8"] + BASE5, MEMBIND0)]
+# DIMM baseline (PREREG_DIMM_UPGRADE.md, Amendment 3 + Amendment 4): the pre/post-upgrade "before"
+# and "after". THE fork is P-D5, rung 48 (every layer's experts on the host), scored as a RATIO over
+# the frozen 3-run before-median -- not against the old single-run 8.64@500, which is being replaced.
+# Rung 48 needs both NUMA nodes to fit (PLE 27.5 GB + spilled experts > one node's 31.8 GB), so it
+# CANNOT be --membind-pinned and inherits the first-touch placement lottery. A single launch cannot
+# average that out, so each rung is launched DIMM_LAUNCHES times -- independent placement draws, not
+# reps inside one launch (the scorer takes per-launch medians over reps 1..2, then the median and the
+# full spread ACROSS launches; the spread is the only error bar the after-comparison will have).
+# Rungs: 2 = control that fits VRAM entirely (P-D6, must not move); 16 = mid rung that separates the
+# DDR4 bandwidth effect from the SATA page-cache confound; 48 = full spill (P-D5, the fork).
+# Launch-major order so a kill leaves one COMPLETE draw of all three rungs rather than three of one.
+DIMM_RUNGS = (2, 16, 48)
+DIMM_LAUNCHES = 3
+# The chassis is opened for the RAM swap -> host reboots -> GPU clock reverts to the 1063/150 boot
+# default. An after-arm at the wrong clock is an ~8% decode confound on the fork, so gates() ASSERTS
+# 1189 MHz / 250 W for both dimm stages and aborts with the set command if it reads anything else.
+DIMM_CLOCK = (1189, 250)   # (applications.graphics MHz, power.limit W); mem clock 715, persistence on
+def dimm_arms(prefix):
+    return [(f"{prefix}-{n:02d}-L{k}", IQ4, ["-ncmoe", str(n)] + BASE5)
+            for k in range(DIMM_LAUNCHES) for n in DIMM_RUNGS]
+DIMM_BEFORE = dimm_arms("DB")   # run tonight at 1189/250 with 64 GB DDR4-2133, 8 DIMMs
+DIMM_AFTER = dimm_arms("DA")    # run after the swap; same arms, same clock, verified from gates first
 
 
 class Abort(Exception):
@@ -199,7 +229,32 @@ def verify_manifest(path):
     return n
 
 
-def gates():
+def parse_clocks(clk):
+    # clk is the CSV from nvidia-smi --query-gpu=index,clocks.applications.graphics,power.limit
+    out = []
+    for line in clk.splitlines():
+        m = re.search(r"(\d+)\s*MHz.*?([\d.]+)\s*W", line)
+        if m:
+            out.append((int(m.group(1)), float(m.group(2))))
+    return out
+
+
+def assert_clock(clk, want):
+    mhz, watt = want
+    got = parse_clocks(clk)
+    setcmd = f"sudo nvidia-smi -pm 1 && sudo nvidia-smi -ac 715,{mhz} && sudo nvidia-smi -pl {watt}"
+    if len(got) != 4:
+        raise Abort(f"expected 4 GPU clock readings, parsed {len(got)} from {clk!r}")
+    for i, (g, w) in enumerate(got):
+        # P100 applications.graphics steps ~13 MHz; power.limit is set exactly. Tight tolerances so a
+        # reboot-reverted 1063/150 (the confound this exists to catch) can never read as a pass.
+        if abs(g - mhz) > 13 or abs(w - watt) > 2:
+            raise Abort(f"GPU {i} reads {g} MHz / {w} W, not {mhz} MHz / {watt} W. A chassis reboot "
+                        f"reverts to the 1063/150 boot default; the after-run must match the before-run. "
+                        f"Set it and rerun:  {setcmd}")
+
+
+def gates(require_clock=None):
     text = open(BUILD_LOG, errors="replace").read() if os.path.exists(BUILD_LOG) else ""
     if "BUILD EXIT 0" not in text:
         raise Abort(f"the {COMMIT} build has not finished with BUILD EXIT 0")
@@ -220,6 +275,8 @@ def gates():
         raise Abort(f"other heavy processes are running: {heavy()}")
     clk = subprocess.run(["nvidia-smi", "--query-gpu=index,clocks.applications.graphics,power.limit",
                           "--format=csv,noheader"], capture_output=True, text=True).stdout.strip()
+    if require_clock is not None:
+        assert_clock(clk, require_clock)   # aborts before any arm if the clock is not the required one
     return ver, clk
 
 
@@ -434,14 +491,17 @@ def run_arm(label, stem, flags, pre=None):
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    stage = ("5a" if "--stage5a" in sys.argv else "5b" if "--stage5b" in sys.argv
+    stage = ("db" if "--dimm-before" in sys.argv else "da" if "--dimm-after" in sys.argv
+             else "5a" if "--stage5a" in sys.argv else "5b" if "--stage5b" in sys.argv
              else "5c" if "--stage5c" in sys.argv
              else "5d" if "--stage5d" in sys.argv
              else "3b" if "--stage3b" in sys.argv else 4 if "--stage4" in sys.argv
              else 3 if "--stage3" in sys.argv else 2 if "--stage2" in sys.argv else 1)
     try:
-        ver, clk = gates()
-        emit({"stage": "gates", "ok": True, "version": ver[:300], "clocks": clk, "run_stage": stage})
+        # The dimm stages require a specific clock; every other stage records whatever it finds.
+        ver, clk = gates(require_clock=DIMM_CLOCK if stage in ("db", "da") else None)
+        emit({"stage": "gates", "ok": True, "version": ver[:300], "clocks": clk, "run_stage": stage,
+              "driver_sha": DRIVER_SHA})
         log(f"gates passed (stage {stage}) -- {ver.splitlines()[0] if ver else ''}")
         if stage == 2:
             t0 = time.time()
@@ -462,6 +522,10 @@ def main():
             queue = list(STAGE5C)
         elif stage == "5d":
             queue = list(STAGE5D)
+        elif stage == "db":
+            queue = list(DIMM_BEFORE)
+        elif stage == "da":
+            queue = list(DIMM_AFTER)
         else:
             bandwidth()
             queue = list(ARMS)
