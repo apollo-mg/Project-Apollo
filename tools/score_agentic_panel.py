@@ -98,6 +98,30 @@ tv = sum(rates[x][2] for x in order)
 print(f"  total VOID across all arms: {tv}")
 print(f"  -> {'CONFIRMED' if tv == 0 else 'CHECK: void present, see per-arm table'}")
 
+print("\n" + "=" * 96); print("DISCRIMINATING POWER -- how many scenarios can tell the arms apart?"); print("=" * 96)
+ids_all = sorted(set().union(*[set(v) for v in arms.values()]))
+uni_pass, uni_fail, disc, mixed_void = [], [], [], []
+for i in ids_all:
+    vs = [arms[a_][i]["verdict"] for a_ in order if i in arms[a_]]
+    if len(vs) < len(order):
+        continue
+    if all(v in VOID for v in vs):        mixed_void.append(i)
+    elif all(v in SUCCESS for v in vs):   uni_pass.append(i)
+    elif all(v in DECISION for v in vs):  uni_fail.append(i)
+    else:                                 disc.append(i)
+n = len(ids_all)
+print(f"  scenarios: {n}")
+print(f"  ALL arms succeed  : {len(uni_pass):>2}   {', '.join(uni_pass) if uni_pass else '-'}")
+print(f"  ALL arms fail     : {len(uni_fail):>2}   {', '.join(uni_fail) if uni_fail else '-'}")
+print(f"  DISCRIMINATING    : {len(disc):>2}   {', '.join(disc) if disc else '-'}")
+print(f"\n  EFFECTIVE N = {len(disc)} of {n}.")
+if len(disc) < n:
+    print(f"  {len(uni_pass)+len(uni_fail)} scenarios carry ZERO information about codec choice:")
+    print("  a scenario every arm passes, or every arm fails, cannot separate them. A codec")
+    print("  ranking rests only on the discriminating subset, and its size is the real power.")
+if len(disc) == 0:
+    print("  *** NO scenario separates the arms. This corpus cannot rank these codecs. ***")
+
 print("\n" + "=" * 96); print("PAIRED per-scenario (noise floor is zero, so每 difference is real)".replace("每","every ")); print("=" * 96)
 ids = sorted(set().union(*[set(v) for v in arms.values()]))
 print(f"{'scenario':<24}" + "".join(f"{a_:<12}" for a_ in order))
