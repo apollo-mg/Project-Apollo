@@ -78,6 +78,17 @@ that differ by more than 1e-4 in mean KLD cannot blame the instrument.
 That was not guaranteed going in. Had the floor come back at 3e-5, P-L5's 1e-4 threshold would
 have been mostly noise and the control would have been close to worthless.
 
+**One limit on how precisely the floor can be known.** `llama-perplexity` prints mean KLD to six
+decimals, so this run establishes the floor as **< 5e-7** and no better; the true value could be
+anything below that. Every cell's mean KLD is printed at the same resolution, which means
+differences between cells cannot be resolved below ~1e-6 whatever the underlying instrument can do.
+
+The practical consequence: **the agreement tests (P-L5 and C-XBIN) must be scored against the
+preregistered 1e-4, not against "the measured floor".** A threshold at or below 1e-6 would convert
+last-digit rounding into a verdict -- it would report an implementation defect, or a confounded
+panel, on the strength of a rounding step. `tools/score_ladder.py` defaults to 1e-4 and warns if a
+lower threshold is passed.
+
 ## Provenance, verified by hash
 
 | item | identity | check |

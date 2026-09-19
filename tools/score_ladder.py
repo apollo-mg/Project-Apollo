@@ -19,8 +19,39 @@ import json, sys, argparse
 # half-blank. Derived, and labelled as derived wherever it is printed.
 NPARAM = 27.21e9
 
+# Bytes each file spends on the MTP draft head (blk.64.* / .nextn.*), which llama-perplexity
+# reports as "unused tensor ... ignoring" and never reads. Measured from the GGUF tensor offsets;
+# the binary's own unused list is exactly this set. Subtracting them is what makes "quality per
+# byte" a fair comparison: GSQ spends ~4% of its file here, AD ~3%, Bonsai nothing at all.
+# See METHOD_SCORED_BYTES.md.
+MTP_BYTES = {
+    "G-IQ2XS": 348469248, "G-IQ3XXS": 348469248, "C-XBIN": 348469248,
+    "A-IQ2XS": 292067328, "A-IQ3XXS": 292067328, "A-IQ3S": 292067328,
+    "B-PTQ1": 0, "B-PQ2": 0,
+}
+
 def bpw_of(nbytes):
     return nbytes * 8 / NPARAM if nbytes else None
+
+def scored_bytes(cell, nbytes):
+    return nbytes - MTP_BYTES.get(cell, 0)
+
+def scored_bpw(cell, nbytes):
+    return bpw_of(scored_bytes(cell, nbytes))
+
+def curve(cells, ok, kldf):
+    """Two or more cells of one family -> (lo_bpw, lo_kld, rate) by linear fit on scored bpw."""
+    pts = sorted(((scored_bpw(c, int(ok[c]["bytes"])), kldf(c)) for c in cells))
+    if len(pts) < 2:
+        return None
+    (b1, k1), (b2, k2) = pts[0], pts[-1]
+    if b2 <= b1:
+        return None
+    return (b1, k1, (k1 - k2) / (b2 - b1))
+
+def interp(cv, target_bpw):
+    b1, k1, rate = cv
+    return k1 - (target_bpw - b1) * rate
 
 FAMILY = {  # cell -> (family, nominal bpw from the prereg where stated)
     "G-IQ2XS":  ("GSQ-RCO", 2.58),
@@ -56,8 +87,16 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("results", nargs="+")
     ap.add_argument("--floor", type=float, default=1e-4,
-                    help="P-L0 reproducibility floor (measured, not assumed)")
+                    help="threshold for the agreement tests (P-L5, C-XBIN). Default 1e-4 is the "
+                         "PREREGISTERED value. Do not lower it to the P-L0 'measured floor': that "
+                         "run printed Mean KLD 0.000000 at six decimals, so all it establishes is "
+                         "< 5e-7, and every cell's KLD is likewise printed to 1e-6. A threshold at "
+                         "or below the printing resolution turns rounding into a verdict.")
     a = ap.parse_args()
+    if a.floor < 1e-5:
+        print(f"WARNING: --floor {a.floor:.1e} is at or below the 1e-6 printing resolution of the\n"
+              f"         KLD values. Differences that small are rounding, not measurement.\n"
+              f"         The preregistered threshold is 1e-4.\n")
     cells = load(a.results)
 
     ok  = {k: v for k, v in cells.items() if v.get("status") == "OK"}
@@ -66,14 +105,16 @@ def main():
     print("=" * 96)
     print("LOW-BIT CODEC LADDER -- Qwen3.8-27B, all cells vs the same Q8_0 reference (ref.kld)")
     print("=" * 96)
-    print(f"{'cell':<10} {'family':<9} {'GiB':>7} {'bpw':>6} {'mean KLD':>11} {'median':>11} "
+    print("size axis = SCORED bytes (file minus the MTP head llama-perplexity ignores).")
+    print("See METHOD_SCORED_BYTES.md. GSQ spends ~4% of its file there, AD ~3%, Bonsai 0%.\n")
+    print(f"{'cell':<10} {'family':<9} {'GiB':>7} {'s.bpw':>6} {'mean KLD':>11} {'median':>11} "
           f"{'99% KLD':>10} {'same-top %':>11} {'PPL(Q)':>9}")
     print("-" * 96)
     for k, d in sorted(ok.items(), key=lambda kv: int(kv[1].get("bytes") or 0)):
         fam, bpw = FAMILY.get(k, ("?", None))
         nb = int(d.get("bytes") or 0)
         gib = nb / 2**30
-        bpw = bpw_of(nb)          # derived for every cell, so the axis is uniform
+        bpw = scored_bpw(k, nb)   # SCORED bytes: the axis quality is actually measured against
         mk, md = fl(d, "mean_kld"), fl(d, "median_kld")
         p99, st, pq = fl(d, "p99_kld"), fl(d, "same_top"), fl(d, "mean_ppl_q")
         print(f"{k:<10} {fam:<9} {gib:>7.2f} {(f'{bpw:.2f}' if bpw else '?'):>6} "
@@ -132,31 +173,48 @@ def main():
 
     # ---- P-L3: GSQ beats AD ----
     print("\nP-L3  GSQ-RCO beats AD at comparable size")
-    gs_cells = [c for c in ok if FAMILY.get(c, ("?",))[0] == "GSQ-RCO"]
+    gs_cells = [c for c in ok if FAMILY.get(c, ("?",))[0] == "GSQ-RCO" and c != "C-XBIN"]
     ad_cells = [c for c in ok if FAMILY.get(c, ("?",))[0] == "AD"]
     if not gs_cells or not ad_cells:
         print("  PENDING (need at least one GSQ cell and one AD cell)")
     else:
-        pairs = []
-        for g in gs_cells:
-            for a_ in ad_cells:
-                gb, ab = bpw_of(int(ok[g]["bytes"])), bpw_of(int(ok[a_]["bytes"]))
-                pairs.append((abs(gb-ab), g, a_, gb, ab))
-        pairs.sort()
-        print("  cross-family pairs, closest in effective bpw first:")
-        for d_, g, a_, gb, ab in pairs:
-            gk, ak = kld(g), kld(a_)
-            who = "GSQ" if gk < ak else "AD"
-            edge = "and GSQ holds FEWER bits" if (gk < ak and gb < ab) else \
-                   ("but AD holds MORE bits -- size-confounded" if (ak < gk and ab > gb) else "")
-            print(f"    {g:<9}({gb:.2f}bpw, KLD {gk:.6f})  vs  {a_:<9}({ab:.2f}bpw, KLD {ak:.6f})"
-                  f"   gap {d_:.2f}bpw  -> {who} lower {edge}")
-        d_, g, a_, gb, ab = pairs[0]
-        v = "CONFIRMED" if kld(g) < kld(a_) else "FALSIFIED"
-        print(f"  nearest pair verdict ({g} vs {a_}): {v}")
-        print("  NOTE: AD is systematically FATTER than GSQ at the same quant label")
-        print("        (IQ2_XS 2.58 vs 2.91 bpw; IQ3_XXS 3.07 vs 3.55). An AD win at a larger")
-        print("        size is not a codec win; a GSQ win at a smaller size is the stronger claim.")
+        print("  raw head-to-head at the shared quant label:")
+        for g in sorted(gs_cells):
+            for a_ in sorted(ad_cells):
+                gb, ab = scored_bpw(g, int(ok[g]["bytes"])), scored_bpw(a_, int(ok[a_]["bytes"]))
+                if abs(gb - ab) > 0.6:
+                    continue
+                who = "GSQ" if kld(g) < kld(a_) else "AD"
+                print(f"    {g:<9}({gb:.3f}) {kld(g):.6f}  vs  {a_:<9}({ab:.3f}) {kld(a_):.6f}"
+                      f"   -> {who} lower, but sizes differ by {abs(gb-ab):.3f} bpw")
+
+        # THE FAIR COMPARISON: price each AD cell against GSQ's own curve at the SAME size.
+        cv = curve(gs_cells, ok, kld)
+        if cv is None:
+            print("\n  matched-size comparison PENDING (needs >=2 GSQ cells to fit a curve)")
+        else:
+            b1, k1, rate = cv
+            print(f"\n  GSQ curve: {rate:.4f} KLD per scored bpw (anchor {b1:.3f} bpw @ {k1:.6f})")
+            wins = losses = 0
+            for a_ in sorted(ad_cells):
+                ab, ak = scored_bpw(a_, int(ok[a_]["bytes"])), kld(a_)
+                pred = interp(cv, ab)
+                if pred <= 0:
+                    print(f"    {a_}: GSQ curve extrapolates to {pred:.6f} <= 0 -- out of range, skipped")
+                    continue
+                delta = (ak - pred) / ak * 100
+                mark = "GSQ better" if pred < ak else "AD better"
+                if pred < ak: wins += 1
+                else: losses += 1
+                inrange = "interpolated" if b1 <= ab <= b1 + (k1/rate if rate else 0) else "EXTRAPOLATED"
+                print(f"    {a_:<9} {ab:.3f} bpw: AD {ak:.6f}  vs  GSQ-at-same-size {pred:.6f}"
+                      f"  -> {mark} by {abs(delta):.1f}% ({inrange})")
+            print(f"\n  MATCHED-SIZE VERDICT: GSQ better in {wins} of {wins+losses} comparisons"
+                  f"  -> P-L3 {'CONFIRMED' if wins > losses else 'FALSIFIED'} on the size-normalised reading")
+            print("  Both readings are reported. The raw one answers 'which file is better',")
+            print("  the matched-size one answers 'which codec is better'. Only the second is P-L3.")
+        print("\n  NOTE: IQ2_XS is 2.48 scored bpw from ISTA-DASLab and 2.82 from AD -- a 13%")
+        print("        spread under one label. Comparing by label compares different size classes.")
 
     # ---- P-L4: same-top drops more than KLD implies ----
     print("\nP-L4  Ternary cells drop same-top MORE than their KLD suggests (>=0.5 pp)")

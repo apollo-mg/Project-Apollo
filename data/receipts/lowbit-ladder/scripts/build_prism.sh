@@ -44,8 +44,10 @@ rc=$?
 echo "[$(date +%H:%M:%S)] cmake configure rc=$rc" >> "$LOG"
 [ $rc -ne 0 ] && { echo "CONFIGURE_FAILED" >> "$LOG"; exit 1; }
 
-# -j6 not -j12: nvcc peaks well over 1 GB per TU and this box has 15 GB.
-cmake --build "$BUILD" --target llama-perplexity -j6 >> "$LOG" 2>&1
+# -j4, not -j12: nvcc peaks over 1 GB per TU, and a ladder cell is running concurrently.
+  # The cell is GPU-bound (0.67 cores, ~2 GB RSS -- weights live in VRAM), so CPU contention is
+  # not the worry; memory is. -j4 leaves ~7 GB headroom against 13 GB available.
+cmake --build "$BUILD" --target llama-perplexity -j4 >> "$LOG" 2>&1
 rc=$?
 echo "[$(date +%H:%M:%S)] build rc=$rc" >> "$LOG"
 
