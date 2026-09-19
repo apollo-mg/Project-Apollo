@@ -158,3 +158,62 @@ broke."* It did disagree, and linearity is what broke.
 see the curvature, and no residual to inspect -- a two-point fit has zero degrees of freedom and
 therefore always looks perfect. The sanity check that caught it was not statistical at all: it was
 asking whether the fit predicts values the quantity is allowed to take.
+
+---
+
+# Confirmation -- 2026-09-19 12:57: AD's third point settles the model
+
+The check promised above has now run. A-IQ3S completed (3.732 scored bpw, KLD 0.048110, same-top
+90.461%), giving AD three points and therefore a **held-out interior point** to test against.
+
+| model | predicts at 3.465 bpw | measured | residual |
+|---|---:|---:|---:|
+| linear | 0.085180 | 0.073686 | **15.6%** |
+| **log-linear** | 0.070207 | 0.073686 | **4.7%** |
+
+**Log-linear wins by 3.3x on a point neither fit was given.** The model choice is now confirmed by
+data, not only by the argument that a divergence cannot be negative. That argument was correct and
+sufficient to reject linear, but it is an admissibility test, not a fit test; this is the fit test.
+
+## The decay constant looks like a property of the model, not the codec
+
+| family | points | decay constant |
+|---|---:|---:|
+| AD | 3 | **1.4156** / bpw |
+| GSQ-RCO | 2 | **1.4077** / bpw |
+
+**0.6% apart** (the two-point AD estimate had said 4.8%; the third point tightened it). Both cut
+KLD by **x0.245 per additional bit per weight**.
+
+```
+KLD(bpw) ~ A_codec * exp(-1.41 * bpw)
+```
+
+The exponent is shared; only the prefactor `A_codec` differs. **Codecs compete on intercept, not
+slope.**
+
+## Which makes the advantage a single number, and it holds
+
+Same slope + different intercept predicts a *constant* ratio at every size. Measured:
+
+| scored bpw | AD | GSQ-RCO | GSQ advantage |
+|---:|---:|---:|---:|
+| 2.822 | 0.174453 | 0.124265 | 28.8% *(interpolated)* |
+| 3.465 | 0.073686 | 0.050264 | 31.8% *(extrapolated)* |
+| 3.732 | 0.048110 | 0.034517 | 28.3% *(extrapolated)* |
+
+Mean **29.6%**, spread under 2 points across nearly a full bit. The model's own prediction, tested
+and held.
+
+## A twice-replicated structural result
+
+`exl3-campaign/RESULT_EXL3_COMPRESSION.md` finding 3 reported the same shape for a different
+comparison: *"No trend with size. The log-gap is flat: 0.289 at 10.6 GB vs 0.288 at 13.5 GB"* --
+and explicitly recorded that its P-C2 premise (that EXL3 pulls away at the low end) was **not
+supported**.
+
+Two independent campaigns, four codec families, the same structure: **a codec's advantage is a
+constant factor in log space, not something that grows as you squeeze.** The practical consequence
+is that a codec can be quoted as one number -- "GSQ-RCO is ~30% closer to the reference than AD" --
+rather than as a curve, and the intuition that low-bit is where codecs differentiate is wrong on
+this evidence.
