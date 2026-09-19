@@ -206,3 +206,46 @@ agree to within 1e-4 **whatever that level turns out to be**. If Bonsai is poor,
 whether it is *consistently* poor across both containers -- and a divergence there would point at
 an implementation defect in one packing, which is the single most actionable thing this panel
 could produce.
+
+---
+
+# Amendment 3 -- 2026-09-19 13:31, B-PTQ1 mid-run (chunk 16/40), B-PQ2 NOT started
+
+**No prediction changed. Recording a logical consequence of partial data, before the deciding cell
+runs.**
+
+B-PTQ1 is tracking **mean KLD ~0.366** at chunk 16 of 40 (final value pending). Two things follow.
+
+## 1. Bonsai's codec is beating the scalar trend at its size
+
+The scalar families share a decay of ~1.41/bpw. GSQ-RCO's curve extrapolated to B-PTQ1's 1.748
+scored bpw predicts **~0.564**. B-PTQ1 is running at **~0.366** -- roughly **35% better than the
+scalar trend**. Extrapolation, and not final, but the direction is not marginal.
+
+**This is evidence the ternary codec does real work**, and it cuts against the expectation recorded
+in Amendment 2. Noted here because it is inconvenient for the pessimism I logged an hour ago.
+
+## 2. P-L2 and P-L5 are now MUTUALLY EXCLUSIVE
+
+Given B-PTQ1 ~0.366:
+
+| if | then | and |
+|---|---|---|
+| **P-L5 holds** (containers agree to 1e-4) | B-PQ2 ~= B-PTQ1 ~= 0.366 | **P-L2 fails** -- 0.366 is far above G-IQ2XS's 0.202243 |
+| **P-L2 holds** (B-PQ2 < 0.202243) | the containers differ by >= 0.16 | **P-L5 fails by ~1600x its threshold** |
+
+**No outcome preserves both.**
+
+This was not knowable when the prereg was written: had B-PTQ1 landed near 0.19, both could have
+held. **The data made them exclusive, not a flaw in the predictions** -- but it is recorded now,
+before B-PQ2 produces a number, rather than afterwards where it would read as hindsight.
+
+**Stated expectation: P-L5 holds, P-L2 is falsified.** That is the more informative pair. A
+confirmed P-L5 means both packings decode correctly, which moves the blame for the v1 -> v2
+regression onto the **recipe** -- the halved scale density (g64 -> g128) or the Hadamard rotation's
+Gated Delta Net special case -- and away from a container bug. See
+[[ANALYSIS_BONSAI_V1_VS_V2]] for the ranked hypotheses.
+
+If instead P-L5 fails, that is the single most actionable finding this panel could produce, and it
+would be reportable upstream immediately: two containers of identical declared weights that decode
+to materially different distributions.
