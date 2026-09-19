@@ -20,6 +20,25 @@ R=/mnt/TG_2TB/Projects/Apollo/data/receipts/agentic-ladder
 PY=/mnt/TG_2TB/AI/hermes-go/.venv/bin/python
 mkdir -p "$R/logs"
 
+# The isolated gateway runs on the DESKTOP and talks to .194:8084. agent-home/config.yaml
+# already points there by default, so no config edit is needed -- and Mark's production gateway
+# on 8642 is untouched. The fake-google fixture also lives on the desktop, so all four arms see
+# the SAME world, seed 806c5016..., already rebased and frozen for the gate.
+#
+# FREE CROSS-MACHINE CHECK: P-BPQ2 is the same model, same seed and same scenarios as the P-A0
+# gate arm, which ran on .73 with a different prism build. If it reproduces 9/15 here, that is an
+# independent replication across hardware and build; if it does not, one of those is a variable
+# we did not control and we find out before interpreting anything.
+if ! ss -lnt 2>/dev/null | grep -q ':8643'; then
+  echo "starting isolated gateway on 8643" | tee -a "$R/logs/panel.log"
+  ( cd /mnt/TG_2TB/AI/hermes-go && HERMES_HOME=$A/agent-home       API_SERVER_KEY=argus-local-test-key-0123456789 API_SERVER_PORT=8643       HERMES_BUNDLED_SKILLS=$A/agent-home/no-bundled-skills       setsid nohup .venv/bin/python scripts/hermes-gateway > "$R/logs/gateway_panel.log" 2>&1 < /dev/null &       echo $! > /tmp/panel_gateway.pid )
+  for i in $(seq 1 60); do
+    sleep 2
+    c=$(curl -s -o /dev/null -w '%{http_code}' -m 3 -H "Authorization: Bearer argus-local-test-key-0123456789" http://127.0.0.1:8643/api/sessions 2>/dev/null)
+    case "$c" in 200|401|405) echo "  gateway UP ($c)" | tee -a "$R/logs/panel.log"; break;; esac
+  done
+fi
+
 declare -A ARMS=(
   [P-BASE]=/home/mark/AI/Models/Qwen3.8-27B/Qwen3.8-27B-Q6_K.gguf
   [P-GIQ2]=/home/mark/AI/Models/ladder/Qwen3.8-27B-GSQ-RCO-IQ2_XS-mtp.gguf
