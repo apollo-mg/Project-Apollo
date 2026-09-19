@@ -105,3 +105,28 @@ size. See [[PREDICTION_MARK_3BIT_FLOOR]].
   their independently measured bpw, but it is a two-point calibration.
 - **KLD over wikitext does not measure agentic usability.** This project has documented that gap
   twice. A codec ranking here is a fidelity ranking, not a verdict on task behaviour.
+
+## Fairness note on the GSQ-RCO verdict
+
+Two things keep "GSQ-RCO is mid-tier" honest rather than a dunk:
+
+**1. The comparison is sound on the axis used.** The campaign's peak-VRAM figures were measured
+during runs that *ignore* the MTP head, so VRAM already reflects loaded-and-scored tensors only.
+Converting VRAM to scored bytes and comparing against our file-minus-MTP figures compares like
+with like. The two arms present in both datasets land on their independently measured bpw, which
+is the check that this is true.
+
+**2. GSQ's files ship an MTP head and some competitors' may not.** The GSQ-RCO releases are named
+`-mtp` and carry ~348 MB of draft head. Those bytes buy **speculative decoding**, which is real
+deployment value and which this measurement cannot see -- the fleet's own daily driver runs
+`--spec-type draft-mtp`. Scored-bytes accounting correctly removes them from the *fidelity*
+comparison, and equally correctly does not credit them. So:
+
+> **On fidelity per byte, GSQ-RCO loses to unsloth and EXL3. On what you can actually deploy, a
+> GSQ file additionally gives you a draft head.** Those are different questions and this receipt
+> only answers the first.
+
+**What would change the verdict:** a measurement of UD-Q2_K_XL and GSQ-RCO IQ3_XXS at matched
+*wall-clock serving throughput* rather than matched bytes. If GSQ's MTP head buys enough decode
+speed, a user might rationally prefer the slightly-worse-per-byte file. Not measured here, and not
+claimed either way.
