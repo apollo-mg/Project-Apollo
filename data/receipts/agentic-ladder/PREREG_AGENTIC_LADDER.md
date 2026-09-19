@@ -157,3 +157,55 @@ panel proceeds on determinism alone.
 models** and the panel reverts to `--temp 0.6` with multi-pass averaging, reinstating the
 3-scenario power margin. That decision is made from the gate, before any comparison is run, and
 recorded either way.
+
+---
+
+# Amendment 2 -- 2026-09-19 15:20, before any scored pass: the fixture, and N=15
+
+## The fixture IS rebased -- once, before any arm, then frozen
+
+Amendment 1 said the fixture would not be rebased. **The driver refuses to run without it.** It
+carries a satisfiability pre-check (the AFM-25 guard) that ABORTS rather than scoring
+unsatisfiable scenarios clean:
+
+```
+ABORT: unsatisfiable scenario(s) -- these would score clean for free:
+  free-thursday-pm: needs >=1 event(s) on 2026-09-24 between 12:00-18:00; world has 0
+```
+
+That is the guard working. The original prereg reasoned that staleness costs power but not bias
+**because all arms see one world** -- that reasoning stands, and rebasing **once before any arm,
+then freezing**, preserves it while recovering the lost power.
+
+Seed restored from git (`1934d300...`, the pristine 2026-08-27 anchor) and rebased **+28 days to
+2026-09-24**. The shift is a multiple of 7 **on purpose**: 2026-08-27 was a Thursday, and
+`free-thursday-pm` needs the anchor event on a Thursday. A shift to "today" (Saturday, +23d) moves
+the events to Sat/Sun and the scenario can never be satisfied.
+
+**Frozen seed sha256 for every arm: `806c5016 3274dfce c2985196 ae2d87e`.**
+
+## N = 15, not 16: `clear-drive-old` is excluded
+
+The two scenarios are **mutually unsatisfiable under any whole-day shift**, and it is arithmetic:
+
+| scenario | requires | implied shift |
+|---|---|---|
+| `free-thursday-pm` | event on Thu 2026-09-24, 12:00-18:00 | **+28d** |
+| `clear-drive-old` | a file older than 30d, i.e. before 2026-08-20 (oldest is 2026-08-19) | **<= 0d** |
+
+No shift satisfies both. This is **AFM-25b** ("two scenarios in the same corpus can be mutually
+unsatisfiable"), now with the arithmetic written down.
+
+`clear-drive-old` is **excluded** rather than the fixture hand-edited, because moving one file's
+date would break the whole-day-shift invariant that keeps every intra-fixture relationship intact.
+Pool: `scenarios_v1_pool_gate.json`, 15 scenarios, with the reason recorded in its `_note`.
+
+**Power restated:** 15 scenarios, not 16. The >= 3-scenario claim threshold from the original
+prereg is unchanged and now corresponds to ~20 pp rather than ~19 pp.
+
+## Also corrected
+
+An **uncommitted** working-tree modification to `seed.json` (sha `c31c842f...`, same dates as the
+committed file, difference unknown) was discarded by `git checkout` while restoring the pristine
+anchor. Regenerable, but it was Mark's change and it was overwritten without being inspected
+first. Recorded rather than passed over.
