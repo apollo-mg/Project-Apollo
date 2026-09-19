@@ -5,6 +5,11 @@
 # daily driver serves :8080 through the wake proxy. Neither is touched by name here -- but the
 # daily driver must be stopped anyway, because .73 has 32 GB of VRAM and it holds ~26.
 #
+# -sm layer, NOT tensor. Tensor-split asserts every split dimension is divisible by the device
+# count (ggml-backend-meta.cpp:1086 GGML_ASSERT(split_state.ne[j] % div == 0)), and the ternary
+# packing does not satisfy it -- the model loads into VRAM and then aborts. The ladder ran these
+# exact files all day with -sm layer. See also the tensor-split deny list (upstream #27941).
+#
 # reasoning_effort=medium is LOAD-BEARING, not cosmetic. On Qwen3.8 it is a PROMPT EDIT (AFM-23);
 # unset resolves to xhigh, ~5.85x the tokens, and destabilised long generations in prior runs --
 # i.e. it would manufacture the exact runaway this gate exists to screen for.
@@ -53,7 +58,7 @@ timeout 10 nvidia-smi --query-gpu=index,memory.used --format=csv,noheader'
 
 echo "[$(date +%H:%M:%S)] starting $ARM on .73:8084 at temp 0"
 ssh -n -o BatchMode=yes mark@10.0.0.73 "setsid nohup $BIN \
-  -m '$GGUF' -ngl 99 -c 65536 -np 1 -sm tensor -fit off -ctk f16 -ctv f16 -fa on --jinja \
+  -m '$GGUF' -ngl 99 -c 65536 -np 1 -sm layer -fit off -ctk f16 -ctv f16 -fa on --jinja \
   --chat-template-kwargs '{\"reasoning_effort\":\"medium\"}' \
   --temp 0 --top-k 1 --top-p 1.0 --min-p 0.0 --repeat-penalty 1.0 --presence-penalty 0.0 \
   --host 0.0.0.0 --port 8084 > ~/argus_${ARM}_8084.log 2>&1 < /dev/null & echo \$! > ~/argus_${ARM}.pid
