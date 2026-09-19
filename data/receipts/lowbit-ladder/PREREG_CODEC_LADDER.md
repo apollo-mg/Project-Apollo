@@ -156,3 +156,53 @@ The panel table's "on disk" column was wrong in both Bonsai rows. Actual state, 
 2026-09-19: **B-PTQ1 is present** (`53107f530aa52eb0...`, 5,946,648,928 B) and **B-PQ2 was not**
 until fetched today (`3907dc1658db1f78...`, 7,206,168,928 B, matching the hash this prereg
 recorded in advance).
+
+---
+
+# Amendment 2 -- 2026-09-19 12:59, stock batch complete, Bonsai cells NOT yet run
+
+**No prediction is changed.** This states the *quantitative bar* P-L2 has to clear, computed from
+the five stock cells, and records it before the Bonsai cells produce a number so the threshold
+cannot drift afterwards.
+
+## What the scalar curves say about Bonsai's size range
+
+Both Bonsai containers sit below every scalar cell measured. The scalar families share a decay
+constant of **1.41 per scored bpw** (AD 1.4156 from three points, GSQ-RCO 1.4077 from two, 0.6%
+apart). Extrapolating GSQ-RCO's curve down into Bonsai's range:
+
+| cell | scored bpw | GSQ-RCO curve extrapolates to |
+|---|---:|---:|
+| B-PTQ1 | 1.748 | KLD ~0.5636 |
+| B-PQ2 | 2.119 | KLD ~0.3343 |
+
+**These are extrapolations past the measured range (2.476-2.968) and are a reference bar, not a
+prediction of what Bonsai will do.**
+
+## The bar
+
+P-L2 as written requires `KLD(B-PQ2) < KLD(G-IQ2XS) = 0.202243`.
+
+At B-PQ2's size the scalar trend predicts **0.3343**. So **P-L2 needs Bonsai to beat the scalar
+trend by about 40% at that size** -- equivalently, to deliver at 2.119 bpw what the scalar
+families need 2.476 bpw to reach, **a 17% size advantage at equal fidelity**.
+
+That is a demanding bar, and it should be. P-L2 is stated as "the fork": the claim that a rotated
+ternary basis is categorically better, not incrementally better. A 5% win would not distinguish it
+from measurement noise in the codec landscape; 40% would be unambiguous.
+
+**Honest expectation, recorded now:** having seen the stock results and three independent public
+reports of Bonsai 2 underperforming, **I now expect P-L2 to be FALSIFIED.** The prediction stands
+exactly as written and will be scored as wrong if it is wrong. Recording the shift in expectation
+separately from the prediction is the point -- the prediction is what was committed, the
+expectation is what the evidence has since done to it.
+
+## P-L5 is unaffected
+
+The control is independent of absolute level. B-PTQ1 and B-PQ2 are declared to hold the *same*
+ternary weights, verified identical at the header level (851 tensors, 402 quantised + 353 F32 + 96
+BF16, identical `prism.hadamard.*` keys, differing only in type 143 vs 142). Their mean KLD must
+agree to within 1e-4 **whatever that level turns out to be**. If Bonsai is poor, P-L5 still tests
+whether it is *consistently* poor across both containers -- and a divergence there would point at
+an implementation defect in one packing, which is the single most actionable thing this panel
+could produce.
