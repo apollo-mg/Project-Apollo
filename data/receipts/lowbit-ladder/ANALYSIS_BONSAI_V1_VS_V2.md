@@ -110,3 +110,60 @@ mean KLD must therefore agree to within the reproducibility floor.
 
 That is a narrow question, but it is the only one these artifacts can answer cleanly, and it costs
 one already-downloaded file and about seventeen minutes.
+
+
+---
+
+# Correction and refinement -- 2026-09-19 13:22: it is THREE changes, not four
+
+The bit budget decomposes cleanly and reproduces every measured file to within 0.023 bpw:
+
+| variant | slot width | scales (16/group) | predicted | measured |
+|---|---:|---:|---:|---:|
+| v1 `Q2_g64` | 2.000 | +0.250 (g64) | 2.250 | **2.230** |
+| v2 `PQ2_0` (g128) | 2.000 | +0.125 (g128) | 2.125 | **2.119** |
+| v2 `PTQ1_0` (g128) | 1.600 | +0.125 (g128) | 1.725 | **1.748** |
+
+(`PTQ1_0` packs 5 trits per byte = 1.600 bits/weight; `PQ2_0` uses 2-bit slots = 2.000;
+log2(3) = 1.585 is the ternary information floor.)
+
+**v1 and v2's PQ2_0 use the identical 2-bit slot width.** So the bpw difference between them is
+**not an independent change** -- it is a consequence of the group size moving 64 -> 128, which
+halves the number of FP16 scales and saves exactly 0.125 bpw. My earlier "four things changed at
+once" over-counted.
+
+**The actual v1 -> PQ2_0 delta is three changes:**
+
+1. **Group size 64 -> 128** -- half the scale density.
+2. **Hadamard rotation added** (v1 had none at all).
+3. **96 tensors promoted to BF16** (402 quantised + 96 BF16 = the 498 v1 quantised).
+
+That is tighter and more diagnostic, and it adds a second suspect alongside the rotation:
+**halving the scale density is a real precision loss**, and v1 -- the release people liked -- had
+twice as many scales.
+
+## What "give the codec more bpw" actually means here
+
+Bonsai's two shipped variants already answer part of this, and the answer is that **it depends
+entirely on where the bits go**:
+
+| where the extra bits go | cost | what it buys |
+|---|---:|---|
+| a **wider container** (PTQ1_0 -> PQ2_0) | +0.371 bpw, **1.21x the bytes** | **nothing**, if P-L5 confirms -- the model card says both hold the same ternary weights, so the extra bits are container padding |
+| **more scales** (g128 -> g64) | +0.125 bpw | **2x scale resolution** -- a genuine precision increase |
+| **more scales** (g128 -> g32) | +0.500 bpw | 4x scale resolution |
+
+**Ternary at g64 would be 1.850 bpw -- still well under PQ2_0's 2.119 -- with twice the scale
+resolution.** That is the cheap, obvious experiment, it needs no new kernel (only a
+requantisation), and **v1 already ran the g64 half of it to reportedly good effect.**
+
+So the ranking of hypotheses for the v1 -> v2 regression, cheapest to test first:
+
+1. **Scale density halved** (g64 -> g128). Requantise at g64 and compare. No kernel work.
+2. **Rotation mis-specified for Gated Delta Net** (`gdn_v_grouped`). Needs kernel-level
+   investigation, or an ablation build with rotation disabled.
+3. **The BF16 promotion set** is wrong for this architecture. Hardest to isolate.
+
+**P-L5 remains the only one of these this panel can settle**, and it settles a different question:
+whether the two *containers* agree. If they do, both packings are correct and the regression lies
+in the recipe -- which points at (1) or (2) above.
