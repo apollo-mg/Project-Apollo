@@ -17,12 +17,25 @@ Without this the ladder is not reproducible and nothing below counts."*
 
 ## Why this run existed
 
-`ref.kld` (5,065,891,540 B) is the stored logit reference behind the **26-receipt EXL3 campaign**
-and now behind this codec ladder. Until today **it had never been checked against itself.** A grep
-of `data/receipts/exl3-campaign/` finds no self-check. Every KLD in that campaign is a distance
-from a reference whose own reproducibility was assumed rather than measured.
+**CORRECTION, 2026-09-19 12:45.** This section originally claimed the reference *"had never been
+checked against itself"* and that *"a grep of `data/receipts/exl3-campaign/` finds no self-check."*
+**Both statements are false.** `RESULT_EXL3_KLD.md` carries the row `R2 Q8_0, the gate` with
+exactly this measurement. My grep searched for the phrases "self-check" / "reference against
+itself", which do not appear there -- the row is labelled "the gate". Searching for words instead
+of for the measurement, then asserting a negative from the miss, is the error.
 
-It is measured now, and it holds.
+What this run actually is, and it is worth more than the claim it replaces: **an independent
+reproduction of that gate, weeks later, to every printed digit.**
+
+| | mean KLD | median | 99% KLD | same-top | PPL(Q) |
+|---|---|---|---|---|---|
+| EXL3 campaign, `R2` | 0.000000 +/- 0.000000 | -0.000000 | 0.000038 | 100.000 +/- 0.000 | 5.9325 |
+| **P-L0, today** | 0.000000 +/- 0.000000 | -0.000000 | 0.000038 | 100.000 +/- 0.000 | 5.932464 |
+
+Same binary, same flags, same corpus, same reference, different day, different process, same
+numbers -- including the 99th-percentile tail at `0.000038`, which is the digit most likely to
+move if anything had drifted. `ref.kld` is reproducible, and now demonstrably so across sessions
+rather than within one.
 
 The gate also ran **first by design**, ahead of the five stock cells. A gate that runs last can
 void five cells after they have been paid for; the prereg's own language is that nothing below it

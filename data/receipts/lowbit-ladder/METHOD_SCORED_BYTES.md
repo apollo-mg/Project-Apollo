@@ -90,3 +90,71 @@ This is [[gguf-label-is-not-a-spec]] appearing across packagers rather than with
 names a *recipe*, not a size: it is 2.58 bpw from ISTA-DASLab and 2.91 bpw from AD, a 13% spread
 under one label. Any comparison keyed on the label rather than on measured bytes silently compares
 different size classes and attributes the difference to the codec.
+
+---
+
+# Amendment -- 2026-09-19 12:45: the linear fit above is WRONG, use log-linear
+
+**The 24.8% figure above is superseded. Corrected value: ~30%.** The number moved because the
+model was wrong, not because the data changed. Kept in place rather than edited away, because the
+error is instructive.
+
+## Why linear was inadmissible
+
+A second AD cell (A-IQ3XXS, 3.465 scored bpw, KLD 0.073686) made it testable, and linear fails on
+its own terms:
+
+```
+GSQ linear fit extrapolated to 3.465 bpw -> KLD -0.000910
+GSQ linear fit extrapolated to 3.732 bpw -> KLD -0.055755
+```
+
+**KL divergence cannot be negative.** A model that predicts a negative divergence a third of a bit
+beyond its anchors is not slightly imprecise, it is the wrong functional form.
+
+The second symptom: under a linear fit the two families' rates differ by **24%** (GSQ 0.2054, AD
+0.1567 KLD per bpw), which would say the codecs improve at fundamentally different rates.
+
+## Log-linear, and what it reveals
+
+| family | decay constant | KLD multiplier per +1 bpw |
+|---|---:|---:|
+| GSQ-RCO | 1.4077 / bpw | x0.245 |
+| AD | 1.3403 / bpw | x0.262 |
+
+**4.8% apart, against 24% apart under the linear fit.** The families improve at essentially the
+same exponential rate and differ by a constant multiplicative factor -- which is what a codec
+*quality* difference ought to look like, as opposed to two different scaling behaviours.
+
+```
+KLD(bpw) ~ A * exp(-1.37 * bpw)      lambda within 5% across both scalar families
+```
+
+Restated: **every additional bit per weight cuts KLD by about 4x, for both packagers.** The
+codecs are not competing on slope, they are competing on intercept.
+
+## Corrected matched-size result
+
+| at scored bpw | GSQ (log-linear) | AD (measured) | GSQ advantage | |
+|---|---:|---:|---:|---|
+| 2.822 | 0.124265 | 0.174453 | **28.8%** | interpolated |
+| 3.465 | 0.050264 | 0.073686 | **31.8%** | *extrapolated* |
+
+**GSQ-RCO is ~30% lower KLD than AD at matched file size.** The 2.822 row is interpolated inside
+GSQ's measured range and is the load-bearing one; the 3.465 row sits beyond GSQ's largest cell and
+is flagged as extrapolated in the scorer output.
+
+Independent cross-check on same-top, which only depends on the argmax and not on the distribution
+shape, agrees: AD carries **+22.1%** more top-1 errors at 2.822 bpw and **+37.9%** at 3.465.
+
+## The lesson worth keeping
+
+The correction was found by a check that had been stated in advance: *"the GSQ curve is a two-point
+linear fit... A-IQ3XXS and A-IQ3S will give AD its own curve, allowing the same comparison in the
+opposite direction as a check; if the two directions disagree, the linearity assumption is what
+broke."* It did disagree, and linearity is what broke.
+
+**Two points can always be joined by a line.** With only G-IQ2XS and G-IQ3XXS there was no way to
+see the curvature, and no residual to inspect -- a two-point fit has zero degrees of freedom and
+therefore always looks perfect. The sanity check that caught it was not statistical at all: it was
+asking whether the fit predicts values the quantity is allowed to take.
