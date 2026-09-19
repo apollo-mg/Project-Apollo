@@ -86,3 +86,52 @@ unanswerable `nvidia-smi` as its own distinct alarm.
 No data lost. The fidelity ladder was complete and committed (`bd0804c`); the agentic panel had
 produced no measurements; the `argus/agent-home/config.yaml` edit never happened, verified by the
 absence of the `.orig` backup the script writes before touching it.
+
+---
+
+# ROOT CAUSE FOUND -- 2026-09-19 15:00: the proxy suspended the node mid-load
+
+The "probable chain" above is superseded. The proxy's own log names it:
+
+```
+14:38:55  suspend: stopping llama-server before suspend (VRAM spill would not fit)
+14:38:56  start: launching llama-server          <-- a request arrived MID-SUSPEND
+14:39:04  suspend: suspended                     <-- the suspend committed anyway
+14:41:54  start: llama-server EXITED after 178s
+```
+
+The idle timer expired exactly 1800 s after the daily driver was restored at 14:07. The proxy
+began suspending; **one second later a request triggered a load; the suspend completed anyway and
+the machine entered S3 with llama-server mid-load.** The GPU came back in a state where
+`nvidia-smi` blocks instead of returning, and the telemetry Pi's unbounded ~1 Hz poll then
+accumulated 862 resident processes.
+
+## Three defects, all in `wake_proxy.py`
+
+1. **The suspend path took no lock.** `idle_monitor` called `N.sleep_node()` directly while
+   `ensure_ready()` acquires `self.lock`. Wake and suspend could interleave freely.
+2. **The suspend was armed and uncancellable.** `systemd-run --on-active=2` with no `--unit`
+   creates an anonymous transient timer. Once armed, nothing could stand it down -- not even a
+   wake request arriving in the 2 s window.
+3. **No last-moment re-check.** `sleep_node()` unloads llama-server, sleeps 8 s, *then* arms the
+   suspend. That 8 s window is ample for a request to arrive and a load to begin, and nothing
+   revalidated before committing.
+
+## Fixes applied
+
+1. `idle_monitor` now holds `N.lock` across the suspend and **re-verifies idle after acquiring
+   it** ("stood down -- a request arrived while acquiring the lock").
+2. The transient unit is **named** `apollo-suspend`, and `ensure_ready()` stops
+   `apollo-suspend.timer/.service` before waking or loading. Verified the node's sudoers permits
+   the stop.
+3. `sleep_node()` **aborts** if a request arrived within 10 s of the unload window closing.
+
+## What this reframes
+
+The `timeout 10` guard on `nvidia-smi` -- the first fix, and a correct one -- addresses the
+**amplifier**, not the cause. Without it a GPU fault becomes an unbounded process leak. But the
+fault itself was **self-inflicted by the proxy suspending a machine mid-load**, which no timeout
+would have prevented.
+
+Both fixes are worth having, and it is worth being clear about which is which: **one stops a fault
+becoming a catastrophe, the other stops the fault.**

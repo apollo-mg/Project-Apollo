@@ -193,6 +193,11 @@ class Node:
                 return False, f"wake failed recently; retrying in {self._fail_until - time.time():.0f}s"
             if await self.serving():                    # re-check: another caller may have won
                 return True, "serving (raced)"
+            # Cancel any suspend armed by the idle monitor. Without this a wake races a deferred
+            # `systemd-run --on-active` timer and the node sleeps mid-load.
+            await ssh(self.c.host,
+                      "sudo -n systemctl stop apollo-suspend.timer apollo-suspend.service "
+                      "2>/dev/null || true", timeout=15)
             if not await self.reachable():
                 self.state = "waking"
                 if not await self.wake():
@@ -258,9 +263,19 @@ class Node:
         log("suspend: stopping llama-server before suspend (VRAM spill would not fit)")
         await ssh(self.c.host, "pkill -x llama-server || true", timeout=30)
         await asyncio.sleep(8)
+        # LAST-MOMENT RE-CHECK. The 8 s unload window is long enough for a request to arrive and
+        # for ensure_ready() to begin a load. Suspending on top of that is what broke .73 on
+        # 2026-09-19: suspend armed 14:38:55, load started 14:38:56, machine slept 14:39:04 with
+        # llama-server mid-load, and the GPU returned in a state where nvidia-smi blocked.
+        if time.time() - self.last_request < 10:
+            log("suspend: ABORTED -- a request arrived during the unload window")
+            self.state = "unknown"
+            return
+        # NAMED transient unit so a wake can cancel it. An anonymous --on-active timer is armed
+        # and uncancellable for its whole delay.
         rc, _ = await ssh(self.c.host,
-            "sudo -n systemd-run --on-active=2 --timer-property=AccuracySec=100ms "
-            "systemctl suspend", timeout=20)
+            "sudo -n systemd-run --unit=apollo-suspend --on-active=2 "
+            "--timer-property=AccuracySec=100ms systemctl suspend", timeout=20)
         self.state = "suspended" if rc == 0 else "suspend-failed"
         log(f"suspend: {self.state}")
 
@@ -287,7 +302,13 @@ async def idle_monitor():
                 N.last_request = time.time()          # reset; work is happening
                 continue
             log(f"idle {idle:.0f}s >= {C.idle_secs}s — suspending")
-            await N.sleep_node()
+            # Hold the SAME lock ensure_ready() uses. The suspend path previously took no lock,
+            # so a wake could begin while a suspend was in flight.
+            async with N.lock:
+                if time.time() - N.last_request < C.idle_secs:
+                    log("suspend: stood down -- a request arrived while acquiring the lock")
+                    continue
+                await N.sleep_node()
         except Exception as e:                        # a monitor that dies silently is the bug
             log(f"idle_monitor error: {type(e).__name__}: {e}")
 
