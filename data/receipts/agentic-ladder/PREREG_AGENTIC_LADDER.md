@@ -93,3 +93,67 @@ differences on this corpus.
 
 If P-A0 fails, stop and report the instrument, not the codecs. Otherwise run all three arms with
 equal passes, and report every void separately from every failure.
+
+---
+
+# Amendment 1 -- 2026-09-19 14:25, before any arm runs: temp 0, and a runaway screener
+
+## Sampling changed to temp 0
+
+Prior argus arms ran `--temp 0.6` (see `run_carnice_arm.sh`). **This panel runs temp 0, top-k 1,
+`-np 1`.** Two reasons, and the first is specific to the hypothesis:
+
+1. **Temp 0 IS the argmax, and P-L4's claim is that the argmax is what ternary damages.** Greedy
+   decoding tests the damaged faculty directly rather than through a sampling distribution that
+   partially masks it.
+2. **Determinism.** `agent-benchmark-determinism` records temp-0 as byte-deterministic at `-np 1`.
+   If it holds, the noise floor collapses to zero and any inter-arm difference is real -- removing
+   the 3-scenario margin the original power note demanded.
+
+**P-A0 is tightened accordingly: two passes of the same arm must agree on ALL 16 verdicts**, not
+13. A weaker result means temp-0 determinism does not hold here and the original >=13 threshold
+plus multi-pass averaging is reinstated.
+
+## The hazard Mark raised: runaway reasoning at temp 0
+
+Greedy decoding has no escape from a degenerate state -- it cannot sample out of a repetition
+loop. `CLAUDE.md` already records that heavily quantised models are structurally brittle in
+"2-Bit Drunk" loops under multi-turn JSON tool schemas, and **the arms in this panel are exactly
+those models.**
+
+Left unscreened, a runaway would be misclassified: it would either exhaust the token budget and
+land as a decision failure, or trip the timeout and be VOIDed as INFRA. **Both readings are wrong
+and both corrupt the comparison.**
+
+### Screener, specified before any data
+
+Per scenario, record and classify from fields the driver already emits (`secs`, `reply`,
+`tool_calls`, `actions`) plus the events log:
+
+| signal | threshold |
+|---|---|
+| wall clock | > 3x the arm's own median scenario time |
+| repetition | max repeated 12-gram in `reply` occurring >= 4 times |
+| tool looping | same tool + same arguments called >= 4 times consecutively |
+| truncation | generation stopped on length rather than end-of-turn |
+
+A scenario tripping **any two** signals is classified **RUNAWAY** and reported as its own class --
+**separate from decision failures and separate from VOID.** A run tripping one signal is flagged
+for manual review and named in the receipt.
+
+### This makes the hazard a measurement
+
+**P-A4 (new prediction):** under greedy decoding, **runaway rate is monotonic in KLD** --
+T-BPQ2 >= T-GIQ2 >= T-AIQ3S. A damaged argmax should be more prone to degenerate loops precisely
+because greedy decoding cannot escape one.
+
+**Falsified if** runaway rate is flat across arms, or inverted. If runaway rate turns out to be
+**zero everywhere**, that is also a clean result: it retires Mark's concern with evidence and the
+panel proceeds on determinism alone.
+
+### Stopping rule for the hazard
+
+**If the gate arm shows RUNAWAY on more than 4 of 16 scenarios, temp 0 is not usable on these
+models** and the panel reverts to `--temp 0.6` with multi-pass averaging, reinstating the
+3-scenario power margin. That decision is made from the gate, before any comparison is run, and
+recorded either way.
