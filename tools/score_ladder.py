@@ -295,11 +295,26 @@ def main():
     else:
         c, g = kld("C-XBIN"), kld("G-IQ2XS")
         d = abs(c - g)
-        if d < a.floor:
-            print(f"  prism={c:.6f}  buun={g:.6f}  |diff|={d:.6e} < floor -> cross-binary comparison VALID")
-        else:
-            print(f"  prism={c:.6f}  buun={g:.6f}  |diff|={d:.6e} >= floor")
-            print("  -> P-L2 and P-L4 are CONFOUNDED by the instrument and must be withdrawn or re-scored.")
+        verdict = "PASS" if d < a.floor else "over threshold"
+        print(f"  prism={c:.6f}  buun={g:.6f}  |diff|={d:.6e}   (threshold {a.floor:.0e}) -> {verdict}")
+
+        # A pass/fail against a fixed threshold is not the whole story. What matters is the
+        # cross-binary noise RELATIVE TO the effect each prediction must detect. Reporting only
+        # pass/fail would either bless or void a prediction on a technicality.
+        for pid, cells_, desc in (("P-L2", ("B-PQ2", "G-IQ2XS"), "B-PQ2 vs G-IQ2XS"),
+                                  ("P-L5", ("B-PTQ1", "B-PQ2"), "B-PTQ1 vs B-PQ2")):
+            if all(x in ok for x in cells_):
+                eff = abs(kld(cells_[0]) - kld(cells_[1]))
+                if eff > 0:
+                    print(f"    {pid}: effect |{desc}| = {eff:.6f}"
+                          f"  -> cross-binary noise is {d/eff*100:.3f}% of it"
+                          f" ({'negligible' if d < eff/20 else 'NOT negligible -- treat as confounded'})")
+            else:
+                print(f"    {pid}: effect size pending ({', '.join(x for x in cells_ if x not in ok)} not run)")
+        if d >= a.floor:
+            print("  NOTE: exceeding the threshold does NOT by itself void P-L2/P-L4. It sets the")
+            print("        cross-binary floor. A prediction whose effect dwarfs that floor still stands;")
+            print("        one whose effect is comparable to it does not.")
 
 if __name__ == "__main__":
     main()
