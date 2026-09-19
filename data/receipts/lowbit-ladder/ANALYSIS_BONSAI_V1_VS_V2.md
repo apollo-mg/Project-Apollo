@@ -167,3 +167,13 @@ So the ranking of hypotheses for the v1 -> v2 regression, cheapest to test first
 **P-L5 remains the only one of these this panel can settle**, and it settles a different question:
 whether the two *containers* agree. If they do, both packings are correct and the regression lies
 in the recipe -- which points at (1) or (2) above.
+
+
+---
+
+**CORRECTION 2026-09-19 14:05.** The table above says the wider container buys "nothing, if P-L5
+confirms -- the extra bits are container padding". P-L5 *did* confirm (3.2e-5), but the conclusion
+was wrong: the extra 0.371 bpw buys **2.92x decode speed** (747s vs 2180s wall; 14.58 vs 51.30
+s/pass). Dense base-3 trit unpacking costs division and modulo by 3; 2-bit slots cost shifts and
+masks. See `FINDING_BONSAI_SPEED.md`. The reasoning error was assuming that identical *fidelity*
+meant the extra bytes bought nothing at all -- fidelity is not the only thing bytes can buy.

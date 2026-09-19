@@ -268,13 +268,27 @@ def main():
 
     # ---- P-L4: same-top drops more than KLD implies ----
     print("\nP-L4  Ternary cells drop same-top MORE than their KLD suggests (>=0.5 pp)")
-    miss = need("B-PQ2", "G-IQ2XS")
-    if miss:
-        print(f"  PENDING (missing {', '.join(miss)})")
+    gs_all = [c for c in ok if FAMILY.get(c, ("?",))[0] == "GSQ-RCO" and c != "C-XBIN"]
+    tern = [c for c in ok if FAMILY.get(c, ("?",))[0] == "Bonsai2"]
+    cvk, cvt = curve(gs_all, ok, kld), curve(gs_all, ok, top, log=False)
+    if not tern or cvk is None or cvt is None:
+        print("  PENDING (needs a ternary cell and >=2 GSQ cells)")
     else:
-        print(f"  B-PQ2  KLD={kld('B-PQ2'):.6f} same-top={top('B-PQ2'):.3f}%")
-        print(f"  G-IQ2XS KLD={kld('G-IQ2XS'):.6f} same-top={top('G-IQ2XS'):.3f}%")
-        print("  -> needs the KLD-matched comparison described in the prereg; reported, not auto-scored.")
+        _k, b1, k1, rate = cvk
+        _t, bt1, tt1, trate = cvt; trate = -trate
+        for c in sorted(tern):
+            tk, tt = kld(c), top(c)
+            # where would a scalar cell sit at THIS KLD, and what same-top would it have?
+            b_eq = b1 + math.log(k1 / tk) / -rate if rate else None
+            if b_eq is None:
+                continue
+            t_eq = tt1 + (b_eq - bt1) * trate
+            d = t_eq - tt
+            print(f"  {c:<7} KLD {tk:.6f}, same-top {tt:.3f}%")
+            print(f"          a SCALAR cell of equal KLD sits at {b_eq:.3f} bpw -> same-top {t_eq:.3f}%")
+            print(f"          -> ternary is {d:+.3f} pp below it   ({'MEETS' if d >= 0.5 else 'does not meet'} the 0.5 pp threshold)")
+        print("  NOTE: the scalar equivalent is EXTRAPOLATED below GSQ's measured range")
+        print("        (2.476-2.968 bpw). Direction is robust; the exact pp value is not.")
 
     # ---- P-L5: the control pair ----
     print("\nP-L5  CONTROL: B-PTQ1 and B-PQ2 hold the SAME ternary weights -> KLD must agree")
@@ -301,8 +315,11 @@ def main():
         # A pass/fail against a fixed threshold is not the whole story. What matters is the
         # cross-binary noise RELATIVE TO the effect each prediction must detect. Reporting only
         # pass/fail would either bless or void a prediction on a technicality.
+        # ONLY predictions that actually cross binaries. P-L5 compares two prism cells to
+        # each other, so cross-binary noise is irrelevant to it -- applying this check there
+        # was a bug that reported a confirmed control as "confounded".
         for pid, cells_, desc in (("P-L2", ("B-PQ2", "G-IQ2XS"), "B-PQ2 vs G-IQ2XS"),
-                                  ("P-L5", ("B-PTQ1", "B-PQ2"), "B-PTQ1 vs B-PQ2")):
+                                  ("P-L4", ("B-PQ2", "G-IQ2XS"), "B-PQ2 vs G-IQ2XS")):
             if all(x in ok for x in cells_):
                 eff = abs(kld(cells_[0]) - kld(cells_[1]))
                 if eff > 0:
