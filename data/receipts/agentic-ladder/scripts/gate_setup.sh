@@ -11,6 +11,15 @@
 set -u
 ARM="${1:?usage: gate_setup.sh <arm-name> <gguf-path-on-.73>}"
 GGUF="${2:?}"
+# BINARY MUST MATCH THE CODEC. buun cannot read GGML types 142/143 -- it fails with
+# "gguf_init_from_reader: failed to read tensor info", which reads like a corrupt file rather
+# than an unsupported type. Ternary arms need the PrismML fork; stock GGUF arms use buun,
+# the build that produced ref.kld.
+case "$GGUF" in
+  *Ternary-Bonsai*|*PTQ1_0*|*PQ2_0*) BIN=/home/mark/prism_llama_cpp/build_sm60/bin/llama-server ;;
+  *)                                 BIN=/home/mark/buun-sm60-qual/build_sm60qual/bin/llama-server ;;
+esac
+echo "arm $ARM -> binary $BIN"
 A=/mnt/TG_2TB/Projects/Apollo/argus
 LOG=/mnt/TG_2TB/Projects/Apollo/data/receipts/agentic-ladder/logs
 mkdir -p "$LOG"
@@ -43,7 +52,7 @@ fi
 timeout 10 nvidia-smi --query-gpu=index,memory.used --format=csv,noheader'
 
 echo "[$(date +%H:%M:%S)] starting $ARM on .73:8084 at temp 0"
-ssh -n -o BatchMode=yes mark@10.0.0.73 "setsid nohup ~/buun-sm60-qual/build_sm60qual/bin/llama-server \
+ssh -n -o BatchMode=yes mark@10.0.0.73 "setsid nohup $BIN \
   -m '$GGUF' -ngl 99 -c 65536 -np 1 -sm tensor -fit off -ctk f16 -ctv f16 -fa on --jinja \
   --chat-template-kwargs '{\"reasoning_effort\":\"medium\"}' \
   --temp 0 --top-k 1 --top-p 1.0 --min-p 0.0 --repeat-penalty 1.0 --presence-penalty 0.0 \
