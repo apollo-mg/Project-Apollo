@@ -31,17 +31,42 @@ $BIN -m <model> -f /mnt/HDD/exl3/wiki.test.raw \
 Parse with: `Mean KLD:\s+NUM`, `Median\s+KLD:\s+NUM`, `99\.0%\s+KLD:\s+NUM`, same-top %.
 **`llama-perplexity` exits 0 on failure** -- verify parsed output, never the return code.
 
-## Next action, in order
+## Progress as of 2026-09-19 11:52
 
-1. **Run P-L0 gate**: the Q8_0 against `ref.kld`. Pass = mean KLD < 1e-4 AND same-top >= 99.9%.
-   If it fails, STOP -- nothing else counts and the reference is not reproducible with this binary.
-2. Delete `/mnt/HDD/ladder/Qwen3.8-27B-Q8_0.gguf` (frees 29 GB; panel needs 45.4 GB more).
-3. Resume transfer: `/tmp/ladder_xfer.sh` is idempotent (rsync skips matching files) and reads
-   `/tmp/ladder_manifest.txt`. **Record its PID at launch**; never search the process list for it.
-   Remaining: AD-IQ2_XS 9.89, GSQ-IQ3_XXS 10.44, AD-IQ3_XXS 12.08, AD-IQ3_S-IQ3_XXS 12.98 GB.
-4. Run the 5 stock-GGUF cells.
-5. Bonsai cells (B-PTQ1 `53107f53...` 5.95 GB, B-PQ2 `3907dc16...` 7.21 GB) need the
-   `PrismML-Eng/llama.cpp` fork built -- **not started**, and it is the only build work left.
+1. ~~Run P-L0 gate~~ **DONE, PASS** -- mean KLD `0.000000 +/- 0.000000`, same-top `100.000%` on
+   all 40 chunks. `RESULT_PL0_GATE.md`. The measured floor is below 1e-6, which makes P-L5's
+   1e-4 threshold a real discriminator rather than noise.
+2. ~~Delete the Q8_0~~ **DONE** (73 GB free at the time; 31 GB now that the panel has landed).
+3. ~~Transfer the four remaining models~~ **DONE**, every one hash-verified on BOTH ends.
+4. **Five stock cells RUNNING**, serial, ~16 min each, started 11:36. G-IQ2XS done:
+   mean KLD `0.202243`, same-top `81.471%`. Results append to `~/ladder/cells/results.jsonl`
+   on `.73`, one line per cell, fsynced before the next starts.
+5. Bonsai cells: **both models now on the desktop and hash-verified** -- B-PTQ1
+   `53107f530aa52eb0...`, B-PQ2 `3907dc1658db1f78...` (matches the hash the prereg recorded in
+   advance). Still to do: transfer them to `.73`, build the fork, run `C-XBIN` then the two cells.
+
+## Remaining, in order
+
+1. Wait for the stock batch (`BATCH_DONE` in `~/ladder/cells/batch.log`; ETA ~12:56).
+2. Transfer B-PTQ1 + B-PQ2 to `/mnt/HDD/ladder/` (13.2 GB, 31 GB free).
+3. `scripts/build_prism.sh` on `.73`. **Host compiler is pinned to gcc-13 on purpose**: CUDA
+   12.4's `host_config.h:143` hard-errors above gcc 13 and this box defaults to gcc 15.2.
+   The local `engines/prism_llama_cpp` checkout is useless here -- `GGML_TYPE_COUNT = 42`, it
+   cannot represent types 142/143. `origin/prism` is ~2520 commits ahead and has them.
+4. `scripts/run_prism_cells.sh` -- runs **C-XBIN first** and skips the Bonsai cells entirely if
+   it yields no KLD block, so a `.kld` format incompatibility cannot be misread as a Bonsai
+   defect.
+5. Score everything: `tools/score_ladder.py <results.jsonl...> --floor <measured P-L0 mean>`.
+
+## Operational state, must not be forgotten
+
+- **The wake proxy is STOPPED** (`systemctl --user stop apollo-wake-proxy`, approved by Mark for
+  the duration of the batch) and the keepalive loop is killed. With the proxy down, `.73` cannot
+  suspend and cannot serve. **Restart it when the ladder is done** -- it restores the daily
+  driver itself via `WP_START_CMD`.
+- Earlier in this session I wrongly concluded the proxy could not restart llama-server, from
+  reading only the first 20 lines of its unit. `WP_START_CMD` is set on line 28. The proxy
+  restarted the driver automatically 2 s after the gate released VRAM.
 
 ## Open loops elsewhere (found by grep, 2026-08-05 .. 2026-09-09)
 

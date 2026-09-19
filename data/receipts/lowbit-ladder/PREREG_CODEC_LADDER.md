@@ -101,3 +101,58 @@ Both codec families make distributional claims (Bonsai: "98.2% of FP16 intellige
 ISTA: IQ3_S "matches the base model exactly on AIME25"). A same-model, same-corpus,
 same-reference ladder spanning 1.75 to 8 bits is a measurement neither vendor published and
 almost nobody else is positioned to run.
+
+---
+
+# Amendment 1 -- 2026-09-19, after P-L0 passed, before any Bonsai cell ran
+
+**Nothing above is modified. This adds one control cell and states a risk the original prereg did
+not address.** Recorded with its timing because the Bonsai cells had not been run when it was
+written; P-L0 had passed and the five stock cells were mid-batch.
+
+## The gap: P-L2 and P-L4 are cross-binary comparisons
+
+The panel deliberately uses two engines -- stock GGUF cells on `buun-sm60-qual`, Bonsai cells on
+the `PrismML-Eng/llama.cpp` fork -- because no single binary reads both IQ-series and types
+142/143. The engine is declared per cell in the panel table.
+
+What the original prereg did **not** say is that this makes two predictions cross-binary:
+
+| prediction | compares | binaries | exposure |
+|---|---|---|---|
+| P-L1 | GSQ vs GSQ, AD vs AD | buun only | none |
+| P-L3 | GSQ vs AD | buun only | none |
+| **P-L5** | B-PTQ1 vs B-PQ2 | prism only | **none** -- the control pair stays clean |
+| **P-L2** | B-PQ2 vs G-IQ2XS | **prism vs buun** | **the headline prediction** |
+| **P-L4** | ternary vs scalar same-top | prism vs buun | yes |
+
+If the two binaries compute KL divergence differently, or parse `ref.kld` differently, a
+difference attributed to the codec would actually be an artifact of the instrument. The prism tree
+is a different lineage that is roughly 2520 commits from the local checkout, so this is not an
+idle worry -- the stored-logit file format is a llama.cpp implementation detail and it has changed
+over time.
+
+## Control cell C-XBIN, added
+
+**Run `G-IQ2XS` a second time, on the prism binary, against the same `ref.kld`, with the frozen
+invocation.** Same file, same reference, same flags; the only variable is the binary.
+
+| outcome | meaning |
+|---|---|
+| mean KLD agrees with the buun run to within the P-L0 floor | cross-binary comparison is valid; P-L2 and P-L4 stand as written |
+| they disagree by more than the floor | **P-L2 and P-L4 are confounded and must be withdrawn**, or re-scored within-binary only |
+
+This control is also the **readiness probe for the prism binary itself.** A successful build is
+not evidence the binary can read `ref.kld`; only reading it and producing a sane KLD block is.
+Running C-XBIN first means a format incompatibility surfaces on a known-good model rather than
+being discovered mid-Bonsai-cell and misread as a Bonsai defect.
+
+**Cost:** one additional 16-minute cell. **Prediction for C-XBIN:** the two agree to within the
+P-L0 floor (<1e-4 mean KLD). Scored like any other prediction.
+
+## Inventory correction (not a prediction change)
+
+The panel table's "on disk" column was wrong in both Bonsai rows. Actual state, both hash-verified
+2026-09-19: **B-PTQ1 is present** (`53107f530aa52eb0...`, 5,946,648,928 B) and **B-PQ2 was not**
+until fetched today (`3907dc1658db1f78...`, 7,206,168,928 B, matching the hash this prereg
+recorded in advance).
