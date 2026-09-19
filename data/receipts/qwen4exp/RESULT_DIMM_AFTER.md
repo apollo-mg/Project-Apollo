@@ -5,13 +5,16 @@ After: 128 GB, 8 channels, **trained at 2133** (P-D1 held — no 1866 clock-drop
 Both at GPU 1189/250. Same driver sha `8b11667589c5a05b`, so before/after are byte-identical code.
 This is a **clean channel-doubling read** — no clock confound.
 
-**Data provenance (2026-09-17):** the raw after-run rows were never copied back off `.194` —
-only `dimm_after.png` was. They are at `~/flashnext_res/results.jsonl` on `.194` (a home path,
-so the 09-16 BMC shutdown did not touch them), pending retrieval into
-`dimm_after_results.jsonl` here alongside `dimm_before_results.jsonl`. Every number in this
-receipt was scored from those rows by `tools/score_dimm.py` at the time of the run; until the
-file lands, the scoring is not independently re-runnable from this repo. Flagged rather than
-left as a dangling reference.
+**Data provenance -- RESOLVED 2026-09-19.** The raw rows were recovered from `.194` when it was
+next powered on and are now committed here as `dimm_after_results.jsonl` (355.2 KB, 619 rows,
+sha256 `41405ca934b81cfc14bdf92b0748bc8e6f4c89c0c65a23e631ce9266cd33b719`). It is the driver's
+cumulative append log spanning 2026-09-13 to 2026-09-16 and carries every campaign arm, including
+both `DB` (108 rows) and `DA` (108 rows).
+
+Re-scored mechanically from the recovered file with `tools/score_dimm.py dimm_after_results.jsonl DA`,
+the medians reproduce this receipt exactly: **rung 48 at ctx 3600 = 8.36 tok/s**, **rung 48 at
+ctx 1800 = 8.68 tok/s**. Every number below is now re-derivable from data in the repo rather than
+from a run that happened once on a machine that was later powered down.
 
 ## The headline
 

@@ -6,10 +6,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Project Apollo is a local-first, multi-node "Sovereign AI" orchestration layer that runs multi-agent LLM workloads entirely on local hardware (AMD RX 9070 XT control plane + remote Nvidia Tesla P100 worker nodes). No cloud LLM APIs are used unless explicitly authorized. This repo is the **Control Plane**: the SQLite Message Bus, agent profiles, orchestration glue, and memory/daydream subsystems.
 
+**Read [STATUS.md](STATUS.md) first.** Most of the orchestration layer described here is
+**dormant** — the Message Bus, coordinator, Glass Cockpit and FastContext sidecar have not run
+since early July 2026. The project is in lab mode: hardware empirics published as receipts in
+`data/receipts/`, plus upstream contributions to `llama-cpp-turboquant` / `buun-llama-cpp`.
+Assume nothing is running until you have checked.
+
 ## Commands
 
 ```bash
 # Control plane lifecycle (message bus + FastContext sidecar + coordinator/WebUI)
+# DORMANT since 2026-07-06 -- starting it is almost never what you want. See STATUS.md.
 ./apollo-ctl.sh start|stop|restart|status
 # Service logs and PID files land in run/ (e.g. run/message-bus.log)
 
@@ -17,7 +24,13 @@ Project Apollo is a local-first, multi-node "Sovereign AI" orchestration layer t
 ./run_diagnostics.sh
 
 # Inspect the task queue directly — the live DB is data/message_bus.db, NOT vault/message_bus.db
+# (the bus is not running; the queue is stale)
 sqlite3 data/message_bus.db "SELECT * FROM task_queue;"
+
+# What actually runs day to day
+systemctl --user status apollo-wake-proxy   # .73 wake-on-demand, :8099, serves Qwen3.8-27B
+./tools/ledger_health.sh                    # periodic dev-diary status
+./tools/ledger_validate.sh                  # is the newest diary entry actually an entry?
 
 # Python: always use the project venv (no root requirements.txt; deps live in the venv)
 ./venv_cachyos/bin/python3 <script>.py
@@ -71,14 +84,27 @@ The local models this repo orchestrates crash on oversized context, so the codeb
 
 ## Process Control
 
-- **Never `pkill -f` / `pgrep -f` a pattern you might be inside of.** Over ssh the searching shell is
-  `bash -c '...<pattern>...'`, so the pattern matches its own command line and the kill takes down
-  the session (exit 255). This happened twice: `pkill -f "llama-server.*GLM-4.7-Flash-Q6_K.gguf"`
-  (2026-08-06) and `pgrep -f "pfetch.sh"` (2026-08-07) — the second *after* a written rule existed.
-- Use `scripts/safekill.sh <pattern>` instead. It excludes self and every ancestor before signalling,
-  is dry-run by default, and refuses runaway matches. `--exact` maps to `pgrep -x` for process names.
-- Prefer `pgrep -x`/`pkill -x` (exact process name) over `-f` whenever the name alone is specific
-  enough — `llama-server`, `curl`.
+- **Record the PID when you launch; never search for it later.** `cmd & echo $! > /tmp/x.pid`,
+  then `kill "$(cat /tmp/x.pid)"`. This is the rule that makes the hazard below unreachable
+  rather than merely avoidable, and it is the one to reach for first. Backgrounded work should
+  write its PID at launch as a matter of course.
+- **Never match a pattern against a process list you are inside of.** The danger is the *match*,
+  not any particular command. All of these are the same hazard:
+  `pkill -f`, `pgrep -f`, `ps | grep`, `ps | awk`, `ps -eo args | grep -c`, and any
+  language-level process API doing the same thing. Over ssh, and inside `bash -c`, the searching
+  shell's own command line contains the pattern, so the search matches itself.
+  - 2026-08-06 `pkill -f "llama-server.*GLM-4.7-Flash-Q6_K.gguf"` killed the ssh shell.
+  - 2026-08-07 `pgrep -f "pfetch.sh"` killed it again, *after* a written rule existed.
+  - 2026-09-19 `ps -eo pid,args | awk '$0 ~ /rsync/ && $0 ~ /ladder/'` killed the launcher that
+    was about to start a transfer. The rule did not fire because it named `pkill`/`pgrep` and
+    this was `ps`+`awk`. That is why the rule above is now phrased around the match, not the tool.
+- **When you must search, use `scripts/safekill.sh <pattern>`.** It excludes self and every
+  ancestor before signalling, is dry-run by default (so it is also the safe way to *find*), and
+  refuses runaway matches. `--force` to actually signal, `--exact` for `pgrep -x` on the process
+  name.
+- Prefer exact process names (`pgrep -x` / `pkill -x`) over `-f` whenever the name alone is
+  specific enough -- `llama-server`, `curl`. Note `-x` matches the 15-char `comm`, so
+  `llama-perplexity` (16) never matches and such a guard is silently inert.
 
 ## Hardware Constraints That Shape Code
 
