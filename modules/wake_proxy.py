@@ -220,8 +220,14 @@ class Node:
         """Never suspend on top of real work, even if our own idle timer says otherwise."""
         if self.inflight:
             return True
+        # `timeout 10` runs REMOTELY and is load-bearing. The ssh helper's own timeout kills the
+        # LOCAL client; the remote command keeps running. nvidia-smi can block indefinitely on a
+        # faulted GPU, so an unbounded poll here leaks one stuck remote process per minute,
+        # forever. On 2026-09-19 a ~1 Hz poller with the same flaw put .73 at load 770 with 862
+        # resident nvidia-smi. See data/receipts/agentic-ladder/INCIDENT_73_NVIDIA_SMI_PILEUP.md
         rc, out = await ssh(self.c.host,
-            "nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits", timeout=15)
+            "timeout 10 nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits",
+            timeout=15)
         if rc == 0 and any(int(x) > 10 for x in out.split() if x.strip().isdigit()):
             return True
         # NON-INFERENCE WORK. The idle timer only counts requests THROUGH THIS PROXY, and the
@@ -230,7 +236,8 @@ class Node:
         # from under itself and corrupt the copy. Treat a login session or a live transfer as
         # busy; the cost of a false "busy" is a machine that stays awake, which is recoverable.
         rc, out = await ssh(self.c.host,
-            "who | wc -l; pgrep -c -x 'rsync|scp|cp|dd|tar' 2>/dev/null || echo 0", timeout=15)
+            "timeout 10 sh -c \"who | wc -l; pgrep -c -x 'rsync|scp|cp|dd|tar' 2>/dev/null || echo 0\"",
+            timeout=15)
         if rc == 0:
             nums = [int(x) for x in out.split() if x.strip().isdigit()]
             if any(n > 0 for n in nums):

@@ -18,19 +18,29 @@ mkdir -p "$LOG"
 echo "[$(date +%H:%M:%S)] stopping wake proxy so it cannot restart the daily driver"
 systemctl --user stop apollo-wake-proxy
 
-echo "[$(date +%H:%M:%S)] freeing VRAM on .73 (identify holder from nvidia-smi, never a pattern)"
+echo "[$(date +%H:%M:%S)] freeing VRAM on .73 (identify holder from timeout 10 nvidia-smi, never a pattern)"
 ssh -n -o BatchMode=yes mark@10.0.0.73 'set -u
-P=$(nvidia-smi --query-compute-apps=pid --format=csv,noheader | sort -u | head -1)
+P=$(timeout 10 nvidia-smi --query-compute-apps=pid --format=csv,noheader | sort -u | head -1)
 if [ -n "$P" ]; then
   CMD=$(tr "\0" " " < /proc/$P/cmdline)
   case "$CMD" in *llama-server*) kill -TERM "$P"; echo "  stopped llama-server pid $P";;
                  *) echo "  REFUSING: pid $P is not llama-server"; exit 1;; esac
+  # The drain check must NOT be built out of nvidia-smi alone: on 2026-09-19 nvidia-smi hung,
+  # and a check made of the failed component became another hung process instead of an alarm.
+  # Primary signal is the PROCESS being gone; nvidia-smi is corroboration and is bounded, and
+  # an unanswerable nvidia-smi is its own distinct, loud failure.
   for i in $(seq 1 60); do sleep 2
-    HI=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits | sort -rn | head -1)
-    [ "$HI" -lt 500 ] && { echo "  VRAM drained after $((i*2))s"; break; }
+    kill -0 "$P" 2>/dev/null || { echo "  process $P gone after $((i*2))s"; break; }
   done
+  if kill -0 "$P" 2>/dev/null; then echo "  WARNING: pid $P still alive after 120s"; fi
+  if HI=$(timeout 10 nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits 2>/dev/null | sort -rn | head -1); then
+    echo "  VRAM high-water now ${HI:-unknown} MiB"
+  else
+    echo "  *** GPU NOT ANSWERING: nvidia-smi timed out. ABORTING rather than polling it again. ***"
+    exit 1
+  fi
 fi
-nvidia-smi --query-gpu=index,memory.used --format=csv,noheader'
+timeout 10 nvidia-smi --query-gpu=index,memory.used --format=csv,noheader'
 
 echo "[$(date +%H:%M:%S)] starting $ARM on .73:8084 at temp 0"
 ssh -n -o BatchMode=yes mark@10.0.0.73 "setsid nohup ~/buun-sm60-qual/build_sm60qual/bin/llama-server \

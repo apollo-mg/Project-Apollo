@@ -4,7 +4,7 @@
 # produces an OOM that reads like a model defect. See readiness-probes-lie.
 set -u
 PID=41610
-echo "before: $(nvidia-smi --query-gpu=index,memory.used --format=csv,noheader)"
+echo "before: $(timeout 10 nvidia-smi --query-gpu=index,memory.used --format=csv,noheader)"
 if ! kill -0 "$PID" 2>/dev/null; then echo "PID $PID not alive; nothing to stop"; else
   # Re-confirm identity at signal time. A PID is not a stable name: if the server had restarted,
   # 41610 could belong to anything by now. Reading THIS pid's cmdline is not a process-list search.
@@ -17,7 +17,7 @@ if ! kill -0 "$PID" 2>/dev/null; then echo "PID $PID not alive; nothing to stop"
 fi
 for i in $(seq 1 60); do
   sleep 2
-  USED=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits | tr '\n' ' ')
+  USED=$(timeout 10 nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits | tr '\n' ' ')
   HI=$(echo "$USED" | tr ' ' '\n' | grep -v '^$' | sort -rn | head -1)
   if [ "${HI:-99999}" -lt 500 ]; then
     echo "drained after $((i*2))s: $USED"

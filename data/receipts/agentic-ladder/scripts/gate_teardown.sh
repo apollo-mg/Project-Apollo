@@ -7,7 +7,7 @@ G=$(cat /tmp/argus_gateway.pid 2>/dev/null || true)
 if [ -n "${G:-}" ] && [ -d /proc/$G ]; then kill -TERM "$G" && echo "gateway $G stopped"; else echo "gateway already gone"; fi
 ssh -n -o BatchMode=yes mark@10.0.0.73 'for f in ~/argus_*.pid; do [ -f "$f" ] || continue
   P=$(cat "$f"); [ -d /proc/$P ] && { kill -TERM "$P"; echo "  arm server $P stopped"; }; rm -f "$f"; done
-  sleep 3; nvidia-smi --query-gpu=index,memory.used --format=csv,noheader'
+  sleep 3; timeout 10 nvidia-smi --query-gpu=index,memory.used --format=csv,noheader'
 [ -f "$A/agent-home/config.yaml.orig" ] && { cp "$A/agent-home/config.yaml.orig" "$A/agent-home/config.yaml"; echo "agent-home config restored"; }
 systemctl --user start apollo-wake-proxy && echo "wake proxy restarted"
 sleep 5
