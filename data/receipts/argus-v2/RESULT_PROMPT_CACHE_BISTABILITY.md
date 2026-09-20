@@ -37,6 +37,34 @@ previous binary (`c9c52d71`) produced 24 times running**. So the cache is not pr
 It did not hold. The gate's pass was real for what it measured and useless for what the campaign
 needs, which is exactly what the gap said.
 
+## Reproduction, and the trigger
+
+**Reproduced exactly after a server restart**: same two hashes (`ff82d31f...` odd / `802ada7a...`
+even), same lengths, same finish reasons, `cached=0` on request 1 then `cached=30` from request 2
+onward. 10 for 10, no exceptions.
+
+**The trigger is a FRESH SERVER.** Between the first observation and the reproduction there was a
+window where the same prompt returned `cached_tokens: 0` and stable output, with the slot
+reporting `cache_status: "full reprocess: no reusable context checkpoint"` -- the cache simply
+stopped engaging. The difference: that window followed a run of `cache_prompt: false` requests.
+
+**So `cache_prompt: false` appears to suppress caching in the slot PERSISTENTLY, not just for the
+request carrying it.** Observed, mechanism unverified. Convenient for the mitigation, but do not
+rely on the side effect -- send the flag on every request that must reproduce, because a behaviour
+nobody documented is not a guarantee.
+
+This also means **any determinism result is invalid unless `cached_tokens` is recorded with it.**
+A run that happens to land in the non-caching window looks perfectly deterministic and proves
+nothing about the warm path.
+
+## Ruled out: the frontier ratchet
+
+The `/slots` endpoint exposes a buun-specific `computation_frontier_ratchet` carrying
+`agreement_streak`, `agreements_total`, `disagreements_total`, `flips_total` and `fallbacks_total`
+-- a plausible shape for a two-path A/B mechanism producing period-2 output. **It is not the
+cause.** Every counter read zero both before and after a batch of warm-cache requests, and
+`read_path` stayed `legacy` throughout. The ratchet is inert on this build.
+
 ## Likely mechanism, not yet proven
 
 `llama-server --help` on this build carries `--vbr-prompt-cache`: *"publish idle dynamic-VBR slots
