@@ -76,11 +76,19 @@ class ArgusClient(acp.Client):
         3.5-4 chars/token for English, but do not convert silently, report both."""
         used = [u for (u, _) in self.usage if isinstance(u, (int, float))]
         size = [z for (_, z) in self.usage if isinstance(z, (int, float))]
+        think = "".join(t or "" for t in self.thoughts)
+        # LEAK DETECTOR. buun's 3.6 template carries auto_disable_thinking_with_tools
+        # specifically to "prevent the known <tool_call>-leaks-into-<think> block bug".
+        # Stock Qwen3.8 has no such flag, so the campaign runs thinking-ON with tools
+        # active -- exactly the configuration that guard exists to avoid. A leak would
+        # corrupt reasoning capture and tool parsing at once, silently. Flag it instead.
+        leak = [m for m in ("<tool_call>", "</tool_call>", "<tool_response>") if m in think]
         return {"reply_chars": len(reply or ""),
-                "think_chars": sum(len(t or "") for t in self.thoughts),
+                "think_chars": len(think),
                 "think_chunks": len(self.thoughts),
                 "ctx_used_peak": max(used) if used else None,
-                "ctx_size": max(size) if size else None}
+                "ctx_size": max(size) if size else None,
+                "tool_call_leak": leak or None}
 
     def on_connect(self, conn): pass
 
