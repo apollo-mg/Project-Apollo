@@ -24,7 +24,10 @@ Three-way test, because two of the outcomes look alike:
 
 Usage: probe_gateway_seed.py [base] [key]
 """
-import sys, json, hashlib, re
+import sys, json, hashlib, re, time
+
+RUN = str(int(time.time()))   # titles must be UNIQUE gateway-side; a reused title
+                              # returns 400 invalid_title on every re-run (driver.py:~228)
 import gateway_transport as gw
 
 # THE GUARD THIS PROBE SHIPPED WITHOUT, and immediately needed. First run returned three
@@ -41,6 +44,7 @@ MIN_LEN = 200   # a 120-word answer is ~600 chars; anything near an error string
 
 BASE = sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:8643"
 KEY  = sys.argv[2] if len(sys.argv) > 2 else "argus-local-test-key-0123456789"
+MODEL = sys.argv[3] if len(sys.argv) > 3 else "/mnt/models/AI_Models/Qwen 3.8/Qwen3.8-27B-Q6_K.gguf"
 
 # High-entropy prompt on purpose: a confident task returns the same tokens under any
 # perturbation and cannot distinguish "seeded" from "ignored". See
@@ -48,7 +52,7 @@ KEY  = sys.argv[2] if len(sys.argv) > 2 else "argus-local-test-key-0123456789"
 MSG = "Write a vivid 120-word description of an abandoned lighthouse at dawn. Be specific and original."
 
 def run(tag, seed):
-    sid = gw.new_session(BASE, KEY, f"seedprobe-{tag}-{seed}")
+    sid = gw.new_session(BASE, KEY, f"seedprobe-{RUN}-{tag}-{seed}", model=MODEL)
     text, _tools, failed = gw.chat_stream(BASE, KEY, sid, MSG, timeout=600, seed=seed)
     infra = bool(INFRA_PAT.search(text)) or (len(text) < MIN_LEN)
     return {"tag": tag, "seed": seed, "failed": failed, "len": len(text), "infra": infra,

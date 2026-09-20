@@ -34,8 +34,20 @@ def _req(base, path, key, body=None, method="POST", timeout=900, stream=False):
                  **({"Accept": "text/event-stream"} if stream else {})})
     return urllib.request.urlopen(r, timeout=timeout)
 
-def new_session(base, key, title):
-    with _req(base, "/api/sessions", key, {"title": title}, timeout=60) as f:
+def new_session(base, key, title, model=None):
+    """Create a gateway session, optionally PINNED to a model.
+
+    Without `model` the session inherits whatever endpoint the Hermes UI is currently
+    pointed at (the session object comes back with "model": null). That is an
+    instrument-version hazard sitting inside the harness: the same scenario run weeks
+    apart can silently execute on different hardware and a different model, and nothing
+    in the results records which. Mark switches this endpoint by hand between the P100
+    node and the 9070. Pin it.
+    """
+    body = {"title": title}
+    if model is not None:
+        body["model"] = model
+    with _req(base, "/api/sessions", key, body, timeout=60) as f:
         d = json.loads(f.read())
     # Response nests under "session" -- {"object":"hermes.session","session":{"id":...}}.
     # A flat d["id"] read (what the pre-ACP stub assumed) returns None here.
