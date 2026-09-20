@@ -90,6 +90,52 @@ computes something measurably different from recomputing the same prefix at the 
 pressure to force degradation toward the `t2` floor) introduces a *separate* effect on top. That
 is a different question from the one this arm was meant to answer.
 
+## ISOLATED: speculative decoding is required for the bug
+
+Four arms, same binary flags otherwise, same prompt, same seed, fresh server each time:
+
+| arm | warm requests | distinct outputs | verdict |
+|---|---:|---:|---|
+| new `08826ad6`, MTP on, VBR | 9 | **2, alternating** | bistable |
+| new `08826ad6`, MTP on, f16 | 8 | **2, alternating** (same hashes) | bistable |
+| **new `08826ad6`, MTP OFF** | **8** | **1** | **CLEAN** |
+| old `c9c52d71`, MTP on, VBR | **0** | 1 | VOID -- cache never engaged |
+
+**With `--spec-type draft-mtp --draft-max 3` removed, 9 of 9 requests are byte-identical,
+8 of them at `cached_tokens: 30`.** The warm-cache path is deterministic on its own. It is the
+combination of cache reuse AND speculative decoding that diverges.
+
+**The first-request anomaly is the same bug.** Without MTP even request 1 (cold, `cached=0`)
+matches the rest. The "discard a warmup generation" rule derived earlier today was treating a
+symptom -- the cause is MTP state, not kernel autotune or lazy allocation as guessed there.
+
+## Why it appears only now: the old build never reached this path
+
+The old binary reported `cached_tokens: 0` on every request, and its log says why:
+
+```
+W load_model: automatic dynamic VBR host caching fallback=live_only
+   reason=artifact_topology_unavailable store_status=unavailable; cache-ram disabled
+E slot: MTP checkpoint companion skipped: target=... draft=... spec=... state-ready=1
+```
+
+Host caching fell back to `live_only` and MTP checkpointing was skipped outright. The new build
+emits neither line. **So this is not a regression in the ordinary sense -- it is a newly reachable
+path.** Mark's read on first seeing it was exactly this: something that was not working now works,
+and the newly working thing has a defect.
+
+**Bisect pointers, by commit message rather than by bisecting:**
+
+- **`30da59942` "server: retire static cache planner and lift host-prefix cutoff"** (2026-09-18) --
+  *"Allow short positive host-prefix matches without a source-coverage cutoff."* The repro prompt
+  is 34 tokens; a short-prefix cutoff is precisely what would have suppressed caching before.
+- **`c7f114d34` "server: reuse active historical prefixes with checked MTP state"** -- names both
+  halves of the interaction.
+- Also in range: `5dfae0841` (prefix reuse with dynamic VBR), `3d94af142` (recycled VBR SWA
+  prefixes), `07b89e4f7` (legacy checkpoint spacing).
+
+Not bisected. Offered as candidates, not as a diagnosis.
+
 ## Likely mechanism, not yet proven
 
 **Superseded in part by the f16 arm above** -- the precision story below is ruled out for this
