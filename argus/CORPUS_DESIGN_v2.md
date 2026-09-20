@@ -73,6 +73,29 @@ would contaminate the judgement axis with plain fidelity damage and destroy the 
 (Note: the card carries **no** explicit warning against greedy decoding. The argument above is
 mechanistic, not documented. Do not cite the card for it.)
 
+**Serving configuration - PINNED, and every one of these is a comparison-breaker if it drifts.**
+
+| setting | value | why |
+|---|---|---|
+| `preserve_thinking` | **default (ON)** | Stock 3.8 line 116: `preserve_thinking is undefined or ... is true`. buun's 3.6 template defaults it to FALSE -- same knob, inverted default, so a 3.6-vs-3.8 comparison would silently compare configs. Run as shipped. |
+| `auto_disable_thinking_with_tools` | **not applicable** | Does not exist in the stock 3.8 template; it is a buun 3.6 invention. Nothing upstream disables thinking when tools are present, so the effort axis is safe by absence. |
+| split mode | **`-sm layer`** | Determinism under `-sm tensor` is UNESTABLISHED -- the 15/15 receipt was taken at layer split and does not transfer. Tensor parallelism adds an all-reduce per layer, a new reduction-order surface. On sm_60 the internal all-reduce fails the `cc>=700` check and never engages; the unset default is NCCL, which aborts on `.194`. Wanting it later means running its own P-A0 gate first. |
+| MTP / spec decode | **OFF** | Output-neutrality is assumed, not guaranteed, and acceptance rate varies by quantization (measured: EXL3 1.24x vs GGUF 1.69x). MTP-on makes decode speed ARM-DEPENDENT, the same hazard that ruled out a wall-clock cap. Measure acceptance per arm in the consumption baseline instead, so the MTP question stays answerable without running the campaign twice. |
+| KV codec | **constant across arms** | Not the variable under test. VBR is likely required to reach the context target on a 32 GB partition; pass KV flags explicitly (buun defaults to VBR silently) and verify from the server log. |
+
+**Note on `preserve_thinking`:** it trades context headroom for not re-prefilling -- prior reasoning
+stays in the prompt, but append-only, so the cached prefix survives. Dropping it would rewrite
+history each turn and invalidate the cache. Consequences: (a) the token cap must cover PEAK
+CONTEXT, not just generated tokens, which is exactly what `ctx_used_peak` now measures;
+(b) the `xhigh` arm compounds, since extra reasoning is carried into every later turn;
+(c) it is a third candidate explanation for the observed runaway, independent of temp 0 and the
+14k ceiling -- more thinking, more context, more to attend to. **Baseline should check that the
+prefix cache actually holds under VBR**; if eviction breaks reuse you keep the context cost and
+lose the compensating benefit, visible as wall-clock per turn rising faster than context does.
+
+**Sampling values confirmed from the artifact, not just the card:**
+`Qwen3.8-27B-HF-meta/generation_config.json` ships `temperature 1.0, top_k 20, top_p 0.95`.
+
 **Paired seeds.** Fixed seed set `{s1..sK}`, identical across every arm, so comparisons are paired
 rather than independent — substantially more power per run, and McNemar / Wilcoxon become
 available. Honest limit: pairing holds cleanly only up to the first divergent token.
