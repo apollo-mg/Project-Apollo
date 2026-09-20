@@ -65,7 +65,36 @@ The `/slots` endpoint exposes a buun-specific `computation_frontier_ratchet` car
 cause.** Every counter read zero both before and after a batch of warm-cache requests, and
 `read_path` stayed `legacy` throughout. The ratchet is inert on this build.
 
+## Ruled out: VBR precision adaptation
+
+An f16-KV arm was run to test whether variable bit-depth explained it: same binary, same flags,
+`-ctk f16 -ctv f16`, context reduced to 8192 (f16 KV will not fit 262144 in 32 GB). Result:
+**bistable, with the IDENTICAL two hashes** (`ff82d31f...` / `802ada7a...`), 8 of 9 valid
+requests at `cached_tokens: 30`.
+
+**As a VBR-vs-f16 discriminator that arm is VOID, and the identical hashes are the proof.**
+`/slots` reports `kv_bpv: 16.0` under BOTH configurations, because `--vbr-entry` defaults to f16
+("quality-first default") and degrades toward `--vbr-floor` only under pressure -- which a
+34-token prompt with ample VRAM never creates. The two arms were the same arithmetic with
+different labels, so of course they agree.
+
+**But it still rules the hypothesis out, by a different route.** Precision never varied between
+the cached and the fresh path -- both f16, `kv_bpv` constant at 16.0 before and after -- and the
+bistability occurred anyway. **A mechanism that requires a precision difference cannot explain an
+effect observed where there is none.**
+
+So the divergence is *structural in the cache-reuse path*, not numerical: reusing a checkpoint
+computes something measurably different from recomputing the same prefix at the same precision.
+
+**Still untested:** whether genuinely low-precision VBR (`--vbr-entry turbo3`, or enough VRAM
+pressure to force degradation toward the `t2` floor) introduces a *separate* effect on top. That
+is a different question from the one this arm was meant to answer.
+
 ## Likely mechanism, not yet proven
+
+**Superseded in part by the f16 arm above** -- the precision story below is ruled out for this
+observation, and is retained only because `--vbr-prompt-cache` remains a plausible route for
+*low-tier* VBR, which was never reached here.
 
 `llama-server --help` on this build carries `--vbr-prompt-cache`: *"publish idle dynamic-VBR slots
 as projected prompt-cache artifacts"*. Under variable-bitrate KV, a **cached** prefix is stored at
