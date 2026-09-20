@@ -1,0 +1,136 @@
+ -- Creating new job
+    Input directory: /mnt/HDD/exl3/Qwen3-0.6B-fp16
+    Output directory: /mnt/HDD/exl3/Qwen3-0.6B-P100-4.0bpw
+    Working directory: /mnt/HDD/exl3/work-p100
+    Calibration size: 100 rows, 2048 columns
+    Target bitrate: 4.0 (decoder), 6 (head)
+    Output scales: always
+    Codebook: mul1
+ -- Loaded model config
+    Architecture: Qwen3ForCausalLM
+ -- Created model instance:
+     - Qwen3Model
+         - Embedding
+         - [28x] TransformerBlock
+             - RMSNorm
+             - Attention
+                 - [4x] Linear
+                 - [2x] RMSNorm
+             - RMSNorm
+             - GatedMLP
+                 - [3x] Linear
+         - RMSNorm
+         - Linear
+ -- Loaded tokenizer
+    Vocab size: 151669
+ -- RoPE settings
+    head_dim: 128
+    rope_scaling: None
+    rope_theta: 1000000.0
+    rotary_dim: None
+    partial_rotary_factor: 1.0
+    max_position_embeddings: 40960
+    original_max_position_embeddings: None
+    rope_style: NEOX
+    llama_4_scaling_beta: 0.0
+ -- Preparing input state
+ -- Deciding quantization strategy
+ -- Quantization strategy, summary:
+     - 4 bpw:
+        model.layers.*.mlp.down_proj            28 tensors
+        model.layers.*.mlp.gate_proj            28 tensors
+        model.layers.*.mlp.up_proj              28 tensors
+        model.layers.*.self_attn.k_proj         28 tensors
+        model.layers.*.self_attn.o_proj         28 tensors
+        model.layers.*.self_attn.q_proj         28 tensors
+        model.layers.*.self_attn.v_proj         28 tensors
+     - 6 bpw:
+        lm_head                                  1 tensor
+ -- Final bitrate (excluding head): 4.00
+ -- Loading unquantized module: model.embed_tokens
+
+ -- Quantized: model.embed_tokens                                       bpw: 16.00  rfn: 0.000000  cos: 0.000000  sqnr: 0.000000  [8.01 s]  rss: 1.38 GB
+ -- Loading unquantized module: model.layers.0
+In file included from /home/mark/.local/share/uv/python/cpython-3.13.15-linux-x86_64-gnu/include/python3.13/Python.h:14,
+                 from /tmp/tmpkn2xd6_d/main.c:5:
+/home/mark/.local/share/uv/python/cpython-3.13.15-linux-x86_64-gnu/include/python3.13/pyconfig.h:1988:9: warning: ‘_POSIX_C_SOURCE’ redefined
+ 1988 | #define _POSIX_C_SOURCE 200809L
+      |         ^~~~~~~~~~~~~~~
+In file included from /usr/include/x86_64-linux-gnu/bits/libc-header-start.h:33,
+                 from /usr/include/stdlib.h:26,
+                 from /home/mark/exl3quant/lib/python3.13/site-packages/triton/backends/nvidia/include/cuda.h:56,
+                 from /tmp/tmpkn2xd6_d/main.c:1:
+/usr/include/features.h:319:10: note: this is the location of the previous definition
+  319 | # define _POSIX_C_SOURCE        202405L
+      |          ^~~~~~~~~~~~~~~
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 203, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/mark/exl3quant/lib/python3.13/site-packages/exllamav3/conversion/convert_model.py", line 1520, in <module>
+    main(_in_args, _job_state)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mark/exl3quant/lib/python3.13/site-packages/torch/utils/_contextlib.py", line 116, in decorate_context
+    return func(*args, **kwargs)
+  File "/home/mark/exl3quant/lib/python3.13/site-packages/exllamav3/conversion/convert_model.py", line 1233, in main
+    rs = module.forward(rs, params)
+  File "/home/mark/exl3quant/lib/python3.13/site-packages/exllamav3/modules/transformer.py", line 159, in forward
+    y = self.attn.forward(y, params)
+  File "/home/mark/exl3quant/lib/python3.13/site-packages/exllamav3/modules/attn.py", line 612, in forward
+    x = self.decode_flash_attn_nc(x, bsz, seqlen, params)
+  File "/home/mark/exl3quant/lib/python3.13/site-packages/exllamav3/modules/attn.py", line 907, in decode_flash_attn_nc
+    o = attn_dispatch(
+        q = q,
+    ...<9 lines>...
+        dispatch_cache = self.dispatch_cache,
+    )
+  File "/home/mark/exl3quant/lib/python3.13/site-packages/exllamav3/modules/attention_fn/dispatch.py", line 170, in attn_dispatch
+    o = fn(args)
+  File "/home/mark/exl3quant/lib/python3.13/site-packages/exllamav3/modules/attention_fn/triton_paged.py", line 1948, in fn_triton_attn_nocache
+    return paged_attn_triton_prefill(
+        args.q, None, None, None, None, None, None,
+    ...<6 lines>...
+        v_new = args.v,
+    )
+  File "/home/mark/exl3quant/lib/python3.13/site-packages/exllamav3/modules/attention_fn/triton_paged.py", line 1924, in paged_attn_triton_prefill
+    launch(num_stages)
+    ~~~~~~^^^^^^^^^^^^
+  File "/home/mark/exl3quant/lib/python3.13/site-packages/exllamav3/modules/attention_fn/triton_paged.py", line 1897, in launch
+    _paged_attn_prefill_kernel[grid](
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        q, k_cache, v_cache, block_table, cache_seqlens, out,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<8 lines>...
+        num_warps=num_warps, num_stages=ns,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/mark/exl3quant/lib/python3.13/site-packages/triton/runtime/jit.py", line 330, in <lambda>
+    return lambda *args, **kwargs: self.run(grid=grid, warmup=False, *args, **kwargs)
+                                   ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mark/exl3quant/lib/python3.13/site-packages/triton/runtime/jit.py", line 623, in run
+    kernel = self.compile(
+        src,
+        target=target,
+        options=options.__dict__,
+    )
+  File "/home/mark/exl3quant/lib/python3.13/site-packages/triton/compiler/compiler.py", line 273, in compile
+    module = src.make_ir(options, codegen_fns, module_map, context)
+  File "/home/mark/exl3quant/lib/python3.13/site-packages/triton/compiler/compiler.py", line 100, in make_ir
+    return ast_to_ttir(self.fn, self, context=context, options=options, codegen_fns=codegen_fns,
+                       module_map=module_map)
+triton.compiler.errors.UnsupportedLanguageConstruct: at 130:11:
+            n_kv_heads, page_size, head_dim, HD_PAD, QCK, QCV, CAUSAL, WINDOW_LEFT, WINDOW_RIGHT, HAS_WINDOW_LEFT, HAS_WINDOW_RIGHT, SOFTCAP,
+            True, False, BLOCK_N,
+        )
+        acc, m, l = _paged_attn_prefill_inner(
+            q_tile, acc, m, l, k_new_b, v_new_b, block_table_b, k_scales, v_scales, kv_head,
+            offs_n_base, tl.maximum(s_lo, past), s_hi, q_abs, valid_row, qk_scale_log2e, total_k_len,
+            n_kv_heads, page_size, head_dim, HD_PAD, 0, 0, CAUSAL, WINDOW_LEFT, WINDOW_RIGHT, HAS_WINDOW_LEFT, HAS_WINDOW_RIGHT, SOFTCAP,
+            True, True, BLOCK_N,
+        )
+    elif NEW_KV == 2:
+        # Cache known empty: same structure as the cache path, reading the contiguous source
+        if CAUSAL and not HAS_WINDOW_LEFT and not HAS_WINDOW_RIGHT:
+           ^
+chained boolean operators (A or B or C) are not supported; use parentheses to split the chain.
