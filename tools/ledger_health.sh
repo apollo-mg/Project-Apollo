@@ -44,6 +44,12 @@ else
     # different sink, so neither path depends on the other noticing.
     if VMSG=$($ROOT/tools/ledger_validate.sh 2>/dev/null); then
       echo "✅ ledger: $ST, ${AGE}h ago"
+      # The heartbeat says the diary is RUNNING. This says whether the findings index is still
+      # USABLE. A stale INDEX.md is silently worse than a dead one: it is consulted and trusted,
+      # and on 2026-09-20 an 8-day gap let a July finding be re-derived from scratch. Reported,
+      # never escalated to DRIFT_WARNING -- index debt is housekeeping, not drift, and crying
+      # wolf in that channel is its own documented failure.
+      $ROOT/tools/ledger_index_gaps.py --quiet 2>/dev/null || true
     else
       warn "Ledger ran successfully but produced a MALFORMED entry: $VMSG. Check \`tools/ledger_build.py\` reasoning stripping, and fix today's entry in \`data/dev_diaries/\`."
     fi

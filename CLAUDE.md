@@ -65,6 +65,29 @@ Supporting pieces:
 - `vault/` — memory stores (chroma, BM25, graph DBs) and prompt "skills" (`vault/skills/`).
 - Project Starbuck (OS-management daemon on the P100 nodes) is a **separate isolated system**: do not modify `starbuck_daemon.py` or Starbuck OS tools from this workspace; interact only via MCP/Message Bus.
 
+## Before designing an experiment: check whether it is already answered
+
+**Run `./tools/ledger_precheck.py "<topic>"` before designing any test.** It greps
+`data/receipts/INDEX.md` (the mechanism-keyed findings index) and `FAILURE_MODES.md`, matches
+receipt filenames, and with `--deep` runs semantic search over all 588 receipts. It exits 2 when
+prior art exists.
+
+**This is not advice, it is a control that replaced a failed one.** `INDEX.md` says "Grep this
+file before designing anything" -- a rule that lives inside the file nobody opens. On 2026-08-16
+a day of work re-derived six indexed findings. On 2026-09-20 it happened again to one of the same
+findings: a session spent hours establishing that prompt-cache reuse plus MTP breaks determinism
+and that `cache_prompt:false` fixes it, when `battle16gb/MTP_CACHEPROMPT_FALSIFICATION.md`
+(07-30) and `spec-decode-determinism/RESULT_SPECULATION_IS_NOT_BIT_EXACT.md` (08-18) had both
+already measured exactly that, on two other architectures. `precheck` surfaces all of them in
+under a second.
+
+If you run the experiment anyway -- often right, since a third architecture or a new code path is
+worth confirming -- **say in the new receipt what it adds to the old one.**
+
+**When a receipt lands, add a line to `INDEX.md`.** `./tools/ledger_index_gaps.py` lists what is
+missing; it is also reported by `ledger_health.sh`. An index nobody updates is worse than none,
+because it is still trusted.
+
 ## Multi-Agent Coordination Protocol
 
 Multiple autonomous agents (Gemini, Antigravity, Claude) work in this repo. `CHANGELOG.md` is the shared ledger:
