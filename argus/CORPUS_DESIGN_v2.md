@@ -79,8 +79,8 @@ mechanistic, not documented. Do not cite the card for it.)
 |---|---|---|
 | `preserve_thinking` | **default (ON)** | Stock 3.8 line 116: `preserve_thinking is undefined or ... is true`. buun's 3.6 template defaults it to FALSE -- same knob, inverted default, so a 3.6-vs-3.8 comparison would silently compare configs. Run as shipped. |
 | `auto_disable_thinking_with_tools` | **not applicable** | Does not exist in the stock 3.8 template; it is a buun 3.6 invention. Nothing upstream disables thinking when tools are present, so the effort axis is safe by absence. |
-| split mode | **`-sm tensor`, PROVISIONAL** | Determinism under `-sm tensor` is UNESTABLISHED -- the 15/15 receipt was taken at layer split and does not transfer, and tensor parallelism adds an all-reduce per layer, a new reduction-order surface. This is the ONLY objection: `-sm tensor` is measured at **>1.6x on this fleet** for dense models and is worth reclaiming. See the gate below. (An earlier draft cited the sm_60 all-reduce / NCCL note here as evidence the fast path was unavailable. That note concerns a different code path; the measured 1.6x refutes it and the claim is withdrawn.) |
-| MTP / spec decode | **OFF** | Output-neutrality is assumed, not guaranteed, and acceptance rate varies by quantization (measured: EXL3 1.24x vs GGUF 1.69x). MTP-on makes decode speed ARM-DEPENDENT, the same hazard that ruled out a wall-clock cap. Measure acceptance per arm in the consumption baseline instead, so the MTP question stays answerable without running the campaign twice. |
+| split mode | **`-sm tensor`, PROVISIONAL (speed grounds only)** | Determinism under `-sm tensor` is UNESTABLISHED -- the 15/15 receipt was taken at layer split and does not transfer, and tensor parallelism adds an all-reduce per layer, a new reduction-order surface. This is the ONLY objection: `-sm tensor` is measured at **>1.6x on this fleet** for dense models and is worth reclaiming. See the gate below. (An earlier draft cited the sm_60 all-reduce / NCCL note here as evidence the fast path was unavailable. That note concerns a different code path; the measured 1.6x refutes it and the claim is withdrawn.) |
+| MTP / spec decode | **OFF -- now REQUIRED, not preferred** | Originally chosen on deployment-realism and arm-dependent-speed grounds. **Measured 2026-09-20: with MTP ON and the prompt cache warm, the same seed does not reproduce** -- bistable under `-sm tensor` (2 distinct outputs), worse under `-sm layer` (6 distinct). Paired seeds would be fiction. With MTP OFF the warm-cache path was byte-identical 9/9. See `data/receipts/argus-v2/RESULT_PROMPT_CACHE_BISTABILITY.md`. |
 | KV codec | **constant across arms** | Not the variable under test. VBR is likely required to reach the context target on a 32 GB partition; pass KV flags explicitly (buun defaults to VBR silently) and verify from the server log. |
 
 **Note on `preserve_thinking`:** it trades context headroom for not re-prefilling -- prior reasoning
@@ -92,6 +92,28 @@ CONTEXT, not just generated tokens, which is exactly what `ctx_used_peak` now me
 14k ceiling -- more thinking, more context, more to attend to. **Baseline should check that the
 prefix cache actually holds under VBR**; if eviction breaks reuse you keep the context cost and
 lose the compensating benefit, visible as wall-clock per turn rising faster than context does.
+
+**SUPERSEDED IN PART, same day.** That gate ran with **MTP ON and the cache cold**, and both
+conditions turn out to matter. With MTP on and the cache WARM the same config is bistable, so the
+gate's pass was conditional on a state the campaign will not be in. The split-mode question is
+nonetheless **settled in tensor's favour**: the defect appears under `-sm layer` too (and worse),
+so it is not tensor-parallel specific and does not argue against using it.
+
+**The determinism requirement is now met by turning MTP off, not by choosing a split mode.**
+Measured with MTP off, `-sm tensor`, cache warm (`cached_tokens: 30` on 8 of 9): **9 of 9
+byte-identical, including the cold first request.** n=9 on one config is encouraging, not a gate --
+re-run properly under campaign conditions before relying on it.
+
+**A welcome consequence: the `preserve_thinking` collision dissolves.** This document previously
+warned that restoring determinism would require `cache_prompt: false`, which would have removed
+exactly the cache reuse that justifies `preserve_thinking`'s context growth, making re-prefill
+quadratic in turn count. **That is no longer necessary.** With MTP off the cache can stay on, the
+prefix stays reusable, and `preserve_thinking` keeps its compensation. `cache_prompt: false`
+drops from a requirement to a fallback.
+
+**Unchanged and still mandatory: record `cached_tokens` with every determinism claim.** A run that
+lands in a non-caching window looks clean and proves nothing about the warm path -- which is
+precisely how the gate below passed.
 
 **GATE RESULT 2026-09-20: `-sm tensor` PASSED on `.73`.** 24 consecutive byte-identical
 generations under seeded card sampling; only the first request after model load differed.
