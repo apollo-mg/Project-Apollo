@@ -78,9 +78,50 @@ This is a cleaner demonstration than our own `.73`/`.194` divergence, because th
 identical and the instrument change is documented by the publisher. **A 7-point swing from an
 index revision is larger than most model-to-model gaps people argue about.**
 
+### Extended: 18 points in one month, across three index versions
+
+A third chart (v4.1.1, 2026-08-19) completes the trajectory for the same model and same `(high)`
+setting:
+
+| index version | date | Qwen3.8 27B | frontier | gap to frontier |
+|---|---|---:|---:|---:|
+| **v4.1.1** | Aug 19 | **52** | 63 (Claude Opus 5 max) | **11** |
+| **v4.2** | ~Sep 5 | **41** | 57 | 16 |
+| **v4.3.2** | Sep 19 | **34** | 53 | 19 |
+
+**The model lost 18 points in about 30 days and the gap to frontier nearly doubled**, with no
+change to the weights. Mark's recollection that it launched "within 10 points of the top models"
+is confirmed: it was **11 points** at v4.1.1.
+
+Evaluation list churn over that month:
+
+| transition | change |
+|---|---|
+| v4.1.1 -> v4.2 | **GPQA Diamond removed**, AA-Briefcase added (9 evals -> 10) |
+| v4.2 -> v4.3.2 | **tau^2-Banking -> AutomationBench-AA**, **Terminal-Bench v2.1 -> 4.0** |
+
+**Four of roughly ten evaluations swapped in thirty days.**
+
+**Important qualifier, so this is not overstated: the entire index deflated, not just this model.**
+Spot-checked across the same three versions: Claude Opus 5 `63 -> 54 -> 51`, GPT-5.6 Sol
+`61 -> 51 -> 47`, Kimi K3 `60 -> 50 -> 44`, GLM-5.3 `60 -> 49 -> 45`. Every model fell 12-18
+points. Qwen3.8-27B's -18 sits at the high end but is **not an outlier**, so this is a global
+recalibration rather than a change targeting open or small models.
+
 **Practical consequence:** any article citing an AA figure needs the index version beside it.
 A figure published under v4.2 will not be found by a reader checking v4.3.2, and the difference
-will look like a correction rather than a version change.
+will look like a correction rather than a version change. **An absolute AA score has a shelf life
+measured in weeks; rankings within a single version are the durable part.**
+
+### Bearing on the Bonsai dispute
+
+PrismML's paper reports **Terminal-Bench 2.1: 69.7 -> 52.8** for Bonsai 2 against the Qwen3.8 base.
+AA's index moved **Terminal-Bench v2.1 -> 4.0** in this same window. If that figure was produced on
+an earlier Terminal-Bench, it is not comparable to anything measured on 4.0 either.
+
+That does **not** excuse omitting the row from the GGUF model card -- the omission is the
+substantive complaint and it stands. But the number itself needs a benchmark version attached
+before anyone builds on it, in exactly the way our own numbers need a node and a binary commit.
 
 ## Applied to this project's own numbers
 
