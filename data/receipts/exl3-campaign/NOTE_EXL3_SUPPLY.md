@@ -36,3 +36,28 @@ already. Whether it fits this fleet is a VRAM question for `.194`, not a supply 
 
 **Supply is not the binding constraint** for the models this fleet runs today. It would bind only for a
 model nobody has quantized, which is what O8 covers — whether we can make our own.
+
+---
+
+## GLM-5.3 is blocked upstream, not on buun -- 2026-09-19
+
+Asked buun directly about `0xSero/GLM-5.3-Flash-EXL3-Spark`, whose card reports MTP layer 45
+non-functional pending checkpoint-key remapping **and runtime support for the `mul1` codebook**.
+
+**His answer: "I don't have GLM-5.3 support at all."** He is deliberately waiting because there
+are **three competing GLM-5.3 implementations upstream** in llama.cpp and he does not want to
+optimise one, then fall out of sync when a different one lands.
+
+**Consequences for this fleet:**
+
+- **Any GLM-5.3 work through buun's tree is blocked on an upstream decision**, regardless of quant
+  format. Not an EXL3 problem, not a `mul1` problem, not a Bonsai-style packaging problem.
+- The Spark card's `mul1` runtime blocker is **not** evidence of a gap in buun's EXL3 path. Our own
+  O2 is RETIRED: MTP engages on a `mul1` EXL3 quant in his tree at GGUF's acceptance rate
+  (0.693 vs 0.688), buying 1.24x. The support exists; the architecture does not.
+- **Correction to how this was first framed:** I described it to Mark as "a real, specific interop
+  gap" in buun's fork. That was wrong twice over -- the mul1 runtime path works, and the actual
+  blocker is one level lower (no GLM-5.3 at all) and outside buun's control.
+
+**Watch item:** which GLM-5.3 implementation upstream adopts. Until then, GLM-5.3 is not a
+candidate for any fleet campaign.
