@@ -51,6 +51,37 @@ the index was revised between those observations.
 **So: compare models WITHIN an index version. Never compare a score across versions to infer that
 a model improved or regressed.** That is the same error as comparing our `.73` and `.194` runs.
 
+### Measured: the same model lost 7 points in 14 days without changing
+
+Mark supplied the v4.2 chart from 14 days earlier alongside the current v4.3.2. Same model, same
+label, same `(high)` setting:
+
+| | **v4.2** (14 days prior) | **v4.3.2** (current) | delta |
+|---|---:|---:|---:|
+| **Qwen3.8 27B (high)** | **41** | **34** | **-7** |
+| Claude Fable 5.1 (max, fallback) | 57 | 53 | -4 |
+| gap to frontier | 16 | 19 | +3 |
+
+What changed is the instrument. Diffing the two published eval lists:
+
+| v4.2 | v4.3.2 |
+|---|---|
+| `tau^2-Banking` | **replaced by `AutomationBench-AA`** |
+| `Terminal-Bench v2.1` | **`Terminal-Bench 4.0`** (major version, not a patch) |
+| `AA-Briefcase` | `AA-Briefcase v1.1` |
+| `GDPval-AA v2` | `GDPval-AA v2.1` |
+
+**Two of ten evaluations substantially swapped, and the model moved 7 points.** Nothing about the
+weights changed in those 14 days.
+
+This is a cleaner demonstration than our own `.73`/`.194` divergence, because the model is provably
+identical and the instrument change is documented by the publisher. **A 7-point swing from an
+index revision is larger than most model-to-model gaps people argue about.**
+
+**Practical consequence:** any article citing an AA figure needs the index version beside it.
+A figure published under v4.2 will not be found by a reader checking v4.3.2, and the difference
+will look like a correction rather than a version change.
+
 ## Applied to this project's own numbers
 
 Anything published from today must carry:
