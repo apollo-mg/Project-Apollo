@@ -61,3 +61,37 @@ optimise one, then fall out of sync when a different one lands.
 
 **Watch item:** which GLM-5.3 implementation upstream adopts. Until then, GLM-5.3 is not a
 candidate for any fleet campaign.
+
+
+---
+
+## Supply roughly doubled in a week, and the naming convention changed -- 2026-09-20
+
+HuggingFace search for `exl3`: **2,045 models**, against the "at least 1,000" recorded above a
+week earlier. No longer a turboderp monoculture -- Mia-AiLab, MikeRoz, bullerwins, Lygodactylus,
+erlidev, GestaltLabs, diffbot, r0b0tlab, neko-legends, brandonmusic and dealignai are all
+publishing, at sizes from 6B to 332B.
+
+### Quantizers are publishing to VRAM TARGETS, not quant levels
+
+| repo | what the name promises |
+|---|---|
+| `GestaltLabs/Qwen3.8-27B-EXL3-11.5GB` | a size |
+| `diffbot/DeepSeek-V4.1-Flash-EXL3-2.0bpw-2x-RTX-PRO-...` | a specific card pair |
+| `0xSero/GLM-5.3-Flash-EXL3-Spark` | a specific machine (DGX Spark, 128 GB) |
+| `MikeRoz/GLM-5.3-Flash-Uncensored-4.05bpw-h6` | an exact bitrate plus head bits |
+
+**This is a format-level advantage and it is the direct answer to the GGUF label problem.**
+`lowbit-ladder/FINDING_LABEL_VS_REAL_BPW.md` measured `IQ3` spanning **2.97 to 3.74 scored bpw
+across packagers -- a 26% spread under one name**. EXL3's arbitrary bitrate means a publisher can
+name the target instead of the recipe, so **"will it fit" is answerable from the repo name**.
+
+### The binding constraint has moved
+
+GLM-5.3 is abundantly quantized in EXL3 -- turboderp, Mia-AiLab, neko-legends, MikeRoz,
+bullerwins and brandonmusic all ship one. **buun has no GLM-5.3 support at all** (2026-09-19,
+waiting on upstream to choose among three competing implementations).
+
+So for EXL3-through-llama.cpp the limit is no longer *"has anyone quantized it"* (O9, retired) but
+**"does the runtime know the architecture."** That is a different objection and it is not on
+buun -- see the GLM-5.3 section above.
