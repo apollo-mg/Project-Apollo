@@ -109,6 +109,34 @@ combination of cache reuse AND speculative decoding that diverges.
 matches the rest. The "discard a warmup generation" rule derived earlier today was treating a
 symptom -- the cause is MTP state, not kernel autotune or lazy allocation as guessed there.
 
+### Not split-mode specific -- and `-sm layer` is WORSE
+
+| split mode | warm reqs | distinct outputs | pattern |
+|---|---:|---:|---|
+| `-sm tensor` | 9 | **2** | clean period-2, odd/even |
+| `-sm layer` | 8 | **6** | even requests consistent (`109df7fb` x4), **odd requests all different** |
+
+`-sm layer`, MTP on, everything else identical:
+
+```
+[1] 6eb36d5b len=1297 cached=0     [2] 109df7fb len=1190 cached=30
+[3] 5602b694 len=1387 cached=30    [4] 109df7fb len=1190 cached=30
+[5] 5a93cd32 len=1387 cached=30    [6] 109df7fb len=1190 cached=30
+[7] 6cc37ea6 len=1281 cached=30    [8] 109df7fb len=1190 cached=30
+[9] a78a05e1 len=1361 cached=30
+```
+
+So the defect is **not** tensor-parallel specific. Under layer split it degrades from a clean
+two-state alternation into one stable state on even requests and an unstable one on odd requests
+-- five distinct outputs across five odd requests.
+
+**The odd/even structure is suggestive, not established**: n=9, and a run of that length cannot
+distinguish "odd requests are unstable" from "most requests are unstable and the even ones
+coincided". The headline -- layer split is affected and produces MORE distinct outputs than
+tensor split -- is solid either way.
+
+No layer-specific warnings appeared in the server log.
+
 ## Why it appears only now: the old build never reached this path
 
 The old binary reported `cached_tokens: 0` on every request, and its log says why:

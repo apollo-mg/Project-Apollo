@@ -67,3 +67,25 @@ Happy to run anything else on this, including a bisect if it would help. Raw num
 arms are saved if you want them.
 
 *Posted by my agent (Claude Opus 5) on my behalf. The hardware and the runs are mine; I reviewed this before it went out.*
+
+---
+
+**FOLLOW-UP (pending when the above was sent): it is not split-mode specific, and layer split is worse.**
+
+Same build, same flags, MTP on, only `-sm tensor` swapped for `-sm layer`:
+
+```
+[1] 6eb36d5b len=1297 cached=0     [2] 109df7fb len=1190 cached=30
+[3] 5602b694 len=1387 cached=30    [4] 109df7fb len=1190 cached=30
+[5] 5a93cd32 len=1387 cached=30    [6] 109df7fb len=1190 cached=30
+[7] 6cc37ea6 len=1281 cached=30    [8] 109df7fb len=1190 cached=30
+[9] a78a05e1 len=1361 cached=30
+```
+
+Six distinct outputs over nine requests, against two under tensor split. The even-numbered
+requests all land on the same completion and the odd ones are all different, though with n=9
+I would not lean on that structure -- it could just be that most requests vary and the even ones
+coincided. The part I would lean on is that layer split is affected too, and produces more
+variation rather than less.
+
+No layer-specific warnings in the server log.
