@@ -79,7 +79,7 @@ mechanistic, not documented. Do not cite the card for it.)
 |---|---|---|
 | `preserve_thinking` | **default (ON)** | Stock 3.8 line 116: `preserve_thinking is undefined or ... is true`. buun's 3.6 template defaults it to FALSE -- same knob, inverted default, so a 3.6-vs-3.8 comparison would silently compare configs. Run as shipped. |
 | `auto_disable_thinking_with_tools` | **not applicable** | Does not exist in the stock 3.8 template; it is a buun 3.6 invention. Nothing upstream disables thinking when tools are present, so the effort axis is safe by absence. |
-| split mode | **`-sm layer`, pending a gate** | Determinism under `-sm tensor` is UNESTABLISHED -- the 15/15 receipt was taken at layer split and does not transfer, and tensor parallelism adds an all-reduce per layer, a new reduction-order surface. This is the ONLY objection: `-sm tensor` is measured at **>1.6x on this fleet** for dense models and is worth reclaiming. See the gate below. (An earlier draft cited the sm_60 all-reduce / NCCL note here as evidence the fast path was unavailable. That note concerns a different code path; the measured 1.6x refutes it and the claim is withdrawn.) |
+| split mode | **`-sm tensor`, PROVISIONAL** | Determinism under `-sm tensor` is UNESTABLISHED -- the 15/15 receipt was taken at layer split and does not transfer, and tensor parallelism adds an all-reduce per layer, a new reduction-order surface. This is the ONLY objection: `-sm tensor` is measured at **>1.6x on this fleet** for dense models and is worth reclaiming. See the gate below. (An earlier draft cited the sm_60 all-reduce / NCCL note here as evidence the fast path was unavailable. That note concerns a different code path; the measured 1.6x refutes it and the claim is withdrawn.) |
 | MTP / spec decode | **OFF** | Output-neutrality is assumed, not guaranteed, and acceptance rate varies by quantization (measured: EXL3 1.24x vs GGUF 1.69x). MTP-on makes decode speed ARM-DEPENDENT, the same hazard that ruled out a wall-clock cap. Measure acceptance per arm in the consumption baseline instead, so the MTP question stays answerable without running the campaign twice. |
 | KV codec | **constant across arms** | Not the variable under test. VBR is likely required to reach the context target on a 32 GB partition; pass KV flags explicitly (buun defaults to VBR silently) and verify from the server log. |
 
@@ -93,7 +93,24 @@ CONTEXT, not just generated tokens, which is exactly what `ctx_used_peak` now me
 prefix cache actually holds under VBR**; if eviction breaks reuse you keep the context cost and
 lose the compensating benefit, visible as wall-clock per turn rising faster than context does.
 
-**The `-sm tensor` gate, worth running before the campaign.** A 1.6x speedup across a ~30 h
+**GATE RESULT 2026-09-20: `-sm tensor` PASSED on `.73`.** 24 consecutive byte-identical
+generations under seeded card sampling; only the first request after model load differed.
+`cached_tokens` was 0 throughout, so prefix caching is not the explanation. Full workings:
+`data/receipts/argus-v2/RESULT_TENSOR_SPLIT_DETERMINISM.md`.
+
+**Consequent rule, now mandatory for every leg: DISCARD ONE WARMUP REQUEST after each model
+load.** Restarting the server before a leg is necessary but not sufficient -- the first request
+after the restart is itself unreliable. At K=2 this gate would have read 1-of-2 differing and
+thrown away a 1.6x speedup on a warmup artifact.
+
+**Still required before the campaign: the same gate on `.194`, under CAMPAIGN conditions.** The
+`.73` pass does not transfer (a fail would have). Three things were untested there and all three
+are campaign-relevant: multi-turn with tools, thinking ON with `preserve_thinking`, and above all
+**prefix-cache reuse** -- `cached_tokens` was 0 for all 25 requests, so that path was never
+exercised and it is the likeliest place for this result not to hold. Fail -> `-sm layer`, accept
+the ~11 h.
+
+**Original gate rationale, retained.** A 1.6x speedup across a ~30 h
 campaign is ~11 h saved, against roughly an hour to test for it. Protocol: the P-A0 analogue at
 **K=15**, not K=2 -- reduction-order nondeterminism from timing-dependent reductions is FLAKY
 rather than consistently broken, so "reproduced twice" is weak evidence and "no failure in 15"
