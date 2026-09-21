@@ -59,7 +59,12 @@ authorial claim, it is a cardinality fact computable from `seed.json`. Generalis
 becomes a function of world state, not of the author's judgement.** Referent ambiguity is set
 cardinality; unsatisfiability is set emptiness; scope ambiguity is an unbounded selector. Items can
 then be *generated* against a fixture and re-verified whenever the fixture changes, which is what
-makes 240 per arm a real plan instead of an authoring marathon.
+makes a corpus of that size a real plan instead of an authoring marathon.
+
+*(Count updated 09-21: A1's 240 rested on an assumed 20 % discordance. Measured, it is 12.5 % or
+below, so the target is **374 per arm** -- and because 10 of 16 v0 items never flip at any
+bitrate, the rate itself is what the fixture rebuild is for. See
+`RESULT_A1_SIZING_DISCORDANCE.md`; do not size from the 240 in this document.)*
 
 **3. Ordering is wrong; A1's HOST recommendation is also wrong, in the other direction.**
 

@@ -135,8 +135,14 @@ def report_pair(A, B, label_a, label_b):
     print(f"\n=== {label_a}  vs  {label_b} ===")
     print(f"    {len(ids)} items, {len(A)} reps each\n")
     for arm, arm_ids in sorted(by_arm.items()):
+        items = Counter()
         for collapse, unit in ((False, "observation"), (True, "item (majority)")):
-            a, b, c, d, items = two_by_two(A, B, arm_ids, arm, collapse)
+            a, b, c, d, census = two_by_two(A, B, arm_ids, arm, collapse)
+            if not collapse:
+                # keep the OBSERVATION-level census: it separates one item flipping
+                # on 3 reps from 3 items flipping once, which the collapsed one hides
+                # and which is exactly what a headline rate can be an artifact of.
+                items = census
             n = a + b + c + d
             disc = b + c
             rate = disc / n if n else 0.0
@@ -145,7 +151,7 @@ def report_pair(A, B, label_a, label_b):
             print(f"  {arm:12} [{unit:15}] n={n:>3}  both+={a:>3} b={b:>2} c={c:>2} both-={d:>2}"
                   f"   b+c={disc:>2}  rate={rate:6.1%}  95% CI [{lo:.1%}, {hi:.1%}]{flag}")
         if items:
-            spread = ", ".join(f"{k}x{v}" for k, v in sorted(items.items()))
+            spread = ", ".join(f"{k} on {v} of {len(A)} reps" for k, v in sorted(items.items()))
             print(f"  {'':12} discordance carried by {len(items)}/{len(arm_ids)} items: {spread}")
             print(f"  {'':12} the other {len(arm_ids) - len(items)} contributed nothing at any n")
         print()

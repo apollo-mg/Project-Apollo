@@ -40,9 +40,22 @@ Observation level (one pair per item per rep -- what a single-rep campaign would
 | Q6_K v IQ3_M | 4.2 % | **12.5 %** |
 
 **The design-relevant cell is the unanswerable arm at a wide quant gap: 12.5 %**, 95 % CI
-[2.7 %, 32.4 %]. Both wide-gap pairs land on it independently, one of them controlled and one
-not. The answerable arm's 16.7 % is not a second confirmation -- it is **one broken item**
-(`CAL-A6`, which IQ2_XS fails 3/3) counted three times.
+[2.7 %, 32.4 %].
+
+**Read that as a ceiling, not as two pairs agreeing.** The observation-level unit is the correct
+one for a single-rep campaign -- the expected single-rep rate equals it, for a deterministic
+flipper and a stochastic one alike -- but the two 12.5 % cells are not the same object.
+L1 v L3's three discordant observations are **`CAL-U3` counted three times**; Q6_K v IQ3_M's
+three are three *distinct* items (`CAL-U2`, `CAL-U3`, `CAL-U6`). Collapsed to item level they
+read 12.5 % and **0.0 %**. The answerable arm's 16.7 % is mostly that artifact again -- three of its four
+discordant observations are **one broken item** (`CAL-A6`, which IQ2_XS fails 3/3), the fourth
+being a single flip of `CAL-A7`.
+
+Across all four pairs only **six distinct items ever flip**, three on each arm. So the honest
+claim is directional rather than a point estimate: **every rate measured here is <= 16.7 %, most
+are <= 12.5 %, and A1's assumed 20 % is above all of them.** That survives whether the true rate
+is 12.5 % or 8 %. "Two pairs independently confirm 12.5 %" does not, and 12.5 % is carried
+forward as a planning figure on that weaker footing.
 
 **A1 assumed 20 %.** The measurement is **12.5 %**, and lower discordance means *more* items.
 
@@ -55,6 +68,9 @@ Holding A1's own psi = 0.70 and swapping in the measured rate, from A1's table:
 | 20 % | 234 -> **A1's working target of 240** | assumed |
 | 15 % | 311 | HumanEval+, a different capability |
 | **12.5 %** | **374** | **measured here** |
+
+374 is `ceil(46.63 / 0.125) = ceil(373.0)`, which sits on the rounding boundary -- a reader using
+a slightly different z for 80 % power will compute 373. Nothing turns on the one item.
 
 **240 per arm corresponds to psi = 0.745, not to 0.70.** A1's target is not conservative at the
 observed rate; it is the number you get by powering for a larger effect than A1 said it wanted
@@ -148,6 +164,15 @@ flagged so it is not reached for later.
 
 ## What this does NOT establish
 
+- **Effort is not matched across the four pairs, and the campaign's level is the sparser one.**
+  The AD ladder ran `--effort medium`; both overthink arms ran `--effort xhigh`
+  (`overthink_run.sh:41`, which the Q6_K chain also calls). The campaign runs `medium`. So the
+  only effort-matched evidence for the campaign config is the ladder -- where the wide-gap
+  unanswerable rate rests on one item. **The direction is knowable, though:** `xhigh` produces
+  non-terminators (3/8 against `medium`'s 0/8, `RESULT_EFFORT_SWEEP.md`), which this scoring
+  counts as failures and which pull items off the ceiling; the xhigh pair is also the only one
+  with populated `both-` cells (3, against the ladder's 0-1). If `xhigh` inflates discordance,
+  the `medium` rate is **below** 12.5 % and **374 is a floor, not an estimate**.
 - **`tier_cal` v0 only.** The argus v2 judgement corpus is a different construction; its
   discordance is unmeasured and must not be assumed to be 12.5 %. The number that transfers is
   the *method*, not the rate.
