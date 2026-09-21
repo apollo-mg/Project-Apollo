@@ -86,18 +86,38 @@ def main(a):
         print()
 
     if a.deep:
-        print("=== semantic search over receipts + ledger ===")
+        # HYBRID, not vector-only. Receipt language is full of exact tokens an embedding model
+        # blurs (__dp4a, sm_60, cache_prompt, kv_bpv, O8, AFM-26) -- BM25 nails those, embeddings
+        # catch "why was the quantizer slow". sovereign_search already fuses both with RRF, and
+        # as of 2026-09-20 the receipts corpus is actually IN both stores (5,166 chunks each);
+        # before that this path searched a store containing zero receipts.
+        print("=== hybrid search (BM25 + vector, RRF) over receipts + ledger ===")
         try:
-            r = subprocess.run([str(ROOT / "venv_cachyos/bin/python3"),
-                                str(ROOT / "tools/ledger_query.py"), a.query,
-                                "-k", str(a.k), "--all", "--chars", "300"],
-                               capture_output=True, text=True, timeout=180)
-            out = (r.stdout or r.stderr).strip()
-            print(out[:2500] if out else "  (no output)")
-            if r.stdout.strip():
-                found = True
+            r = subprocess.run([str(ROOT / "venv_cachyos/bin/python3"), "-c", f"""
+import sys; sys.path.insert(0, {str(ROOT)!r})
+from modules.sovereign_search import search_bm25, search_vector, rrf_fusion_weighted
+q = {a.query!r}
+b = search_bm25(q, 12)
+v = search_vector(q, 12)
+fused = rrf_fusion_weighted([b, v], k=60)
+items = sorted(fused.values(), key=lambda r: -r['score']) if isinstance(fused, dict) else fused
+seen = set()
+for it in items:
+    src = it.get('source', '?')
+    if src in seen: continue
+    seen.add(src)
+    print('  ' + src)
+    if len(seen) >= {a.k}: break
+"""], capture_output=True, text=True, timeout=300)
+            out = "\n".join(l for l in (r.stdout or "").splitlines() if l.strip())
+            if out:
+                print(out); found = True
+            else:
+                print("  (no hits)")
+                if r.stderr.strip():
+                    print(f"  stderr: {r.stderr.strip().splitlines()[-1][:160]}")
         except Exception as e:
-            print(f"  semantic search unavailable: {type(e).__name__}: {e}")
+            print(f"  hybrid search unavailable: {type(e).__name__}: {e}")
         print()
 
     if found:

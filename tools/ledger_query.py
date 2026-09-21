@@ -5,8 +5,14 @@
   ./tools/ledger_query.py "why did the order test need three runs" -k 5
   ./tools/ledger_query.py "sampling" --all      # search receipts and docs too, not just ledger
 
-Filters to type="ledger" by default so project history is not drowned out by the 238 README /
-receipt chunks already in shop_vault.
+Filters to type="ledger" by default so project history is not drowned out by the rest of
+shop_vault.
+
+STALE CLAIM CORRECTED 2026-09-20: this docstring used to say "the 238 README / receipt chunks
+already in shop_vault". There were ZERO receipt chunks -- the corpus was never indexed. It is
+now (5,166 chunks, `tools/receipts_index.py`), so `--all` actually reaches receipts. For
+prior-art lookup prefer `tools/ledger_precheck.py --deep`, which fuses BM25 and vectors with RRF
+rather than doing vectors alone.
 """
 import argparse, sys
 sys.path.insert(0, "/mnt/TG_2TB/Projects/Apollo")
