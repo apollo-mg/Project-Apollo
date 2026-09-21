@@ -133,11 +133,20 @@ A1, from measurement on 08-21 rather than estimate:
    discordance is **12.5 %**, not the assumed 20 %, so the count is **374 per arm** (3.06 h, still
    cheap). It also found that **10 of 16 v0 items never flip at any bitrate**, which turns the
    discordance rate into a design parameter and **merges what were steps 2 and 3**.
-3. **Rebuild v2's families as fixture-computed rather than hand-asserted.** This is now the
-   *sizing* step, not a follow-on to it: the item count is 47 discordant pairs divided by whatever
-   rate the rungs achieve. At 40 % it is 117 per arm instead of 374. Rungs near the act/ask
-   boundary are the only lever on that rate.
-4. Pilot on `.194`, **tensor split, two arms concurrent on {0,1} and {2,3}**. Single rep per item —
+3. ~~**Rebuild v2's families as fixture-computed**~~ — **DONE 09-21**, three receipts:
+   `argus-v2/RESULT_FIXTURE_COMPUTED_FAMILIES.md` (37/45 items machine-decided, mutation-tested),
+   `RESULT_TWO_AXIS_RUNG.md` (the rung was determinacy + retrieval depth + speech act; found a live
+   false pass in `judge()`), `RESULT_WORLDGEN.md` (cardinality is a parameter; matched pairs
+   generate and verify).
+
+   **What it changed:** the remaining bottleneck is **templates, not items**. A1 caps reuse at ~8
+   per template, so 374/arm needs **47 templates, 43 of them unwritten**. The generator is an 8x
+   reduction in authoring, not an elimination. The rate lever is unchanged — at 40 % discordance it
+   is 15 templates instead of 47.
+4. **Author the remaining templates** (43 for 374/arm, 11 if the rungs reach 40 % discordance),
+   and extend each template's filler pool — the referent class needs 748 distinct forenames at
+   374/arm if no name may repeat, which is an open decision (`RESULT_WORLDGEN.md`).
+5. Pilot on `.194`, **tensor split, two arms concurrent on {0,1} and {2,3}**. Single rep per item —
    majority voting over reps suppresses discordance at 3x the cost. **Size the arms separately and
    never pool them**: quantisation moves knowledge and abstention in opposite directions, and a
    pooled test reports a null while both arms are moving.
