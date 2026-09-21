@@ -1,0 +1,68 @@
+diff --git a/tests/test-backend-ops.cpp b/tests/test-backend-ops.cpp
+index a6cfd927d..bc91797a5 100644
+--- a/tests/test-backend-ops.cpp
++++ b/tests/test-backend-ops.cpp
+@@ -9892,6 +9892,23 @@ static std::vector<std::unique_ptr<test_case>> make_test_cases_eval() {
+         test_cases.emplace_back(new test_mul_mat(GGML_TYPE_F32, GGML_TYPE_F32, 1, n, 2048, {1, 1}, {1, 1}));
+     }
+ 
++    // --- LOCAL (2026-09-09, not upstream): correctness arm for jasstrong's narrow matmuls.
++    //   Mirrors the perf cases added in make_test_cases_perf(). Present here because
++    //   MODE_TEST only ever walks make_test_cases_eval(), so a -p filter aimed at the
++    //   perf list matches zero cases and exits 0 without running anything.
++    //   m=10240,n=4,k=320 q8_0 is the shape reported to segfault on gfx1030.
++    for (int64_t n : {1, 4}) {
++        for (ggml_type ta : {GGML_TYPE_Q8_0, GGML_TYPE_F16}) {
++            test_cases.emplace_back(new test_mul_mat(ta, GGML_TYPE_F32,     4, n, 10240, {1, 1}, {1, 1}));
++            test_cases.emplace_back(new test_mul_mat(ta, GGML_TYPE_F32,   320, n, 10240, {1, 1}, {1, 1}));
++            test_cases.emplace_back(new test_mul_mat(ta, GGML_TYPE_F32, 10240, n,   320, {1, 1}, {1, 1}));
++        }
++    }
++    for (int64_t n : {1, 2, 3, 4, 5, 6}) {
++        test_cases.emplace_back(new test_mul_mat(GGML_TYPE_BF16, GGML_TYPE_F32, 10240, n, 320, {1, 1}, {1, 1}));
++        test_cases.emplace_back(new test_mul_mat(GGML_TYPE_F16,  GGML_TYPE_F32, 10240, n, 320, {1, 1}, {1, 1}));
++    }
++
+ #if 0
+     {
+         // Test paths in OpenCL
+@@ -10955,6 +10972,39 @@ static std::vector<std::unique_ptr<test_case>> make_test_cases_eval() {
+ static std::vector<std::unique_ptr<test_case>> make_test_cases_perf() {
+     std::vector<std::unique_ptr<test_case>> test_cases;
+ 
++    // --- LOCAL (2026-09-09, not upstream): RDNA4 column for jasstrong's narrow-matmul table
++    // in TheTom/llama-cpp-turboquant#362/#363. He posted gfx90a/gfx1100/gfx1030; gfx1201 missing.
++    // Shapes from his description:
++    //   hc_*_inject  weight [10240,4]   -> m=4,     k=10240  ("four outputs over a 10240 reduction")
++    //   hc_head_down weight [10240,320] -> m=320,   k=10240
++    //   hc_head_up   weight [320,10240] -> m=10240, k=320
++    // q8_0 vs f16 at n=1 and n=4. n=4 on hc_head_up is his reported gfx1030 segfault.
++    for (int64_t n : {1, 4}) {
++        for (ggml_type ta : {GGML_TYPE_Q8_0, GGML_TYPE_F16}) {
++            test_cases.emplace_back(new test_mul_mat(ta, GGML_TYPE_F32,     4, n, 10240, {1, 1}, {1, 1})); // inject
++            test_cases.emplace_back(new test_mul_mat(ta, GGML_TYPE_F32,   320, n, 10240, {1, 1}, {1, 1})); // head_down
++            test_cases.emplace_back(new test_mul_mat(ta, GGML_TYPE_F32, 10240, n,   320, {1, 1}, {1, 1})); // head_up
++        }
++    }
++    // BF16 threshold probe: should_use_mmvf gives RDNA4 a tuned ne11<=5 for F16 but a flat
++    // ne11<=3 for BF16 (no RDNA4 case). If that flat 3 is untuned rather than measured, a step
++    // should appear between n=3 and n=4 for BF16 that F16 does not show until n>5.
++    for (int64_t n : {1, 2, 3, 4, 5, 6}) {
++        test_cases.emplace_back(new test_mul_mat(GGML_TYPE_BF16, GGML_TYPE_F32, 10240, n, 320, {1, 1}, {1, 1}));
++        test_cases.emplace_back(new test_mul_mat(GGML_TYPE_F16,  GGML_TYPE_F32, 10240, n, 320, {1, 1}, {1, 1}));
++    }
++
++    // Inside jasstrong's narrow window (#363 gates on src0_ne[1] <= GGML_MMVF_NARROW_MAX = 4096,
++    // and src0_ne[1] is m). m=320 and m=4 qualify; m=10240 does not. His BF16 arm reaches RDNA4
++    // because bf16_mma_hardware_available() is `... || cc >= GGML_CUDA_CC_RDNA3`, so RDNA4's
++    // crossover inside that window is the measurement his PR is missing.
++    for (int64_t n : {1, 2, 3, 4, 5, 6, 7, 8}) {
++        test_cases.emplace_back(new test_mul_mat(GGML_TYPE_BF16, GGML_TYPE_F32, 320, n, 10240, {1, 1}, {1, 1}));
++        test_cases.emplace_back(new test_mul_mat(GGML_TYPE_F16,  GGML_TYPE_F32, 320, n, 10240, {1, 1}, {1, 1}));
++        test_cases.emplace_back(new test_mul_mat(GGML_TYPE_BF16, GGML_TYPE_F32,   4, n, 10240, {1, 1}, {1, 1}));
++        test_cases.emplace_back(new test_mul_mat(GGML_TYPE_F16,  GGML_TYPE_F32,   4, n, 10240, {1, 1}, {1, 1}));
++    }
++
+     // SWIGLU at a 27B-class FFN width, fused [gate|up] vs split operands
+     // note: same bytes either way, so a backend that indexes them differently shows it here
+     for (ggml_type type : {GGML_TYPE_F16, GGML_TYPE_F32}) {
