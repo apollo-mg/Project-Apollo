@@ -121,12 +121,21 @@ A1, from measurement on 08-21 rather than estimate:
 
 ## What is actually next
 
-1. **Effort sweep before sizing** — `medium` vs `xhigh` token bill on a handful of items. This is
-   the gate: it sets the number every other estimate is computed from.
-2. **Re-derive the item count from A1's table** using observed discordance, not a guess.
-3. **Rebuild v2's families as fixture-computed rather than hand-asserted**, so they can be generated
-   and re-verified at 240/arm.
-4. Pilot on `.194`, **tensor split, two arms concurrent on {0,1} and {2,3}**.
+1. ~~**Effort sweep before sizing**~~ — **DONE 09-21**, `RESULT_A1_SIZING_MEDIUM.md`. `medium` on
+   the actual campaign config: 96 / 262 median tokens per arm, 0 censored, 1.96 h for a two-quant
+   comparison at 240/arm against A1's 37.6 h.
+2. ~~**Re-derive the item count**~~ — **DONE 09-21**, `RESULT_A1_SIZING_DISCORDANCE.md`. Measured
+   discordance is **12.5 %**, not the assumed 20 %, so the count is **374 per arm** (3.06 h, still
+   cheap). It also found that **10 of 16 v0 items never flip at any bitrate**, which turns the
+   discordance rate into a design parameter and **merges what were steps 2 and 3**.
+3. **Rebuild v2's families as fixture-computed rather than hand-asserted.** This is now the
+   *sizing* step, not a follow-on to it: the item count is 47 discordant pairs divided by whatever
+   rate the rungs achieve. At 40 % it is 117 per arm instead of 374. Rungs near the act/ask
+   boundary are the only lever on that rate.
+4. Pilot on `.194`, **tensor split, two arms concurrent on {0,1} and {2,3}**. Single rep per item —
+   majority voting over reps suppresses discordance at 3x the cost. **Size the arms separately and
+   never pool them**: quantisation moves knowledge and abstention in opposite directions, and a
+   pooled test reports a null while both arms are moving.
 
 **Host settled: `.194`.** The model does not fit the 9070 and the concurrent-tensor path makes
 Pascal ~3.4x cheaper than A1's own figure. `.194` is up and idle.
