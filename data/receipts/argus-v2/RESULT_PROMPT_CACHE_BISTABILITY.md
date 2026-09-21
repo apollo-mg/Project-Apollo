@@ -137,6 +137,31 @@ tensor split -- is solid either way.
 
 No layer-specific warnings appeared in the server log.
 
+## CORRECTION 2026-09-20 (later): why the old build never cached, properly attributed
+
+The section below attributes the old binary's `cached_tokens: 0` to `cache-ram disabled` /
+`fallback=live_only`. That is the symptom, not the cause, and the cause was already on file.
+
+`vbr-artifact-store/RESULT_TENSOR_SPLIT_BREAKS_ALL_CACHING.md` (**2026-09-07, same node `.73`,
+same build `c9c52d71`**) establishes that **`--split-mode tensor` disables prompt-cache reuse for
+EVERY KV codec** -- f16, q8_0, q8_0/turbo3 and vbr all re-prefill in full under tensor split, and
+all reuse under layer split. It logs the identical `fallback=live_only ... cache-ram disabled`
+line quoted below.
+
+So the old binary did not cache **because we were running `-sm tensor`**, which is a documented
+bug, not because host caching was unavailable in general.
+
+**This sharpens the whole finding.** The new build DOES reuse the cache under `-sm tensor`
+(`cached_tokens: 30`), so somewhere in the 548 commits **the tensor-split caching bug was fixed**
+-- and that fix is what newly exposes the MTP x prompt-cache interaction on tensor split. The
+interaction itself is old and characterised (`battle16gb/MTP_CACHEPROMPT_FALSIFICATION.md` 07-30,
+`spec-decode-determinism/RESULT_SPECULATION_IS_NOT_BIT_EXACT.md` 08-18). What is new is that a
+config which previously could not cache at all now can.
+
+**Found by `tools/ledger_precheck.py`, built earlier the same evening**, on the query
+"prefill throughput caching measurement" -- i.e. by the tool whose absence caused the
+re-derivation this receipt documents. Second use, second prior-art hit.
+
 ## Why it appears only now: the old build never reached this path
 
 The old binary reported `cached_tokens: 0` on every request, and its log says why:
