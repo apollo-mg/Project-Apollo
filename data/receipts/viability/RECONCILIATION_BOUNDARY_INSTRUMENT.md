@@ -61,15 +61,41 @@ cardinality; unsatisfiability is set emptiness; scope ambiguity is an unbounded 
 then be *generated* against a fixture and re-verified whenever the fixture changes, which is what
 makes 240 per arm a real plan instead of an authoring marathon.
 
-**3. Hardware and ordering. Both of yesterday's operational assumptions are wrong.**
+**3. Ordering is wrong; A1's HOST recommendation is also wrong, in the other direction.**
+
+*(Corrected 2026-09-21, same day, by Mark. The reconciliation first repeated A1's "not on Pascal"
+conclusion uncritically. It does not survive contact with the capacity and split-mode numbers.)*
+
+**A1 recommends a host that cannot load its own model.** Its cost run used `Qwen3.8-27B-Q6_K` at
+**21.3 GB**. The 9070 XT's practical *weights* ceiling is **~11.5-12 GiB** -- 15.92 GiB total with
+**2.73 GiB held by the desktop compositor** -- and `UD-Q4_K_M` at 15.3 GB already spilled 1.08 GB
+and OOM'd the desktop under load. The standing rule is *"anything above ~12 GiB goes to `.194`"*.
+The 9070 is genuinely faster **per byte** (~388 vs ~176 effective GB/s, a 2.2x normalised
+advantage, not the raw 4.2x), but only for models that fit, and this one does not.
+
+**And A1's cost figure assumes the slowest available split mode.** Its 18.8 h/sweep derives from
+**7.7 tok/s**, which is `.194` at *layer* split. From `splitscale/RESULT_2V4.md`, same model, tg128:
+
+```
+layer 0,1      7.70          tensor 0,1   13.00        tensor 2,3   13.00
+tensor 0-3    15.34          concurrent 0,1 + 2,3 = 13.00 + 13.03 = 26.03
+```
+
+So the two-quant comparison A1 priced at **37.6 h is about 11 h of wall clock**: arm A on GPUs
+0,1 and arm B on GPUs 2,3, both tensor split at 13 t/s, **run simultaneously**. ~3.4x better than
+the figure that motivated "not on Pascal", and it is instrument-legal because both arms share the
+**same partition scheme** -- the explicitly safe case in `[[194-partitioning-and-weather]]`, where
+only *varying* device count within a comparison is forbidden.
+
+**Revised: `.194` is the right host, at tensor split, with the two arms concurrent.** What stays
+true from A1 is the ordering point:
+
+**Ordering. The effort sweep is a prerequisite for sizing, not a follow-up.**
 
 A1, from measurement on 08-21 rather than estimate:
 
-- The unanswerable arm costs **4-9x** its partner (median 5,090 vs 724 chars). At 240 pairs:
-  **~521k tokens, ~18.8 h per sweep, ~37.6 h for a two-quant comparison** on 2x P100.
-- **"A1 does not belong on Pascal."** The 9070 XT runs this model class several times faster and
-  needs no turbo KV. Yesterday's plan put the pilot on `.194`. *(A1 says to measure decode on the
-  9070 before committing — that measurement is still owed.)*
+- The unanswerable arm costs **4-9x** its partner (median 5,090 vs 724 chars) -- ~521k tokens at
+  240 pairs. That measurement stands; only the wall-clock conversion above changes.
 - **"Effort is now a cost variable as well as a confound ... the effort sweep is a prerequisite for
   sizing, not a follow-up."** v2 has effort as a crossed factor, which is right, but scheduled it
   *after* the pilot. It has to come first, because `xhigh` vs `medium` changes the token bill that
@@ -95,11 +121,12 @@ A1, from measurement on 08-21 rather than estimate:
 
 ## What is actually next
 
-1. **Measure decode for this model class on the 9070 XT.** A1 owes this and it decides the host.
-2. **Effort sweep before sizing** — `medium` vs `xhigh` token bill on a handful of items.
-3. **Re-derive the item count from A1's table** using observed discordance, not a guess.
-4. **Rebuild v2's families as fixture-computed rather than hand-asserted**, so they can be generated
+1. **Effort sweep before sizing** — `medium` vs `xhigh` token bill on a handful of items. This is
+   the gate: it sets the number every other estimate is computed from.
+2. **Re-derive the item count from A1's table** using observed discordance, not a guess.
+3. **Rebuild v2's families as fixture-computed rather than hand-asserted**, so they can be generated
    and re-verified at 240/arm.
-5. Only then: pilot.
+4. Pilot on `.194`, **tensor split, two arms concurrent on {0,1} and {2,3}**.
 
-**Not started.** `.194` is up and idle; nothing here says to use it, and A1 says not to.
+**Host settled: `.194`.** The model does not fit the 9070 and the concurrent-tensor path makes
+Pascal ~3.4x cheaper than A1's own figure. `.194` is up and idle.

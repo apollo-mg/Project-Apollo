@@ -181,7 +181,7 @@ someone find it, and the claim in a form that is checkable.
 | **Six documents written 08-20..09-20 are one instrument** — knowledge-boundary (tier_cal, A1), runtime signal (overthink detector), treatment (injection prereg), specification-boundary (argus v2). Read the reconciliation before designing another | `viability/RECONCILIATION_BOUNDARY_INSTRUMENT.md` | 09-21 |
 | **Power comes from DISCORDANT PAIRS, not item count** — 240/arm working target; report ACHIEVED discordance, never assume it. "A run that yields 12 discordant pairs is underpowered no matter how many items it contained" | `viability/A1_MEASUREMENT_CORPUS_SPEC.md` | 08-20 |
 | **Make unanswerability/ambiguity DECIDABLE, not asserted** — generate both arms from closed sets so it is a set-membership decision, matched by construction. Hand-verifying 480 invented entities is not a plan | `viability/A1_MEASUREMENT_CORPUS_SPEC.md` | 08-20 |
-| The unanswerable arm costs **4-9x** its partner (5,090 vs 724 median chars); ~18.8 h/sweep at 240 pairs on 2x P100, so **this class does not belong on Pascal**, and the **effort sweep is a prerequisite for sizing** | `viability/A1_MEASUREMENT_CORPUS_SPEC.md` | 08-21 |
+| The unanswerable arm costs **4-9x** its partner (5,090 vs 724 median chars), ~521k tokens at 240 pairs; the **effort sweep is a prerequisite for sizing**. A1's "not on Pascal" conclusion is **WRONG**: it priced layer split (7.7 t/s) when concurrent tensor gives 13+13, and the 9070 cannot load a 21.3 GB Q6_K at a ~12 GiB ceiling | `viability/RECONCILIATION_BOUNDARY_INSTRUMENT.md` | 09-21 |
 
 | finding | receipt | date |
 |---|---|---|
