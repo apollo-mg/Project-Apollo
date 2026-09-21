@@ -49,6 +49,11 @@ def main():
     computed, kind_bad, undecidable, ground_bad = {}, [], [], []
     for sc in scs:
         ground_bad += [(sc["id"], m) for m in wf.check_grounding(world, sc)]
+        # judge() reads expect["actions"] for every kind=="actions" item. Checking the
+        # expectation KIND alone let a corpus through that KeyError'd at scoring time.
+        if sc["expect"]["kind"] == "actions" and not sc["expect"].get("actions"):
+            ground_bad.append((sc["id"], "kind=actions but expect.actions is missing/empty "
+                                         "-- judge() would raise at scoring time"))
         if not sc["decidable"]:
             undecidable.append(sc)
             computed[sc["id"]] = (None, [sc["not_decidable_because"]])
