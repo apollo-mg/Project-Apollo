@@ -72,8 +72,10 @@ def main():
     print("\n== retrieval depth (min_calls: the floor below which an answer is ungrounded) ==")
     weak = []
     for sc in scs:
-        mc = wf.min_calls(world, sc)
+        mc = wf.min_calls(world, sc, today)
         g = "".join(f" {x['set']}/{x['id']}.{x['field']}" for x in sc.get("grounded_in", []))
+        if sc.get("min_calls") not in (None, mc):
+            ground_bad.append((sc["id"], f"baked min_calls={sc['min_calls']} but recomputes to {mc}"))
         if mc >= 2:
             print(f"  {sc['id']:22} min_calls={mc}{'   answer in:' + g if g else ''}")
         # judge() passes no_action/no_action_ask at ncalls>=1. An item needing more

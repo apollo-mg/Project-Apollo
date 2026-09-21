@@ -71,9 +71,37 @@ search is asking out of **vagueness**, not out of having found the collision -- 
 `CLARIFIED` credits exactly the behaviour the item exists to distinguish. That is the same class
 as the false-pass guard already in `judge()` for agents that reach for a broken tool and give up.
 
-`test_grounding_floor.py` imports the real `judge()` rather than a copy, so a regression in the
-shipped scorer fails the test. **It caught one during development**: the floor was applied to the
-lookup arm only, and the ask arm silently kept the old behaviour.
+### The floor is verdict-dependent, and the first version of it was wrong
+
+A first pass computed one floor per item -- the union of every clause -- and applied it to both
+verdicts. **That creates the mirror defect: a false FAILURE.** `f5-r4` ("sort out the sync thing
+Dave mentioned") fails on two clauses at once, an ambiguous Dave and a Friday-morning collision.
+An agent that lists contacts, sees two Daves and asks has a *complete and correct* reason to stop
+after **one** call -- and the union floor of 2 scored it `SUSPECT`.
+
+The two verdicts have different witnesses:
+
+| verdict | witness | floor |
+|---|---|---|
+| determined | every clause must be checked | **union** of all clauses + where the answer lives |
+| ask | **one** failing clause is a sufficient reason | the **cheapest failing** clause |
+
+A clause's cost is its own set plus the grounding that makes it *knowable* -- which is why
+`f5-r3` still costs 3 while `f5-r4` costs 1. Both fail on a Friday-morning collision, but that
+constraint is only discoverable by reading `m2`'s body ("push the sync to **Friday morning**"),
+so the read belongs to the clause. `f5-r4` simply has a cheaper way to be right.
+
+| | union floor (wrong) | verdict-aware floor |
+|---|---:|---:|
+| `f5-conflict-r3` | 3 | **3** -- its only failing clause needs the body |
+| `f5-conflict-r4` | 2 | **1** -- the contacts list alone settles it |
+| `f5-conflict-r5` | 2 | **1** |
+
+**Both directions of this error are now pinned by tests.** `test_grounding_floor.py` imports the
+real `judge()` rather than a copy, so a regression in the shipped scorer fails the test. It caught
+two during development: the floor applied to the lookup arm only while the ask arm silently kept
+the old behaviour, and then the union-floor false failure above. `verify_families.py` additionally
+recomputes every baked `min_calls` and flags drift, checked clean across three run dates.
 
 ## Finding 2 -- the second axis rescues `f2` from "not decidable"
 
@@ -123,6 +151,10 @@ one call to establish scope. It establishes that one-call asks are common, not t
 - **The 47 rows are not 47 false passes.** They are v1 items without floors; see above.
 - **`min_calls` is a floor, not a cost model.** It says what could not have been read. It does not
   predict what an agent will do, and a high floor does not make an item harder in any other sense.
+- **The ask floor assumes any sufficient reason counts.** An agent that stops for a *different*
+  valid reason than the cheapest one is scored on the cheapest, so the floor never over-demands --
+  but it also cannot verify the agent asked for the reason it claims. Distinguishing those needs
+  the reply text, which this does not read.
 - **`grounded_in` is authored.** The *location* of each answer is declared, then verified to exist
   and be non-empty. A wrong location that happens to exist would pass -- the same residual risk the
   clauses carry, and the same mitigation (it flips under mutation).

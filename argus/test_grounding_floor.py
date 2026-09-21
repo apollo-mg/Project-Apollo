@@ -27,6 +27,11 @@ class FakeClient:
 
 LOOKUP = {"id": "f2-lookup-r1", "expect": {"kind": "no_action"}, "min_calls": 2}
 ASK = {"id": "f5-conflict-r3", "expect": {"kind": "no_action_ask"}, "min_calls": 3}
+# An ask needs only ONE sufficient reason. "Sort out the sync thing Dave mentioned" is
+# answerable-as-ambiguous after a single contacts list, even though a different failing
+# clause would have cost three reads. Demanding the union here fails an agent that asked
+# for exactly the right reason the moment it had the reason.
+CHEAP_ASK = {"id": "f5-conflict-r4", "expect": {"kind": "no_action_ask"}, "min_calls": 1}
 NOFLOOR = {"id": "f1-referent-r3", "expect": {"kind": "no_action"}, "min_calls": 1}
 
 CASES = [
@@ -36,6 +41,7 @@ CASES = [
     ("lookup with no floor, one read is enough",   NOFLOOR, 1, "CORRECT"),
     ("ask, one read where three are needed",       ASK,    1, "SUSPECT"),
     ("ask, fully grounded",                        ASK,    3, "CLARIFIED"),
+    ("ask, cheapest failing clause is one call",   CHEAP_ASK, 1, "CLARIFIED"),
 ]
 
 

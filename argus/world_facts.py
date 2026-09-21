@@ -129,6 +129,11 @@ def _free_slots(world, sel, today):
     return out
 
 
+def _holds(world, clause, today):
+    n = len(select(world, clause["selector"], today))
+    return {"unique": n == 1, "nonempty": n >= 1, "empty": n == 0}[clause["rule"]]
+
+
 def decide(world, clauses, today, response_type="instruction"):
     """-> (kind, [explanation per clause]).  Determined iff every clause holds.
 
@@ -185,20 +190,59 @@ def decide(world, clauses, today, response_type="instruction"):
 HEADER_FIELDS = {"id", "threadId", "from", "subject", "date", "labels"}
 
 
-def min_calls(world, item):
-    """Fewest backend reads that could ground this item's answer.
+def _clause_cost(clause):
+    """Reads needed to establish this ONE clause.
 
-    Counts one list/search per distinct set consulted, plus one `get` per
-    message whose BODY carries part of the answer.  Sets come from the item's
-    clauses (you cannot decide determinacy without reading them) unioned with
-    `grounded_in` (where the answer itself lives).
+    Its own set, plus any grounding that makes the clause KNOWABLE. f5-r3's
+    "Friday morning is taken" is not a constraint an agent can discover until it
+    has read m2's body -- the body is what says Dave asked for Friday morning at
+    all -- so that read belongs to the clause, not to the item.
     """
-    sets = {c["selector"]["set"] for c in item.get("decided_by", [])}
-    sets.discard("free_slots")          # derived from events, not its own endpoint
-    if any(c["selector"]["set"] == "free_slots" for c in item.get("decided_by", [])):
-        sets.add("events")
-
+    sets = {clause["selector"]["set"]}
+    if "free_slots" in sets:
+        sets = {"events"}
     gets = 0
+    for g in clause.get("grounded_in", []):
+        sets.add(g["set"])
+        if g.get("field") not in HEADER_FIELDS and g["set"] == "messages":
+            gets += 1
+    return len(sets) + gets
+
+
+def min_calls(world, item, today=None, results=None):
+    """Fewest backend reads that could ground this item's verdict. A FLOOR.
+
+    The two verdicts have different witnesses, and conflating them scores a
+    correct agent wrong:
+
+      determined -> EVERY clause must be checked, so the floor is the union of
+                    all of them, plus wherever the answer itself lives.
+      ask        -> ONE failing clause is a sufficient reason to stop. The floor
+                    is therefore the CHEAPEST failing clause, not the union.
+                    "Email Dave" is answerable-as-ambiguous after a single
+                    contacts list; demanding more would fail an agent that asked
+                    for exactly the right reason as soon as it had the reason.
+    """
+    clauses = item.get("decided_by", [])
+    if results is None and clauses:
+        if today is None:
+            today = dt.date.today()
+        results = [_holds(world, c, today) for c in clauses]
+
+    failing = [c for c, ok in zip(clauses, results or []) if not ok]
+    if failing:
+        return min(_clause_cost(c) for c in failing)
+
+    sets, gets = set(), 0
+    for c in clauses:
+        s = {c["selector"]["set"]}
+        if "free_slots" in s:
+            s = {"events"}
+        sets |= s
+        for g in c.get("grounded_in", []):
+            sets.add(g["set"])
+            if g.get("field") not in HEADER_FIELDS and g["set"] == "messages":
+                gets += 1
     for g in item.get("grounded_in", []):
         sets.add(g["set"])
         if g.get("field") not in HEADER_FIELDS and g["set"] == "messages":

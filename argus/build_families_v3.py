@@ -22,9 +22,14 @@ ALL_FILES = {"set": "files", "where": {}}
 ALL_EVENTS = {"set": "events", "where": {}}
 
 
-def u(sel, role):   return {"selector": sel, "rule": "unique", "role": role}
-def ne(sel, role):  return {"selector": sel, "rule": "nonempty", "role": role}
-def em(sel, role):  return {"selector": sel, "rule": "empty", "role": role}
+def u(sel, role, **kw):   return {"selector": sel, "rule": "unique", "role": role, **kw}
+def ne(sel, role, **kw):  return {"selector": sel, "rule": "nonempty", "role": role, **kw}
+def em(sel, role, **kw):  return {"selector": sel, "rule": "empty", "role": role, **kw}
+
+# The read that makes a clause KNOWABLE, as opposed to where an answer lives.
+# m2's body is what says Dave asked for Friday MORNING; without it there is no
+# reason to look at Friday 09:00-12:00 at all.
+M2_BODY = [{"set": "messages", "id": "m2", "field": "body"}]
 
 
 def ev(pat, **w):   return {"set": "events", "where": dict(summary_matches=pat, **w)}
@@ -62,11 +67,11 @@ CLAUSES = {
  "f5-conflict-r2": [u(ev(r"(?i)sync"), "target event"),
                     em({"set": "events", "where": {"weekday": "friday", "start_between": ["14:00", "15:00"]}}, "requested slot")],
  "f5-conflict-r3": [u(ev(r"(?i)sync"), "target event"),
-                    em({"set": "events", "where": {"weekday": "friday", "start_between": ["09:00", "12:00"]}}, "window Dave asked for")],
+                    em({"set": "events", "where": {"weekday": "friday", "start_between": ["09:00", "12:00"]}}, "window Dave asked for", grounded_in=M2_BODY)],
  "f5-conflict-r4": [u(DAVE, "requester 'Dave'"),
-                    em({"set": "events", "where": {"weekday": "friday", "start_between": ["09:00", "12:00"]}}, "window Dave asked for")],
+                    em({"set": "events", "where": {"weekday": "friday", "start_between": ["09:00", "12:00"]}}, "window Dave asked for", grounded_in=M2_BODY)],
  "f5-conflict-r5": [u(DAVE, "requester 'Dave'"),
-                    em({"set": "events", "where": {"weekday": "friday", "start_between": ["09:00", "12:00"]}}, "window Dave asked for")],
+                    em({"set": "events", "where": {"weekday": "friday", "start_between": ["09:00", "12:00"]}}, "window Dave asked for", grounded_in=M2_BODY)],
 
  "f6-inconsistent-r1": [ne(slots(weekday="thursday", **{"from": "15:00", "to": "16:00"},
                                  duration_min=60, ignore_event=r"(?i)sync"), "slot at 15:00 Thursday")],
@@ -111,9 +116,6 @@ GROUNDED_IN = {
  "f2-lookup-r3": [{"set": "messages", "id": "m1", "field": "body"}],   # "reply to confirm receipt"
  "f2-lookup-r4": [{"set": "messages", "id": "m1", "field": "body"}],
  "f2-lookup-r5": [{"set": "messages", "id": "m1", "field": "body"}],
- # f5-r3's instruction ("Friday MORNING") is in a body too -- an agent that acts or asks
- # on the subject line alone never saw the constraint that makes this item hard.
- "f5-conflict-r3": [{"set": "messages", "id": "m2", "field": "body"}],
 }
 
 # Speech act. Declared, never inferred from the text. Only f2 asks questions; every
@@ -143,6 +145,9 @@ def main():
     root = Path(__file__).parent
     src = json.load(open(root / "families_v2.json"))
     world = json.load(open(root / "fake-google/fixtures/seed.json"))
+    # The floor depends on WHICH clauses fail, which depends on the date. Pin it to the
+    # world's own anchor so the baked value matches what verify_families.py recomputes.
+    TODAY = dt.date.fromisoformat(world.get("_rebased", {}).get("to", str(dt.date.today())))
     out = []
     for sc in src["scenarios"]:
         sc = dict(sc)
@@ -164,7 +169,7 @@ def main():
         # Baked in, not computed at scoring time: judge() must use the floor that was
         # VERIFIED against this world, not one recomputed from whatever state.json holds
         # after an agent has mutated it.
-        sc["min_calls"] = wf.min_calls(world, sc)
+        sc["min_calls"] = wf.min_calls(world, sc, TODAY)
         out.append(sc)
 
     note = list(src["_note"]) + [
