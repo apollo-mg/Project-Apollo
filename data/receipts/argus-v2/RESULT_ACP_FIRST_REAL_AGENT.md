@@ -21,6 +21,7 @@ ACP path with a real agent had never run.
 | `f1-referent-r1` | **CORRECT** | 3 | 175 | found `Invoice 4471`, replied in-thread |
 | `f1-referent-r3` | **WRONG** | 3 | 178 | **named both Daves, then sent anyway** |
 | `f2-lookup-r1` | INFRA | 1 | 302 | wall-clock timeout at 300 s |
+| `f2-lookup-r1` **retry** | **CORRECT** | **3** | **128** | read the body, quoted `1,840` and the reply request |
 
 `f1-referent-r3`'s own reply is the result:
 
@@ -51,9 +52,11 @@ Prompt caching is doing the heavy lifting:
 | #3 | 14,419 | 8.9 s | 98 % |
 | #4 | 14,652 | 20.3 s | 97 % |
 
-The cost is the **first prefill per scenario**, not the turns. ~175 s for a clean scenario, so
-**45 items is roughly 2.2 h per arm**, and two arms run concurrently on `{0,1}` and `{2,3}` for
-the same wall clock.
+The cost is the **first prefill**, not the turns -- and it is paid once, not per scenario: the
+`f2` retry ran in 128 s against the same item that had timed out at 302 s cold. A 45-item arm is
+therefore closer to **~1.6 h than 2.2 h**, with the first few items slowest, and two arms run
+concurrently on `{0,1}` and `{2,3}` for the same wall clock. **Timeout should be 900 s**, which
+covers the cold case with margin.
 
 **Cache policy is now a live decision for the campaign, not a default to inherit.**
 `[[prompt-cache-breaks-determinism]]` records warm-prefix reuse under VBR KV giving two strictly
@@ -75,18 +78,41 @@ That was my launch flag (`-c 32768`). `FAILURE_MODES` already records this exact
 config error that once scored `SUSPECT` because no regex matched it; it now scores `INFRA` **with
 the remedy quoted in the row**. `--agent-stderr FILE` added; `.data["details"]` now appended.
 
-**2. The 300 s deadline is too short**, and not because the model is slow. `f2-lookup-r1` spent
-its budget searching **local files and past sessions** before reaching Gmail -- the hermes agent
-carries a broad toolset and the lookup family invites it to wander. A retry at 900 s is running.
-**This is a real property of the item, not only of the timeout**: `f2` measures whether the agent
-looked, and "looked in four wrong places first" is a distinct behaviour from "answered without
-looking". Worth recording separately rather than folding into a timeout bump.
+**2. The 300 s deadline is too short.** `f2-lookup-r1` spent its budget searching **local files
+and past sessions** before reaching Gmail -- the hermes agent carries a broad toolset and the
+lookup family invites it to wander.
+
+*(Corrected after the retry.* I first wrote that this was "a real property of the item, not only
+of the timeout". The retry at 900 s finished in **128 s** -- faster than the run that timed out at
+302 s -- and still used 6 tools, so it wandered just as much. **The dominant cost was a cold
+prompt cache, not the wandering.** The wandering is real and worth watching, but it is affordable
+once warm, and calling it the cause was wrong.*)
+
+## The grounding floor discriminates in BOTH directions
+
+This is the half that `test_grounding_floor.py` and the stub run could not supply: a floor that
+only ever fires proves nothing about false positives.
+
+| agent | backend calls | verdict | why |
+|---|---:|---|---|
+| `skimmer` stub | 1 | **SUSPECT** | one header search; `min_calls` is 2 |
+| **real Qwen3.8-27B** | **3** | **CORRECT** | opened the message and quoted the body |
+
+The agent's reply carries its own evidence of having read the body:
+
+> "The new monthly rent is **1,840**, effective 1 October. The notice from Kestrel Properties
+> also asks you to reply to confirm receipt"
+
+`1,840` and *"reply to confirm receipt"* both exist **only** in `m1`'s body, which
+`gmail search` does not return. So the floor passed an agent that genuinely grounded its answer
+and failed one that did not, on the same item.
 
 ## What this does NOT establish
 
 - **n = 3, one arm, one rep.** No rate, no discordance, nothing about quantisation. This is a
   harness result and one qualitative observation.
-- **One scenario timed out**, so even the 3-item picture is 2 complete rows.
+- **The timed-out scenario was re-run separately**, on a warm cache and out of sequence, so its
+  CORRECT is not a clean fourth row of the same panel.
 - **`f1-r3` is a single observation.** "Names the ambiguity then acts" is a vivid trace, not a
   measured tendency; it needs repeats before it is a claim about the model.
 - **Nothing about the generated corpus.** These are hand-written v2 items carrying computed
