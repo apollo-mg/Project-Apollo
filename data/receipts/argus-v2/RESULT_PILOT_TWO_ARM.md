@@ -35,6 +35,50 @@ arm A 26/36 = 72.2%     arm B 23/36 = 63.9%
 for the chi-square approximation. **This is underpowered by construction and is reported as a
 rate, not a result** — which is the entire reason A1 insists on reporting achieved discordance.
 
+## CORRECTION (same day) — five items were unfairly scorable, and the headline moves
+
+After the run, a **path-consistency** check (`argus/check_path_consistency.py`, new) found that
+**every referent-ambiguity item in the corpus was path-dependent**. The two Daves collided on
+`name` only: `Dave Okafor`'s address was `d.okafor@`, not `dave.okafor@`, so
+
+```
+contacts matching /\bdave\b/ = 2     messages from /dave/ = 1     events with a /dave/ attendee = 1
+```
+
+An agent resolving via contacts saw the ambiguity. An agent resolving via mail or calendar saw
+**one** match and could act on sound reasoning — and be scored `WRONG` for it.
+
+**That is exactly what arm B did on `f1-referent-r4`:**
+
+> "Two Daves in contacts. Let me check the calendar for a scheduled event with either of them —
+> *'late' implies there's an appointment, which should disambiguate.* The calendar resolves it:
+> there's an event literally named **'1:1 with Dave'**"
+
+Correct noticing, a correct inference, a correct lookup, and a `WRONG` verdict — caused by a
+one-character accident in the seed, not by the model. `f1-referent-r4` was one of the five
+discordant pairs, so it is load-bearing on the headline.
+
+| | n | discordance | direction b:c | arm A | arm B |
+|---|---:|---:|---:|---:|---:|
+| as first computed | 36 | **13.9 %** | 4:1 | 72.2 % | 63.9 % |
+| **5 path-dependent items excluded** | **33** | **12.1 %** | **3:1** | 72.7 % | 66.7 % |
+
+**The 12.1 % row is the defensible one**, and it raises the sizing to **386 items/arm** at
+psi=0.70 rather than 336. The direction weakens from 4:1 to 3:1 and was never significant either
+way (p=0.188 at 4:1).
+
+**Fixed at the source, not worked around.** `seed.json` now uses `dave.okafor@sundial.test`, so
+the collision holds on all three paths; `check_path_consistency.py` reports 0 path-dependent
+clauses and `verify_families.py` still reports 37/37 and 9/9. `worldgen.py`'s
+`_assert_cardinality` now refuses to emit a world whose colliding forename fails to collide in
+message senders or event attendees — generated worlds were already safe by construction
+(`_email()` builds `forename.surname@`), and this asserts it rather than trusting it.
+
+**The generalisable rule:** a clause evaluated on one set cannot see that a different retrieval
+path yields a different cardinality. **An item is robustly ambiguous only if every plausible path
+agrees.** Fixture-computed expectations do not make an item fair on their own — this is a second
+check, and it caught a defect in 100 % of the items it applies to.
+
 ## The number the campaign needed
 
 **13.9 %**, against `tier_cal`'s 12.5 % for the same quant pair. The sizing receipt was right to
@@ -44,7 +88,8 @@ than either number alone, since it is now a *measured* correspondence rather tha
 | rate | items/arm at psi=0.70 | source |
 |---|---:|---|
 | 12.5 % | 374 | `tier_cal`, different corpus |
-| **13.9 %** | **336** | **measured here, on argus v3** |
+| ~~13.9 %~~ | ~~336~~ | superseded by the correction above |
+| **12.1 %** | **386** | **measured here, path-dependent items excluded** |
 | 20 % | 234 | A1's original assumption |
 
 At `RESULT_A1_SIZING_MEDIUM`'s bill this is ~2.5 h per arm of pure generation — but see the

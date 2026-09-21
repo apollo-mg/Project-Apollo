@@ -196,6 +196,20 @@ def _assert_cardinality(world, today):
         n = len(wf.select(world, {"set": "contacts", "where": {"name_matches": rf"(?i)\b{f}\b"}}, today))
         if n != 1:
             bad.append(f"forename {f!r} meant to be unique: |S|={n}, wanted 1")
+    # A forename that collides in CONTACTS but not in message senders or event
+    # attendees is ambiguous only to an agent that happens to resolve via contacts.
+    # The hand-built seed had exactly this (d.okafor@ against dave.whitfield@) and it
+    # cost a pilot item: an agent disambiguated via the calendar, reasoned correctly,
+    # and was scored WRONG. _email() builds forename.surname@ so generated collisions
+    # hold on every path -- this asserts it rather than trusting it.
+    for f in p["collide"]:
+        for kind, sel in (("message senders", {"set": "messages", "where": {"from_matches": rf"(?i)\b{f}"}}),
+                          ("event attendees", {"set": "events", "where": {"has_attendee": rf"(?i)\b{f}"}})):
+            rows = wf.select(world, sel, today)
+            if rows and len(rows) < 2:
+                bad.append(f"forename {f!r} collides in contacts but yields "
+                           f"|S|={len(rows)} in {kind}: ambiguity would be path-dependent")
+
     for t in p["topics_absent"]:
         n = len(wf.select(world, {"set": "events", "where": {"summary_matches": rf"(?i)\b{t}\b"}}, today))
         if n:
