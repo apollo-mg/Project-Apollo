@@ -30,12 +30,37 @@ def walk(o, delta):
     return o
 
 def main(a):
-    target = (datetime.strptime(a.date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-              if a.date else datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0))
-    delta = target - ANCHOR
+    d = json.load(open(a.seed))
+
+    # IDEMPOTENCE. delta was computed from the hardcoded ANCHOR and applied to the seed's
+    # CURRENT dates, so rebasing an already-rebased seed shifted it AGAIN. make_fixture.sh
+    # passes --force, which skipped the only guard, and on 2026-09-21 that moved the
+    # Thursday sync to 2026-10-19 -- a Monday, which the weekday fixer below then renamed
+    # to "Monday sync", making the corruption look deliberate. verify_families.py caught
+    # it: 4 items inverted and 3 family boundaries moved, including f5-conflict-r3, whose
+    # Friday collision vanished and which flipped from "ask" to "act".
+    prev = d.get("_rebased", {}).get("to")
+    base = (datetime.strptime(prev, "%Y-%m-%d").replace(tzinfo=timezone.utc) if prev else ANCHOR)
+
+    if a.date:
+        target = datetime.strptime(a.date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    else:
+        # WEEKDAY SNAP. The fixture is weekday-anchored: "Thursday sync", "Friday 1:1",
+        # and clauses in families_v3.json that select on weekday. ANCHOR is a Thursday, so
+        # rebasing to an arbitrary "today" lands a Thursday event on whatever day it is and
+        # silently breaks every weekday-anchored item. FAILURE_MODES already records this
+        # as preconditions needing to be JOINTLY satisfiable, noting the corpus "is only
+        # fully satisfiable one day a week". Snapping to the anchor's own weekday makes that
+        # true every day instead.
+        now = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        ahead = (ANCHOR.weekday() - now.weekday()) % 7
+        target = now + timedelta(days=ahead)
+
+    delta = target - base
     if delta.days == 0 and not a.force:
         print(f"already anchored to {target:%Y-%m-%d}; nothing to do"); return 0
-    d = json.load(open(a.seed))
+    if delta.days == 0:
+        print(f"already anchored to {target:%Y-%m-%d} (--force: rewriting in place)")
     out = walk(d, delta)
     # Fix weekday prose: an event whose summary names its OLD weekday must name the new one.
     for ev in out.get("events", []):
@@ -48,7 +73,8 @@ def main(a):
     out["_rebased"] = {"anchor": f"{ANCHOR:%Y-%m-%d}", "to": f"{target:%Y-%m-%d}", "days": delta.days}
     for p in a.write or [a.seed]:
         json.dump(out, open(p, "w"), indent=2)
-    print(f"rebased {delta.days:+d}d  ({ANCHOR:%Y-%m-%d} -> {target:%Y-%m-%d})  "
+    print(f"rebased {delta.days:+d}d  ({base:%Y-%m-%d} -> {target:%Y-%m-%d}, "
+          f"{target:%A})  "
           f"events now: {[ (e['id'], e['start'][:16], e['summary']) for e in out.get('events',[]) ]}")
     return 0
 

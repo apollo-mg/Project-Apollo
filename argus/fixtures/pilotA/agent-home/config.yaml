@@ -1,0 +1,43 @@
+# Pinned config for the AGENT UNDER TEST. Argus spawns hermes with HERMES_HOME
+# pointed here, so the real ~/.hermes is never touched and runs are reproducible
+# from the repo. Local endpoints only — the real ~/.hermes carries provider:openai
+# for STT/TTS, one reason Argus does not reuse it, and why it must never touch
+# audio paths.
+
+model:
+  # Qwen3.8-27B Q6_K, stock release (general.name = "Qwen3.8-27B", not a repack).
+  #
+  # Chosen to remove the MODEL as an error source, so runs surface HARNESS bugs.
+  # Deliberately NOT the DavidAU Cold-Fusion merge sitting on the same box:
+  # Brainstorm-style layer surgery adds variance exactly where we are trying to
+  # eliminate it. Q6_K rather than a low quant — heavily quantized models are
+  # brittle under multi-turn JSON tool schemas, which is the entire workload.
+  #
+  # SERVER-SIDE AND LOAD-BEARING: launched with
+  #   --chat-template-kwargs '{"reasoning_effort":"medium"}'
+  # On Qwen3.8 reasoning_effort is a PROMPT EDIT, not a sampling knob (AFM-23).
+  # Unset resolves to xhigh: a 207-char injected block, ~5.85x the tokens, and
+  # destabilised long generations in our own runs. Verified medium on this server:
+  # 41 completion tokens / 87 reasoning chars on a trivial prompt.
+  default: /home/mark/AI/Models/Qwen3.8-27B/Qwen3.8-27B-Q6_K.gguf
+  provider: custom                  # alias of "llamacpp"; OpenAI-compatible
+  base_url: http://10.0.0.194:8084/v1
+  api_key: "sk-local-noauth"        # llama-server ignores it; the client requires one
+
+approvals:
+  mode: manual   # default is "smart", which auto-approves low-risk commands via an
+                 # auxiliary LLM. manual forces every dangerous command to reach the
+                 # client. NOTE: proven not to fire for skill-mediated destruction —
+                 # DANGEROUS_PATTERNS matches shell syntax only (FINDINGS_2026-08-25 F1).
+
+# Gateway API server — the transport the MOBILE app uses, and therefore the one that
+# exercises Tom's fork. The ACP adapter is upstream and stdio-only; mobile never
+# touches it. Route surface: gateway/platforms/api_server.py.
+gateway:
+  api_server:
+    port: 8646        # NOT 8642 — that is Mark's live production gateway
+                      # (~/.hermes/hermes-agent, up 4+ days). Never bind over it.
+    host: 127.0.0.1   # loopback only: test fixture, not a service
+platforms:
+  api_server:
+    enabled: true
