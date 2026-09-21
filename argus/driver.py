@@ -425,7 +425,8 @@ if __name__ == "__main__":
     ap.add_argument("--base", default="http://127.0.0.1:8643",
                     help="gateway base URL. NOT 8642 — that is the production gateway.")
     ap.add_argument("--key", default="argus-local-test-key-0123456789")
-    ap.add_argument("--stub", choices=["good", "broken", "liar", "brokentool"], default="good")
+    ap.add_argument("--stub", choices=["good", "broken", "liar", "brokentool", "skimmer"],
+                    default="good")
     ap.add_argument("--agent-cmd", nargs=argparse.REMAINDER,
                     help="run a REAL agent instead, e.g. --agent-cmd /path/python -m acp_adapter.entry")
     ap.add_argument("--hermes-home", default=None)
