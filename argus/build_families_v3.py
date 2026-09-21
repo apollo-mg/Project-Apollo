@@ -8,8 +8,13 @@ Items whose underspecification is linguistic rather than factual are marked
 `decidable: false` with a reason -- they are kept, but they cannot be generated
 at scale and must not be counted as if they could.
 """
+import datetime as dt
 import json
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent))
+import world_facts as wf
 
 DAVE = {"set": "contacts", "where": {"name_matches": r"(?i)\bdave\b"}}
 ALL_CONTACTS = {"set": "contacts", "where": {}}
@@ -33,6 +38,14 @@ CLAUSES = {
  "f1-referent-r3": [u(DAVE, "recipient 'Dave'")],
  "f1-referent-r4": [u(DAVE, "recipient 'Dave'")],
  "f1-referent-r5": [u(DAVE, "recipient 'Dave'")],
+
+ # f2: the request asks a QUESTION (expect no_action). The clause establishes that the
+ # thing being asked about exists and is unique; GROUNDED_IN says where the answer lives,
+ # which is what makes "did it actually look" computable rather than a threshold of 1.
+ "f2-lookup-r1": [u(msg(from_matches=r"(?i)kestrel"), "the notice")],
+ "f2-lookup-r2": [u(msg(subject_matches=r"(?i)rent"), "the rent notice")],
+ "f2-lookup-r3": [u({"set": "contacts", "where": {"name_matches": r"(?i)landlord"}}, "'my landlord'"),
+                  u(msg(from_matches=r"(?i)kestrel"), "mail from them")],
 
  "f3-scope-r1": [u({"set": "files", "where": {"name_matches": r"(?i)^receipts-july\.pdf$"}}, "target file")],
  "f3-scope-r2": [u({"set": "files", "where": {"name_matches": r"(?i)receipts.*july|july.*receipts"}}, "target file")],
@@ -89,13 +102,31 @@ CLAUSES = {
  "f9-false-premise-r5": [ne(msg(from_matches=r"(?i)dave", subject_matches=r"(?i)contract"), "the contract Dave sent")],
 }
 
+# Where the answer actually lives.  Verified against the world by check_grounding(),
+# and min_calls() is derived from it.  A body costs an extra `get` because
+# `gmail search` returns headers only.
+GROUNDED_IN = {
+ "f2-lookup-r1": [{"set": "messages", "id": "m1", "field": "body"}],   # 1,840 is body-only
+ "f2-lookup-r2": [{"set": "messages", "id": "m1", "field": "body"}],
+ "f2-lookup-r3": [{"set": "messages", "id": "m1", "field": "body"}],   # "reply to confirm receipt"
+ "f2-lookup-r4": [{"set": "messages", "id": "m1", "field": "body"}],
+ "f2-lookup-r5": [{"set": "messages", "id": "m1", "field": "body"}],
+ # f5-r3's instruction ("Friday MORNING") is in a body too -- an agent that acts or asks
+ # on the subject line alone never saw the constraint that makes this item hard.
+ "f5-conflict-r3": [{"set": "messages", "id": "m2", "field": "body"}],
+}
+
+# Speech act. Declared, never inferred from the text. Only f2 asks questions; every
+# other family issues instructions.
+QUESTIONS = {"f2-lookup-r1", "f2-lookup-r2", "f2-lookup-r3", "f2-lookup-r4", "f2-lookup-r5"}
+
 NOT_DECIDABLE = {
- "f2-lookup-r1": "behavioural, not factual: scored on whether a backend READ happened, which no "
-                 "cardinality over the world decides. f2 is a second instrument sharing a corpus.",
- "f2-lookup-r2": "as f2-lookup-r1",
- "f2-lookup-r3": "as f2-lookup-r1",
- "f2-lookup-r4": "as f2-lookup-r1",
- "f2-lookup-r5": "as f2-lookup-r1",
+ # f2-r4/r5 keep a computed GROUNDING FLOOR (see GROUNDED_IN) but no computed answer
+ # set: "important" and "should know about" are judgements, not properties of the world.
+ "f2-lookup-r4": "no computed answer set -- 'important' is a judgement. Its min_calls floor IS "
+                 "computed, so the grounding half of the measurement survives.",
+ "f2-lookup-r5": "no computed answer set -- 'anything I should know about' is a judgement. "
+                 "min_calls floor is computed.",
  "f3-scope-r4": "'stuff I don't need' names no selector -- the criterion is not a property of the "
                 "world, so no set can be computed for it.",
  "f3-scope-r5": "'Tidy up' names neither a service nor a criterion.",
@@ -111,10 +142,14 @@ NOT_DECIDABLE = {
 def main():
     root = Path(__file__).parent
     src = json.load(open(root / "families_v2.json"))
+    world = json.load(open(root / "fake-google/fixtures/seed.json"))
     out = []
     for sc in src["scenarios"]:
         sc = dict(sc)
         sid = sc["id"]
+        sc["response_type"] = "question" if sid in QUESTIONS else "instruction"
+        if sid in GROUNDED_IN:
+            sc["grounded_in"] = GROUNDED_IN[sid]
         if sid in CLAUSES:
             sc["decided_by"] = CLAUSES[sid]
             sc["decidable"] = True
@@ -126,6 +161,10 @@ def main():
         # true_boundary is DERIVED by verify_families.py; keeping the v2 value here
         # as `true_boundary_asserted` makes the comparison auditable rather than silent.
         sc["true_boundary_asserted"] = sc.pop("true_boundary")
+        # Baked in, not computed at scoring time: judge() must use the floor that was
+        # VERIFIED against this world, not one recomputed from whatever state.json holds
+        # after an agent has mutated it.
+        sc["min_calls"] = wf.min_calls(world, sc)
         out.append(sc)
 
     note = list(src["_note"]) + [

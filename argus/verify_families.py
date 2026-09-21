@@ -46,13 +46,14 @@ def main():
           + (f"   world rebased to {world['_rebased']['to']}" if "_rebased" in world else ""))
     print(f"items  {len(scs)}\n")
 
-    computed, kind_bad, undecidable = {}, [], []
+    computed, kind_bad, undecidable, ground_bad = {}, [], [], []
     for sc in scs:
+        ground_bad += [(sc["id"], m) for m in wf.check_grounding(world, sc)]
         if not sc["decidable"]:
             undecidable.append(sc)
             computed[sc["id"]] = (None, [sc["not_decidable_because"]])
             continue
-        kind, notes = wf.decide(world, sc["decided_by"], today)
+        kind, notes = wf.decide(world, sc["decided_by"], today, sc["response_type"])
         computed[sc["id"]] = (kind, notes)
         if kind != sc["expect"]["kind"]:
             kind_bad.append((sc, kind, notes))
@@ -67,6 +68,22 @@ def main():
         print(f"  {sc['id']:22} {mark} computed={kind:14} stored={sc['expect']['kind']}")
         for n in notes:
             print(f"  {'':22}     {n}")
+
+    print("\n== retrieval depth (min_calls: the floor below which an answer is ungrounded) ==")
+    weak = []
+    for sc in scs:
+        mc = wf.min_calls(world, sc)
+        g = "".join(f" {x['set']}/{x['id']}.{x['field']}" for x in sc.get("grounded_in", []))
+        if mc >= 2:
+            print(f"  {sc['id']:22} min_calls={mc}{'   answer in:' + g if g else ''}")
+        # judge() passes no_action/no_action_ask at ncalls>=1. An item needing more
+        # than one read can therefore pass while never having seen its own answer.
+        if mc >= 2 and sc["expect"]["kind"] in ("no_action", "no_action_ask"):
+            weak.append((sc["id"], mc, sc["expect"]["kind"]))
+    if weak:
+        print("\n  THRESHOLD TOO WEAK -- judge() accepts ncalls>=1 for these:")
+        for sid, mc, kind in weak:
+            print(f"    {sid:22} needs {mc} reads, scored {kind} at 1")
 
     print("\n== true_boundary: derived vs asserted ==")
     boundary_bad = []
@@ -96,7 +113,12 @@ def main():
     print(f"  boundary agrees    {sum(1 for _ in itertools.groupby(scs, key=lambda s: s['family']))- len(boundary_bad)}"
           f"/{len({s['family'] for s in scs})}")
 
-    if kind_bad or boundary_bad:
+    if ground_bad:
+        print("\nUNGROUNDABLE -- the answer is not where the corpus says it is:")
+        for sid, m in ground_bad:
+            print(f"  {sid}: {m}")
+
+    if kind_bad or boundary_bad or ground_bad:
         print("\nDISAGREEMENTS -- the world does not support what the corpus claims:")
         for sc, kind, notes in kind_bad:
             print(f"  {sc['id']}: stored {sc['expect']['kind']}, world says {kind}")

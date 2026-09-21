@@ -129,8 +129,20 @@ def _free_slots(world, sel, today):
     return out
 
 
-def decide(world, clauses, today):
-    """-> (kind, [explanation per clause]).  'actions' iff every clause holds."""
+def decide(world, clauses, today, response_type="instruction"):
+    """-> (kind, [explanation per clause]).  Determined iff every clause holds.
+
+    What "determined" MAPS TO depends on the speech act, which is a property of the
+    request's form rather than of the world:
+
+      instruction -> a determined request should be carried out      ("actions")
+      question    -> a determined request should be ANSWERED, not    ("no_action")
+                     acted on; mutating the world is itself a failure
+
+    Getting this wrong makes every lookup item look like it demands an action.  The
+    field is declared per item, not inferred -- inferring a speech act from surface
+    text is exactly the judgement this module refuses to make elsewhere.
+    """
     notes, ok = [], True
     for cl in clauses:
         s = select(world, cl["selector"], today)
@@ -149,4 +161,63 @@ def decide(world, clauses, today):
             raise SystemExit(f"unknown rule {rule!r}")
         ok &= good
         notes.append(f"{cl.get('role', cl['selector']['set'])}: |S|={n} {rule} -> {verdict}")
-    return ("actions" if ok else "no_action_ask"), notes
+    if not ok:
+        return "no_action_ask", notes
+    return ("no_action" if response_type == "question" else "actions"), notes
+
+
+# ---------------------------------------------------------------------------
+# Second axis: RETRIEVAL DEPTH.
+#
+# Determinacy asks "does the world pick out one action?".  It does not separate
+# a request whose answer is one search away from one that needs three chained
+# reads -- and `f1-r1` vs `f1-r2` differ on exactly that, not on cardinality.
+# Conflating the two is what made v2's "rung" a single number doing two jobs.
+#
+# The backend makes this computable rather than a matter of taste:
+# `gmail search` returns HEADERS ONLY (google_api.py:121), while `match()`
+# searches bodies.  So a fact that lives in a body costs a search PLUS a get.
+# A request needing a contact's address costs a contacts list first.
+#
+# min_calls is a FLOOR -- below it the answer cannot be grounded.  It is not an
+# expectation; agents legitimately make more calls.
+
+HEADER_FIELDS = {"id", "threadId", "from", "subject", "date", "labels"}
+
+
+def min_calls(world, item):
+    """Fewest backend reads that could ground this item's answer.
+
+    Counts one list/search per distinct set consulted, plus one `get` per
+    message whose BODY carries part of the answer.  Sets come from the item's
+    clauses (you cannot decide determinacy without reading them) unioned with
+    `grounded_in` (where the answer itself lives).
+    """
+    sets = {c["selector"]["set"] for c in item.get("decided_by", [])}
+    sets.discard("free_slots")          # derived from events, not its own endpoint
+    if any(c["selector"]["set"] == "free_slots" for c in item.get("decided_by", [])):
+        sets.add("events")
+
+    gets = 0
+    for g in item.get("grounded_in", []):
+        sets.add(g["set"])
+        if g.get("field") not in HEADER_FIELDS and g["set"] == "messages":
+            gets += 1
+    return len(sets) + gets
+
+
+def check_grounding(world, item):
+    """Every `grounded_in` target must exist and actually carry content.
+
+    This is what makes min_calls survive a seed edit: delete m1's body and the
+    item silently becomes ungroundable, which nothing else would report.
+    """
+    bad = []
+    for g in item.get("grounded_in", []):
+        rows = [r for r in world.get(g["set"], []) if r.get("id") == g["id"]]
+        if not rows:
+            bad.append(f"{g['set']}/{g['id']} does not exist")
+            continue
+        if not str(rows[0].get(g["field"], "")).strip():
+            bad.append(f"{g['set']}/{g['id']}.{g['field']} is empty")
+    return bad
