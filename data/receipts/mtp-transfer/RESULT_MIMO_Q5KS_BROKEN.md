@@ -56,6 +56,28 @@ not there.
 
 So the file is internally inconsistent by its own metadata, independent of any loader.
 
+## SETTLED — it fails on upstream llama.cpp too, on ggml-org's own loader
+
+Built `ggml-org/llama.cpp` at **`58367713a`** (2026-09-21 14:49 PDT, HEAD on the day) for
+gfx1201 and loaded both files on it. Same binary, same session, same flags
+(`-c 4096 -ngl 99 -fa on -np 1`):
+
+| file | packager | upstream `58367713a` | buun `38ada0e1b` |
+|---|---|---|---|
+| `MiMo-V2.6-Distill-Qwen-9B-Q8_0` | **ggml-org** | **fails** — `check_tensor_dims: tensor 'blk.32.attn_norm.weight' not found` | fails, identical error |
+| `Ornith-1.5-9B-Q8_0` | ornith-ai | **loads, generates** | loads, generates |
+
+**So it is not a fork divergence.** buun and upstream behave identically, and the positive control
+rules out the build: the same upstream binary that rejects the MiMo file serves the Ornith file,
+logging `model has unused tensor blk.32.nextn.enorm.weight -- ignoring` and answering normally.
+
+**The llama.cpp project published a GGUF that the llama.cpp reference loader rejects.** That is
+the reportable finding, and it is stronger than the packaging story this receipt opened with.
+
+Because upstream and fork agree, the earlier question of "which half is wrong" narrows: the
+defect is upstream of both loaders, in the conversion or in the source config, not in anyone's
+tensor-dims check.
+
 ## Which half is wrong is not determined here
 
 Two candidates, and this run cannot separate them without the upstream safetensors:
@@ -97,13 +119,13 @@ into MiMo as `blk.32` — and that graft would itself be the interesting artefac
 
 - **Nothing about MiMo-V2.6-Distill-Qwen-9B the model.** This is one third-party quant of it.
   The model may be fine; this file is not.
-- **Not confirmed against mainline llama.cpp, and this is now the decisive open question.**
-  Tested on buun `38ada0e1b` only. Since `ggml-org` publishes both the quant and the reference
-  loader, the likeliest readings are that **mainline tolerates a declared-but-absent trailing
-  block and buun does not** (a fork divergence, directly reportable), or that the quant is broken
-  for everyone. Those have opposite consequences and this run cannot separate them. Settling it
-  needs a current mainline build; `~/llama_upstream` on `.73` is pinned at `34af94c` (08-17) and
-  predates this model.
+- ~~**Not confirmed against mainline llama.cpp**~~ — **now confirmed**, see the SETTLED section.
+  Upstream `58367713a` fails identically, with a positive control passing on the same binary.
+- **The upstream safetensors were still not inspected.** Whether
+  `XiaomiMiMo/MiMo-V2.6-Distill-Qwen-9B` ships a 33rd layer that conversion drops, or declares 33
+  while shipping 32, remains open — and it decides whether the fix belongs in
+  `convert_hf_to_gguf.py` or in the model card. Reporting the inconsistency does not require
+  answering it.
 - **The upstream repo was not inspected.** Whether `XiaomiMiMo/MiMo-V2.6-Distill-Qwen-9B` ships
   an MTP layer at all is unchecked, and it decides which of the two candidate causes applies.
 - **No quality or speed number for either model** — neither ran a benchmark arm.
