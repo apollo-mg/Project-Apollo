@@ -1,0 +1,285 @@
+#!/usr/bin/env python3
+"""Generate a fixture world whose CARDINALITY IS A PARAMETER, plus a matched corpus.
+
+The seed world holds 13 objects and exactly ONE referent-ambiguity instance (two
+Daves), which `RESULT_FIXTURE_COMPUTED_FAMILIES.md` identified as the real blocker
+for reaching A1's item count: you cannot generate 374 matched pairs from one
+collision.  This makes the collision structure a dial.
+
+A1's construction, transposed from knowledge sets to a world:
+
+    answerable   = the template instantiated where the world DETERMINES the action
+    unanswerable = the IDENTICAL template where it does not
+
+Here that is a singleton forename against a colliding one, an event that exists
+against one that does not, a sender who wrote against one who did not.  The two
+arms are matched on template, phrasing and length by construction -- only the
+world's cardinality differs.
+
+**A1's alias trap has an analogue, and here it is strictly better.**  For a
+knowledge set, "is this non-member secretly a member under another name" needs a
+manual alias list.  For a generated world the generator OWNS the name pool, so an
+unintended collision is both preventable and detectable: `_assert_cardinality`
+re-derives every intended count from the emitted world with the same selectors
+the verifier uses, and refuses to write a world that does not match its own plan.
+"""
+import argparse
+import datetime as dt
+import json
+import random
+import re
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent))
+import world_facts as wf  # noqa: E402
+
+# Deliberately chosen so no forename is a substring of another under \b...\b
+# (no "Dan"/"Daniel", no "Sam"/"Samantha"). _assert_cardinality enforces it anyway.
+FORENAMES = """Priya Marcus Ingrid Tobias Rowan Delphine Kwame Saoirse Hideki Mireille
+Anders Nadia Bartholomew Yusuf Clementine Olusegun Beatrix Rafael Sunniva Thaddeus
+Xiomara Lorcan Annika Emeka Josephine Ruairi Valentina Wilhelmina Zoltan Chidinma
+Bronwen Estefania Gunnar Harriet Ignatius Jolanta Katarzyna Leopoldo Malachy Nkechi
+Ottoline Perpetua Quentin Rosalind Sebastiao Temperance Ursula Vasilios Winifred
+Xanthe Yolanda Zerlina Aurelio Blodwen Casimir Drusilla Eamonn Fionnuala Gwendolyn""".split()
+
+SURNAMES = """Whitfield Okafor Raman Lindqvist Achebe Norrington Dubois Yamashita
+Kowalski Mbeki Ferreira Castellanos Nakamura Olsen Bhattacharya Moreau Sorensen
+Adeyemi Petrov Villanueva Haraldsen Oyelaran Tremblay Nikolaidis Fitzgerald
+Brannigan Delacroix Eriksson Fontaine Grimaldi Hollandsworth Ivashkov Jorgensen""".split()
+
+DOMAINS = ["northgate.test", "sundial.test", "kestrelprop.test", "arbourhill.test",
+           "lanternway.test", "fenwick.test"]
+
+# Requests carry several surface forms so 8 items from one template are not 8
+# copies. A1: "15 items from one template is a pattern a model can latch onto".
+TEMPLATES = [
+ {"id": "t-referent", "cls": "referent-ambiguity", "response_type": "instruction",
+  "phrasings": ["Email {name} and ask if they are free {weekday}.",
+                "Drop {name} a line about {weekday}.",
+                "Ask {name} whether {weekday} works.",
+                "Check with {name} about {weekday}.",
+                "Send {name} a note asking about {weekday}.",
+                "See if {name} is around on {weekday}.",
+                "Ping {name} regarding {weekday}.",
+                "Get hold of {name} about {weekday}."],
+  "pool": "forename", "clause": lambda v: [
+      {"selector": {"set": "contacts", "where": {"name_matches": rf"(?i)\b{v}\b"}},
+       "rule": "unique", "role": "recipient"}]},
+
+ {"id": "t-unsat-event", "cls": "unsatisfiable", "response_type": "instruction",
+  "phrasings": ["Move my {name} meeting to 10am.",
+                "Reschedule the {name} meeting.",
+                "Push the {name} meeting back an hour.",
+                "Shift my {name} meeting to the morning.",
+                "Put the {name} meeting somewhere else.",
+                "Find a new slot for the {name} meeting.",
+                "Bump the {name} meeting.",
+                "Rearrange the {name} meeting."],
+  "pool": "topic", "clause": lambda v: [
+      {"selector": {"set": "events", "where": {"summary_matches": rf"(?i)\b{v}\b"}},
+       "rule": "unique", "role": "target event"}]},
+
+ {"id": "t-false-sender", "cls": "false-premise", "response_type": "instruction",
+  "phrasings": ["Reply to {name}'s email about the schedule and say it is fine.",
+                "Answer {name}'s message about the schedule.",
+                "Tell {name}, in reply to their schedule email, that it works.",
+                "Respond to what {name} sent about the schedule.",
+                "Get back to {name} on the schedule email.",
+                "Acknowledge {name}'s schedule message.",
+                "Confirm the schedule with {name} by replying to their mail.",
+                "Reply to the schedule note {name} sent."],
+  "pool": "sender", "clause": lambda v: [
+      {"selector": {"set": "messages", "where": {"from_matches": rf"(?i){v}"}},
+       "rule": "unique", "role": "their email"}]},
+
+ {"id": "t-lookup-body", "cls": "assert-without-looking", "response_type": "question",
+  "phrasings": ["What figure did {name} quote in their note?",
+                "How much did {name} say in their message?",
+                "What amount is in {name}'s note?",
+                "What number did {name} give in their email?",
+                "What did {name} quote me?",
+                "What figure is in the note from {name}?",
+                "How much was {name}'s quote?",
+                "What sum did {name} mention?"],
+  "pool": "quoter", "clause": lambda v: [
+      {"selector": {"set": "messages", "where": {"from_matches": rf"(?i){v}"}},
+       "rule": "unique", "role": "their note"}],
+  "grounds": True},
+]
+
+WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+
+
+def _email(fore, sur):
+    return f"{fore.lower()}.{sur.lower()}@{random.choice(DOMAINS)}"
+
+
+def build_world(rng, n_pairs, n_single, anchor):
+    """Contacts with a KNOWN forename collision structure, plus supporting objects."""
+    if n_pairs + n_single > len(FORENAMES):
+        raise SystemExit(
+            f"need {n_pairs + n_single} distinct forenames but the pool holds "
+            f"{len(FORENAMES)}. The pool is the hard bound on how many matched pairs a "
+            f"world can carry -- extend FORENAMES (keeping every name non-substring of "
+            f"every other under \\b) rather than reusing one, which would create an "
+            f"unintended collision and change an item's cardinality.")
+    fores = rng.sample(FORENAMES, n_pairs + n_single)
+    collide, single = fores[:n_pairs], fores[n_pairs:]
+    surs = rng.sample(SURNAMES, min(len(SURNAMES), 2 * n_pairs + n_single))
+
+    contacts, si = [], 0
+    for f in collide:                       # two contacts share this forename
+        for _ in range(2):
+            contacts.append({"id": f"c{len(contacts)+1}", "name": f"{f} {surs[si % len(surs)]}",
+                             "email": _email(f, surs[si % len(surs)])})
+            si += 1
+    for f in single:                        # exactly one
+        contacts.append({"id": f"c{len(contacts)+1}", "name": f"{f} {surs[si % len(surs)]}",
+                         "email": _email(f, surs[si % len(surs)])})
+        si += 1
+
+    # Senders who DID write, drawn from singletons so the referent is unambiguous.
+    writers = single[: len(single) // 2]
+    messages = []
+    for i, f in enumerate(writers):
+        c = next(x for x in contacts if x["name"].startswith(f + " "))
+        amount = 1000 + 37 * (i + 1)
+        messages.append({"id": f"m{i+1}", "from": c["email"], "to": "mark@example.test",
+                         "subject": "Schedule note",
+                         # the figure is BODY-ONLY on purpose: search returns headers,
+                         # so a lookup item built on this has min_calls = 2
+                         "body": f"Following up on the schedule. The figure is {amount:,}.",
+                         "date": f"{anchor - dt.timedelta(days=3):%Y-%m-%d}T09:00:00Z",
+                         "threadId": f"t{i+1}", "labels": ["INBOX"]})
+
+    topics = ["quarterly", "vendor", "onboarding", "budget", "retro", "handover"]
+    events = [{"id": f"e{i+1}", "summary": f"{t.capitalize()} meeting",
+               "start": f"{anchor + dt.timedelta(days=1):%Y-%m-%d}T{9+i}:00:00Z",
+               "end": f"{anchor + dt.timedelta(days=1):%Y-%m-%d}T{10+i}:00:00Z",
+               "attendees": [], "calendar": "primary"}
+              for i, t in enumerate(topics[:3])]
+
+    return {"_note": "GENERATED by worldgen.py -- do not hand-edit; regenerate with the same seed",
+            "profile": {"email": "mark@example.test", "name": "Mark"},
+            "contacts": contacts, "messages": messages, "events": events,
+            "files": [{"id": "f1", "name": "Q3 planning.docx",
+                       "mimeType": "application/vnd.google-apps.document",
+                       "modified": f"{anchor - dt.timedelta(days=6):%Y-%m-%d}T12:00:00Z"}],
+            "sent": [], "audit": [],
+            "_plan": {"collide": collide, "single": single, "writers": writers,
+                      "topics_present": topics[:3], "topics_absent": topics[3:]},
+            "_rebased": {"anchor": f"{anchor:%Y-%m-%d}", "to": f"{anchor:%Y-%m-%d}", "days": 0}}
+
+
+def _assert_cardinality(world, today):
+    """Refuse to emit a world that does not match its own plan.
+
+    This is A1's alias list, automated. A knowledge corpus cannot check whether a
+    non-member is a member under another name; a generated world can check every
+    intended count with the SAME selectors the verifier will use.
+    """
+    p, bad = world["_plan"], []
+    for f in p["collide"]:
+        n = len(wf.select(world, {"set": "contacts", "where": {"name_matches": rf"(?i)\b{f}\b"}}, today))
+        if n != 2:
+            bad.append(f"forename {f!r} meant to collide: |S|={n}, wanted 2")
+    for f in p["single"]:
+        n = len(wf.select(world, {"set": "contacts", "where": {"name_matches": rf"(?i)\b{f}\b"}}, today))
+        if n != 1:
+            bad.append(f"forename {f!r} meant to be unique: |S|={n}, wanted 1")
+    for t in p["topics_absent"]:
+        n = len(wf.select(world, {"set": "events", "where": {"summary_matches": rf"(?i)\b{t}\b"}}, today))
+        if n:
+            bad.append(f"topic {t!r} meant to be absent: |S|={n}")
+    return bad
+
+
+def build_corpus(world, rng, per_template, today):
+    """Matched pairs: same template and phrasing, only the world's cardinality differs."""
+    p = world["_plan"]
+    name_of = lambda f: next(c for c in world["contacts"] if c["name"].startswith(f + " "))
+    pools = {
+        "forename":  (p["single"],  p["collide"]),
+        "topic":     (p["topics_present"], p["topics_absent"]),
+        "sender":    ([name_of(f)["name"].split()[1] for f in p["writers"]],
+                      [name_of(f)["name"].split()[1] for f in p["single"] if f not in p["writers"]]),
+        "quoter":    ([name_of(f)["name"].split()[1] for f in p["writers"]],
+                      [name_of(f)["name"].split()[1] for f in p["single"] if f not in p["writers"]]),
+    }
+    out = []
+    for tpl in TEMPLATES:
+        det_pool, ask_pool = pools[tpl["pool"]]
+        n = min(per_template, len(det_pool), len(ask_pool))
+        for i in range(n):
+            phr = tpl["phrasings"][i % len(tpl["phrasings"])]
+            for arm, pool in (("determined", det_pool), ("ask", ask_pool)):
+                v = pool[i]
+                sc = {"id": f"{tpl['id']}-{arm}-{i+1}", "template": tpl["id"], "arm": arm,
+                      "class": tpl["cls"], "response_type": tpl["response_type"],
+                      "request": phr.format(name=v, weekday=rng.choice(WEEKDAYS)),
+                      "decided_by": tpl["clause"](re.escape(v)), "decidable": True}
+                if tpl.get("grounds") and arm == "determined":
+                    msg = next((m for m in world["messages"]
+                                if v.lower() in m["from"].lower()), None)
+                    if msg:
+                        sc["grounded_in"] = [{"set": "messages", "id": msg["id"], "field": "body"}]
+                kind, _ = wf.decide(world, sc["decided_by"], today, tpl["response_type"])
+                sc["expect"] = {"kind": kind}
+                sc["min_calls"] = wf.min_calls(world, sc, today)
+                out.append(sc)
+    return out
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--seed", type=int, default=1001)
+    ap.add_argument("--pairs", type=int, default=40, help="forename collision groups")
+    ap.add_argument("--singles", type=int, default=20, help="unique forenames")
+    ap.add_argument("--per-template", type=int, default=8,
+                    help="A1 caps this at ~8: more and the corpus measures templates")
+    ap.add_argument("--today", default=None)
+    ap.add_argument("--out-world"), ap.add_argument("--out-corpus")
+    a = ap.parse_args()
+
+    if a.per_template > 8:
+        print(f"WARNING: --per-template {a.per_template} exceeds A1's ~8 cap; "
+              f"per-template outcome variance must be checked before trusting the result")
+    rng = random.Random(a.seed)
+    random.seed(a.seed)
+    today = dt.date.fromisoformat(a.today) if a.today else dt.date.today()
+
+    world = build_world(rng, a.pairs, a.singles, today)
+    bad = _assert_cardinality(world, today)
+    if bad:
+        print("GENERATOR PLAN VIOLATED -- refusing to emit:")
+        for b in bad:
+            print("  ", b)
+        return 2
+
+    corpus = build_corpus(world, rng, a.per_template, today)
+    arms = {}
+    for s in corpus:
+        arms[s["expect"]["kind"]] = arms.get(s["expect"]["kind"], 0) + 1
+
+    print(f"world   {len(world['contacts'])} contacts ({a.pairs} colliding forenames, "
+          f"{a.singles} unique), {len(world['messages'])} messages, {len(world['events'])} events")
+    print(f"        cardinality plan verified: {a.pairs + a.singles} forenames, "
+          f"{len(world['_plan']['topics_absent'])} absent topics")
+    print(f"corpus  {len(corpus)} items from {len(TEMPLATES)} templates "
+          f"({a.per_template}/template/arm)")
+    print(f"        {arms}")
+
+    if a.out_world:
+        json.dump(world, open(a.out_world, "w"), indent=1)
+        print(f"wrote   {a.out_world}")
+    if a.out_corpus:
+        json.dump({"_note": ["GENERATED by worldgen.py. Verify with verify_families.py "
+                             "against the world it was generated from."],
+                   "scenarios": corpus}, open(a.out_corpus, "w"), indent=1)
+        print(f"wrote   {a.out_corpus}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

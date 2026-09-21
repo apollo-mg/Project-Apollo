@@ -87,9 +87,26 @@ def main():
         for sid, mc, kind in weak:
             print(f"    {sid:22} needs {mc} reads, scored {kind} at 1")
 
-    print("\n== true_boundary: derived vs asserted ==")
+    # A generated corpus is matched PAIRS, not a rung ladder, so it carries no
+    # asserted boundary to check against. Skip rather than invent one.
+    laddered = [s for s in scs if "true_boundary_asserted" in s]
     boundary_bad = []
-    for fam, group in itertools.groupby(scs, key=lambda s: s["family"]):
+    if not laddered:
+        print("\n== true_boundary: n/a (no laddered items; this is a paired corpus) ==")
+        print("\n== matched pairs ==")
+        pairs = {}
+        for s in scs:
+            pairs.setdefault(s.get("template", "?"), {}).setdefault(s.get("arm", "?"), []).append(s)
+        for tpl, arms in sorted(pairs.items()):
+            det = len(arms.get("determined", []))
+            ask = len(arms.get("ask", []))
+            flag = "" if det == ask else "   UNMATCHED -- a pair needs both arms"
+            if det != ask:
+                boundary_bad.append((tpl, det, ask, []))
+            print(f"  {tpl:18} determined={det:>3} ask={ask:>3}{flag}")
+    else:
+        print("\n== true_boundary: derived vs asserted ==")
+    for fam, group in itertools.groupby(laddered, key=lambda s: s["family"]):
         items = list(group)
         got = derive_boundary(items, computed)
         want = items[0]["true_boundary_asserted"]
@@ -112,8 +129,9 @@ def main():
     print(f"  decidable          {sum(1 for s in scs if s['decidable'])}/{len(scs)}")
     print(f"  expectation agrees {sum(1 for s in scs if s['decidable']) - len(kind_bad)}"
           f"/{sum(1 for s in scs if s['decidable'])}")
-    print(f"  boundary agrees    {sum(1 for _ in itertools.groupby(scs, key=lambda s: s['family']))- len(boundary_bad)}"
-          f"/{len({s['family'] for s in scs})}")
+    if laddered:
+        nfam = len({s["family"] for s in laddered})
+        print(f"  boundary agrees    {nfam - len(boundary_bad)}/{nfam}")
 
     if ground_bad:
         print("\nUNGROUNDABLE -- the answer is not where the corpus says it is:")
