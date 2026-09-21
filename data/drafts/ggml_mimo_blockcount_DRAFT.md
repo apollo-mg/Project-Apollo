@@ -35,8 +35,39 @@ A third-party quant of the same model (`holooo/...-Q5_K_S-GGUF`) shows the same 
 differ in other respects while agreeing on this one, which points at the shared conversion path
 or the source config rather than at either packager.
 
-**What I have not checked:** whether `XiaomiMiMo/MiMo-V2.6-Distill-Qwen-9B` ships a 33rd layer
-that conversion drops, or declares 33 while shipping 32. That decides whether the fix belongs in
-`convert_hf_to_gguf.py` or in the source config, and I did not want to hold the report for it.
+**Root cause.** The source declares an MTP block it does not ship, and the converter trusts the
+declaration. From `XiaomiMiMo/MiMo-V2.6-Distill-Qwen-9B` -- config and tensor index only, no
+weights downloaded:
 
-Happy to test a fix -- the hardware and both files are here.
+```
+config.json    num_hidden_layers     : 32
+               layer_types entries   : 32
+               mtp_num_hidden_layers : 1      <-- declared
+safetensors    layer indices         : 0..31 (32)
+               mtp.* / nextn tensors : 0      <-- absent
+```
+
+`conversion/qwen.py:298-305`, `_QwenMtpMixin.__init__`:
+
+```python
+self.block_count = self.hparams["num_hidden_layers"]        # 32
+if not self.no_mtp:
+    n_mtp = self.hparams.get("mtp_num_hidden_layers", 0)    # 1
+    ...
+    self.block_count += n_mtp                               # 33
+```
+
+`n_mtp` comes from the config and is added **unconditionally** -- nothing checks that the `mtp.*`
+tensors are present in the checkpoint. For a model that declares the block and ships no weights
+for it, `block_count` ends up one higher than the blocks emitted, and `recurrent_layers`, sized
+from the same count, inherits the extra entry.
+
+**Workaround, untested.** `--no-nextn` sets `no_mtp`, which skips the increment, so converting
+this repo with that flag should yield a loadable GGUF at `block_count = 32`. I have not run it --
+that needs the ~18 GB of safetensors -- so it is a reading of the code, not a measurement.
+
+**Fix directions:** gate the increment on the `mtp.*` tensors actually being indexed, or warn
+when `mtp_num_hidden_layers > 0` and none are found. Either beats emitting a file whose own
+`recurrent_layers` array contradicts its tensor list.
+
+Happy to test a patch -- the hardware and both files are here.
