@@ -1,5 +1,26 @@
 # Argus corpus v2 — judgement under underspecification, measured in spec
 
+> **SUPERSEDED IN THREE PLACES, 2026-09-21.** Authored without knowledge of
+> `data/receipts/viability/A1_MEASUREMENT_CORPUS_SPEC.md` (2026-08-20), which had already done the
+> power analysis for this class of instrument. See
+> `data/receipts/viability/RECONCILIATION_BOUNDARY_INSTRUMENT.md`. In short:
+>
+> 1. **Sizing is ~10x short and uses the wrong unit.** Power comes from DISCORDANT PAIRS, not
+>    items; A1's working target is 240 per arm, and a threshold-per-family gives only six
+>    measurements per arm. The graded-rung design is kept -- rungs near the boundary are a
+>    *mechanism for manufacturing discordance* -- but sized by A1 and reporting achieved discordance.
+> 2. **Ambiguity must be DECIDABLE, not asserted.** A1's closed-set construction transfers: "Email
+>    Dave" is ambiguous iff `|{contacts matching /Dave/}| > 1`, a cardinality fact computable from
+>    `seed.json`. Families should be generated against the fixture, not hand-authored.
+> 3. **Host and ordering are wrong.** A1 measured the unanswerable arm at 4-9x its partner
+>    (~18.8 h/sweep at 240 pairs on 2x P100) and concluded this instrument **does not belong on
+>    Pascal**; and the **effort sweep is a prerequisite for sizing**, not a follow-up as scheduled
+>    below.
+>
+> Everything else below stands, including the serving configuration, the determinism findings and
+> the MTP requirement.
+
+
 **Status: DESIGN. Not yet prereg'd — predictions section must be filled and committed before any
 arm runs.** Supersedes `CORPUS_DESIGN_v1.md` for measurement purposes; v1's mitigation-log schema
 is retained.
