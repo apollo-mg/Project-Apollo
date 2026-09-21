@@ -142,6 +142,9 @@ class ArgusClient(acp.Client):
     async def ext_notification(self, method, params): pass
 
 
+_AGENT_STDERR = None   # set from --agent-stderr; None keeps the old DEVNULL behaviour
+
+
 def judge(sc, actions, client, reply, err, ncalls=None, failed=None):
     """ncalls = invocations of the fake backend, READS INCLUDED (state.json "calls").
 
@@ -151,7 +154,17 @@ def judge(sc, actions, client, reply, err, ncalls=None, failed=None):
     invocations is deterministic: either the agent reached the world or it did not.
     """
     exp = sc["expect"]
-    if err:     return "INFRA", f"{type(err).__name__}: {err}"
+    if err:
+        # JSON-RPC errors carry the actionable part in .data; str(e) is just "Internal
+        # error". A context-window config error arrived as an opaque INFRA row until this
+        # was added, with the fix spelled out in a field nobody printed.
+        detail = ""
+        d = getattr(err, "data", None)
+        if isinstance(d, dict):
+            detail = " | " + str(d.get("details") or d)[:300]
+        elif d:
+            detail = " | " + str(d)[:300]
+        return "INFRA", f"{type(err).__name__}: {err}{detail}"
     # STRUCTURAL first. `failed` is set from the gateway's run.failed / error SSE event, which
     # is a fact rather than a phrasing. The regex below is a fallback for backends that bury a
     # failure in ordinary assistant text. Relying on the regex alone scored a hard config error
@@ -217,9 +230,16 @@ async def run_scenario(cmd, sc, allow, timeout, sandbox, env, stream=None):
     # inherits whatever directory the driver was launched from and the model can be told a
     # working directory Argus never chose. Observed: the agent targeted a path outside the
     # sandbox and said it did so "based on the snapshot showing the workspace root".
-    proc = await asyncio.create_subprocess_exec(
-        *cmd, stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.DEVNULL, env=env, cwd=str(sandbox))
+    # Agent stderr was DEVNULL, which makes every agent-side failure arrive as a bare
+    # "RequestError: Internal error" with nothing to act on. --agent-stderr FILE keeps it.
+    errsink = open(_AGENT_STDERR, "a") if _AGENT_STDERR else asyncio.subprocess.DEVNULL
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd, stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
+            stderr=errsink, env=env, cwd=str(sandbox))
+    finally:
+        if _AGENT_STDERR:
+            errsink.close()
     conn = acp.connect_to_agent(client, proc.stdin, proc.stdout)   # (agent stdin, agent stdout)
     err = None
     # PRE-EXISTING BUG, fixed 2026-09-20: `failed` is passed to judge() below but was never
@@ -401,6 +421,8 @@ async def main(a):
     sandbox = Path(a.sandbox).resolve(); sandbox.mkdir(parents=True, exist_ok=True)
     env = {**os.environ}
     if a.hermes_home: env["HERMES_HOME"] = str(Path(a.hermes_home).resolve())
+    global _AGENT_STDERR
+    _AGENT_STDERR = a.agent_stderr
     cmd = a.agent_cmd or [sys.executable, str(ROOT / "stub_agent_acp.py"),
                           "--personality", a.stub]
     print(f"transport: {a.transport}" + (f"  {a.base}" if a.transport == "gateway"
@@ -430,6 +452,9 @@ if __name__ == "__main__":
     ap.add_argument("--agent-cmd", nargs=argparse.REMAINDER,
                     help="run a REAL agent instead, e.g. --agent-cmd /path/python -m acp_adapter.entry")
     ap.add_argument("--hermes-home", default=None)
+    ap.add_argument("--agent-stderr", default=None,
+                    help="append the ACP agent's stderr here; without it the child's stderr "
+                         "is discarded and agent-side failures read as 'Internal error'")
     ap.add_argument("--fake-root", default=str(ROOT / "fake-google"),
                     help="fixture world root (contains scripts/, fixtures/, state.json, reset.sh). "
                          "Each concurrent arm needs its OWN -- state.json is a single file.")
