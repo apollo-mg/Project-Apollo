@@ -1,4 +1,4 @@
-# Result — the MiMo-Distill Q5_K_S GGUF declares 33 blocks and ships 32; it does not load at all
+# Result — every MiMo-Distill GGUF tested declares 33 blocks and ships 32, including ggml-org's own
 
 **2026-09-21, RX 9070 XT (gfx1201), buun `38ada0e1b`.** The MTP-head-transfer experiment
 (`PREREG_MTP_HEAD_TRANSFER.md`) never reached its first arm: the target model is unloadable.
@@ -32,6 +32,29 @@ blk.32.nextn.enorm.weight -- ignoring` and serves normally.
 
 MiMo declares the same 33 and ships none of it. The loader trusts the metadata, looks for
 `blk.32.attn_norm.weight`, and stops.
+
+## UPDATE, same day: it is not one packager — ggml-org's own build has it too
+
+Two more quants arrived and were inspected before launching anything.
+
+| file | packager | `block_count` | blocks present | `recurrent_layers` entries | `nextn` | loads? |
+|---|---|---:|---|---:|---:|---|
+| `mimo-…-q5_k_s` | `holooo` | 33 | **0..31** (32) | **0** (absent) | 0 | **no** |
+| `MiMo-…-Q8_0` | **`ggml-org`** | 33 | **0..31** (32) | **33** | 0 | **no** |
+| `Ornith-1.5-9B-Q8_0` | ornith-ai | 33 | 0..32 (33) | absent | 4 | **yes** |
+
+**`ggml-org` is the llama.cpp project's own org**, so this is not a community packaging slip.
+Two independent conversions, different in other respects — `holooo` dropped
+`qwen35.attention.recurrent_layers` entirely, `ggml-org` kept it — and **both** land on
+`block_count = 33` with 32 blocks on disk.
+
+**ggml-org's build carries the proof that 33 is intended.** Its
+`qwen35.attention.recurrent_layers` is an array **indexed by layer** with **33 entries**
+(pattern `[T,T,T,F] x 8` then a final `F`), against 32 blocks in the same file. An array
+indexed by layer cannot be longer than the layer stack. Index 32 describes a block that is
+not there.
+
+So the file is internally inconsistent by its own metadata, independent of any loader.
 
 ## Which half is wrong is not determined here
 
@@ -74,9 +97,13 @@ into MiMo as `blk.32` — and that graft would itself be the interesting artefac
 
 - **Nothing about MiMo-V2.6-Distill-Qwen-9B the model.** This is one third-party quant of it.
   The model may be fine; this file is not.
-- **Not confirmed against mainline llama.cpp.** Tested on buun `38ada0e1b` only. The check is a
-  generic `check_tensor_dims` so mainline very likely behaves the same, but that is inference,
-  not measurement.
+- **Not confirmed against mainline llama.cpp, and this is now the decisive open question.**
+  Tested on buun `38ada0e1b` only. Since `ggml-org` publishes both the quant and the reference
+  loader, the likeliest readings are that **mainline tolerates a declared-but-absent trailing
+  block and buun does not** (a fork divergence, directly reportable), or that the quant is broken
+  for everyone. Those have opposite consequences and this run cannot separate them. Settling it
+  needs a current mainline build; `~/llama_upstream` on `.73` is pinned at `34af94c` (08-17) and
+  predates this model.
 - **The upstream repo was not inspected.** Whether `XiaomiMiMo/MiMo-V2.6-Distill-Qwen-9B` ships
   an MTP layer at all is unchecked, and it decides which of the two candidate causes applies.
 - **No quality or speed number for either model** — neither ran a benchmark arm.
