@@ -84,6 +84,23 @@ under a second.
 If you run the experiment anyway -- often right, since a third architecture or a new code path is
 worth confirming -- **say in the new receipt what it adds to the old one.**
 
+**Every prereg carries a prior-art line.** The 73 files matching `data/receipts/**/PREREG_*.md`
+are written before any run, which is exactly when "has this already been answered?" is the live
+question. Add this field:
+
+```
+**Prior art checked:** `ledger_precheck.py "<query>"` -> <nothing found | receipts found, and what this test adds>
+```
+
+**Why here and not only above:** a rule in a document is read at session start; the prereg is
+authored at the moment of need, forty turns later, when the rule has scrolled out of salience.
+It also makes the failure *countable* -- grep the preregs for the field and the skipped ones are
+visible, where a forgotten instruction leaves no trace. Preregistration is already mandatory and
+habitual, so this rides on an existing ritual rather than competing with one.
+
+Not airtight: nothing forces a prereg for a quick one-off, and the 2026-09-20 re-derivation began
+as a quick one-off. It covers campaigns, which is where re-derivation costs days rather than hours.
+
 **When a receipt lands, add a line to `INDEX.md`.** `./tools/ledger_index_gaps.py` lists what is
 missing; it is also reported by `ledger_health.sh`. An index nobody updates is worse than none,
 because it is still trusted.
