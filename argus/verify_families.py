@@ -1,0 +1,115 @@
+#!/usr/bin/env python3
+"""Recompute every item's expectation from the fixture world and report disagreements.
+
+Run this after ANY seed edit, any rebase_seed.py, and before any pilot.  The
+corpus's expectations are not stored facts -- they are consequences of the world,
+and this is what makes them consequences rather than claims.
+
+Exit 0 clean, 2 on any disagreement, 1 on a usage error.
+"""
+import argparse
+import datetime as dt
+import itertools
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent))
+import world_facts as wf  # noqa: E402
+
+
+def derive_boundary(items, computed):
+    """Lowest rung that does NOT determine an action.
+
+    None when every decidable rung determines one -- the f2 case, where the
+    ladder never flips to ask and the measured quantity is something else.
+    Rungs that are not world-decidable cannot participate: a boundary derived
+    across a gap would be reported as fact while resting on an asserted rung.
+    """
+    asks = [s["rung"] for s in items if s["decidable"] and computed[s["id"]][0] == "no_action_ask"]
+    return min(asks) if asks else None
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--families", default=str(Path(__file__).parent / "families_v3.json"))
+    ap.add_argument("--world", default=str(Path(__file__).parent / "fake-google/fixtures/seed.json"))
+    ap.add_argument("--today", help="YYYY-MM-DD; default is the real today, as the driver uses")
+    a = ap.parse_args()
+
+    today = dt.date.fromisoformat(a.today) if a.today else dt.date.today()
+    world = json.load(open(a.world))
+    scs = json.load(open(a.families))["scenarios"]
+
+    print(f"world  {a.world}")
+    print(f"today  {today} ({wf.WEEKDAYS[today.weekday()]})"
+          + (f"   world rebased to {world['_rebased']['to']}" if "_rebased" in world else ""))
+    print(f"items  {len(scs)}\n")
+
+    computed, kind_bad, undecidable = {}, [], []
+    for sc in scs:
+        if not sc["decidable"]:
+            undecidable.append(sc)
+            computed[sc["id"]] = (None, [sc["not_decidable_because"]])
+            continue
+        kind, notes = wf.decide(world, sc["decided_by"], today)
+        computed[sc["id"]] = (kind, notes)
+        if kind != sc["expect"]["kind"]:
+            kind_bad.append((sc, kind, notes))
+
+    print("== per-item expectation ==")
+    for sc in scs:
+        kind, notes = computed[sc["id"]]
+        if kind is None:
+            print(f"  {sc['id']:22} --  NOT DECIDABLE")
+            continue
+        mark = "ok " if kind == sc["expect"]["kind"] else "BAD"
+        print(f"  {sc['id']:22} {mark} computed={kind:14} stored={sc['expect']['kind']}")
+        for n in notes:
+            print(f"  {'':22}     {n}")
+
+    print("\n== true_boundary: derived vs asserted ==")
+    boundary_bad = []
+    for fam, group in itertools.groupby(scs, key=lambda s: s["family"]):
+        items = list(group)
+        got = derive_boundary(items, computed)
+        want = items[0]["true_boundary_asserted"]
+        gaps = [s["rung"] for s in items if not s["decidable"]]
+        # asserted 6 is v2's "never flips to ask", which derives as None
+        agree = (got == want) or (got is None and want == 6)
+        # A boundary is only sound if every rung BELOW it was actually decided.
+        # An undecidable rung under the derived minimum could be the real flip
+        # point, and the number would be reported as computed while resting on
+        # an assertion -- exactly what this file exists to prevent.
+        unsound = [r for r in gaps if got is not None and r < got]
+        if not agree or unsound:
+            boundary_bad.append((fam, got, want, unsound))
+        print(f"  {fam:16} derived={str(got):5} asserted={want}  "
+              f"{'ok' if agree and not unsound else 'DISAGREES' if not agree else 'UNSOUND'}"
+              + (f"   (rungs {gaps} not decidable)" if gaps else "")
+              + (f"   <- rung(s) {unsound} below the boundary are asserted, not decided" if unsound else ""))
+
+    print(f"\n== summary ==")
+    print(f"  decidable          {sum(1 for s in scs if s['decidable'])}/{len(scs)}")
+    print(f"  expectation agrees {sum(1 for s in scs if s['decidable']) - len(kind_bad)}"
+          f"/{sum(1 for s in scs if s['decidable'])}")
+    print(f"  boundary agrees    {sum(1 for _ in itertools.groupby(scs, key=lambda s: s['family']))- len(boundary_bad)}"
+          f"/{len({s['family'] for s in scs})}")
+
+    if kind_bad or boundary_bad:
+        print("\nDISAGREEMENTS -- the world does not support what the corpus claims:")
+        for sc, kind, notes in kind_bad:
+            print(f"  {sc['id']}: stored {sc['expect']['kind']}, world says {kind}")
+            for n in notes:
+                print(f"      {n}")
+            print(f"      v2's reason was: {sc['why']}")
+        for fam, got, want, unsound in boundary_bad:
+            print(f"  {fam}: true_boundary asserted {want}, derived {got}"
+                  + (f"; rung(s) {unsound} below it are not decidable" if unsound else ""))
+        return 2
+    print("\nclean -- every decidable expectation and boundary follows from the world")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
