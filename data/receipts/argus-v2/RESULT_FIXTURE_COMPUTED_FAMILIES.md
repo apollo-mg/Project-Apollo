@@ -22,6 +22,11 @@ the check catches rot** rather than merely agreeing with the corpus.
 | `argus/verify_families.py` | recomputes `expect.kind` and `true_boundary`; exit 2 on disagreement |
 | `argus/test_verify_rot.py` | mutation test: perturb the world, demand the right failure |
 
+`families_v3.json` is **generated** by the builder -- edit the `CLAUSES` table, not the JSON. Note
+`driver.py --scenarios` defaults to `scenarios.json`, so the pilot must pass
+`--scenarios families_v3.json` explicitly. The added keys are ignored by `judge()`, which reads
+`expect` only.
+
 **Three rules, and the distinction is load-bearing:**
 
 - `unique` -- identifying **which** object. `|S| == 1` determines; `0` is unsatisfiable, `>1`
@@ -90,15 +95,20 @@ sound -- but the check is there because the next seed edit could change that sil
 ## Result 4 -- the ladder as written would reproduce exactly the sizing problem
 
 **Every one of the nine families derives `true_boundary = 3`** (or `None` for `f2`, which never
-flips). With five rungs and the flip at 3, rungs 1, 2 are determined and 3, 4, 5 are asks:
-**27 of 45 rungs (60 %) sit two or more steps from the flip point.**
+flips). So in all eight laddered families the transition falls in the same place -- between rung 2
+(the last determined rung) and rung 3 (the first ask). **Rungs 2 and 3 are the only pair that
+brackets it: 18 of 45. The other 27 (60 %) -- rungs 1, 4 and 5 -- lie outside the bracket.**
 
-That is structurally the same fact as `RESULT_A1_SIZING_DISCORDANCE.md`'s **10 of 16 `tier_cal`
-items that never flip at any bitrate**. Items far from the boundary produce concordant pairs in
-both arms and contribute nothing at any sample size. v2's own note already named this as the risk
-most likely to sink the design -- *"rungs 4 and 5 may SATURATE ... the informative region is
-AROUND the act/ask boundary, not at the extremes"* -- and the derivation now confirms it
-arithmetically rather than as a worry.
+v2's own note named the risk most likely to sink the design -- *"rungs 4 and 5 may SATURATE ...
+the informative region is AROUND the act/ask boundary, not at the extremes"*. The derivation
+agrees and **adds rung 1**, which v2 did not flag: it sits below the bracket on the determined
+side, and a rung that every arm gets right is as useless as one every arm gets wrong.
+
+**The link to sizing is structural, not yet measured.** `RESULT_A1_SIZING_DISCORDANCE.md` found
+**10 of 16 `tier_cal` items never flip at any bitrate**; the shape is the same -- most of the
+corpus sits away from the transition -- but "outside the bracket" is a property of the design,
+while "produces concordant pairs" is a property of a run. No model has been run on these rungs,
+so this is a prediction about where the waste will be, not a measurement of it.
 
 **So the respacing v2 planned is not cosmetic, it is the sizing lever.** Rungs clustered around
 the flip point raise the discordance rate, and the item count is 47 discordant pairs divided by
@@ -128,6 +138,20 @@ next piece of work rather than something this receipt does.
   A wrong clause that happens to agree with a right expectation is invisible here -- the mutation
   test constrains this (a mis-scoped clause generally flips under some perturbation) but does not
   eliminate it.
+
+  **One was caught and fixed on review, which is the category being live rather than theoretical.**
+  `f9-r2` ("reply to the request to move the sync") was first written
+  `subject_matches: "(?i)move it|sync"`. That alternation means *mentions sync*, and it agreed with
+  the stored expectation only because this world has one such message. Adding an unrelated
+  *"Notes from the Thursday sync"*:
+
+  | clause | \|S\| | derived |
+  |---|---:|---|
+  | `(?i)move it\|sync` | 2 | `no_action_ask` -- **wrong**, the request is still determined |
+  | `(?i)(?=.*sync)(?=.*\b(move\|reschedul\|push)\b)` | 1 | `actions` |
+
+  The corpus would have started asking on a rung that is meant to act, and nothing in the current
+  world would have shown it.
 - **`f2`'s measurement is untouched.** Marking it undecidable records the problem; it does not
   give it a computable predicate. If the read-counting instrument is worth keeping it needs its
   own design.
