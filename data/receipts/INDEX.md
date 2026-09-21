@@ -31,6 +31,9 @@ someone find it, and the claim in a form that is checkable.
 | f16 control is **bistable within one build** on Polaris — byte comparison at K=1 is invalid there | `battle16gb/F16_CONTROL_BISTABLE.md` | 07-31 |
 | Speculative decoding never reproduces non-speculative output — **CONFIRMED 08-18 with `cache_prompt` swept both ways**. MTP's run-to-run instability *was* the caching interaction and is falsified; the off-vs-speculative deviation survives | `spec-decode-determinism/RESULT_SPECULATION_IS_NOT_BIT_EXACT.md` | 08-18 |
 | Agent benchmarks on `.73` are not reproducible at K=1 (HA-04 bistable 35/100/100/35) | `battle16gb/HA20_BASE_K3_CONTROL.md` | 07-30 |
+| **Prompt-cache reuse is bistable with speculative decoding on buun `08826ad6`**: warm cache gives 2 strictly alternating outputs from one seed, MTP off gives 1. Same class as the 07-30/08-18 findings, now on a NEWLY REACHABLE short-prefix cache path (old build logged `cache-ram disabled`) | `argus-v2/RESULT_PROMPT_CACHE_BISTABILITY.md` | 09-20 |
+| A determinism result is **invalid unless `cached_tokens` is recorded with it** — a run landing in a non-caching window looks clean and proves nothing about the warm path | `argus-v2/RESULT_PROMPT_CACHE_BISTABILITY.md` | 09-20 |
+| **The FIRST request after a model load is unreliable**: 24/24 byte-identical after it, the first differs and hits the token cap. Discard one warmup generation; restarting the server is necessary but NOT sufficient | `argus-v2/RESULT_TENSOR_SPLIT_DETERMINISM.md` | 09-20 |
 
 ## sampling · envelope · reasoning effort
 
@@ -95,6 +98,8 @@ someone find it, and the claim in a form that is checkable.
 | **FIXED + VERIFIED same day: buun `a56eeef5`** — tensor-split binding 5/5 (was 3/5), cache reuse 4010 tok -> 4 tok, **18.3x wall**. He fixed the Meta-buffer *producer* across 5 files, not the consumer we pointed at | `vbr-artifact-store/RESULT_FIX_VERIFIED_a56eeef5.md` | 09-07 |
 | VBR artifact store reports `runtime_pools=2 bindings=0` under `-sm tensor` — pools discover, none bind. Not multi-GPU (2 GPUs bind fine under `-sm layer`); buun's 08-26 `--tensor-split 1,1` workaround no longer helps | `vbr-artifact-store/RESULT_TENSOR_SPLIT_BREAKS_BINDING.md` | 09-07 |
 | Cost of the workaround: `-sm layer` restores reuse (4010 tok -> 4) but forfeits 39% of decode on 2xP100 | `vbr-artifact-store/RESULT_CACHE_AB_SPLITMODE.md` | 09-07 |
+| **`-sm tensor` is deterministic on sm_60 once warm** (24 consecutive byte-identical, seeded card sampling) — but that pass was taken with the cache COLD and does not hold warm | `argus-v2/RESULT_TENSOR_SPLIT_DETERMINISM.md` | 09-20 |
+| The cache+MTP bistability is **not split-mode specific**: `-sm layer` is WORSE (6 distinct outputs vs 2 under tensor) | `argus-v2/RESULT_PROMPT_CACHE_BISTABILITY.md` | 09-20 |
 
 ## KV cache · quantisation fidelity
 
@@ -163,6 +168,10 @@ someone find it, and the claim in a form that is checkable.
 | RDNA4 VGPR spills too, worse, and not only at head size 256 | `rdna4-vgpr-spill/RESULT_GFX1201.md` | 08-14 |
 | **gfx1201 `qwen35` prefill is 2.6-7.7x slower on Tom's fork**; decode and `llama` arch unaffected. MMQ coverage, build config, SSM kernels and FA selection all eliminated | `rdna4-prefill/RESULT_QWEN35_PREFILL_REGRESSION.md` | 09-06 |
 | The MMA flash-attention kernel has **no gfx1201 device code** — `default` and `tile` are the same path, so PR #360's override has nothing to switch between | `rdna4-prefill/RESULT_PR360_MMA_NOT_COMPILED.md` | 09-06 |
+| **`__dp4a` is sm_61, absent on GP100** — a GTX 1080 or P40 compiles what a P100 cannot. 107 of 108 exllamav3 sm_60 build failures were this, NOT tensor cores; the portable `vabsdiff4` path sits commented out in the same file | `exl3-campaign/RESULT_O8_QUANTIZER_SM60.md` | 09-20 |
+| buun's `4d90517b1` Pascal support **qualified on real hardware**: `test-exl3-byte-dot` PASS (65,536 states), `test-backend-ops MUL_MAT` 1529/1529 on CUDA0. Checked non-vacuous — sm_60 takes the scalar `#else` branch | `exl3-campaign/RESULT_PASCAL_QUALIFICATION_BUUN.md` | 09-20 |
+| buun `08826ad6` vs `c9c52d71` on 2x P100: **+13.4% decode**, driven by MTP acceptance 42.5% -> 56.5%; prefill unchanged like-for-like | `exl3-campaign/RESULT_BUUN_AB_OLD_VS_NEW.md` | 09-20 |
+| buun **issue #134 does not reproduce** on Pascal/Linux/CUDA 12.4: clean to 195,170 tokens past the 174,827 abort point, with VBR driven to `kv_bpv 4.34` against a 4.125 floor | `buun-issue134/RESULT_I134_PASCAL_NO_REPRO.md` | 09-20 |
 
 ## instrument validity — read before designing a benchmark
 
@@ -209,6 +218,9 @@ someone find it, and the claim in a form that is checkable.
 | **A time-relative scenario is only a test on the day its fixture is anchored to.** Hardcoded seed dates silently make destructive scenarios unsatisfiable — the agent scores clean because it *cannot* act | `FAILURE_MODES.md` | 08-27 |
 | **Non-termination is a SAMPLING claim until proven otherwise** — check the vendor profile for the WORKLOAD (cards publish several), pin `min_p`, read `/props` not the launch command | `FAILURE_MODES.md` | 08-27 |
 | Ornith-1.5-9B loops at the card's *coding* profile (temp 0.6 / presence 0.0); agentic work needs the *general* profile (temp 1.0 / presence 1.5). Our n=12 Ornith arm is suspect | `FAILURE_MODES.md` | 08-27 |
+| **`prompt_per_second` is meaningless under caching** — 30 of 34 tokens cached made prefill read "-50.5%" while wall time fell 76%. Compare prefill WALL TIME at matched `prompt_n`, and record `prompt_n` + `cache_n` beside any prefill figure | `exl3-campaign/RESULT_BUUN_AB_OLD_VS_NEW.md` | 09-20 |
+| **The wake proxy owns llama-server.** `WP_START_CMD` hardcodes the binary, so killing the server relaunches the OLD one and a manual replacement dies with cudaMalloc OOM. Stop the proxy, verify the pid is gone AND VRAM fell, then swap | `exl3-campaign/RESULT_BUUN_AB_OLD_VS_NEW.md` | 09-20 |
+| A **confident task cannot detect nondeterminism** — "list five primes" returns 24 identical tokens under any perturbation. Probe with open-ended prose at temp 1.0, where one logit wobble flips a token and compounds | `argus-v2/RESULT_TENSOR_SPLIT_DETERMINISM.md` | 09-20 |
 
 ## which binary produced this
 
