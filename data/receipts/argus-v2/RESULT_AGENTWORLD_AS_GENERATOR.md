@@ -53,6 +53,27 @@ The two that failed are the two requiring an **abstract constraint held across t
 person believes exists but may not"*. The model produced fluent, on-topic, wrong-shaped text. It
 did not decline; it did not understand.
 
+### CORRECTION (same day): two of those four prompts tested a capability the design does not use
+
+The matched-pair construction authors **one neutral phrasing per template** and lets cardinality
+decide the arm. From `worldgen.py`'s own output:
+
+```
+[actions      ] Drop Cecilia a line about Monday.
+[no_action_ask] Drop Saoirse a line about Monday.
+```
+
+Identical text; the world holds one Cecilia and two Saoirses. **No generator is ever asked to
+write an "ambiguous" request**, so the ambiguous-referent and false-premise prompts above probe a
+skill the pipeline has no use for. That is a flaw in the probe, not a limitation of the model, and
+it removes the main argument for fetching a larger quant: the capability a bigger budget might
+recover is one that would be **refused on design grounds anyway**, since using it would restore
+the asserted-ambiguity failure mode this corpus exists to eliminate.
+
+What survives from Finding 2 is narrower and still worth knowing: the model is fluent and
+on-topic but does not hold an abstract constraint across an output. That bears on any future use
+where it *would* be asked to, and on nothing in the current plan.
+
 **This maps onto the two axes from `RESULT_TWO_AXIS_RUNG.md`, and the split is not a coincidence.**
 The classes it handled are ones where the request names a **concrete surface** (delete a file). The
 classes it failed are exactly those whose defining property is **a relationship to world state** --
@@ -102,12 +123,17 @@ Byte-identical output at seed 1001 across two server instances also re-confirms 
 
 ## What this does NOT establish
 
-- **One quant only.** `UD-IQ4_XS` at 17.8 GB. Mark's concern that a **3B-active** MoE is unusually
-  quant-sensitive is well founded -- `AFM-30` already treats the 3B-active regime as its own class,
-  where low active-parameter count *"confounds knows less with has less capacity"*. The failures in
-  Finding 2 are therefore **not attributable to the model rather than the quant**: `UD-Q4_K_XL`
-  (22,324,804,864 bytes, +25.5 %) sits on the NAS untested, and the two failing classes are exactly
-  the kind of abstract-constraint task a thinner budget would hurt first.
+- **One quant only, and a larger one is NOT indicated.** `UD-IQ4_XS` at 17.8 GB. The 3B-active
+  quant-sensitivity concern is well founded in general -- `AFM-30` treats that regime as its own
+  class, where low active-parameter count *"confounds knows less with has less capacity"* -- and
+  `UD-Q4_K_XL` (22,324,804,864 bytes, +25.5 %) sits on the NAS untested. But the three jobs the
+  pipeline actually needs (filler pools, neutral phrasings, world content) all came back **correct,
+  not marginal**, so there is no headroom for a larger quant to recover, and per the correction
+  above the failing classes are not jobs this design assigns. **Recommendation: do not fetch it**
+  unless a future task genuinely requires holding an abstract constraint.
+- **For better phrasings the binding constraint is lineage, not bitrate.** AgentWorld is
+  Qwen-family and so is the test subject, so items it phrases may sit in-distribution for Qwen.
+  A non-Qwen generator would buy more than more Qwen bits.
 - **The abliterated variant was never run.** Finding 1 removes the *motivation* for it, not the
   possibility that it differs.
 - **One prompt per class, one seed.** No repeats, so nothing here is a rate.
