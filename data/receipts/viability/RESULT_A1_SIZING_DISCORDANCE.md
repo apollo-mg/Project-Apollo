@@ -2,8 +2,9 @@
 
 **2026-09-21. Re-analysis of runs already on disk -- no new GPU time.** Four paired quant
 comparisons on the same 16-item `tier_cal` v0 fixture, scored by
-`tools/discordance.py` (new, validated against A1's own table and against
-`scipy.stats.beta` for every interval it prints).
+`tools/discordance.py` (new). Its sizing table reproduces A1's cell-for-cell except the psi=0.90
+column, where the 10-pair floor binds (see below); its Clopper-Pearson intervals were checked
+against `scipy.stats.beta` on six cases spanning k=0, 0<k<n and k=n, matching to 1e-6.
 
 **Prior art checked:** `ledger_precheck.py "McNemar discordance rate sample size item count
 paired quant comparison" --deep` -> `A1_MEASUREMENT_CORPUS_SPEC.md` (08-20),
