@@ -9,6 +9,8 @@ projector**, `-c 200000 -ctk vbr -ctv vbr --vbr-entry t8 --vbr-floor t4 --ctx-ch
 Matches buun's #134 on **3 of 4 components** -- only NVFP4 weights remain unmatched (Blackwell
 only). Yesterday's `.73` arm matched 2 of 4 and never reached his precondition at all.
 
+**Reported upstream 2026-09-21** (Discord, to buun) from `data/drafts/buun_i134_dflash_and_ts_DRAFT.md`.
+
 ## Finding 1 -- the drafter lands on ONE card and gates the whole KV budget
 
 `[spec] auto-selected CUDA1 as the primary draft device` puts the entire 2.03 GB sidecar on one
