@@ -1,5 +1,9 @@
 # Prereg — does an MTP head transfer across fine-tunes of the same base?
 
+> **OUTCOME 2026-09-21: BLOCKED. P1 falsified.** The MiMo Q5_K_S target does not load — it
+> declares `block_count = 33` and ships 32 blocks. No arm ran. See
+> `RESULT_MIMO_Q5KS_BROKEN.md`. The question below is still open and still unpublished.
+
 **Written 2026-09-21, before any measurement.** Follows
 `spec-protocol/SPEC_DECODE_PROTOCOL_v1.md` (standing method).
 

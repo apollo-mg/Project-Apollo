@@ -1,0 +1,82 @@
+# Result — the MiMo-Distill Q5_K_S GGUF declares 33 blocks and ships 32; it does not load at all
+
+**2026-09-21, RX 9070 XT (gfx1201), buun `38ada0e1b`.** The MTP-head-transfer experiment
+(`PREREG_MTP_HEAD_TRANSFER.md`) never reached its first arm: the target model is unloadable.
+**P1 FALSIFIED**, and for a reason that is worth more than the experiment was.
+
+## The finding
+
+`holooo/MiMo-V2.6-Distill-Qwen-9B-Q5_K_S-GGUF` fails to load, with or without a draft head:
+
+```
+E llama_model_load: error loading model: check_tensor_dims:
+  tensor 'blk.32.attn_norm.weight' not found
+```
+
+Its metadata declares `qwen35.block_count = 33`. It ships blocks **0..31**, i.e. **32**.
+
+## The positive control makes it a packaging fault, not a loader fault
+
+Same binary, same session, same flags (`-c 4096 -ngl 99 -fa on -ctk f16 -ctv f16 -np 1`), same
+architecture, one card:
+
+| file | metadata `block_count` | blocks present | `nextn` tensors | result |
+|---|---:|---|---:|---|
+| `Ornith-1.5-9B-Q5_K_M` | 33 | **0..32** (33) | 4 | **loads, generates** |
+| `mimo-v2.6-distill-qwen-9b-q5_k_s` | 33 | **0..31** (32) | **0** | **fails** |
+
+Ornith proves the convention and the loader: **block 32 is the MTP block**, carrying
+`blk.32.nextn.{eh_proj,enorm,hnorm,shared_head_norm}` alongside an ordinary attention/FFN stack.
+Launched without `--spec-type draft-mtp`, Ornith logs `model has unused tensor
+blk.32.nextn.enorm.weight -- ignoring` and serves normally.
+
+MiMo declares the same 33 and ships none of it. The loader trusts the metadata, looks for
+`blk.32.attn_norm.weight`, and stops.
+
+## Which half is wrong is not determined here
+
+Two candidates, and this run cannot separate them without the upstream safetensors:
+
+1. the conversion **stripped the MTP block** and left `block_count` at 33, or
+2. `block_count` was taken from a config that **counts the MTP layer** while the quantiser never
+   wrote it.
+
+Either way the artefact is internally inconsistent, which is the reportable part. Note
+`qwen38-packagers/RESULT_MTP_HEAD_QUANT.md` already found that **no imatrix covers the MTP head
+in either ladder** — heads are quantised blind — so this block is the least-attended part of the
+file and an easy one to drop silently.
+
+## What it cost, and why that is the point
+
+Fifteen minutes, because `[[file-identity-is-the-hash-not-the-name]]` discipline meant reading
+the tensor list before trusting the label. Someone taking the quant at face value gets a
+`check_tensor_dims` error naming a tensor that is *present* in the standalone head file they
+may also have downloaded, which points diagnosis in exactly the wrong direction — that was my
+own first reading of it.
+
+## Consequence for the transfer experiment
+
+`PREREG_MTP_HEAD_TRANSFER.md` is **blocked, not answered.** Its question — does an MTP head
+trained on fine-tune A draft for fine-tune B of the same base — remains open and remains
+unpublished as far as I can find. Two further facts from the same inspection sharpen it:
+
+- **`Ornith-1.5-9B-Q5_K_M` already embeds its own MTP head**, so the standalone
+  `mtp-Ornith-1.5-9B-head-Q8_0.gguf` is redundant *for Ornith*. The matched-control arm needs no
+  separate file.
+- The standalone head is a complete, well-formed MTP block (18 tensors: `token_embd`, `output`,
+  `output_norm`, and a full `blk.32.*` with the four `nextn` tensors), vocab **248,320** —
+  identical to both targets. **It is the transfer target that is broken, not the head.**
+
+To run the experiment, the transfer arm needs either a MiMo GGUF that loads, or the head grafted
+into MiMo as `blk.32` — and that graft would itself be the interesting artefact.
+
+## What this does NOT establish
+
+- **Nothing about MiMo-V2.6-Distill-Qwen-9B the model.** This is one third-party quant of it.
+  The model may be fine; this file is not.
+- **Not confirmed against mainline llama.cpp.** Tested on buun `38ada0e1b` only. The check is a
+  generic `check_tensor_dims` so mainline very likely behaves the same, but that is inference,
+  not measurement.
+- **The upstream repo was not inspected.** Whether `XiaomiMiMo/MiMo-V2.6-Distill-Qwen-9B` ships
+  an MTP layer at all is unchecked, and it decides which of the two candidate causes applies.
+- **No quality or speed number for either model** — neither ran a benchmark arm.
