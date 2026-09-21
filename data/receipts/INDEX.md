@@ -178,6 +178,12 @@ someone find it, and the claim in a form that is checkable.
 
 | finding | receipt | date |
 |---|---|---|
+| **An external drafter lands entirely on ONE card and gates the whole KV budget** under tensor split — `-ts` to even the FREE VRAM (not weights) moved the VBR clamp 6,144 -> 122,880 tokens, a 20x win from one flag | `buun-issue134/RESULT_TS_ASYMMETRY_AND_DFLASH.md` | 09-21 |
+| buun #134's **clamp reproduces verbatim on Pascal but the abort does not** — ours fails at `cuMemMap` (exhaustion, recoverable), his at `cuMemSetAccess` (`device not ready`, `CU_CHECK` abort). `CUDA_ERROR_NOT_READY` is an async state, NOT out-of-memory | `buun-issue134/RESULT_TS_ASYMMETRY_AND_DFLASH.md` | 09-21 |
+| **medium costs 6.1x fewer tokens than xhigh** on Q6_K/.194 and is strictly better (0 non-terminators vs 3/8); a 240-per-arm sweep is 1.96 h, not A1's 18.8 h | `viability/RESULT_A1_SIZING_MEDIUM.md` | 09-21 |
+
+| finding | receipt | date |
+|---|---|---|
 | **Six documents written 08-20..09-20 are one instrument** — knowledge-boundary (tier_cal, A1), runtime signal (overthink detector), treatment (injection prereg), specification-boundary (argus v2). Read the reconciliation before designing another | `viability/RECONCILIATION_BOUNDARY_INSTRUMENT.md` | 09-21 |
 | **Power comes from DISCORDANT PAIRS, not item count** — 240/arm working target; report ACHIEVED discordance, never assume it. "A run that yields 12 discordant pairs is underpowered no matter how many items it contained" | `viability/A1_MEASUREMENT_CORPUS_SPEC.md` | 08-20 |
 | **Make unanswerability/ambiguity DECIDABLE, not asserted** — generate both arms from closed sets so it is a set-membership decision, matched by construction. Hand-verifying 480 invented entities is not a plan | `viability/A1_MEASUREMENT_CORPUS_SPEC.md` | 08-20 |
