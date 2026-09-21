@@ -1210,3 +1210,87 @@ were discarded, and nothing from them was scored (`nex-mini-ab/PREREG_THREE_WAY.
 
 Related: [[readiness-probes-lie]]; `kv-tensor-split/RESULT_KV_VALIDITY.md` (check quantized arms for a
 silent f16 fallback). This case is the reverse: a silent quantized default.
+
+---
+
+## AFM-39 — the stack is thirteen layers deep and every one of them fails quietly
+
+**2026-09-21.** Six defects in one day, each of which first presented as a model failure and none
+of which was one. Recorded as a single entry because the pattern is the finding; the individual
+cases are in their own receipts.
+
+| presented as | actually |
+|---|---|
+| the 3.5bpw arm cannot handle referent ambiguity (`f1-referent-r4`) | `d.okafor@` against `dave.whitfield@` — the two Daves collided on `name` only, so mail and calendar each returned 1 |
+| the ACP agent is broken (3 of 3 `INFRA`) | my `-c 32768` against Hermes' 64k floor, with the actionable text in a JSON-RPC `.data` field nothing printed |
+| the model fails every calendar item | `make_fixture.sh` double-rebased Thursday onto Monday and the weekday fixer renamed the event to match |
+| MiMo-Distill is a broken model | `ggml-org`'s own GGUF declares `block_count 33` and ships 32 blocks |
+| AgentWorld ignores the thinking-off flag | it emits `<think>` as ordinary **content**; `reasoning_content` is empty and no server flag can strip it |
+| `Ornith-1.5-9B` loops on every scenario (08-28) | we applied its **coding** sampling profile to agentic work; its card publishes two |
+
+## Why this direction and not the other
+
+**A false model-failure is far cheaper to produce than a false model-success**, for two reasons
+that compound:
+
+1. **Failure is the expected outcome.** Models do fail at these tasks, so a failure verdict never
+   triggers the suspicion a surprising success would.
+2. **Broken setups emit well-formed output.** This file already says it under `AFM`-jointly-
+   satisfiable: *"assert the precondition, because the output of a broken setup is usually
+   well-formed."* A wrong verdict looks exactly like a right one.
+
+## The thirteen layers
+
+One argus verdict passes through, in order:
+
+```
+model -> sampler -> chat template -> server flags -> llama.cpp fork -> ACP adapter
+      -> hermes agent -> skill -> fake-google backend -> world fixture
+      -> rebase script -> clause evaluation -> judge
+```
+
+Today produced a defect at **six** of those. Anyone publishing "IQ3 fails agentic judgement N% of
+the time" is implicitly asserting all thirteen were correct on every item.
+
+## What actually caught them
+
+Not suspicion. In every case a **mechanical check or a persisted artefact**, and it is worth
+being precise about which, because the lesson is to build the check and not to be more careful:
+
+- `f1-referent-r4` — the driver persists `reply[:600]`. The model's own trace ("*'late' implies
+  there's an appointment, which should disambiguate*") is what proved the **scoring** was wrong.
+  A verdict alone is unauditable. **Persist the reasoning, not just the outcome.**
+- the double rebase — `verify_families.py` recomputed expectations from the world and reported
+  4 inverted items and 3 moved boundaries **before a single scenario ran**.
+- the MiMo quant — reading the tensor list instead of trusting the label
+  (`[[file-identity-is-the-hash-not-the-name]]`).
+- the thinking flag — the probe recorded `reasoning_chars` per row rather than assuming the flag
+  worked (`[[thinking-off-in-harnesses]]`).
+- the ACP error — only after `--agent-stderr` and `.data` surfacing were added. Before that the
+  message existed and nothing printed it.
+
+**And one of them was luck.** The path-consistency check that caught `f1-referent-r4` was written
+to support rung respacing, not because anything looked wrong. The 13.9 % figure had already been
+committed and published. That is the honest version: the check found it, and the check existed
+for an unrelated reason.
+
+## Rule
+
+**Before attributing a failure to the model, name which of the thirteen layers you verified and
+how.** "It looked like a model failure" is not evidence, because that is what all of them look
+like. Prefer a check that cannot pass when the layer is broken:
+
+| layer | the check that cannot silently pass |
+|---|---|
+| sampler | read `/props` after launch; the command line is what you asked for, `/props` is what you got |
+| chat template | record `reasoning_chars` per row, never trust the flag |
+| server flags | assert the value in the server log, not the launch script |
+| fork version | pin and record the commit; `git merge-base --is-ancestor` for feature presence |
+| world fixture | recompute every expectation from the world (`verify_families.py`) |
+| item fairness | check every retrieval path agrees (`check_path_consistency.py`) |
+| model artefact | read the tensor list; a label names neither a recipe nor a size |
+| agent | persist stderr and the full reply, not just the verdict |
+
+Related: `AFM-26` (a long-lived server degrades silently), `AFM-30` (comparison classes),
+`[[readiness-probes-lie]]`, `[[thinking-off-in-harnesses]]`,
+`argus-v2/RESULT_PILOT_TWO_ARM.md` (the correction), `mtp-transfer/RESULT_MIMO_Q5KS_BROKEN.md`.

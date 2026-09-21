@@ -44,7 +44,10 @@ SKIP_DIRS = {"raw", "logs", "state", "runs", "sandbox"}
 def files(pattern):
     if pattern:
         import glob
-        return [Path(p) for p in sorted(glob.glob(pattern))]
+        # resolve(): a relative glob yields relative paths, and relative_to(ROOT) below
+        # then raises. --pattern was unusable from the repo root because of it.
+        return [Path(p).resolve() for p in sorted(glob.glob(pattern))
+                if Path(p).resolve().is_file()]
     out = []
     for p in sorted(RECEIPTS.rglob("*.md")):
         if set(p.relative_to(RECEIPTS).parts[:-1]) & SKIP_DIRS:
@@ -52,12 +55,38 @@ def files(pattern):
         out.append(p)
     return out
 
+def changed_since(ref):
+    """Receipt .md files touched since `ref`, as absolute paths that still exist."""
+    import subprocess
+    r = subprocess.run(["git", "-C", str(ROOT), "diff", "--name-only", "--diff-filter=d",
+                        ref, "--", "data/receipts"], capture_output=True, text=True)
+    if r.returncode != 0:
+        return None                      # bad ref: caller decides, never silently index all
+    out = []
+    for line in r.stdout.splitlines():
+        p = (ROOT / line).resolve()
+        if p.suffix == ".md" and p.is_file() and not (
+                set(p.relative_to(RECEIPTS).parts[:-1]) & SKIP_DIRS):
+            out.append(p)
+    return out
+
+
 def main(a):
     from modules.vdb import get_vector_store, get_text_splitter
     from langchain_core.documents import Document
 
     splitter = get_text_splitter()
-    paths = files(a.pattern)
+    if a.since:
+        paths = changed_since(a.since)
+        if paths is None:
+            print(f"receipts_index: bad git ref {a.since!r}; refusing to index everything")
+            return 1
+        if not paths:
+            print(f"receipts_index: no receipts changed since {a.since}; nothing to do")
+            return 0
+        print(f"receipts_index: {len(paths)} receipt(s) changed since {a.since}")
+    else:
+        paths = files(a.pattern)
     docs, ids, per_file = [], [], {}
     for p in paths:
         try:
@@ -119,5 +148,9 @@ def main(a):
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--pattern", default=None)
+    p.add_argument("--since", default=None,
+                   help="index only receipts changed since this git ref (e.g. HEAD~1). "
+                        "Exits 0 with no work when nothing under data/receipts changed, so it "
+                        "is cheap to call from a hook on every commit.")
     p.add_argument("--dry-run", action="store_true")
     sys.exit(main(p.parse_args()))

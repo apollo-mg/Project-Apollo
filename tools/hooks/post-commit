@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Keep the retrieval stores current with data/receipts.
+#
+# WHY: ledger_precheck.py searches FTS5 + Chroma. A receipt that is written but not
+# indexed is invisible to it, which is the mechanical cause of re-derivation that
+# receipts_index.py was built to fix -- 588 receipts were in NEITHER store on
+# 2026-09-20. Indexing by hand means it stops happening the first busy day.
+#
+# Runs DETACHED so a commit never waits on embedding, and never fails a commit:
+# index debt is housekeeping, not drift (same reasoning as ledger_health.sh).
+ROOT=/mnt/TG_2TB/Projects/Apollo
+PY=$ROOT/venv_cachyos/bin/python3
+LOG=$ROOT/run/receipts_index.log
+
+# Cheap gate: if this commit touched no receipts, do nothing at all.
+if ! git -C "$ROOT" diff --name-only --diff-filter=d HEAD~1 HEAD -- data/receipts \
+     2>/dev/null | grep -q '\.md$'; then
+    exit 0
+fi
+
+mkdir -p "$(dirname "$LOG")"
+{
+    echo "=== $(date -Iseconds) post-commit $(git -C "$ROOT" rev-parse --short HEAD)"
+    "$PY" "$ROOT/tools/receipts_index.py" --since HEAD~1 2>&1
+    # INDEX.md is hand-maintained and cannot be generated -- a one-line mechanism
+    # summary is a judgement. Report the debt so it stays visible.
+    "$ROOT/tools/ledger_index_gaps.py" --quiet 2>&1 || true
+} >> "$LOG" 2>&1 &
+disown 2>/dev/null || true
+exit 0
