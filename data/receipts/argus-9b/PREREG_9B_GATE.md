@@ -231,7 +231,11 @@ Any `INFRA` row that remains is a genuine environment failure and must be explai
 
 ---
 
-## AMENDMENT 4 — 2026-09-22 19:03, before any gate row; the agent now runs sandboxed
+## AMENDMENT 4 — 2026-09-22; the agent now runs sandboxed
+
+**Timing, stated exactly:** the changes below were committed (`eb5fef7`) and in effect **before**
+the run launched at 19:03:21. This text was committed about a minute **after** the first gate row
+was written. No gate data informed it; it records a configuration already fixed at launch.
 
 The paused run showed models reaching **outside the fake world**: MiMo listing the home
 directory and reading browser-harness files, and, on review of earlier raw data, 27B arms
