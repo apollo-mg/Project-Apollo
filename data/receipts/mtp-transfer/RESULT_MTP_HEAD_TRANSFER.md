@@ -171,3 +171,101 @@ The head costs **2.42 GB of VRAM** but its MTP block is only **258 MB**. The rem
 `token_embd` (1.08 GB) plus `output` (1.08 GB), duplicating tensors already in the target. On a
 16 GB card that duplication is what forced context down to 4096 (12.43 GiB used, 3.49 GiB free).
 A head packaged without the embedding and output tensors would cost ~9x less VRAM.
+
+# ADDENDUM 2026-09-22 -- the base model settles it, text-matched
+
+The stock base, `bartowski/Qwen_Qwen3.5-9B-GGUF` Q8_0 (9,804,541,984 B, byte-exact to the HF blob,
+sha256 `b58fe056b5435070240de259f3f981aa38fee96825bbd78c088d5fd90e46f2b5`), arrived after the above
+was written. It is the **common ancestor of both fine-tunes**, and unlike them it **ships its own
+MTP head** (442 tensors, 33 blocks, `nextn.*` present).
+
+That buys two things the first matrix could not: a **true matched drafter**, and -- as it turned
+out -- a **text-matched comparison**. Raw: `raw_base_matrix.jsonl`.
+
+## The trap checked first
+
+With a target that already carries an embedded head, it is not obvious whether `-md` overrides it
+or is silently ignored. If ignored, the "borrowed head" arm would be measuring the embedded head
+twice. **It is not ignored:** acceptance differs in every domain (0.454 vs 0.390 on prose), and
+each server's `/proc` cmdline was printed at launch. The external head is genuinely in use.
+
+## Result
+
+| domain | arm | acceptance | tok/s | speedup | output sha |
+|---|---|---:|---:|---:|---|
+| PROSE | no speculation | -- | 55.72 | 1.00x | `e11299b7` |
+| PROSE | **own** embedded head | **0.454** | 78.15 | **1.40x** | `c2170b6f` |
+| PROSE | **borrowed** Ornith head | **0.390** | 72.67 | **1.30x** | `c2170b6f` |
+| CODE | no speculation | -- | 55.85 | 1.00x | `82cbc157` |
+| CODE | **own** | **0.698** | 103.18 | **1.85x** | `51488053` |
+| CODE | **borrowed** | **0.658** | 99.27 | **1.78x** | `51488053` |
+| STRUCT | no speculation | -- | 55.97 | 1.00x | `71ff9ed9` |
+| STRUCT | **own** | **0.891** | 121.09 | **2.16x** | `b52059e4` |
+| STRUCT | **borrowed** | **0.871** | 118.72 | **2.12x** | `b52059e4` |
+
+## 1. An MTP head is a base-family asset
+
+**A head trained on Ornith-1.5-9B drafts for the stock base it was fine-tuned from**, at
+**1.30x-2.12x**. Combined with the MiMo result above, one head now drafts usefully for **three
+different models** in the `qwen35` 9B family: its own fine-tune, a sibling fine-tune, and the
+shared base.
+
+This reframes the practical finding. Neither fine-tune ships an MTP head (427 tensors) while the
+base does (442). The fine-tune repos do not publish MTP weights at all, so the likely story is
+that **fine-tuning discards the base's MTP head and nobody re-attaches it** -- not that any
+packager dropped it. An earlier framing in this session blamed the packager and was wrong:
+bartowski ships the head whenever the source has one.
+
+## 2. Text-matched: the matched head wins everywhere, and the STRUCT inversion above was the confound
+
+The two speculative arms produced **byte-identical output** in all three domains. Same target,
+same generated tokens, only the drafter differs -- exactly the comparison the MiMo-vs-Ornith table
+could not support, and which that section flagged as missing.
+
+| domain | own head | borrowed head | delta | retained |
+|---|---:|---:|---:|---:|
+| PROSE | 0.454 | 0.390 | **-0.063** | 86.0 % |
+| CODE | 0.698 | 0.658 | **-0.040** | 94.3 % |
+| STRUCT | 0.891 | 0.871 | **-0.020** | 97.7 % |
+
+**The matched head is better on all three domains, on identical text.** So P2's *direction* is
+right, and the STRUCT inversion in the main matrix (transfer 0.918 > matched 0.869) is best
+explained by the confound named there: MiMo and Ornith wrote different JSON (475 vs 655 chars), so
+that was never a drafter comparison. **The caveat was load-bearing, and the clean test vindicates
+it rather than the headline.** P2 remains falsified as literally written -- the inversion is real
+in that data -- but it should not be read as evidence that a borrowed head can beat a matched one.
+
+**A borrowed head retains 86-98 % of matched acceptance**, and the retention *rises* with how
+constrained the content is. On JSON the penalty for using the wrong head is 2 points.
+
+## 3. The drafter does not change the output; the speculative path does
+
+| comparison | same text? |
+|---|---|
+| own head vs borrowed head | **identical, all 3 domains** |
+| speculation off vs on | **different, all 3 domains** |
+
+This is a sharper statement than `spec-decode-determinism/RESULT_SPECULATION_IS_NOT_BIT_EXACT.md`
+(08-18) could make with one drafter. Speculative decoding is distribution-preserving by
+construction -- the verify step rejects bad drafts -- so **which** drafter proposed a token cannot
+change what is finally emitted, and here it demonstrably does not, across two heads differing
+enough to move acceptance by 6.3 points. What *does* change the output is **turning speculation on
+at all**: the batched verify path is numerically different from sequential decode.
+
+So the 08-18 finding is not "speculation is nondeterministic". It is **"the speculative code path
+is a different numerical path from the non-speculative one, deterministically so"**. Two drafters
+land on the same altered text.
+
+This also retires the intermediate hypothesis recorded above. Having seen Ornith/STRUCT reproduce
+byte-identically, this receipt speculated that bit-exactness tracks acceptance via argmax margin.
+Here all three base domains diverge from non-speculative **including STRUCT at 0.891 acceptance**,
+higher than the Ornith/STRUCT cell that did reproduce. That one cell is a coincidence of margins,
+not a rule. **Acceptance does not predict reproducibility; the hypothesis is dead.**
+
+## What the addendum still does not establish
+
+- One base family, one card, one quant, three targets. No claim about MTP heads in general.
+- Acceptance is a drafter-agreement metric, not a quality metric.
+- The base's own head and the standalone Ornith head are both Q8_0 but are different files; part of
+  the 86-98 % retention could be conversion differences rather than fine-tune drift.
+- `n = 3` reps per cell, all identical to the third decimal. Stable, but a single prompt per domain.
