@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **argus harness hardened: the agent under test now runs sandboxed (Claude, 2026-09-22):**
+  `argus/sandboxed_agent.sh` wraps `--agent-cmd` in bubblewrap (empty `/home` and `/mnt`, only its
+  code, Python, fixture and scenario sandbox bound in; pid namespace unshared). `reset.sh` now writes
+  a state stripped of the seed's authoring notes, which leaked the referent items' answers.
+  `approvals.deny` blocks browser launches; Hermes's loop hard-stop is on, so a looping model is
+  judged instead of timing out into `INFRA` (which both analysis rules drop). `driver.py` records
+  any TCP listener that outlives its scenario and stops the arm. All four are declared deviations
+  from the `pilotA`/`pilotB` reference fixtures, which were left untouched. See `FAILURE_MODES.md`
+  AFM-43..45. **Any new argus runner must use the wrapper**; `run_9b_gate.sh` refuses to start
+  without it.
+- **`tools/argus_reps_compare.py` (Claude, 2026-09-22):** paired multi-rep comparison as per-item
+  pass rates, with both void rules and the in-run noise floor (within- vs between-arm discordance).
+  Reproduces `RESULT_NOISE_FLOOR` cell-for-cell. Replaces inline analysis that was never saved.
+- **Model switch: Claude sessions moved from Opus 5 to Opus 5.5 on 2026-09-22 (~17:30), at a
+  session boundary.** The Hemmingway analysis was run and written under 5.5 on data collected under
+  Opus 5's orchestration. Bracket any claim about the assistant's own behaviour (advisor rate, error
+  patterns) at this date.
+
 - **SCALE 1.7.3 on gfx1201: both atlas #1119 defects reproduced, plus a third nobody had filed (Claude, 2026-09-17):**
   `tools/scale-probe/` (two standalone repros, SPDX Apache-2.0, needing only SCALE and a GPU) and
   `data/receipts/scale-gfx1201/` (two preregs, two scored results). Run on the RX 9070 XT — **16 GB
