@@ -125,3 +125,62 @@ inherited it, and it is queued.
   `results/qwopus6_t2_k{1,2,3}/` (invalidated reps), `results/fable_t0/`, `results/v5_full02/`
 - `~/bench-stack/server_qwopus.log`, `server_qwopus6.log` on `.73` — the column-50041 errors
 - Serving sidecars: `~/bench-stack/serving_config_qwopus{,6}.json`
+
+---
+
+## OPEN HYPOTHESIS, added 2026-09-22: a fifth candidate this receipt never tested
+
+**Nothing above is retracted. This flags a cause that was not on the list.**
+
+The four eliminated hypotheses were density, merging, envelope violation and quantization --
+all properties of the *model*. A fifth exists and is a property of the **parser**:
+
+`common/chat.cpp` routes any template containing `<tool_call>`, `<function=` and `<parameter=`
+to `common_chat_params_init_qwen3_coder`, whose string-argument rule terminates **only** on the
+exact sequence `"\n</parameter>\n"`:
+
+```cpp
+auto arg_string = p.rule("xml-arg-string",
+    p.ac(p.tool_arg_string_value(p.until("\n</parameter>\n")) + arg_close, "\n</parameter>\n"));
+```
+
+`until()` compiles to a permissive GBNF rule, so if that exact sequence does not appear where
+expected, the argument **keeps consuming** -- through the close tag, through `</function>`,
+through following `<tool_call>` blocks -- until `max_tokens` truncates it mid-string and the
+server 500s with `missing closing quote`. That is this receipt's exact error string.
+
+`ggml-org/llama.cpp#26763` (2026-08-08) documents this **for Qwen3.6 specifically**: the official
+Qwen3.6 template renders the newline form, and the model occasionally samples `value</parameter>`
+without the leading newline, at which point the run-on begins. **Qwopus-Fusion's base is
+`Qwen/Qwen3.6-27B`**, per its HF repo tags.
+
+### Why it fits the evidence here better than "this specific merge"
+
+- **It explains the sampling result without invoking a model defect.** This receipt reads
+  temp 0 -> 50,040 chars and temp 0.9 -> 1,335 chars as *"greedy decoding locks this merge into
+  repetition"*. The parser hypothesis predicts the same: at temp 0 the argmax either emits the
+  newline or does not, **deterministically and on every call**; at temp 0.9 the correct form gets
+  sampled often enough to terminate. Both stories fit, and only one was considered.
+- **It explains why quantization barely moved it** (50,040 -> 43,161, ~15%). A parser that cannot
+  see a terminator does not care about bitrate.
+- **It explains why Fable-Fusion-711 was clean** without needing Fable to be a better model --
+  only for Fable's template to render the terminator the parser expects.
+
+### The decisive test, which is cheap
+
+Capture the **raw** completion via `/completion` (bypassing tool parsing) for one `t2_boilerplate`
+turn at temp 0, and look at what the model actually wrote:
+
+- raw text contains **several well-formed `<tool_call>` blocks** -> the model stopped correctly
+  and the **parser** concatenated them. This receipt's root cause is wrong.
+- raw text contains **one genuinely unterminated `content` payload** -> the model did run away.
+  This receipt stands.
+
+This is exactly the test run against MiMo-V2.6-Distill-Qwen-9B on 2026-09-22
+(`mtp-transfer/RESULT_MIMO_TOOLCALL_DIALECT.md`), where it showed the model emitting perfectly
+well-formed calls that the parser then folded into one argument.
+
+**Not yet run here:** Qwopus-Fusion is not on local disk, and it is a 27B. Until it is run, the
+conclusion above ("what remains: this specific merge") should be read as **one of two live
+candidates, not settled**. The prediction-scoring table's lesson applies to this receipt too: a
+cause is not established by eliminating the alternatives you happened to think of.
