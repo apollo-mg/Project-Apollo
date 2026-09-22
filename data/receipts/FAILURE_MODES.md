@@ -1394,3 +1394,68 @@ message.** And the transcript that settled it had been on disk since August, whi
 written under the assertion that testing required weights we did not have.
 
 Measured in `mtp-transfer/RESULT_MIMO_TOOLCALL_DIALECT.md`.
+
+---
+
+## AFM-42 — a GGUF can carry its own sampling defaults, so "same flags" is not "same sampling"
+
+**2026-09-22.** Preparing a 9B panel on the RX 9070, both arms were to be launched with identical
+`llama-server` flags. Checking first:
+
+| file | embedded sampling keys | effective sampling with NO flags |
+|---|---|---|
+| `MiMo-V2.6-Distill-Qwen-9B-Q8_0` (bartowski) | `general.sampling.temp 0.6`, `top_k 20`, `top_p 0.95` | temp **0.6**, top_k **20** |
+| `Ornith-1.5-9B-Q8_0` (bartowski) | **none** | temp **1.0**, top_k **40** (llama.cpp defaults) |
+| `Qwen3.5-9B-Q8_0` (bartowski) | **none** | temp 1.0, top_k 40 |
+
+**Same packager, same quant, same launch command, 3,424 bytes apart -- and the two arms would have
+sampled at different temperatures.** Nothing on the command line would have shown it. The only
+visible trace is `/props`, which reports the *effective* values after the GGUF's defaults are
+applied.
+
+`general.sampling.*` is written by the converter when the source repo's `generation_config.json`
+carries those fields. MiMo publishes one; Ornith publishes none at that path. So whether your
+model self-configures is an accident of what the upstream repo happened to ship.
+
+### How this was nearly missed
+
+The tell was noticed on an unrelated machine: `.194`'s live arms report `top_k 20` while upstream
+llama.cpp defaults to **40**, and `start_arm.sh` passes no sampling flags at all. A default that
+does not match the documented default means something else is setting it.
+
+### Consequences beyond the obvious
+
+- **"Run both at defaults" is not a controlled comparison.** It is a comparison of whatever each
+  packager's source repo happened to publish.
+- **A GGUF whose embedded sampling matches its card looks correct and needs no flags.** A sibling
+  whose repo shipped nothing looks identical on the command line and is off-card. Here MiMo lands
+  on its vendor profile for free while Ornith lands on neither of its two published profiles
+  (`top_k` 40 vs the card's 20, `presence_penalty` 0 vs the general profile's 1.5).
+- It compounds `AFM-23` / the sampling checklist: `min_p` is *still* unpinned in both cases,
+  because no GGUF here carries `general.sampling.min_p`, so llama.cpp's 0.05 wins over cards that
+  specify 0.0.
+
+### The check
+
+**Read `/props` after launch and compare it to the card, every arm, every time.** The launch
+command is what you asked for; `/props` is what you got (`[[readiness-probes-lie]]`, and the
+existing checklist item 1 already says this -- this entry supplies the mechanism that makes it
+non-optional). To see it before launch:
+
+```
+gguf: [k for k in reader.fields if k.startswith('general.sampling.')]
+```
+
+**Pin every sampling parameter explicitly on the command line.** Do not rely on any default --
+not llama.cpp's, not the GGUF's. An inherited value that happens to be right is still inherited.
+
+### Audit of the run in flight
+
+The Hemmingway 5-rep comparison was checked against this and **survives**: `/props` on both
+`.194:8084` and `.194:8085` returns identical `temperature 1.0, top_k 20, top_p 0.95, min_p 0.05,
+presence_penalty 0.0`. Both arms inherit the same embedded values from structurally identical
+GGUFs, so the paired comparison is matched.
+
+It does carry the `AFM-23` defect independently: **`min_p` is 0.05, and Qwen3.8's card specifies
+0.0.** Shared by both arms, so A-vs-B stands; the absolute pass rates are off-card and must not be
+compared against any vendor-sampled run.
