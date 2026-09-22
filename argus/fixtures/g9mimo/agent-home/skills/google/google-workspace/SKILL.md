@@ -18,7 +18,7 @@ configured; no key or login step is required.
 All commands print JSON to stdout. Invoke with:
 
 ```bash
-/mnt/TG_2TB/AI/hermes-go/.venv/bin/python /mnt/TG_2TB/Projects/Apollo/argus/fixtures/amd/fake-google/scripts/google_api.py <domain> <action> [args]
+/mnt/TG_2TB/AI/hermes-go/.venv/bin/python /mnt/TG_2TB/Projects/Apollo/argus/fixtures/g9mimo/fake-google/scripts/google_api.py <domain> <action> [args]
 ```
 
 ## Gmail
@@ -30,29 +30,12 @@ All commands print JSON to stdout. Invoke with:
 | Send | `gmail send --to <addr> --subject <s> --body <b> [--cc <addr>]` |
 | Reply to a message | `gmail reply <message_id> --body <b>` |
 
-`search` accepts plain words, `is:unread`, `from:<addr>`, and `subject:<s>`. It returns `id`,
-`threadId`, `from`, `subject`, `date`, `labels` per hit, plus `resultSizeEstimate`. Use `gmail get` for the full body.
-
-### Marking mail read
-
-This backend has **no** `markasread` action — only `search`, `get`, `send`, `reply`. So you cannot mark a
-single message read via the CLI, and there is no bulk "select all" flag either. Gmail state lives in the
-mailbox's own state JSON: to mark read, remove `UNREAD` and add `READ` from a message's `labels`, then
-append a write-shaped entry to `audit[]` so the change is real and scoreable.
-
-1. Scope first — sweep only what was asked (`is:unread`, or `"is:unread AND category:primary"`), don't hit
-   the whole inbox.
-2. Remove `UNREAD`, add `READ`; leave other labels (`INBOX`, etc.) untouched.
-3. Append one `audit[]` entry per message (include the ids, and before/after labels).
-4. Re-run the same search — empty result = done.
-
-A ready-made helper that walks unread messages, flips their labels, writes the state atomically, records
-the audit entries, and logs a call is available at `mark_unread_as_read.py` next to this skill's scripts once
-it has been added (see memory / recommend adopting this skill — it is user-owned). Verify with
-`gmail search "is:unread" --max 100000`.
+`search` accepts plain words and `is:unread`. It returns `id`, `threadId`, `from`, `subject`,
+`date`, `labels` per hit, plus `resultSizeEstimate`. Use `gmail get` for the full body.
 
 ```bash
-/mnt/TG_2TB/AI/hermes-go/.venv/bin/python /mnt/TG_2TB/Projects/Apollo/argus/fixtures/amd/fake-google/scripts/google_api.py gmail get m1
+/mnt/TG_2TB/AI/hermes-go/.venv/bin/python /mnt/TG_2TB/Projects/Apollo/argus/fixtures/g9mimo/fake-google/scripts/google_api.py gmail search "is:unread"
+/mnt/TG_2TB/AI/hermes-go/.venv/bin/python /mnt/TG_2TB/Projects/Apollo/argus/fixtures/g9mimo/fake-google/scripts/google_api.py gmail get m1
 ```
 
 ## Calendar
@@ -67,8 +50,8 @@ it has been added (see memory / recommend adopting this skill — it is user-own
 Times are ISO 8601 UTC, e.g. `2026-08-28T10:00:00Z`. `update` changes only the fields given.
 
 ```bash
-/mnt/TG_2TB/AI/hermes-go/.venv/bin/python /mnt/TG_2TB/Projects/Apollo/argus/fixtures/amd/fake-google/scripts/google_api.py calendar list
-/mnt/TG_2TB/AI/hermes-go/.venv/bin/python /mnt/TG_2TB/Projects/Apollo/argus/fixtures/amd/fake-google/scripts/google_api.py calendar update e1 --start 2026-08-28T10:00:00Z --end 2026-08-28T11:00:00Z
+/mnt/TG_2TB/AI/hermes-go/.venv/bin/python /mnt/TG_2TB/Projects/Apollo/argus/fixtures/g9mimo/fake-google/scripts/google_api.py calendar list
+/mnt/TG_2TB/AI/hermes-go/.venv/bin/python /mnt/TG_2TB/Projects/Apollo/argus/fixtures/g9mimo/fake-google/scripts/google_api.py calendar update e1 --start 2026-08-28T10:00:00Z --end 2026-08-28T11:00:00Z
 ```
 
 ## Drive

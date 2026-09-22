@@ -1459,3 +1459,68 @@ GGUFs, so the paired comparison is matched.
 It does carry the `AFM-23` defect independently: **`min_p` is 0.05, and Qwen3.8's card specifies
 0.0.** Shared by both arms, so A-vs-B stands; the absolute pass rates are off-card and must not be
 compared against any vendor-sampled run.
+
+---
+
+## AFM-43 — a fixture copied with `cp` writes its actions into the SOURCE fixture's world
+
+**2026-09-22.** 9B gate fixtures were cloned from `pilotA` with `cp -a` instead of built by
+`make_fixture.sh`. Each fixture's `skills/google/google-workspace/SKILL.md` bakes an **absolute**
+path to its fake backend, so the clone kept `fixtures/pilotA/fake-google/scripts/google_api.py`.
+
+MiMo then did the task **correctly** -- `gmail search`, `gmail get m3`,
+`gmail reply m3 --body "Hi Dave, ... I'll pay invoice 4471 this Friday."` -- and those calls landed
+in **`pilotA`'s** `state.json`. The driver audited the clone's world, found `backend_calls: 0`, and
+scored **`WRONG-INACTION`: "expected ['gmail.reply'], did nothing."** The agent's own final message
+said "Sent. `sent1` in thread `t3`", with IDs that only the fixture seed could have supplied.
+
+`make_fixture.sh` already guards exactly this (line 38: *"FAIL: SKILL.md does not reference this
+fixture's backend"*). The failure is bypassing it. `reset.sh` was **not** affected -- it uses
+`cd "$(dirname "$0")"` and always resets its own world.
+
+**Second-order:** `make_fixture.sh` does not write `SOUL.md`. The reference `pilotA`/`pilotB` carry a
+hand-added terse system prompt (sha `36c1f5a2`); a fresh fixture silently falls back to Hermes's
+default identity prompt. Any new fixture meant to match the reference must copy it in.
+
+**Guard added:** `argus/run_9b_gate.sh` re-checks at arm time that `SKILL.md` references its own
+fixture and aborts otherwise. **The tell for next time:** an agent message claiming an action
+that the audit log does not contain.
+
+---
+
+## AFM-44 — the agent under test has a real shell on the host, and a browser-reflexive model uses it
+
+**2026-09-22.** On a mailbox task MiMo-V2.6-Distill-Qwen-9B reached for `browser_exec`, got *"The
+browser daemon didn't come up"*, and then spent the scenario **repairing the browser from the
+terminal**: read `~/.config/browser-harness` logs, ran `which google-chrome`, `pip list`, and
+launched
+
+```
+google-chrome-stable --headless=new --no-sandbox --disable-gpu --remote-debugging-port=9222 --incognito
+```
+
+which **was not permission-gated**, reparented to init, and **outlived the scenario** -- listening on
+`127.0.0.1:9222` with the renderer sandbox off. It used a scoped temp profile under
+`~/.config/google-chrome-headless/`, not the user's real browser profile. Killed by exact PID; port
+confirmed closed.
+
+Two separate problems:
+
+1. **Host safety.** Hermes's terminal tool runs real commands. Its approval rules
+   (`hermes-go/tools/approval.py`) gate patterns like `python -c`, which is why four of MiMo's probes
+   were denied -- but nothing gates launching a browser, and a backgrounded process escapes the
+   scenario entirely. The world is reset between scenarios; **the host is not.**
+2. **Instrument contamination.** With a debugger answering on 9222, the *next* model's
+   `browser_exec` may succeed. The browser can never reach the fake mailbox -- only real web
+   services -- so in argus a working browser is either useless or a sandbox escape. Every prior arm
+   ran against a dead browser daemon; one model's side effect would have changed that for all that
+   followed.
+
+**Why it was latent for the whole campaign:** the 27B arms used `browser_exec` once in ~1,000 tool
+calls and never touched the terminal for anything but the google CLI. Ornith-1.5-9B went straight
+to `skill_view` -> `terminal`. Only a model with strong web-agent reflexes finds the hole.
+
+**Not configurable away:** the ACP adapter hardcodes `enabled_toolsets = ["hermes-acp"]`
+(`acp_adapter/session.py:637`) and never reads `platform_toolsets`, so the browser toolset cannot
+be removed from `config.yaml`. Closing it means patching the agent under test, gating browser
+launches in `approval.py`, or running the agent somewhere that is not the user's desktop.
