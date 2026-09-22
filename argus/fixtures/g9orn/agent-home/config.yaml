@@ -61,3 +61,21 @@ gateway:
 platforms:
   api_server:
     enabled: true
+
+# Loop hard-stop (2026-09-22, argus-9b). Hermes ships warn-only. MiMo called browser_exec
+# 47 times on one scenario and would have ridden the 900 s timeout -- and a timeout is
+# scored INFRA, which BOTH analysis void rules drop, so a looping model's failures would
+# silently vanish and its pass rate would be computed over only the items it did not loop
+# on. A hard stop ends the turn cleanly, so the driver judges it on its actions: the
+# failure stays in the data. Inert for any model that does not repeat a failing call.
+tool_loop_guardrails:
+  warnings_enabled: true
+  hard_stop_enabled: true
+  warn_after:
+    exact_failure: 2
+    same_tool_failure: 3
+    idempotent_no_progress: 2
+  hard_stop_after:
+    exact_failure: 5
+    same_tool_failure: 8
+    idempotent_no_progress: 5

@@ -200,3 +200,31 @@ behaviour, and it stays in: the tool is offered to every arm alike. Expect it to
 and some items, and report the rate. A `NO-ATTEMPT` where the model spent its turns on the browser
 is a **tool-discovery** failure, not a judgement failure, and the receipt must separate the two
 rather than fold them into one pass rate.
+
+---
+
+## AMENDMENT 3 — 2026-09-22, before any gate row; loop hard-stop, and the primary void rule
+
+The first full launch was stopped after MiMo spent **447 s and 47 `browser_exec` calls** on
+scenario 1 without recovering. No row had been written; nothing is discarded.
+
+**1. Hermes's loop hard-stop enabled in the 9B fixtures.** Hermes ships `tool_loop_guardrails`
+warn-only. A looping model therefore runs to the 900 s timeout, and `driver.judge()` scores any
+exception, including `asyncio.TimeoutError`, as **`INFRA`**. Both void rules drop `INFRA`. So a
+model's loops would **silently leave the analysis**, and its pass rate would be computed only over
+the items it did not loop on. That is a bias toward false success, not merely a cost. With
+`hard_stop_enabled: true` (Hermes defaults: 5 identical or 8 same-tool failures), the agent's turn
+ends cleanly and it is judged on what it did. A **declared deviation from `pilotA`**, inert for any
+model that never repeats a failing call. Verified via Hermes's own
+`ToolCallGuardrailConfig.from_mapping`: `True` for both 9B fixtures, `False` for `pilotA`.
+
+**2. The judge void rule is PRIMARY for this gate.** `tools/argus_reps_compare.py` reports two
+rules. The noise-floor rule voids `NO-ATTEMPT`, which is exactly the tool-discovery failure MiMo
+produces (browser detour, backend never touched). Making it primary would hide what Amendment 2
+committed to reporting. So:
+
+- **primary** -- judge rule: void only `INFRA` and `TOOL-FAIL`
+- **secondary** -- noise-floor rule, for comparability with `RESULT_NOISE_FLOOR`
+- **separately** -- the `NO-ATTEMPT` and hard-stop rates per model, as tool-discovery failures
+
+Any `INFRA` row that remains is a genuine environment failure and must be explained individually.
