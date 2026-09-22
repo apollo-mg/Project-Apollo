@@ -78,6 +78,30 @@ Because upstream and fork agree, the earlier question of "which half is wrong" n
 defect is upstream of both loaders, in the conversion or in the source config, not in anyone's
 tensor-dims check.
 
+## CONFIRMED BY THE PACKAGER, 2026-09-22
+
+Mark raised it in chat and bartowski answered directly:
+
+> *"my script noticed that the config declared MTP but there are not MTP tensors, so it converted
+> with `--no-mtp`"*
+
+That is exactly the mechanism derived above from `conversion/qwen.py:298-305` — `n_mtp` taken
+from the config and added to `block_count` **unconditionally**, with nothing checking that the
+`mtp.*` tensors are present. The workaround this receipt flagged as *"untested, a reading of the
+code"* is precisely what he ran. **Inference confirmed at source.**
+
+His pipeline carries a presence check that upstream's does not. He also gave the reason upstream
+is cautious, which is worth recording because it shapes how this should be reported:
+
+> *"It's hard for them, cause any minor change to a script ripples across thousands of files on
+> HF, so I get why they're hesitant for every change that isn't a no-op."*
+
+**That argues for the narrow fix rather than the broad one.** Gating the increment on the `mtp.*`
+tensors actually being indexed is a **no-op for every model that genuinely ships them** — it only
+changes behaviour for checkpoints that declare an MTP block and omit its weights, which is the
+broken case. A warning-only variant is narrower still. Framing the report that way answers the
+objection before it is raised.
+
 ## A third packager gets it right: `bartowski` declares 32
 
 Probed 2026-09-22 with `modules/gguf_librarian.py` over HTTP range requests -- **~200 KB

@@ -75,8 +75,11 @@ from the same count, inherits the extra entry.
 but `bartowski`'s builds land on exactly 32 with the same 427 tensors, which is what that path
 produces.
 
-**Fix directions:** gate the increment on the `mtp.*` tensors actually being indexed, or warn
-when `mtp_num_hidden_layers > 0` and none are found. Either beats emitting a file whose own
-`recurrent_layers` array contradicts its tensor list.
+**Fix directions, and both are no-ops for correct checkpoints:** gate the increment on the
+`mtp.*` tensors actually being indexed, or warn when `mtp_num_hidden_layers > 0` and none are
+found. Neither changes behaviour for any model that genuinely ships MTP weights -- only for ones
+that declare the block and omit it, which is the broken case. bartowski's pipeline already
+carries exactly this check, which is why his GGUFs of this model load; he converted with
+`--no-mtp` after his script noticed the config declared MTP with no MTP tensors present.
 
 Happy to test a patch -- the hardware and both files are here.
