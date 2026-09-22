@@ -1331,3 +1331,57 @@ reach and check a probe that is **false in every other state**. "The servers are
 
 Related: `AFM-39` (root-cause before attributing), `[[readiness-probes-lie]]`,
 `[[194-power-and-bmc]]`.
+
+---
+
+## AFM-41 — the chat template's whitespace is part of the instrument
+
+**2026-09-22.** A 9B panel was staged to ask whether agentic SFT beats a general fine-tune at
+equal parameters: `MiMo-V2.6-Distill-Qwen-9B` Q8_0 vs `Ornith-1.5-9B` Q8_0, both from bartowski.
+
+Everything this project had learned to match, was matched:
+
+| axis | MiMo | Ornith |
+|---|---:|---:|
+| packager | bartowski | bartowski |
+| architecture | qwen35 | qwen35 |
+| quant label AND recipe | Q8_0 / file_type 7 | Q8_0 / file_type 7 |
+| tensors | 427 | 427 |
+| blocks | 32 (0..31) | 32 (0..31) |
+| MTP head | none | none |
+| **file bytes** | **9,545,979,424** | **9,545,982,848** |
+
+3,424 bytes apart. Same host, same build, same sampling, same prompts, same tools.
+
+**MiMo corrupts 6 of 10 multi-tool-call turns. Ornith corrupts 0 of 30.**
+
+The cause is whitespace. `common/chat.cpp:1213` routes any template containing `<tool_call>`,
+`<function=` and `<parameter=` to the Qwen3-Coder parser, which requires the newline-delimited
+dialect (`"<tool_call>\n"`, `"\n</parameter>\n"`, ...). Ornith's template renders that. MiMo's
+renders the compact form and matches **zero of five** required literals, so a string argument runs
+past its own `</parameter>` and swallows the entire next tool call. HTTP 200, `finish_reason`
+`tool_calls`, no warning anywhere.
+
+Run as staged, the panel would have reported **"the agentic SFT model is much worse at parallel
+tool use"** -- false, reproducible, and well controlled on every axis anyone would have thought to
+check. Same shape as `AFM-39`: a false model-failure is cheaper to produce than a false success.
+
+### The check
+
+Before comparing two models on tool use, round-trip each one's **rendered** tool call against the
+parser that will read it. One `/apply-template` call with an assistant message carrying
+`tool_calls`, then assert the parser's literals appear in the output. It is deterministic, needs no
+reps, and costs a second.
+
+What makes this one nasty is that the fingerprint in `chat.cpp` is a *substring* test. Any template
+mentioning those three tags is claimed by that parser whether or not it renders in that parser's
+dialect, so a first-party model can be mis-detected with no merge, no edit and no third-party
+packaging involved. **MiMo diverges from its own base model (Qwen3.5-9B) on whitespace only.**
+
+**The parser mechanism itself is not our discovery** -- ggml-org/llama.cpp#26763 documented it on
+2026-08-08 and it was closed "not a bug". Our `ledger_precheck.py` did not surface it, because it
+indexes our receipts and not upstream trackers. **For anything touching a vendored engine, search
+the upstream issue tracker as part of the precheck.** What is ours here is the matched-pair control
+and the benchmarking consequence.
+
+Measured in `mtp-transfer/RESULT_MIMO_TOOLCALL_DIALECT.md`.
