@@ -214,6 +214,52 @@ and it adds a new layer to the list: **the chat template's whitespace is part of
 Before any two models are compared on tool use, round-trip each one's rendered tool call against
 the parser it will be read by, and report the result. It costs one `/apply-template` call.
 
+## Escalation with token budget, and a hard 500
+
+The corruption **rate** does not depend on `max_tokens`; the corruption **size** does, because
+`until()` compiles to a permissive GBNF rule that never constrains the model to stop. 10 seeds per
+cell, same two-tool prompt:
+
+| `enable_thinking` | `max_tokens` | HTTP 500 | corrupt | clean | longest argument |
+|---|---:|---:|---:|---:|---:|
+| false | 400 | 0 | 6/10 | 4 | 1,245 |
+| false | 1200 | 0 | 6/10 | 4 | **3,830** |
+| true | 400 | 0 | **8/10** | 2 | 2,116 |
+| true | 1200 | 0 | **8/10** | 2 | **7,556** |
+
+Thinking mode costs ~2 more corrupt turns in 10 (8/10 vs 6/10, n=10 per cell -- suggestive, not
+established) and roughly doubles the longest argument. **Both matter for argus, which runs with
+thinking on.**
+
+At a large enough budget the run-on stops being silent. One request during development produced:
+
+```
+HTTP 500: Failed to parse tool call arguments as JSON:
+  parse error at line 1, column 2684: syntax error while parsing value -
+  invalid string: missing closing quote
+```
+
+The argument had swallowed **26 chained `<tool_call>` blocks** -- the model inventing search terms
+(`budget`, `financial report`, `expenses`, `forecast`, `payroll`, `cash flow`, ...) because nothing
+told it the first argument had ended.
+
+**The quiet failure is the dangerous one.** A harness with a generous `max_tokens` gets a loud 500
+it cannot miss. A harness with a tight cap gets a corrupted argument behind HTTP 200 -- which
+scores.
+
+### This error string is shared by an unrelated mechanism
+
+`scrapebench/QWOPUS_RUNAWAY_ROOT.md` (08-01) reports the identical
+`missing closing quote` 500 from a genuine **model** runaway: 43,161 characters, **zero** tool-call
+markers inside the argument, 66.1% of it the token `_inner` repeated 4,754 times. Checked on
+2026-09-22 against that receipt's preserved transcript; the parser hypothesis was raised and
+falsified there.
+
+Both mechanisms end in a truncated JSON string, so both surface as `missing closing quote`. **The
+message names the symptom, not the cause.** To tell them apart, look inside the argument: folded
+`<tool_call>`/`<function=`/`</parameter>` markers mean the parser concatenated real calls; a single
+degenerate payload with none of them means the model failed to stop.
+
 ## Relation to llama.cpp#26763 -- what is new and what is not
 
 **Not new:** the mechanism. #26763 (2026-08-08) identified the hardcoded `"\n</parameter>\n"` in
@@ -280,8 +326,11 @@ three lines are unchanged. Last touches to `common/parsers/qwen3-coder.cpp` are 
   re-running those at their own vendor settings.
 - n=10 per cell. The 6/10 and 3/10 figures have wide intervals; what is solid is 0/10 vs non-zero,
   and the round-trip table, which is deterministic and needs no reps.
-- Single-turn only. Multi-turn behaviour, where a corrupted call gets fed back as history, is
-  untested and is likely worse.
+- **Multi-turn is still untested.** A planned multi-turn probe was abandoned when the 500 above
+  killed the script; the 2x2 above is single-turn. Feeding a corrupted call back as history is
+  plausibly worse and is unmeasured -- do not assume either way.
+- The thinking-mode delta (8/10 vs 6/10) is n=10 per cell. Directionally consistent across both
+  budgets, but two turns in ten is not a separated effect.
 
 ## What this blocks
 

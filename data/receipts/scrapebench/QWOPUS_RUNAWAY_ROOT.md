@@ -128,59 +128,66 @@ inherited it, and it is queued.
 
 ---
 
-## OPEN HYPOTHESIS, added 2026-09-22: a fifth candidate this receipt never tested
+## A fifth hypothesis was raised on 2026-09-22 and FALSIFIED the same hour
 
-**Nothing above is retracted. This flags a cause that was not on the list.**
+**This receipt's conclusion stands. Recorded because the check is reusable and the process error is
+the more useful half.**
 
-The four eliminated hypotheses were density, merging, envelope violation and quantization --
-all properties of the *model*. A fifth exists and is a property of the **parser**:
+On 2026-09-22, work on `MiMo-V2.6-Distill-Qwen-9B` found that llama.cpp's `qwen3-coder` parser
+hardcodes `"\n</parameter>\n"` as the only string-argument terminator, so a template rendering a
+different whitespace dialect lets one argument consume the tool calls that follow, until
+`max_tokens` truncates it and the server 500s with `missing closing quote` -- **this receipt's exact
+error string**. `ggml-org/llama.cpp#26763` documents it for Qwen3.6, and Qwopus-Fusion's base is
+`Qwen/Qwen3.6-27B`. It looked like a strong candidate the four eliminated hypotheses had missed.
 
-`common/chat.cpp` routes any template containing `<tool_call>`, `<function=` and `<parameter=`
-to `common_chat_params_init_qwen3_coder`, whose string-argument rule terminates **only** on the
-exact sequence `"\n</parameter>\n"`:
+**It is wrong.** The raw transcript was on disk the whole time
+(`bench/scrapebench/results/qwopus6_t2_fixed/t2_boilerplate.json`), and it settles the question
+directly. The 43,161-character argument contains:
 
-```cpp
-auto arg_string = p.rule("xml-arg-string",
-    p.ac(p.tool_arg_string_value(p.until("\n</parameter>\n")) + arg_close, "\n</parameter>\n"));
+| marker | count |
+|---|---:|
+| `</parameter>` | **0** |
+| `<parameter=` | **0** |
+| `<function=` | **0** |
+| `<tool_call>` | **0** |
+| `</function>` | **0** |
+| `</tool_call>` | **0** |
+
+Zero folded markup. Had the parser concatenated following calls, every one of those would be
+non-zero -- that is exactly how the MiMo case presents. Instead the argument is a single genuinely
+unterminated JSON string, and its tail shows what the model was actually doing:
+
+```
+self.article_text_inner_inner_inner_inner_inner_inner_inner_inner_inner_inner_inner
+_inner_inner_inner_inner_inner_inner_inner_inner_inner_inner_inner = False
 ```
 
-`until()` compiles to a permissive GBNF rule, so if that exact sequence does not appear where
-expected, the argument **keeps consuming** -- through the close tag, through `</function>`,
-through following `<tool_call>` blocks -- until `max_tokens` truncates it mid-string and the
-server 500s with `missing closing quote`. That is this receipt's exact error string.
+`_inner` occurs **4,754 times and accounts for 66.1% of the argument**. This is degenerate
+repetition inside an identifier -- a model failing to stop, which is what the receipt said.
 
-`ggml-org/llama.cpp#26763` (2026-08-08) documents this **for Qwen3.6 specifically**: the official
-Qwen3.6 template renders the newline form, and the model occasionally samples `value</parameter>`
-without the leading newline, at which point the run-on begins. **Qwopus-Fusion's base is
-`Qwen/Qwen3.6-27B`**, per its HF repo tags.
+The arguments are also **JSON-dialect** (`{"path": ..., "content": ...}`), not the XML
+`<parameter=` form the qwen3-coder parser governs, so that parser was very likely never on this
+path at all.
 
-### Why it fits the evidence here better than "this specific merge"
+**Every original conclusion survives:** the cause is the model, "failure to stop, not failure to
+answer" is right, and the temp 0.9 collapse (50,040 -> 1,335 chars) really is sampling breaking a
+greedy repetition loop.
 
-- **It explains the sampling result without invoking a model defect.** This receipt reads
-  temp 0 -> 50,040 chars and temp 0.9 -> 1,335 chars as *"greedy decoding locks this merge into
-  repetition"*. The parser hypothesis predicts the same: at temp 0 the argmax either emits the
-  newline or does not, **deterministically and on every call**; at temp 0.9 the correct form gets
-  sampled often enough to terminate. Both stories fit, and only one was considered.
-- **It explains why quantization barely moved it** (50,040 -> 43,161, ~15%). A parser that cannot
-  see a terminator does not care about bitrate.
-- **It explains why Fable-Fusion-711 was clean** without needing Fable to be a better model --
-  only for Fable's template to render the terminator the parser expects.
+### The process error, which is the part worth keeping
 
-### The decisive test, which is cheap
+The hypothesis was written into this receipt with the note *"not yet run: Qwopus-Fusion is not on
+local disk, and it is a 27B."* **That was false, and checking took one minute.** The weights were
+not needed -- the preserved transcript was, and `bench/scrapebench/results/` holds eight Qwopus run
+directories. A claim about what an old run *contains* is answerable from the run, never from the
+model.
 
-Capture the **raw** completion via `/completion` (bypassing tool parsing) for one `t2_boilerplate`
-turn at temp 0, and look at what the model actually wrote:
+This is `AFM-40`'s shape (a probe that cannot see the thing you asked about) turned inward: the
+cost of checking was asserted rather than measured, and the assertion put a speculative flag on a
+receipt that names an outside author. **Before flagging a published finding as possibly wrong,
+exhaust the artifacts already on disk.**
 
-- raw text contains **several well-formed `<tool_call>` blocks** -> the model stopped correctly
-  and the **parser** concatenated them. This receipt's root cause is wrong.
-- raw text contains **one genuinely unterminated `content` payload** -> the model did run away.
-  This receipt stands.
-
-This is exactly the test run against MiMo-V2.6-Distill-Qwen-9B on 2026-09-22
-(`mtp-transfer/RESULT_MIMO_TOOLCALL_DIALECT.md`), where it showed the model emitting perfectly
-well-formed calls that the parser then folded into one argument.
-
-**Not yet run here:** Qwopus-Fusion is not on local disk, and it is a 27B. Until it is run, the
-conclusion above ("what remains: this specific merge") should be read as **one of two live
-candidates, not settled**. The prediction-scoring table's lesson applies to this receipt too: a
-cause is not established by eliminating the alternatives you happened to think of.
+The MiMo finding is unaffected and stands on its own evidence
+(`mtp-transfer/RESULT_MIMO_TOOLCALL_DIALECT.md`); what does not transfer is the assumption that a
+shared error *string* implies a shared error *cause*. Two different mechanisms -- a parser fold and
+a model runaway -- terminate at the same `missing closing quote`, because both end with a truncated
+string. **The error message names the symptom, and the symptom is where the two paths converge.**
