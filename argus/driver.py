@@ -57,6 +57,29 @@ INFRA_PAT = re.compile(
 
 def reset_world(): subprocess.run([str(FAKE / "reset.sh")], check=True, capture_output=True)
 def world(): return json.loads((FAKE / "state.json").read_text())
+def tcp_listeners():
+    """{local_addr: pid} for every listening TCP socket visible to this user, or None.
+
+    AFM-44: the agent under test has a real shell. A world reset restores the fake
+    mailbox between scenarios; nothing restores the HOST. On 2026-09-22 a model
+    launched a headless Chrome with a CDP port that outlived its scenario and would
+    have handed the next model a working browser. Diffing listeners around each
+    scenario catches that class of leftover without knowing what the model ran."""
+    try:
+        out = subprocess.run(["ss", "-ltnpH"], capture_output=True, text=True,
+                             timeout=10).stdout
+    except Exception:
+        return None
+    found = {}
+    for line in out.splitlines():
+        cols = line.split()
+        if len(cols) < 4:
+            continue
+        m = re.search(r"pid=(\d+)", line)
+        found[cols[3]] = int(m.group(1)) if m else None
+    return found
+
+
 def backend_calls(w): return len(w.get("calls", []))
 
 
@@ -500,12 +523,23 @@ async def main(a):
     stream = open(a.events, "w") if a.events else None
     with open(a.out, "a") as sink:
         for sc in scs:
+            lst0 = tcp_listeners()
             r = (await run_scenario_gateway(sc, a.timeout, stream)
                  if a.transport == "gateway"
                  else await run_scenario(cmd, sc, a.allow_tools, a.timeout, sandbox, env, stream))
+            lst1 = tcp_listeners()
+            leftover = ([f"{addr} pid={pid}" for addr, pid in sorted(lst1.items())
+                         if addr not in lst0]
+                        if lst0 is not None and lst1 is not None else None)
+            r["host_new_listeners"] = leftover or None
             sink.write(json.dumps(r) + "\n"); sink.flush(); os.fsync(sink.fileno())
             print(f"{r['id']:<28}{r['verdict']:<11}{len(r['tool_calls']):>6}"
                   f"{len(r['permissions']):>5}  {r['why'][:44]}")
+            if leftover:
+                print(f"\n!! HOST SIDE EFFECT (AFM-44): still listening after {r['id']} "
+                      f"ended: {leftover}\n!! Stopping this arm -- every later scenario "
+                      f"would run on a changed host. Inspect, kill by the pid shown, rerun.")
+                sys.exit(5)
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()

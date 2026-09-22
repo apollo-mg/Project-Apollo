@@ -83,6 +83,22 @@ arm () {  # $1=label  $2=fixture
     echo "   exit=$? rows=$(wc -l < "$OUT/$1.jsonl" 2>/dev/null || echo 0)"
 }
 
+# AFM-44 isolation. A working browser can never reach the fake mailbox -- only the
+# real web -- so no test agent may inherit one. Hermes reads BROWSER_CDP_URL from the
+# ENVIRONMENT (test agents inherit ours) and browser.cdp_url from config; either would
+# hand every model a live browser. Also refuse any fixture built before the deny rules.
+for v in BROWSER_CDP_URL AGENT_BROWSER_ENGINE BROWSER_USE_API_KEY; do
+    [ -n "${!v:-}" ] && { echo "ABORT: $v is set in the environment -- test agents would inherit a browser"; exit 1; }
+done
+for fx in g9mimo g9orn; do
+    H="$A/fixtures/$fx/agent-home"
+    grep -qE "^\s*(BROWSER_CDP_URL|AGENT_BROWSER_ENGINE|BROWSER_USE_API_KEY)=" "$H/.env" 2>/dev/null \
+        && { echo "ABORT: $fx/.env sets a browser endpoint or key"; exit 1; }
+    grep -qE "^\s*cdp_url:" "$H/config.yaml" && { echo "ABORT: $fx config sets browser.cdp_url"; exit 1; }
+    grep -q "AFM-44" "$H/config.yaml" || { echo "ABORT: $fx predates the AFM-44 browser deny rules"; exit 1; }
+done
+echo "isolation: no browser endpoint in env or fixtures; deny rules present"
+
 MIMO_S="--temp 0.6 --top-p 0.95 --top-k 20 --min-p 0.0 --presence-penalty 0.0 \
         --chat-template-file $A/templates/mimo_v26_distill_qwen9b_autoparser.jinja"
 ORN_S="--temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.0 --presence-penalty 1.5"
