@@ -30,10 +30,18 @@ hnorm, shared_head_norm}`. On that file the server logs `model has unused tensor
 blk.32.nextn.enorm.weight -- ignoring` and runs normally. So block 32 is the MTP block by
 convention, and the MiMo conversion has it declared but absent.
 
-A third-party quant of the same model (`holooo/...-Q5_K_S-GGUF`) shows the same 33-declared /
-32-shipped split, and additionally drops `recurrent_layers` entirely -- so the two conversions
-differ in other respects while agreeing on this one, which points at the shared conversion path
-or the source config rather than at either packager.
+**A third packager gets it right, which localises the fault.** Headers read over HTTP range
+requests, no weights downloaded:
+
+| packager | `block_count` | tensors | loads |
+|---|---:|---:|---|
+| `holooo` Q5_K_S | **33** | 427 | no |
+| `ggml-org` Q8_0 | **33** | 427 | no |
+| **`bartowski` Q5_K_M / Q8_0** | **32** | **427** | **yes** |
+
+Identical tensor counts across all three -- 427 -- so the weights are the same and only the
+declared `block_count` differs. `bartowski`'s build is loadable, which means the workaround below
+is not hypothetical: someone has already produced a working GGUF of this model.
 
 **Root cause.** The source declares an MTP block it does not ship, and the converter trusts the
 declaration. From `XiaomiMiMo/MiMo-V2.6-Distill-Qwen-9B` -- config and tensor index only, no
@@ -62,9 +70,10 @@ tensors are present in the checkpoint. For a model that declares the block and s
 for it, `block_count` ends up one higher than the blocks emitted, and `recurrent_layers`, sized
 from the same count, inherits the extra entry.
 
-**Workaround, untested.** `--no-nextn` sets `no_mtp`, which skips the increment, so converting
-this repo with that flag should yield a loadable GGUF at `block_count = 32`. I have not run it --
-that needs the ~18 GB of safetensors -- so it is a reading of the code, not a measurement.
+**Workaround.** `--no-nextn` sets `no_mtp`, which skips the increment and yields
+`block_count = 32`. I did not run the conversion myself -- that needs the ~18 GB of safetensors --
+but `bartowski`'s builds land on exactly 32 with the same 427 tensors, which is what that path
+produces.
 
 **Fix directions:** gate the increment on the `mtp.*` tensors actually being indexed, or warn
 when `mtp_num_hidden_layers > 0` and none are found. Either beats emitting a file whose own

@@ -78,6 +78,28 @@ Because upstream and fork agree, the earlier question of "which half is wrong" n
 defect is upstream of both loaders, in the conversion or in the source config, not in anyone's
 tensor-dims check.
 
+## A third packager gets it right: `bartowski` declares 32
+
+Probed 2026-09-22 with `modules/gguf_librarian.py` over HTTP range requests -- **~200 KB
+transferred against 16.4 GB of files**:
+
+| packager | `block_count` | tensors | loads |
+|---|---:|---:|---|
+| `holooo` Q5_K_S | 33 | 427 | no |
+| `ggml-org` Q8_0 | 33 | 427 | no |
+| **`bartowski` Q5_K_M and Q8_0** | **32** | **427** | **yes** |
+
+**Identical tensor counts.** The weights are the same in all three; only the declared count
+differs. So the defect is not in the model and not unavoidable -- it is one field, and one
+packager already avoids it.
+
+That also retires the "untested" caveat on the `--no-nextn` workaround derived from
+`conversion/qwen.py:298-305`: whatever `bartowski` did, the result is a loadable GGUF at
+`block_count = 32` with the same tensors, which is what skipping the increment produces.
+
+**The uncomfortable part for the upstream report:** the canonical build, from the project that
+also writes the loader, is among the broken ones, while a community packager's is fine.
+
 ## Which half is wrong is not determined here
 
 Two candidates, and this run cannot separate them without the upstream safetensors:
