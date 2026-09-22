@@ -164,3 +164,39 @@ If none did, the KV path was f16 in practice and the comparison to 10.3 % holds.
 
 `G1`, `G4` and `G5` are unaffected: floor/saturation and the between-model gap do not depend on KV
 codec.
+
+---
+
+## AMENDMENT 2 — 2026-09-22, before the full gate; the smoke run changed the harness
+
+A 3-item smoke per model was run to shake the harness down. It found three defects, all fixed
+before any gate row was collected. **Smoke rows are shakedown only and are excluded from every
+gate statistic.**
+
+**1. Fixtures rebuilt with `make_fixture.sh` (AFM-43).** The first fixtures were `cp -a` clones,
+so `SKILL.md` wrote to the source fixture's mailbox. A **correct** MiMo reply was scored
+`WRONG-INACTION`. Rebuilt properly; `pilotA`'s `SOUL.md` (sha `36c1f5a2`) copied in because
+`make_fixture.sh` does not write one and the reference arms use it. The fixtures now differ from
+`pilotA` **only** in model path, base URL and gateway port. `verify_families` is clean on all three
+worlds, and all share the reference's world anchor (`2026-09-24`).
+
+**2. Browser launches denied (AFM-44).** MiMo launched an unsandboxed headless Chrome with a CDP
+port from the terminal, and it outlived the scenario. The 9B fixtures now carry an `approvals.deny`
+list blocking browser launches. **This is a deviation from the `pilotA` reference config**, and it
+is behaviourally inert for any model that never launches a browser from the shell. The 27B arms
+never did (they called the `browser_exec` *tool* once in ~1,000 calls, which is unaffected), and
+neither did Ornith in the smoke. So it constrains exactly the behaviour that was contaminating the
+host, and nothing the reference arms exercised.
+
+**3. Per-scenario host tripwire.** The driver now records any TCP listener that outlives its
+scenario (`host_new_listeners`) and stops the arm if one appears. A row carrying this field is
+not a valid measurement of that model.
+
+### Expectation added from the smoke (not a prediction -- n=3, shakedown)
+
+MiMo reaches for the `browser_exec` **tool** on mailbox tasks (4 of 13 calls on `f1`), gets
+nothing, and usually but not always recovers into the google skill. That is honest, as-shipped
+behaviour, and it stays in: the tool is offered to every arm alike. Expect it to cost MiMo time
+and some items, and report the rate. A `NO-ATTEMPT` where the model spent its turns on the browser
+is a **tool-discovery** failure, not a judgement failure, and the receipt must separate the two
+rather than fold them into one pass rate.
