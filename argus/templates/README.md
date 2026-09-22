@@ -41,6 +41,9 @@ Measured on `bartowski/MiMo-V2.6-Distill-Qwen-9B-GGUF` Q8_0, RX 9070 XT, llama.c
 | embedded (specialized parser) | 0/10 | **6/10 corrupt** | **6/10 corrupt** |
 | this file (auto-parser) | 0/10 | **0/10** | **0/10** |
 
+Confirmed on 30 further seeds (5000-5029), both arms, identical seeds:
+**17/30 corrupt stock vs 0/30 fixed**, Fisher exact p = 6.2e-07.
+
 Use with `--chat-template-file argus/templates/mimo_v26_distill_qwen9b_autoparser.jinja`.
 
 ### Caveats

@@ -97,20 +97,33 @@ diverges from its own base model's on whitespace only**, and that whitespace is 
 The `<tool_call>`/`<function=`/`<parameter=` triple in `chat.cpp:1213` is not a tight enough
 fingerprint to notice.
 
-## Control: swapping in the base model's template does not fix it
+## Control: swapping in the base model's template does not fix it -- and my first reading of it was wrong
 
 Relaunched with `--chat-template-file` set to Qwen3.5-9B's official template, same 30 requests:
 
 | prompt | corrupt (MiMo template) | corrupt (Qwen3.5 template) |
 |---|---:|---:|
 | needs ONE tool call | 0 / 10 | 0 / 10 |
-| needs TWO tool calls | 6 / 10 | **3 / 10** |
-| needs TWO, `parallel_tool_calls=false` | 6 / 10 | **3 / 10** |
+| needs TWO tool calls | 6 / 10 | 3 / 10 |
+| needs TWO, `parallel_tool_calls=false` | 6 / 10 | 3 / 10 |
 
-Halved, not fixed. This is the control that locates the defect: the dialect the model **emits** is
-learned from SFT, so re-rendering the *history* in newline form only nudges it. The template swap
-is a few-shot effect, not a fix. A real fix has to make the parser accept optional whitespace
-around `<tool_call>`, `<function=...>`, `<parameter=...>` and `</parameter>`.
+**Corrections to the first write-up of this table, both found on 2026-09-22.**
+
+1. **"Halved" overstates it.** 6/10 vs 3/10 at n=10 is Fisher p = 0.37. Not a separated effect.
+2. **The explanation given was wrong.** It read this as the dialect being learned in SFT, so that
+   re-rendering *history* in the newline form could only nudge generation. That cannot be the
+   mechanism here: a purpose-built variant of MiMo's own template that renders the **newline**
+   dialect and changes nothing else scored **6/10, identical seed for seed**, because it produces a
+   **byte-identical prompt** for a single-turn request (sha256 `aa5413d8...`, 681 bytes). The
+   tool-call rendering macro never fires when there is no tool-call history to render, so on these
+   single-turn prompts it is a no-op by construction.
+
+   Whatever moved Qwen3.5's template from 6 to 3 is therefore one of its *other* differences (tool
+   listing, system preamble), not tool-call dialect -- if it moved anything at all, which at
+   n=10 is not established.
+
+The real control is the one-line change above, which holds the prompt bytes fixed and changes only
+the parser.
 
 ## Smoke test (the thing this started as) -- MiMo Q8 is otherwise healthy
 
@@ -213,6 +226,118 @@ This is `AFM-39`'s shape again -- a false model-failure is cheaper to produce th
 and it adds a new layer to the list: **the chat template's whitespace is part of the instrument.**
 Before any two models are compared on tool use, round-trip each one's rendered tool call against
 the parser it will be read by, and report the result. It costs one `/apply-template` call.
+
+## THE FIX: one line, byte-identical rendering, 6/10 -> 0/30
+
+**Found 2026-09-22 after Mark asked whether parallel tool calls could be turned off.** They can,
+and it does not help -- but chasing the dispatch logic produced an actual fix.
+
+The selector at `common/chat.cpp:1213` is a **substring test over the template SOURCE**. It claims
+any template in which all three of `<tool_call>`, `<function=` and `<parameter=` appear. So build
+one of those literals by concatenation and the fingerprint misses:
+
+```jinja
+{{- '<param' ~ 'eter=' ~ args_name ~ '>' ~ render_value(args_value) ~ '</parameter>' -}}
+```
+
+The template then falls through to the **generic auto-parser**, which derives the tool-call format
+by executing the template and then deliberately relaxes whitespace
+(`common/chat-diff-analyzer.cpp:884`):
+
+```cpp
+// always relax whitespace requirements on ending markers since they don't influence content
+format.section_end  = trim_whitespace(format.section_end);
+format.per_call_end = trim_whitespace(format.per_call_end);
+```
+
+**That is the whole bug in one sentence: llama.cpp's generic parser handles this template correctly,
+and its specialized parser does not.**
+
+### Rendering is byte-identical
+
+sha256 over a rendered prompt carrying a system turn, a user turn, an assistant turn with **two**
+tool calls, both tool responses, and a trailing user turn:
+
+| template | sha256 | bytes |
+|---|---|---:|
+| embedded (stock) | `6368f1eb4ed3c77ef550d2aa8f3908277fce461a476fe1c4bd1c817f6c9767c7` | 989 |
+| one-line change | `6368f1eb4ed3c77ef550d2aa8f3908277fce461a476fe1c4bd1c817f6c9767c7` | 989 |
+
+Identical. The model sees exactly the same bytes; only llama.cpp's choice of parser changes.
+
+### Result
+
+Same server binary, same weights, same vendor sampling, same seeds (2000-2009):
+
+| template | single call | two calls | two calls, `parallel_tool_calls=false` |
+|---|---:|---:|---:|
+| embedded (specialized parser) | 0/10 | **6/10 corrupt** | **6/10 corrupt** |
+| one-line change (auto-parser) | 0/10 | **0/10** | **0/10** |
+
+Baseline was re-measured on a freshly restarted server and reproduced 6/10 exactly, seed for seed
+(`[[server-uptime-is-a-variable]]`).
+
+**Confirmation on 30 fresh seeds (5000-5029), both arms, same seeds, separate server sessions:**
+
+| template | corrupt | rate | 95% CI (Clopper-Pearson) |
+|---|---:|---:|---|
+| embedded (specialized parser) | **17/30** | 56.7% | [37.4%, 74.5%] |
+| one-line change (auto-parser) | **0/30** | 0.0% | [0.0%, 11.6%] |
+
+Fisher exact **p = 6.2e-07**. The intervals do not overlap. This is not a seed artifact: the
+baseline's 17 corrupt seeds are spread across the range, and the fixed arm returned 30/30 clean
+with two tool calls each.
+
+**This settles attribution: the model is not at fault.** It emits well-formed calls in its own
+trained dialect; one parser reads them and another does not.
+
+Shipped as `argus/templates/mimo_v26_distill_qwen9b_autoparser.jinja`. It is a **workaround, not a
+fix** -- it exploits the selector being a substring test, so re-measure after any llama.cpp bump.
+Multi-turn under the auto-parser is unmeasured.
+
+## The checker had the same defect it was written to catch
+
+`argus/templates/check_dialect.py` round-trips a rendered tool call against the literals the parser
+requires. Its first version tested the dispatch fingerprint against the **rendered prompt** -- and
+reported `MISMATCH` on the fixed template, which parses perfectly.
+
+The reason is the finding itself: the fix changes the template **source** while leaving the
+rendered bytes identical, so a check that reads only the rendering cannot tell the broken
+configuration from the working one. It was measuring the dialect and calling it the parser.
+
+Fixed by reading the source from `/props` (`chat_template`), which is what `common/chat.cpp:1213`
+actually tests. Verified to discriminate in both directions rather than pass vacuously:
+
+| server config | fingerprint in SOURCE | exit |
+|---|---|---:|
+| stock embedded template | all three present | **2 (MISMATCH)** |
+| one-line change | `<parameter=` absent | **0 (PASS)** |
+
+`[[readiness-probes-lie]]`: a probe that cannot distinguish the two states it exists to separate
+returns a confident answer to a question it never asked.
+
+## Turning off parallel tool calls: real lever, wrong bug
+
+The switch exists in three places:
+
+- **request body** -- `parallel_tool_calls: false`, read at `tools/server/server-common.cpp:1295`,
+  defaulting to what the template advertises
+- **template capability detection** -- `common/jinja/caps.cpp:479,490` actually *executes* the
+  template with two tool calls and sets `supports_parallel_tool_calls = false` if the second is
+  not rendered
+- **`--chat-template-kwargs`** on the CLI, for template-level params
+
+It reaches the grammar (`chat.cpp:1300` -> `qwen3-coder.cpp:160`):
+
+```cpp
+auto calls = inputs.parallel_tool_calls ? tool_call_first + p.zero_or_more(tool_call) : tool_call_first;
+```
+
+**And it does not fix this: 6/10 corrupt either way.** The grammar constrains the *number* of tool
+calls, not the *content* of an argument. The run-on happens inside the permissive `until()` rule,
+so the parser never exits argument #1 -- "exactly one tool call" is then satisfied trivially by an
+output that is really two calls inside one argument string. The reported count drops from 2 to 1
+and the corruption is unchanged.
 
 ## Escalation with token budget, and a hard 500
 

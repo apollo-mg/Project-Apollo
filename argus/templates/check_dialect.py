@@ -47,6 +47,26 @@ REQUIRED = ["<tool_call>\n", "<function=probe_alpha>\n", "<parameter=query>\n",
 
 
 def main():
+    # GROUND TRUTH for the dispatch: llama.cpp tests the template SOURCE, not its
+    # rendered output. /props returns the source the server actually loaded, which
+    # is the only way to see it from outside. An earlier version of this script
+    # tested the fingerprint against the RENDERED prompt and reported a false
+    # MISMATCH on a template that was being parsed correctly -- the two differ
+    # exactly in the case this check exists to find. ([[readiness-probes-lie]])
+    try:
+        props = json.loads(urllib.request.urlopen(BASE + "/props", timeout=60).read())
+    except Exception as e:
+        print(f"could not reach {BASE}/props: {e}")
+        return 1
+    src = props.get("chat_template") or ""
+    if not src:
+        print("/props returned no chat_template; cannot determine the parser.")
+        return 1
+
+    # common/chat.cpp:1213 -- all three must appear in the SOURCE.
+    fingerprint = ("<tool_call>", "<function=", "<parameter=")
+    claimed = all(m in src for m in fingerprint)
+
     req = urllib.request.Request(
         BASE + "/apply-template",
         json.dumps({"messages": MSGS, "tools": TOOLS}).encode(),
@@ -57,18 +77,23 @@ def main():
         print(f"could not reach {BASE}/apply-template: {e}")
         return 1
 
+    print("dispatch fingerprint in template SOURCE (common/chat.cpp:1213):")
+    for m in fingerprint:
+        print(f"  {m!r:16s} {'present' if m in src else 'ABSENT'}")
+    print(f"  => specialized qwen3-coder parser claimed: {claimed}")
+
+    if not claimed:
+        print("\nPASS: the specialized parser is not selected for this template.")
+        print("  The generic auto-parser handles it, and that parser relaxes")
+        print("  whitespace on ending markers (chat-diff-analyzer.cpp:884).")
+        return 0
+
     i = prompt.find("<tool_call>")
     if i < 0:
-        print("PASS (not applicable): template does not render '<tool_call>';")
-        print("  the qwen3-coder parser is not selected for this template.")
+        print("\nPASS (not applicable): template renders no '<tool_call>'.")
         return 0
     rendered = prompt[i:]
-
-    # The dispatch in common/chat.cpp is a substring test over template SOURCE.
-    # We only see rendered output here, so this is a strong hint, not the test itself.
-    claimed = all(m in prompt for m in ("<tool_call>", "<function=", "<parameter="))
-
-    print(f"rendered tool-call region:\n  {rendered[:220]!r}\n")
+    print(f"\nrendered tool-call region:\n  {rendered[:200]!r}\n")
     missing = [m for m in REQUIRED if m not in rendered]
     for m in REQUIRED:
         print(f"  {m!r:32s} {'ok' if m in rendered else 'MISSING'}")
@@ -76,11 +101,8 @@ def main():
     if not missing:
         print("\nPASS: rendered form carries every literal the parser requires.")
         return 0
-    if not claimed:
-        print("\nPASS (not applicable): compact dialect, but the source fingerprint")
-        print("  is not all three literals, so a different parser handles it.")
-        return 0
-    print(f"\nMISMATCH: {len(missing)} of {len(REQUIRED)} required literals absent.")
+    print(f"\nMISMATCH: {len(missing)} of {len(REQUIRED)} required literals absent,")
+    print("  and the specialized parser IS selected.")
     print("Expect silent argument corruption on turns with 2+ tool calls.")
     print("See data/receipts/mtp-transfer/RESULT_MIMO_TOOLCALL_DIALECT.md (AFM-41).")
     return 2
