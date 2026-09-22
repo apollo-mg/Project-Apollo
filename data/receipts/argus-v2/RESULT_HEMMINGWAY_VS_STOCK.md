@@ -120,3 +120,52 @@ The run was launched autonomously; the session summary recorded the decision rul
 confidence-scored prediction table was written before it, so none is claimed here. The standing
 rule was: nothing smaller than a 10-point effect may be claimed. **This result claims an upper bound
 of about 6-7 points, not a difference, which is inside that rule.**
+
+---
+
+## The writing tune made it TERSER, not more verbose
+
+Asked by Mark after the judgement result. Every row logs `reply_chars` (the message to the user),
+`think_chars` (reasoning), tool calls, wall time and peak context. All 40 items (verbosity is not
+a pass/fail property, so gates are included), reps 1-4, `INFRA` excluded. Per-item geometric means
+over reps, paired, on log ratios -- lengths are skewed and the natural effect is multiplicative.
+
+| metric | stock median | Hemmingway median | ratio H/S | 95 % CI | p (t / Wilcoxon) | items longer in H |
+|---|---:|---:|---:|---|---|---:|
+| **reply to the user (chars)** | 306 | 197 | **0.77x** | [0.68x, 0.87x] | <0.001 / <0.001 | **8 / 40** |
+| **reasoning (chars)** | 1,527 | 1,177 | **0.84x** | [0.75x, 0.93x] | 0.001 / 0.001 | 10 / 40 |
+| tool calls | 4 | 4 | 0.97x | [0.92x, 1.03x] | 0.36 / 0.24 | 11 / 40 |
+| wall time (s) | 96 | 77 | 0.88x | [0.83x, 0.95x] | 0.001 / 0.001 | 12 / 40 |
+| peak context (tokens) | 16,064 | 15,630 | 0.97x | [0.95x, 0.99x] | 0.002 / <0.001 | 7 / 40 |
+
+**Hemmingway says 23 % less to the user and reasons 16 % less, does the same work (identical tool
+calls), and finishes 12 % sooner** -- with judgement unchanged. The name fits: the tune appears to
+train economy rather than elaboration.
+
+### Not an outcome-mix artifact
+
+Reply length depends on what the agent did (a clarifying question vs a completion report), so a
+shift in outcomes could fake a length effect. The verdict mix is nearly identical, but checked
+directly, comparing only item-reps where both arms reached the same verdict:
+
+| same verdict in both arms | items | ratio H/S | Wilcoxon p | H shorter on |
+|---|---:|---:|---:|---:|
+| CORRECT | 26 | 0.81x | 0.003 | 20 / 26 |
+| CLARIFIED | 9 | 0.84x | 0.16 | 7 / 9 |
+| WRONG-ACTION | 9 | **0.64x** | 0.004 | **9 / 9** |
+
+Terser in every outcome class. The `CLARIFIED` cell is only 9 items and does not reach
+significance alone, but points the same way.
+
+### What it cannot separate
+
+Both arms ran with the same `SOUL.md`, which instructs brevity (*"match the length of your reply to
+the weight of the ask ... never a replay of the process"*). So this shows Hemmingway is terser
+**under a brevity instruction**. It cannot say whether the model is intrinsically terser or better
+at following that instruction. A run without the SOUL prompt would separate the two.
+
+### Practical reading
+
+For an agentic deployment this is free: same decisions, ~12 % less wall time, ~20 % fewer output
+characters, and fewer reasoning tokens. Whether it is also a better *writer* is what it was built
+for, and this corpus does not measure that.
