@@ -1294,3 +1294,40 @@ like. Prefer a check that cannot pass when the layer is broken:
 Related: `AFM-26` (a long-lived server degrades silently), `AFM-30` (comparison classes),
 `[[readiness-probes-lie]]`, `[[thinking-off-in-harnesses]]`,
 `argus-v2/RESULT_PILOT_TWO_ARM.md` (the correction), `mtp-transfer/RESULT_MIMO_Q5KS_BROKEN.md`.
+
+---
+
+## AFM-40 — a teardown probe that cannot see the thing you asked for
+
+**2026-09-22.** A pilot's completion waiter killed both `llama-server` processes, confirmed all
+four GPUs at **0 MiB**, released the benchmark lock and exited 0. It reported *"shut down
+cleanly"*. The **node** stayed up for seven hours at ~218 W idle until Mark noticed it at 4am and
+powered it off by hand.
+
+**The automation did exactly what it was written to do.** Nothing was flaky, nothing raced. The
+spec was wrong -- "shut it down after it's complete" was implemented as "stop the servers" -- and
+underneath the wrong spec was a **wrong probe**.
+
+| probe | proves | cannot distinguish |
+|---|---|---|
+| `nvidia-smi` shows 0 MiB | the server processes are gone | node **on and idle** from node **off** |
+| `s194.sh status` -> `chassis : off` | the node is off | -- |
+
+`nvidia-smi` reading 0 MiB is perfectly true and completely useless for the question asked. It is
+`[[readiness-probes-lie]]` aimed at **teardown** rather than startup: pick a probe that **cannot
+succeed unless the thing happened**. A 0 MiB reading succeeds in both the state you wanted and
+the state you got.
+
+**Cost:** ~7 h at 218 W, and it recurs -- Mark: *"I say it multiple times a week."*
+
+**Fix:** `tools/pilot_teardown.sh [--poweroff]` is now the single implementation of "shut it
+down", and it verifies with `s194.sh status`, which cannot report `chassis : off` while the box
+is running. `tools/s194.sh off` already refused to power off a node with a live `llama-server`,
+so the guard was there; nothing called it.
+
+**The generalisable form:** when reporting an action complete, name the state you were asked to
+reach and check a probe that is **false in every other state**. "The servers are stopped" and
+"the node is off" are different claims, and only one of them was requested.
+
+Related: `AFM-39` (root-cause before attributing), `[[readiness-probes-lie]]`,
+`[[194-power-and-bmc]]`.
