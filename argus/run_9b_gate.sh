@@ -79,7 +79,7 @@ arm () {  # $1=label  $2=fixture
         --events     "$OUT/${1}_events.jsonl" \
         --timeout 900 --rep 1 \
         --agent-stderr "$OUT/${1}_agent.log" \
-        --agent-cmd "$PY" -m acp_adapter.entry
+        --agent-cmd "$A/sandboxed_agent.sh" "$PY" -m acp_adapter.entry
     echo "   exit=$? rows=$(wc -l < "$OUT/$1.jsonl" 2>/dev/null || echo 0)"
 }
 
@@ -97,7 +97,15 @@ for fx in g9mimo g9orn; do
     grep -qE "^\s*cdp_url:" "$H/config.yaml" && { echo "ABORT: $fx config sets browser.cdp_url"; exit 1; }
     grep -q "AFM-44" "$H/config.yaml" || { echo "ABORT: $fx predates the AFM-44 browser deny rules"; exit 1; }
 done
-echo "isolation: no browser endpoint in env or fixtures; deny rules present"
+# AFM-45: the agent runs inside bubblewrap (sandboxed_agent.sh) -- no home directory, no
+# harness, no answer key, no raw seed -- and every fixture must reset to a STRIPPED state.
+command -v bwrap >/dev/null || { echo "ABORT: bwrap not installed -- the agent would run unsandboxed"; exit 1; }
+[ -x "$A/sandboxed_agent.sh" ] || { echo "ABORT: $A/sandboxed_agent.sh missing"; exit 1; }
+for fx in g9mimo g9orn; do
+    grep -q "AFM-45" "$A/fixtures/$fx/fake-google/reset.sh" \
+        || { echo "ABORT: $fx reset.sh copies the seed verbatim (answer-key notes leak into state.json)"; exit 1; }
+done
+echo "isolation: no browser endpoint; deny rules present; agent sandboxed (bwrap); state stripped"
 
 MIMO_S="--temp 0.6 --top-p 0.95 --top-k 20 --min-p 0.0 --presence-penalty 0.0 \
         --chat-template-file $A/templates/mimo_v26_distill_qwen9b_autoparser.jinja"
