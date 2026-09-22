@@ -169,3 +169,27 @@ at following that instruction. A run without the SOUL prompt would separate the 
 For an agentic deployment this is free: same decisions, ~12 % less wall time, ~20 % fewer output
 characters, and fewer reasoning tokens. Whether it is also a better *writer* is what it was built
 for, and this corpus does not measure that.
+
+---
+
+## Addendum: this run was unsandboxed, and that does not change the result
+
+Found after the fact (`FAILURE_MODES.md` AFM-45): the agent could read the whole host, and the
+fake world's raw state carried the corpus's own ambiguity hints. In this run:
+
+| arm | rows | left the fake world | read the raw seed/state | on the Dave (referent) items |
+|---|---:|---:|---:|---:|
+| stock | 160 | 2 | 3 | 0 |
+| Hemmingway | 160 | 2 | 1 | 0 |
+
+About 3 % of rows per arm, almost all the `f2-lookup` rent item. **Excluding every such row:**
+
+| rule | diff (H - S) | 95 % CI | between-arm | within stock | within Hemmingway |
+|---|---:|---|---:|---:|---:|
+| noise-floor | +0.3 pp | [-4.8, +5.4] | 10.0 % | 11.5 % | 10.1 % |
+| judge | +0.8 pp | [-4.4, +6.0] | 12.2 % | 13.9 % | 13.6 % |
+
+The conclusion is unchanged and slightly tighter. The raw files in this directory have been
+redacted: paths and filenames of personal files the agents opened were replaced with
+placeholders. Every field the analyses read is untouched, and both analyses above reproduce
+identically from the redacted files.

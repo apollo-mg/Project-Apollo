@@ -1524,3 +1524,57 @@ to `skill_view` -> `terminal`. Only a model with strong web-agent reflexes finds
 (`acp_adapter/session.py:637`) and never reads `platform_toolsets`, so the browser toolset cannot
 be removed from `config.yaml`. Closing it means patching the agent under test, gating browser
 launches in `approval.py`, or running the agent somewhere that is not the user's desktop.
+
+---
+
+## AFM-45 — the agent under test reached outside the fake world, and the fake world leaked its own answers
+
+**2026-09-22.** Generalises AFM-44. Reviewing raw rows after MiMo's browser detour showed that
+the problem was never MiMo-specific, and it had existed for the whole argus campaign.
+
+**The agent's terminal and file tools run as the user, with the user's full read access.** When
+the fake mailbox did not answer quickly (almost always the `f2-lookup` rent item), models under
+test went looking on the real disk:
+
+- grepped a **real local mail archive** in the home directory (`grep -rl` / `ls`: filenames and
+  directory listings entered the context, no message bodies)
+- ran recursive searches across the whole home directory
+- in one earlier pilot, **opened personal documents** from the home directory
+- attempted to **send mail** with `mail`. Nothing could leave the machine (no MTA, no SMTP
+  configuration, nothing listening on 25/587), so it died in `~/dead.letter`
+
+No reply in any committed row contains personal content. The rows did contain the *paths and
+filenames* of what was opened, in files committed to this public repo. **Nothing had been pushed.**
+The four affected files were redacted, and the 59 unpushed commits carrying them were rebuilt with
+identical messages, authors, dates and parents. Every published analysis reproduces identically
+from the redacted files. A backup ref of the pre-scrub history was kept locally.
+
+**Second problem, and an instrument-validity one: the answer key was readable.** `reset.sh`
+copied `seed.json` into `state.json` verbatim, and the seed still carried authoring notes such as
+*"AMBIGUITY: two Daves on purpose"*. The mail CLI strips those keys from its output, and its
+docstring says the data "was cleaned", but it wasn't. Any agent that read `state.json` or
+`seed.json` directly got the referent items' answer for free. Agents did read those files (four
+rows in the Hemmingway run, none on the Dave items).
+
+### Fix: `argus/sandboxed_agent.sh`
+
+`bwrap` around the agent: read-only root, empty `/home` and `/mnt`, and bound back in only its
+code, its Python, its fixture's `agent-home` and `fake-google`, and its scenario sandbox. The raw
+seed is hidden, the pid namespace is unshared (backgrounded processes die with the agent), and
+session sockets are removed. Verified 14/14 from inside, including that the host still sees the
+sandboxed CLI's calls. `reset.sh` now writes a stripped state. The runner refuses to start without
+either.
+
+### The lessons
+
+1. **The fake world was sandboxed; the host was not.** Resetting the world between scenarios
+   says nothing about what the agent can reach. Any harness that gives a model a shell must
+   decide what that shell can see, deliberately and not by default.
+2. **A model that cannot find the answer through the intended channel goes looking elsewhere,
+   and "elsewhere" is the operator's life.** Every one of these reads was a model trying to
+   complete the task.
+3. **Stripping at output is not stripping.** If the notes exist in a file the agent can read,
+   the filter on the API is decoration.
+4. **A check that runs against a missing file passes.** The scrub's own verification initially
+   reported success because a shell expansion delivered four paths as one nonexistent path. The
+   fix was a check that *fails* when the file is absent. (See `[[readiness-probes-lie]]`.)
