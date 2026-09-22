@@ -15,9 +15,9 @@ exec timeout 14400 "$PY" -u driver.py \
     --hermes-home "$A/fixtures/$FX/agent-home" \
     --fake-root  "$A/fixtures/$FX/fake-google" \
     --sandbox    "$A/runs/sandbox${L}" \
-    --scenarios  "$A/families_v3.json" \
-    --out        "$A/runs/pilot/${L}.jsonl" \
+    --scenarios  "$A/families_v4.json" \
+    --out        "$A/runs/pilot4/${L}.jsonl" \
     --events     "" \
     --timeout    900 \
-    --agent-stderr "$A/runs/pilot/${L}_agent.log" \
+    --agent-stderr "$A/runs/pilot4/${L}_agent.log" \
     --agent-cmd "$PY" -m acp_adapter.entry

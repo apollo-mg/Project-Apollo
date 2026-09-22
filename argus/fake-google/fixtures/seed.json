@@ -2,7 +2,8 @@
   "_note": "Seeded world state for Argus. Deliberately contains ambiguity and false premises \u2014 see DESIGN_v0.md 'the user is allowed to be wrong'.",
   "profile": {
     "email": "mark@example.test",
-    "name": "Mark"
+    "name": "Mark",
+    "timezone": "UTC"
   },
   "contacts": [
     {
@@ -132,5 +133,6 @@
     "anchor": "2026-08-27",
     "to": "2026-09-24",
     "days": 28
-  }
+  },
+  "_timezone_note": "Fixture-local timezone. Seed times are authored to read as LOCAL wall clock and stored with a Z suffix -- 'Thursday sync' 14:00 is 2pm, the dentist 16:30 is 4:30pm, the 1:1 10:00 is 10am. Read as EDT instead they become 10:00, 12:30 and 06:00, and a 6am 1:1 is not what anyone authored. So the fixture's local zone IS UTC. The DRIVER exports TZ from this field when spawning the agent: without it the agent takes the timezone from the host, which made the same corpus score differently by machine and across DST. Observed 2026-09-21: an arm reasoned 'the Thursday sync at 14:00Z is 10:00 EDT -- morning' and was scored WRONG by a clause evaluating in UTC. Its reasoning was correct; the input was uncontrolled."
 }
