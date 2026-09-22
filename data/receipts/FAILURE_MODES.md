@@ -1384,4 +1384,13 @@ indexes our receipts and not upstream trackers. **For anything touching a vendor
 the upstream issue tracker as part of the precheck.** What is ours here is the matched-pair control
 and the benchmarking consequence.
 
+**A trap this mechanism sets for the investigator.** The truncated-argument 500 it produces
+(`missing closing quote`) is byte-identical to the one a genuine model runaway produces, because
+both end in an unterminated JSON string. On 2026-09-22 that resemblance led to flagging
+`scrapebench/QWOPUS_RUNAWAY_ROOT.md` -- a published finding naming an outside author -- as possibly
+mis-rooted. It was not: its preserved transcript shows zero folded markers and 66.1% of the argument
+being one token repeated 4,754 times. **The discriminator is inside the argument, not in the error
+message.** And the transcript that settled it had been on disk since August, while the flag was
+written under the assertion that testing required weights we did not have.
+
 Measured in `mtp-transfer/RESULT_MIMO_TOOLCALL_DIALECT.md`.
