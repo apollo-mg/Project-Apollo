@@ -108,3 +108,59 @@ in `tools/discordance.py`.
 It needs this gate first: a model that floors or saturates cannot show a class shift either. Run it
 as `MIMO-mtp-a/b` against `MIMO-a/b`, same sampling, head on/off the only difference, and report
 the **verdict transition matrix**, not the aggregate.
+
+---
+
+## AMENDMENT 2026-09-22, before any valid arm — three corrections found on first launch
+
+**The first launch produced 40/40 `INFRA` and was aborted.** All three fixes below were made
+before any scored row existed; no data is discarded because none was valid.
+
+**1. Context: `-c 8192` -> `-c 65536`.** Hermes Agent hard-refuses any model whose server reports
+below **64,000** tokens: *"has a context window of 8,192 tokens, which is below the minimum 64,000
+required by Hermes Agent."* This is the same defect that produced 3/3 INFRA earlier in the campaign
+at `-c 32768`, and the `.194` reference arms already run `-c 65536`. **It should have been read off
+`start_arm.sh` rather than rediscovered.**
+
+**2. Engine and KV: upstream + f16 -> buun `38ada0e1b` + VBR.** f16 KV at 64k costs ~8 GiB on top
+of 8.9 GiB of weights and does not fit 16 GB; it is not achievable on this card at any context
+Hermes will accept. Pinning `q8_0` was the first fix and is unconditionally lossy. **Mark proposed
+VBR, which is better on both axes:**
+
+| KV | VRAM used | free | quality entry point |
+|---|---:|---:|---|
+| `q8_0` (first fix) | 12.13 GiB | 3.79 | always ~8.5 bpv |
+| **`vbr --vbr-floor t4`** | **10.79 GiB** | **5.14** | **f16, degrading only when the budget binds** |
+
+Log confirms: *"entry tier f16, floor 4.125 bits/value, price-ordered decode-time degrades"*,
+KV budget 6747 MiB auto. `--vbr-floor t4` is explicit because a bare `-ctk vbr` defaults to the
+**1.25 bpv bottom rung** (`[[buun-default-kv-is-vbr]]`).
+
+buun `38ada0e1b` is the commit the original prereg specified, contains the fused-MMA VBR latch fix
+`a334fc01e` (`[[vbr-fused-mma-latch-9070]]`), and **matches the engine `.194` already runs** --
+`start_arm.sh` uses a buun build, so this is closer to the reference than upstream would have been.
+
+**3. `--no-cache-prompt` added.** VBR with a warm prefix cache yields two strictly alternating
+outputs from one seed (`[[prompt-cache-breaks-determinism]]`). **This experiment's whole product is
+a noise floor**, so that artifact must not be counted inside it. Pinned at the server rather than
+trusted to the client.
+
+**4. Timezone pinned to UTC in both fixtures.** They were copied from `amd`, which predates the
+pin; the driver warned *"fixture declares none; the agent will use the host zone"*. The host is
+`America/New_York` while expectations are computed in UTC, which silently moves every date boundary
+in the corpus.
+
+### What the KV change costs
+
+`G2` and `G3` compare these noise floors against the 27B's **10.3 %**, which was measured at
+**f16** KV. These arms run VBR. Two effects push in opposite directions -- lower temperature should
+reduce noise, lossy KV under pressure should raise it -- so **a G2/G3 result must not be read as a
+pure temperature effect.**
+
+Mitigating: the budget (6747 MiB) only binds near full context occupancy, and these scenarios run
+a few thousand tokens, so VBR should sit at its f16 entry tier throughout. **This is checkable, not
+assumed** -- the server log records degrade events, and the receipt must report whether any fired.
+If none did, the KV path was f16 in practice and the comparison to 10.3 % holds.
+
+`G1`, `G4` and `G5` are unaffected: floor/saturation and the between-model gap do not depend on KV
+codec.

@@ -8,7 +8,7 @@ set -u
 A=/mnt/TG_2TB/Projects/Apollo/argus
 R=/mnt/TG_2TB/Projects/Apollo
 M=/mnt/TG_2TB/AI/Models/9b-panel
-SERVER=/mnt/TG_2TB/AI/llama_upstream/build_rocm/bin/llama-server
+SERVER=/mnt/TG_2TB/Projects/Apollo/engines/buun-llama-cpp/build_rocm/bin/llama-server
 PY=/mnt/TG_2TB/AI/hermes-go/.venv/bin/python
 OUT=$A/runs/gate9b
 mkdir -p "$OUT"
@@ -17,7 +17,17 @@ export LD_LIBRARY_PATH="$(dirname "$SERVER"):${LD_LIBRARY_PATH:-}"
 start_server () {  # $1=model $2=extra-flags $3=tag
     pkill -x llama-server 2>/dev/null; sleep 8
     # shellcheck disable=SC2086
-    setsid nohup "$SERVER" -m "$1" -ngl 99 -c 8192 -fa on -ctk f16 -ctv f16 -np 1 \
+    # -c 65536: Hermes Agent hard-refuses any model reporting < 64,000 ctx.
+    # VBR KV: f16 at 64k needs ~8 GiB on top of 8.9 GiB of weights and will not fit
+    #   16 GB. VBR enters at f16 and degrades only when the budget binds, so it is
+    #   strictly better here than pinning q8_0 (10.79 GiB used vs 12.13). Floor t4,
+    #   because a bare "-ctk vbr" defaults to the 1.25 bpv bottom rung.
+    # --no-cache-prompt: VBR + a warm prefix cache is a known nondeterminism source
+    #   (two alternating outputs from one seed). This measurement IS a noise floor,
+    #   so that artifact must not be inside it. Pinned at the server, not trusted
+    #   to the client.
+    setsid nohup "$SERVER" -m "$1" -ngl 99 -c 65536 -fa on -np 1 \
+        -ctk vbr -ctv vbr --vbr-floor t4 --no-cache-prompt \
         --kv-unified -b 2048 -ub 512 --jinja $2 \
         --host 127.0.0.1 --port 8090 > "$OUT/srv_$3.log" 2>&1 < /dev/null &
     echo $! > "$OUT/srv_$3.pid"
@@ -26,11 +36,15 @@ start_server () {  # $1=model $2=extra-flags $3=tag
         sleep 2
     done
     # /props is what you GOT; the flags are what you asked for. AFM-42.
-    echo "--- $3 effective sampling (/props) ---"
+    echo "--- $3 effective sampling + ctx (/props) ---"
     curl -s -m 20 http://127.0.0.1:8090/props | python3 -c "
 import json,sys
 p=json.load(sys.stdin)['default_generation_settings']['params']
-print('   ', {k:round(p[k],4) for k in ('temperature','top_k','top_p','min_p','presence_penalty')})"
+d=json.load(sys.stdin) if False else None" 2>/dev/null
+    curl -s -m 20 http://127.0.0.1:8090/props | python3 -c "
+import json,sys
+d=json.load(sys.stdin)['default_generation_settings']; p=d['params']
+print('   n_ctx', d.get('n_ctx'), {k:round(p[k],4) for k in ('temperature','top_k','top_p','min_p','presence_penalty')})"
 }
 
 arm () {  # $1=label $2=fixture
