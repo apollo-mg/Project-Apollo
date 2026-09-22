@@ -228,3 +228,34 @@ committed to reporting. So:
 - **separately** -- the `NO-ATTEMPT` and hard-stop rates per model, as tool-discovery failures
 
 Any `INFRA` row that remains is a genuine environment failure and must be explained individually.
+
+---
+
+## AMENDMENT 4 — 2026-09-22 19:03, before any gate row; the agent now runs sandboxed
+
+The paused run showed models reaching **outside the fake world**: MiMo listing the home
+directory and reading browser-harness files, and, on review of earlier raw data, 27B arms
+grepping a real local mail archive, opening personal documents, attempting `mail`, and reading
+the fake world's raw seed file. Two changes, both declared deviations from the `pilotA`
+reference configuration:
+
+**1. The agent runs inside bubblewrap** (`argus/sandboxed_agent.sh`). Read-only root; empty
+`/home` and `/mnt`; bound back in only hermes-go, the Python its venv links through, the
+fixture's `agent-home` and `fake-google`, and the scenario sandbox; `seed.json` hidden; pid
+namespace unshared, so anything the agent backgrounds dies with it. Verified 14/14 from inside.
+
+**2. `reset.sh` writes a stripped state.** The seed still carried authoring notes (*"AMBIGUITY:
+two Daves on purpose"*) that the CLI strips from its output. A verbatim copy put them in
+`state.json`, where any agent reading the file directly got the answer to the referent items.
+
+### What this does to comparability
+
+Neither change affects a model that uses the mail CLI and nothing else. Both change the world
+for a model that explores the filesystem, and the sandbox is a real difference from every
+earlier argus run, the Hemmingway comparison included, which ran unsandboxed with the leaky
+state. **So these gate arms are comparable with each other, and not with pre-sandbox runs on any
+item where an agent went exploring.** The receipt must count how often each model hit the sandbox
+walls (denied paths, blocked launches) as part of the tool-discovery rate from Amendment 2.
+
+Sandboxed smoke (shakedown, excluded): Ornith `f1` CORRECT through the CLI from inside the
+sandbox; MiMo `f4` CORRECT; no listener left behind; port 9222 closed throughout.
