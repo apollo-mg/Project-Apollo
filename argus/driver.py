@@ -152,6 +152,7 @@ class ArgusClient(acp.Client):
 
 
 _AGENT_STDERR = None   # set from --agent-stderr; None keeps the old DEVNULL behaviour
+_REP = None            # set from --rep; stamped on every row so reps stay attributable
 
 # Which audit field identifies the OBJECT an action touched. The backend records these
 # already (google_api.py:130-175); the driver used to discard them, keeping only the
@@ -333,6 +334,7 @@ async def run_scenario(cmd, sc, allow, timeout, sandbox, env, stream=None):
     verdict, why = judge(sc, actions, client, reply, err, ncalls, failed)
     client._emit("argus", "verdict", f"{sc['id']} {verdict}")
     return dict(id=sc["id"], verdict=verdict, why=why, actions=actions, backend_calls=ncalls,
+                rep=_REP,
                 tool_calls=[{"kind": e.get("kind"), "title": e.get("title"),
                              "locations": [l.get("path") for l in (e.get("locations") or [])]}
                             for e in client.events if e.get("session_update") == "tool_call"],
@@ -380,6 +382,7 @@ async def run_scenario_gateway(sc, timeout, stream=None):
     verdict, why = judge(sc, actions, client, reply, err, ncalls, failed)
     client._emit("argus", "verdict", f"{sc['id']} {verdict}")
     return dict(id=sc["id"], verdict=verdict, why=why, actions=actions, backend_calls=ncalls,
+                rep=_REP,
                 tool_calls=[{"kind": t.get("name"), "title": t.get("preview"),
                              "args": t.get("args"), "locations": []} for t in tools],
                 permissions=[], reply=reply[:600], secs=round(time.time()-t0, 1),
@@ -485,8 +488,9 @@ async def main(a):
             print("timezone: WARNING fixture declares none; the agent will use the host zone")
     except Exception as e:
         print(f"timezone: could not read fixture profile ({e}); agent uses the host zone")
-    global _AGENT_STDERR
+    global _AGENT_STDERR, _REP
     _AGENT_STDERR = a.agent_stderr
+    _REP = a.rep
     cmd = a.agent_cmd or [sys.executable, str(ROOT / "stub_agent_acp.py"),
                           "--personality", a.stub]
     print(f"transport: {a.transport}" + (f"  {a.base}" if a.transport == "gateway"
@@ -516,6 +520,11 @@ if __name__ == "__main__":
     ap.add_argument("--agent-cmd", nargs=argparse.REMAINDER,
                     help="run a REAL agent instead, e.g. --agent-cmd /path/python -m acp_adapter.entry")
     ap.add_argument("--hermes-home", default=None)
+    ap.add_argument("--rep", type=int, default=None,
+                    help="rep index, written into every row. The noise floor is 10.3%% at one "
+                         "rep (RESULT_NOISE_FLOOR), so a single pass cannot distinguish two "
+                         "models; comparisons need per-item pass RATES over several reps, and "
+                         "those rows must be attributable to a rep.")
     ap.add_argument("--agent-stderr", default=None,
                     help="append the ACP agent's stderr here; without it the child's stderr "
                          "is discarded and agent-side failures read as 'Internal error'")
