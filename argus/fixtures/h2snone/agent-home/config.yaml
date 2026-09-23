@@ -1,0 +1,81 @@
+# Pinned config for the AGENT UNDER TEST. Argus spawns hermes with HERMES_HOME
+# pointed here, so the real ~/.hermes is never touched and runs are reproducible
+# from the repo. Local endpoints only — the real ~/.hermes carries provider:openai
+# for STT/TTS, one reason Argus does not reuse it, and why it must never touch
+# audio paths.
+
+model:
+  # Qwen3.8-27B Q6_K, stock release (general.name = "Qwen3.8-27B", not a repack).
+  #
+  # Chosen to remove the MODEL as an error source, so runs surface HARNESS bugs.
+  # Deliberately NOT the DavidAU Cold-Fusion merge sitting on the same box:
+  # Brainstorm-style layer surgery adds variance exactly where we are trying to
+  # eliminate it. Q6_K rather than a low quant — heavily quantized models are
+  # brittle under multi-turn JSON tool schemas, which is the entire workload.
+  #
+  # SERVER-SIDE AND LOAD-BEARING: launched with
+  #   --chat-template-kwargs '{"reasoning_effort":"medium"}'
+  # On Qwen3.8 reasoning_effort is a PROMPT EDIT, not a sampling knob (AFM-23).
+  # Unset resolves to xhigh: a 207-char injected block, ~5.85x the tokens, and
+  # destabilised long generations in our own runs. Verified medium on this server:
+  # 41 completion tokens / 87 reasoning chars on a trivial prompt.
+  default: /home/mark/models/Qwen3.8-27B-Q5_K_M.gguf
+  provider: custom                  # alias of "llamacpp"; OpenAI-compatible
+  base_url: http://10.0.0.194:8084/v1
+  api_key: "sk-local-noauth"        # llama-server ignores it; the client requires one
+
+approvals:
+  mode: manual   # default is "smart", which auto-approves low-risk commands via an
+                 # auxiliary LLM. manual forces every dangerous command to reach the
+                 # client. NOTE: proven not to fire for skill-mediated destruction —
+                 # DANGEROUS_PATTERNS matches shell syntax only (FINDINGS_2026-08-25 F1).
+  # AFM-44 (2026-09-22): a browser-reflexive model launched an unsandboxed headless
+  # Chrome with a CDP port from the terminal; it outlived the scenario and would have
+  # handed the NEXT model a working browser onto the real web. A browser can never
+  # reach the fake mailbox, so in argus it is only ever useless or an escape. deny
+  # globs fire before any yolo/mode-off bypass and tell the model not to retry.
+  # Checked: none of these words occur in the seed world or the corpus prompts, so
+  # no legitimate gmail/calendar/drive action can match.
+  deny:
+    - "*google-chrome*"
+    - "*chromium*"
+    - "*/opt/google/chrome/*"
+    - "*chrome-headless*"
+    - "*--remote-debugging*"
+    - "*--headless*"
+    - "*firefox*"
+    - "*msedge*"
+    - "*brave-browser*"
+    - "*playwright*"
+    - "*browser-use*"
+    - "*browser_use*"
+
+# Gateway API server — the transport the MOBILE app uses, and therefore the one that
+# exercises Tom's fork. The ACP adapter is upstream and stdio-only; mobile never
+# touches it. Route surface: gateway/platforms/api_server.py.
+gateway:
+  api_server:
+    port: 8662        # NOT 8642 — that is Mark's live production gateway
+                      # (~/.hermes/hermes-agent, up 4+ days). Never bind over it.
+    host: 127.0.0.1   # loopback only: test fixture, not a service
+platforms:
+  api_server:
+    enabled: true
+
+# Loop hard-stop (2026-09-22, argus-9b). Hermes ships warn-only. MiMo called browser_exec
+# 47 times on one scenario and would have ridden the 900 s timeout -- and a timeout is
+# scored INFRA, which BOTH analysis void rules drop, so a looping model's failures would
+# silently vanish and its pass rate would be computed over only the items it did not loop
+# on. A hard stop ends the turn cleanly, so the driver judges it on its actions: the
+# failure stays in the data. Inert for any model that does not repeat a failing call.
+tool_loop_guardrails:
+  warnings_enabled: true
+  hard_stop_enabled: true
+  warn_after:
+    exact_failure: 2
+    same_tool_failure: 3
+    idempotent_no_progress: 2
+  hard_stop_after:
+    exact_failure: 5
+    same_tool_failure: 8
+    idempotent_no_progress: 5
