@@ -104,3 +104,17 @@ distinguished from zero with 40 items.
 
 One model and quant, one card, one harness (Hermes via ACP), one corpus. `n-max 2` only. Card
 sampling at temp 0.6; greedy agents may differ.
+
+## Amendment 1 — 2026-09-23, during the smoke, before the full run
+
+Mark: *"Make sure timeouts are still noted somewhere as such, in case it requires root cause
+analysis. Not always the model's fault."* So:
+- Timeouts get their own label, **`TIMEOUT-FAIL`**. They count as failures in the primary analysis
+  but are never merged into ordinary failures. Raw rows are never rewritten; the recode happens only
+  in the analysis.
+- The analysis emits **every timeout as a record** (arm, item, seconds, driver reason, backend
+  calls, tool calls, peak context) for root-cause work.
+- A **sensitivity analysis treats timeouts as voids.** If the primary and the sensitivity verdicts
+  differ, the result is reported as timeout-dependent, and the timeouts are root-caused before any
+  deployment claim.
+- Scorer: `data/receipts/mtp-agentic/analyze_mtp_agentic.py`, committed before the full run.
