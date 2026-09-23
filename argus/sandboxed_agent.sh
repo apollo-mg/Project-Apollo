@@ -31,6 +31,14 @@ PYHOME=$(dirname "$(dirname "$PYHOME")")                            # .../uv/pyt
 case "$(readlink -f "$HG/.venv/bin/python")" in "$PYHOME"/*) ;; *)
     echo "sandboxed_agent: venv python resolves outside $PYHOME" >&2; exit 91;; esac
 [ -d "$FX/fake-google" ] || { echo "sandboxed_agent: no fake-google under $FX" >&2; exit 90; }
+# Strip every credential-named variable (2026-09-22). The driver passes the caller's whole
+# environment, which carried a Claude Code session token, and the network is shared. The
+# agent has no legitimate use for any of them: its model key is a dummy in config.yaml and
+# Hermes reads agent-home/.env from the file, not from the process environment.
+SECRETS=()
+for v in $(compgen -e); do
+    case "${v^^}" in *TOKEN*|*SECRET*|*PASSW*|*API_KEY*|*_KEY|*CREDENTIAL*|*AUTH*) SECRETS+=(--unsetenv "$v");; esac
+done
 exec bwrap \
     --ro-bind / / \
     --dev /dev --proc /proc \
@@ -45,6 +53,6 @@ exec bwrap \
     --bind "$SB" "$SB" \
     --unshare-pid --unshare-ipc --die-with-parent \
     --unsetenv DISPLAY --unsetenv WAYLAND_DISPLAY \
-    --unsetenv DBUS_SESSION_BUS_ADDRESS --unsetenv SSH_AUTH_SOCK \
+    --unsetenv DBUS_SESSION_BUS_ADDRESS --unsetenv SSH_AUTH_SOCK "${SECRETS[@]}" \
     --chdir "$SB" \
     -- "$@"
