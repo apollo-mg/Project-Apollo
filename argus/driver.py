@@ -528,10 +528,17 @@ async def main(a):
                  if a.transport == "gateway"
                  else await run_scenario(cmd, sc, a.allow_tools, a.timeout, sandbox, env, stream))
             lst1 = tcp_listeners()
-            leftover = ([f"{addr} pid={pid}" for addr, pid in sorted(lst1.items())
-                         if addr not in lst0]
-                        if lst0 is not None and lst1 is not None else None)
+            new_l = ({addr: pid for addr, pid in lst1.items() if addr not in lst0}
+                     if lst0 is not None and lst1 is not None else {})
+            # A model SERVER started by another runner (e.g. a concurrent gate switching models)
+            # is harness infrastructure, not a leftover of this agent. Record it, don't stop on it.
+            def _comm(pid):
+                try: return open(f"/proc/{pid}/comm").read().strip()
+                except Exception: return "?"
+            infra = {a: p for a, p in new_l.items() if _comm(p) == "llama-server"}
+            leftover = [f"{a} pid={p} comm={_comm(p)}" for a, p in sorted(new_l.items()) if a not in infra]
             r["host_new_listeners"] = leftover or None
+            r["host_new_listeners_infra"] = [f"{a} pid={p}" for a, p in sorted(infra.items())] or None
             sink.write(json.dumps(r) + "\n"); sink.flush(); os.fsync(sink.fileno())
             print(f"{r['id']:<28}{r['verdict']:<11}{len(r['tool_calls']):>6}"
                   f"{len(r['permissions']):>5}  {r['why'][:44]}")
