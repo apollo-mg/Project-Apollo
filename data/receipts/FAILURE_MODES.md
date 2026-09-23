@@ -1578,3 +1578,27 @@ either.
 4. **A check that runs against a missing file passes.** The scrub's own verification initially
    reported success because a shell expansion delivered four paths as one nonexistent path. The
    fix was a check that *fails* when the file is absent. (See `[[readiness-probes-lie]]`.)
+
+## AFM-46 — a "never binds" control degraded to the floor, and the first explanation from source was wrong
+
+**2026-09-23.** `kv-depth/RESULT_KV_DEPTH_MATCHED_ALLOCATION.md`. A pre-registered control arm (`C1`,
+`--vbr-vram 2048M`, "never binds") logged 655 degrades and scored **mean KLD 0.133, 60x worse than static
+q8_0**. The 544M and 768M arms were identical from chunk 2 on; the 288M arm was untouched.
+
+**What the data showed:** chunk 1 was healthy in every arm (KLD <= 0.0003). From chunk 2 on, the first
+degrade fired **at 0 cells**, straight after a logged "full reset, tiers back at entry", and walked
+every tensor to the t1 floor. State outlived the reset.
+
+**The trap, twice over:**
+1. **A flag echoed back is not a controlled condition.** The log said "KV budget 2048 MiB (explicit)".
+   Only the control arm's degrade count showed the budget was not what bound. Check the realized state
+   (degrade log, `VBR_TRACE`) against the intended one, and keep a control that can fail.
+2. **A mechanism read from source is a hypothesis, not a finding.** `vbr_budget_eff_uncached` clamps
+   the explicit budget to live free VRAM minus a growth reserve, and that was written into the first
+   draft of this entry and the prereg amendment as *the* cause. A one-minute repro with VRAM sampling
+   showed **free VRAM never below 3.9 GiB**. The clamp as described could not have bound, so the cause
+   is open. Same family as AFM-17 (behaviour inferred from a source fragment).
+
+**For users on current buun:** until this is understood, a typed `--vbr-floor` (for example `t4`)
+bounds the worst case. For benchmarks, `VBR_FREEZE=1` + `VBR_BUDGET_MIB` makes the schedule a pure
+function of the budget. The implicit no-flag default floors at t4.
