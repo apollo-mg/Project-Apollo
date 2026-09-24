@@ -2,6 +2,7 @@
 # MTP on vs off, multi-turn agent outcomes. data/receipts/mtp-agentic/PREREG_MTP_AGENTIC.md
 #   ./run_mtp_agentic.sh smoke   -> 3 items: OFF-s1 twice (determinism) + MTP-s1 once (timing)
 #   ./run_mtp_agentic.sh         -> OFF/MTP x seeds 1,2,3, alternating, 40 items each
+#   ./run_mtp_agentic.sh cache   -> same, PROMPT CACHE ON, for time-to-completion (PREREG_MTP_AGENTIC_SPEED.md)
 #
 # PROCESS RULE: kills ONLY the server PID it recorded. Never pattern-kills.
 # PORT 8091, not 8090: Open WebUI on this desktop is configured for :8090.
@@ -15,6 +16,7 @@ PORT=8091
 FX=mtpag
 MODE=${1:-full}
 OUT=$A/runs/mtpag${MODE:+_$MODE}; [ "$MODE" = full ] && OUT=$A/runs/mtpag
+CACHEFLAG=(--no-cache-prompt); [ "$MODE" = cache ] && CACHEFLAG=()   # speed run: realistic serving
 ITEM_TIMEOUT=${ITEM_TIMEOUT:-2400}   # set from the smoke; far above either arm's need
 mkdir -p "$OUT"
 export LD_LIBRARY_PATH="$(dirname "$SERVER"):${LD_LIBRARY_PATH:-}"
@@ -47,7 +49,7 @@ start_server () {  # $1=seed  $2=mtp(0/1)  $3=tag
     # differ between arms because the drafter changes free VRAM (drafter-gates-kv-budget).
     # --no-cache-prompt: warm prefix cache + speculation is bistable (argus 08826ad6 finding).
     setsid nohup "$SERVER" -m "$MODEL" -ngl 99 -c 65536 -fa on -np 1 \
-        -ctk turbo4 -ctv turbo4 --no-cache-prompt -b 2048 -ub 512 --jinja \
+        -ctk turbo4 -ctv turbo4 "${CACHEFLAG[@]}" -b 2048 -ub 512 --jinja \
         --temp 0.6 --top-p 0.95 --top-k 20 --min-p 0.0 --repeat-penalty 1.0 --presence-penalty 0.0 \
         --seed "$1" --chat-template-kwargs '{"reasoning_effort":"medium"}' "${spec[@]}" \
         --host 127.0.0.1 --port "$PORT" > "$OUT/srv_$3.log" 2>&1 < /dev/null &
