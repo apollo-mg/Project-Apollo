@@ -4,7 +4,7 @@
 MTP head), argus corpus `families_v4.json` (40 items), bwrap-sandboxed Hermes agent, 6 arms =
 MTP off/on x seeds 1-3, alternating, 240 rows, **0 timeouts, 0 infra voids, 0 tool-call leaks**.
 Prereg: `PREREG_MTP_AGENTIC.md` + Amendment 1 (timeouts). Scorer: `analyze_mtp_agentic.py`
-(committed before the run). Raw rows and events: `raw/` (with `/home/mark` redacted to `~`).
+(committed before the run). Raw rows and events: `raw/` (home-directory paths redacted to `~`).
 Reproduce: `analyze_mtp_agentic.py data/receipts/mtp-agentic/raw`.
 
 ## Primary result (judge void rule, unit = item, as registered)
