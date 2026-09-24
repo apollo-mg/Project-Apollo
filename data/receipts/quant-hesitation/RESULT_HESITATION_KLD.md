@@ -121,7 +121,7 @@ connective and instruction words (` use`, ` ensure`, ` The`, ` So`, `Thinking`) 
 deterministic subword continuations. The range ratio (21-35x) is below the source's ~100x, but the corpus, model
 size and codec all differ, so the size of that gap is not a finding.
 
-### E4. HES vs digit tokens (class means), and an IQ3_XXS digit anomaly
+### E4. HES vs digit tokens (class means)
 
 | arm | KLD at HES | KLD at digit (8,510 positions, mean H 0.22) | HES / digit |
 |---|---:|---:|---:|
@@ -131,10 +131,35 @@ size and codec all differ, so the size of that gap is not a finding.
 | UD-Q4_K_M | 0.0080 | 0.0049 | 1.65 |
 | Q6_K | 0.0015 | 0.0011 | 1.36 |
 
-This is a class-mean ratio, not the source's statistic (that is E6). The anomaly is IQ3_XXS: its **digit** KLD is
-91 % of Q2_K_XL's, while its mean KLD is 54 %. In E6, `9`, `7` and `8` sit in IQ3_XXS's top 20 despite reference
-entropy of only 0.2-0.3 nats. IQ3_XXS is also the lowest arm in every ratio column above. This points to a
-**codec**-specific weakness on digit predictions, not a bit-count effect. It is untested beyond this corpus.
+This is a class-mean ratio, not the source's statistic (that is E6).
+
+**Retracted (same day): "IQ3_XXS has a codec-specific digit weakness".** An earlier version of this receipt said so,
+because IQ3_XXS's digit KLD is 91 % of Q2_K_XL's at 54 % of its mean KLD. Normalizing digit KLD by each arm's own
+mean KLD removes it:
+
+| | Q2_K_XL | IQ3_XXS | IQ4_XS | Q4_K_M | Q6_K |
+|---|---:|---:|---:|---:|---:|
+| digit KLD / arm mean KLD | **0.63** | 1.07 | 0.83 | 0.83 | 1.02 |
+| digits' share of the arm's total KLD (6.8 % of positions) | 4.3 % | 7.2 % | 5.6 % | 5.6 % | 6.9 % |
+
+IQ3_XXS matches Q6_K. The outlier is Q2_K_XL, which is unusually light on digits. What remains is a per-token
+oddity, not a class effect: IQ3_XXS ranks `9`, `7` and `8` in its E6 top 20 (`9` at 3.5x its mean). No other
+arm has more than one digit there. That could be a handful of positions and has no CI.
+
+### E8. How concentrated is the damage in uncertain positions?
+
+Share of each arm's total KLD carried by the most uncertain positions (by reference entropy):
+
+| arm | top 5 % | top 10 % | top 20 % | top 30 % | top 50 % |
+|---|---:|---:|---:|---:|---:|
+| UD-Q2_K_XL | 15.9 % | 27.4 % | 48.5 % | 66.7 % | 90.7 % |
+| UD-IQ3_XXS | 17.6 % | 28.6 % | 48.9 % | 66.6 % | 91.0 % |
+| UD-IQ4_XS | 17.1 % | 28.9 % | 50.4 % | 68.3 % | 92.7 % |
+| UD-Q4_K_M | 17.3 % | 29.0 % | 50.8 % | 69.3 % | 94.2 % |
+| Q6_K | 17.4 % | 29.2 % | 51.3 % | 69.6 % | 94.0 % |
+
+Concentrated, but not sharply: shielding the most uncertain 20 % of positions would address about half the
+damage, and every arm has the same curve. Any "protect uncertain positions" scheme should be priced against this.
 
 ## What it means
 
@@ -146,7 +171,7 @@ entropy of only 0.2-0.3 nats. IQ3_XXS is also the lowest arm in every ratio colu
    logit perturbation reshuffles less than diffuse uncertainty does.
 3. **The pattern does not depend on bit count.** Raw ratio 1.20-1.39 and matched ratio 0.59-0.69 across a **67x**
    range in mean KLD (Q2_K_XL 0.0738 -> Q6_K 0.0011). Fewer bits scale the damage up without moving it toward
-   hesitation. The one arm that departs is IQ3_XXS, which departs on digits (E4). That is a codec effect.
+   hesitation. IQ3_XXS is the lowest arm in every ratio column; nothing here explains why.
 4. **For the "protect uncertain positions" question:** the mechanism to key on is the model's own entropy at the
    position. The source's marker penalty (12-23 % shorter CoT) works on the symptom, and nothing here argues
    against it as a length control. What this removes is the rationale that markers are a quantization weak spot:
