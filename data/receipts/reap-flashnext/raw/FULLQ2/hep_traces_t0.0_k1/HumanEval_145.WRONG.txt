@@ -1,0 +1,42 @@
+### HumanEval/145  pass_frac=0.00 (of K=1)  first-fail bucket=WRONG finish=stop gzip_ratio=1.000 code_src=content
+### PROMPT:
+
+def order_by_points(nums):
+    """
+    Write a function which sorts the given list of integers
+    in ascending order according to the sum of their digits.
+    Note: if there are several items with similar sum of their digits,
+    order them based on their index in original list.
+
+    For example:
+    >>> order_by_points([1, 11, -1, -11, -12]) == [-1, -11, 1, -12, 11]
+    >>> order_by_points([]) == []
+    """
+
+### CONTENT:
+```python
+def order_by_points(nums):
+    """
+    Write a function which sorts the given list of integers
+    in ascending order according to the sum of their digits.
+    Note: if there are several items with similar sum of their digits,
+    order them based on their index in original list.
+
+    For example:
+    >>> order_by_points([1, 11, -1, -11, -12]) == [-1, -11, 1, -12, 11]
+    >>> order_by_points([]) == []
+    """
+    def digit_sum(n):
+        return sum(int(d) for d in str(abs(n)))
+    
+    # Create list of (digit_sum, original_index, value)
+    indexed = [(digit_sum(num), i, num) for i, num in enumerate(nums)]
+    
+    # Sort by digit_sum, then by original index
+    indexed.sort(key=lambda x: (x[0], x[1]))
+    
+    # Extract the values in sorted order
+    return [item[2] for item in indexed]
+```
+### REASONING_CONTENT:
+

@@ -82,6 +82,10 @@ PY
     tail -3 "$O/hep.log"
   fi
   nvidia-smi --query-gpu=index,clocks.sm,clocks.max.sm,power.limit,temperature.gpu --format=csv,noheader > "$O/clocks_end.txt"
+  # KV gate (added 2026-09-24): no -ctk was passed, so buun's default dynamic VBR is live. It must never
+  # degrade (entry tier is f16, bit-identical to f16 KV) or the arm is not comparable.
+  nd=$(grep -c "VBR degrade #" "$O/server.log"); echo "   VBR degrades: $nd" | tee "$O/vbr_gate.txt"
+  [ "$nd" = 0 ] || echo "   WARNING: $ARM KV degraded -- arm flagged, not comparable"
   stop
 done
 echo "######## REAPFN DONE $(date -Is)"

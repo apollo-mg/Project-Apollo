@@ -1,0 +1,193 @@
+### HumanEval/132  pass_frac=0.00 (of K=1)  first-fail bucket=WRONG finish=stop gzip_ratio=1.000 code_src=content
+### PROMPT:
+
+def is_nested(string):
+    '''
+    Create a function that takes a string as input which contains only square brackets.
+    The function should return True if and only if there is a valid subsequence of brackets 
+    where at least one bracket in the subsequence is nested.
+
+    is_nested('[[]]') ➞ True
+    is_nested('[]]]]]]][[[[[]') ➞ False
+    is_nested('[][]') ➞ False
+    is_nested('[]') ➞ False
+    is_nested('[[][]]') ➞ True
+    is_nested('[[]][[') ➞ True
+    '''
+
+### CONTENT:
+```python
+def is_nested(string):
+    '''
+    Create a function that takes a string as input which contains only square brackets.
+    The function should return True if and only if there is a valid subsequence of brackets 
+    where at least one bracket in the subsequence is nested.
+
+    is_nested('[[]]') ➞ True
+    is_nested('[]]]]]]][[[[[]') ➞ False
+    is_nested('[][]') ➞ False
+    is_nested('[]') ➞ False
+    is_nested('[[][]]') ➞ True
+    is_nested('[[]][[') ➞ True
+    '''
+    depth = 0
+    max_depth = 0
+    for char in string:
+        if char == '[':
+            depth += 1
+            if depth > max_depth:
+                max_depth = depth
+        elif char == ']':
+            depth -= 1
+            if depth < 0:
+                return False
+    # We need a valid subsequence where at least one bracket is nested.
+    # This means we need a pair of brackets that contains another pair.
+    # In other words, we need a depth of at least 2 at some point.
+    # But we also need the subsequence to be valid (balanced).
+    # Actually, the problem says "valid subsequence of brackets where at least one bracket in the subsequence is nested."
+    # A nested bracket means we have something like [ ... [ ... ] ... ]
+    # So we need to find a substring that is a valid bracket sequence and has depth >= 2.
+    
+    # Let me reconsider. The examples:
+    # is_nested('[[]]') -> True: the whole string is valid and has nesting
+    # is_nested('[]]]]]]][[[[[]') -> False: let's check. The string is '[]]]]]]][[[[[]'
+    #   Let's trace: [ ] ] ] ] ] ] ] [ [ [ [ [ ]
+    #   depth: 1, 0, -1 -> invalid at position 2. So no valid subsequence with nesting?
+    #   Actually, we need to check if there EXISTS a valid subsequence (not necessarily contiguous? or contiguous substring?)
+    #   The problem says "subsequence" which typically means not necessarily contiguous. But in bracket problems, it often means substring.
+    #   Let me re-read: "valid subsequence of brackets where at least one bracket in the subsequence is nested"
+    #   
+    #   Looking at is_nested('[][]') -> False. '[][]' has no nesting, just two separate pairs.
+    #   is_nested('[[][]]') -> True. This has nesting.
+    #   is_nested('[[]][[') -> True. The substring '[[]]' is valid and has nesting.
+    #   
+    #   So it seems like we need to find a contiguous substring that is a valid bracket sequence and has depth >= 2.
+    #   
+    #   Let me think about this differently. We can use a stack-based approach to find all valid substrings, or we can check if there's any point where depth reaches 2 and the brackets are properly matched.
+    #   
+    #   Actually, a simpler approach: we need to check if there exists a valid bracket sequence (substring) that has at least one nested pair. This is equivalent to checking if there's a substring that starts with '[' and ends with ']' and within it, there's another complete pair.
+    #   
+    #   Let me try a different approach: iterate through the string, and for each position, try to find a valid bracket sequence starting there. But that could be O(n^2) or worse.
+    #   
+    #   Alternative: use a stack to track positions. When we see a ']', if the stack is not empty, we pop and get the matching '['. The substring from that '[' to this ']' is a valid bracket sequence. We need to check if within this valid sequence, there's nesting, i.e., the depth within this sequence reaches at least 2.
+    #   
+    #   Actually, let me think more carefully. A valid bracket sequence has nesting if and only if its maximum depth is at least 2. So we need to find any valid bracket sequence (substring) with max depth >= 2.
+    #   
+    #   We can do this by: for each matching pair (i, j) where s[i] = '[' and s[j] = ']' and they match, check if the substring s[i:j+1] has a valid bracket sequence with depth >= 2. But checking each one could be expensive.
+    #   
+    #   Let me try a simpler approach: track the depth as we go. If at any point the depth reaches 2, and we can form a valid sequence from some earlier '[' to a later ']', then we have nesting.
+    #   
+    #   Actually, I think the key insight is: we need a valid bracket sequence with depth >= 2. This happens if and only if there exists a '[' at position i and a ']' at position j > i such that s[i:j+1] is a valid bracket sequence and the depth within s[i:j+1] reaches 2.
+    #   
+    #   Let me try yet another approach. We can use a stack. When we push a '[', we record its position. When we pop a ']' matching a '[', we know the substring from that '[' to this ']' is a valid bracket sequence. Now, within this valid sequence, is there nesting? Nesting means there's a '[' inside that is not the outermost one. So if the length of the valid sequence is > 2 (i.e., more than just "[]"), then there must be something inside. But wait, "[][]" is a valid sequence of length 4 but has no nesting. So length > 2 is not sufficient.
+    #   
+    #   Hmm, let me reconsider. In "[][]", the depth never exceeds 1. In "[[]]", the depth reaches 2. So we need the maximum depth within the valid sequence to be >= 2.
+    #   
+    #   Let me try a different strategy: iterate through the string, maintaining a stack of positions of '['. When we encounter a ']', if the stack is not empty, pop the top to get the matching '['. Now, the substring from that '[' to this ']' is a valid bracket sequence. To check if it has nesting, we can check if the depth within this substring reaches 2. But we can do this more efficiently.
+    #   
+    #   Actually, I realize we can just check: does there exist a valid bracket sequence with depth >= 2? We can track the current depth and also track for each depth level, whether we've seen a valid sequence at that depth.
+    #   
+    #   Let me try a cleaner approach:
+    #   - Use a stack to track positions of '['
+    #   - When we match a ']' with a '[', we know we have a valid sequence from that '[' to this ']'
+    #   - The depth of this sequence is 1 (the outermost pair). For nesting, we need the inner content to also contain a valid pair.
+    #   - So if the distance between the matched '[' and ']' is more than 1 (i.e., there's at least one character between them), and that inner content contains a valid bracket pair, then we have nesting.
+    #   
+    #   But this is getting complicated. Let me just check all possible valid substrings.
+    #   
+    #   Actually, let me try a simpler observation: a valid bracket sequence has nesting if and only if it contains a substring of the form "[...]" where the "..." contains at least one complete bracket pair. Equivalently, the maximum depth is >= 2.
+    #   
+    #   Let me just iterate and for each position, try to find a valid sequence starting there with depth >= 2.
+    #   
+    #   Here's a cleaner approach:
+    #   - Use a stack. When we see '[', push its index.
+    #   - When we see ']', if stack is not empty, pop to get matching index i.
+    #   - Now, the substring s[i:j+1] is a valid bracket sequence.
+    #   - To check if it has nesting, we can check if the depth within s[i+1:j] (the inner part) reaches 1 (which would mean the total depth reaches 2).
+    #   - But we can do this more simply: if j - i > 1, then there's content inside. But that content might not form a valid pair. For example, "[[]]" has j-i = 2, and the inner "[]" is valid. But "[[ ]]" wait, that's not valid.
+    #   
+    #   Let me just check: for the matched pair (i, j), does the inner substring s[i+1:j] contain a valid bracket pair? We can check this by seeing if there's a '[' in s[i+1:j] that matches a ']' in s[i+1:j].
+    #   
+    #   This is getting too complex. Let me try a different approach entirely.
+    #   
+    #   New approach: 
+    #   - We want to know if there's a valid bracket sequence with depth >= 2.
+    #   - We can track the depth as we scan. When depth reaches 2, we know we're inside a nested structure. But we need to ensure that the brackets are properly matched.
+    #   - Actually, if we're scanning and the depth reaches 2, and we eventually return to depth 0 (or some lower depth) without going negative, then we've found a valid sequence with nesting.
+    #   
+    #   Let me try: track depth. Also track the minimum depth seen since the last time depth was 0. If depth reaches 2 and then returns to 0 without going negative, we have a valid nested sequence.
+    #   
+    #   Actually, simpler: just check if there's any valid bracket sequence with max depth >= 2. We can do this by:
+    #   - For each starting position i where s[i] == '[', try to find a valid sequence starting at i.
+    #   - But this is O(n^2) in the worst case.
+    #   
+    #   Let me just go with the stack approach and for each matched pair, check if the inner content has a valid pair.
+    #   
+    #   Actually, I think the simplest correct approach is:
+    #   - Use a stack to find all matching pairs.
+    #   - For each matching pair (i, j), check if the substring s[i+1:j] contains a valid bracket pair.
+    #   - A valid bracket pair in s[i+1:j] exists if there's a '[' at position k and a ']' at position l (i < k < l < j) such that s[k:l+1] is a valid bracket sequence.
+    #   
+    #   This is still complex. Let me just try a brute force for small inputs and see if it matches the examples.
+    #   
+    #   Wait, let me re-examine the examples more carefully.
+    #   is_nested('[[]][[') -> True. The valid substring is '[[]]' which has nesting.
+    #   is_nested('[]]]]]]][[[[[]') -> False. Let's see: the string is '[]]]]]]][[[[[]'
+    #   Positions: 0:[, 1:], 2:], 3:], 4:], 5:], 6:], 7:], 8:[, 9:[, 10:[, 11:[, 12:[, 13:]
+    #   The only valid pair is at positions 0-1: "[]". No nesting. The rest doesn't form valid pairs.
+    #   
+    #   So the approach is: find all valid bracket sequences (substrings) and check if any has depth >= 2.
+    #   
+    #   Let me implement this using a stack to find matching pairs, and for each pair, check if the inner content has a valid pair.
+    #   
+    #   Actually, I just realized: a valid bracket sequence has depth >= 2 if and only if it contains a substring of the form "[X]" where X contains a valid bracket pair. So for a matched pair (i, j), we need to check if s[i+1:j] contains a valid bracket pair.
+    #   
+    #   Let me implement this:
+
+    stack = []
+    for j, char in enumerate(string):
+        if char == '[':
+            stack.append(j)
+        elif char == ']':
+            if not stack:
+                return False
+            i = stack.pop()
+            # Check if s[i+1:j] contains a valid bracket pair
+            # This means there exists k, l with i < k < l < j such that s[k:l+1] is a valid bracket sequence
+            # We can check this by seeing if there's a '[' in s[i+1:j] that has a matching ']' in s[i+1:j]
+            # But we need to be careful about the matching.
+            # Actually, we can just check if the depth within s[i+1:j] reaches 1 (relative to the start of s[i+1:j])
+            # Which means the total depth reaches 2.
+            # Let's track the depth within s[i+1:j]
+            inner_depth = 0
+            has_valid_inner_pair = False
+            for k in range(i + 1, j):
+                if string[k] == '[':
+                    inner_depth += 1
+                elif string[k] == ']':
+                    inner_depth -= 1
+                    if inner_depth < 0:
+                        break
+                    # If inner_depth was 1 before this ']', then we just closed a valid inner pair
+                    # Actually, we need to check if at any point inner_depth reached 1 and then we closed it
+                    # Let me track this differently
+            # Let me redo this: track inner_depth and check if it ever reaches 1 and then we see a ']' that brings it back to 0
+            inner_depth = 0
+            for k in range(i + 1, j):
+                if string[k] == '[':
+                    inner_depth += 1
+                elif string[k] == ']':
+                    inner_depth -= 1
+                    if inner_depth < 0:
+                        break
+                    if inner_depth == 0:
+                        # We just closed a valid inner pair
+                        has_valid_inner_pair = True
+                        break
+            if has_valid_inner_pair:
+                return True
+    return False
+```
+### REASONING_CONTENT:
+

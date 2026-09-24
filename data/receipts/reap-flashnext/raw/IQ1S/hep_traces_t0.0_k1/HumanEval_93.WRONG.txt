@@ -1,0 +1,67 @@
+### HumanEval/93  pass_frac=0.00 (of K=1)  first-fail bucket=WRONG finish=stop gzip_ratio=1.000 code_src=content
+### PROMPT:
+
+def encode(message):
+    """
+    Write a function that takes a message, and encodes in such a 
+    way that it swaps case of all letters, replaces all vowels in 
+    the message with the letter that appears 2 places ahead of that 
+    vowel in the english alphabet. 
+    Assume only letters. 
+    
+    Examples:
+    >>> encode('test')
+    'TGST'
+    >>> encode('This is a message')
+    'tHKS KS C MGSSCGG'
+    """
+
+### CONTENT:
+```python
+def encode(message):
+    """
+    Write a function that takes a message, and encodes in such a 
+    way that it swaps case of all letters, replaces all vowels in 
+    the message with the letter that appears 2 places ahead of that 
+    vowel in the english alphabet. 
+    Assume only letters. 
+    
+    Examples:
+    >>> encode('test')
+    'TGST'
+    >>> encode('This is a message')
+    'tHKS KS C MGSSCGG'
+    """
+    vowels = 'aeiouAEIOU'
+    result = []
+    for char in message:
+        if char.isalpha():
+            # Swap case
+            swapped = char.swapcase()
+            # Check if original char is a vowel
+            if char in vowels:
+                # Replace vowel with letter 2 places ahead
+                lower_char = char.lower()
+                # Map vowel to shifted vowel
+                vowel_map = {
+                    'a': 'c',
+                    'e': 'g',
+                    'i': 'k',
+                    'o': 'q',
+                    'u': 'w'
+                }
+                shifted = vowel_map[lower_char]
+                # Apply case swap to the shifted letter
+                if char.isupper():
+                    shifted = shifted.upper()
+                else:
+                    shifted = shifted.lower()
+                result.append(shifted)
+            else:
+                result.append(swapped)
+        else:
+            result.append(char)
+    return ''.join(result)
+```
+### REASONING_CONTENT:
+

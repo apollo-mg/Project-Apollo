@@ -1,0 +1,244 @@
+### HumanEval/132  pass_frac=0.00 (of K=1)  first-fail bucket=WRONG finish=stop gzip_ratio=1.000 code_src=content
+### PROMPT:
+
+def is_nested(string):
+    '''
+    Create a function that takes a string as input which contains only square brackets.
+    The function should return True if and only if there is a valid subsequence of brackets 
+    where at least one bracket in the subsequence is nested.
+
+    is_nested('[[]]') ➞ True
+    is_nested('[]]]]]]][[[[[]') ➞ False
+    is_nested('[][]') ➞ False
+    is_nested('[]') ➞ False
+    is_nested('[[][]]') ➞ True
+    is_nested('[[]][[') ➞ True
+    '''
+
+### CONTENT:
+```python
+def is_nested(string):
+    '''
+    Create a function that takes a string as input which contains only square brackets.
+    The function should return True if and only if there is a valid subsequence of brackets 
+    where at least one bracket in the subsequence is nested.
+
+    is_nested('[[]]') ➞ True
+    is_nested('[]]]]]]][[[[[]') ➞ False
+    is_nested('[][]') ➞ False
+    is_nested('[]') ➞ False
+    is_nested('[[][]]') ➞ True
+    is_nested('[[]][[') ➞ True
+    '''
+    # We need to find if there exists a valid subsequence that has nesting.
+    # A nested structure means we have at least one pair of brackets that contains another pair inside.
+    # Essentially, we need to find if there's a substring pattern like "[...[...]]..." where the inner brackets are properly matched.
+    
+    # Let's think about this differently. We need to find if there exists a valid bracket subsequence 
+    # that has depth >= 2 at some point.
+    
+    # We can use a stack-based approach to track depth.
+    # We iterate through the string, maintaining a stack of open brackets.
+    # When we see '[', we push it. When we see ']', if there's an open bracket, we pop it.
+    # We need to track the maximum depth reached. If max depth >= 2, then there's nesting.
+    
+    # But wait - we need a valid subsequence. So we can skip characters.
+    # Actually, let me re-read: "a valid subsequence of brackets where at least one bracket in the subsequence is nested"
+    
+    # A simpler approach: we need to find if there exists a valid bracket sequence (properly matched) 
+    # that has at least one pair of brackets containing another pair.
+    
+    # Let's use a greedy approach with a stack. We'll try to build valid sequences.
+    # Track the current depth. If we ever reach depth >= 2 while having a valid matching, return True.
+    
+    stack = []
+    max_depth = 0
+    
+    for char in string:
+        if char == '[':
+            stack.append(char)
+            max_depth = max(max_depth, len(stack))
+        elif char == ']':
+            if stack:
+                stack.pop()
+    
+    # If max_depth >= 2, it means at some point we had at least 2 open brackets, 
+    # which implies nesting if we can close them properly.
+    # But we need to ensure the brackets can actually be matched.
+    
+    # Actually, let me reconsider. The issue is that we need a VALID subsequence.
+    # Let me think about what constitutes nesting: we need at least one pair of brackets 
+    # that contains another pair. So we need something like "[[...]]" where the inner [...] is also valid.
+    
+    # Let me try a different approach: find if there exists a valid bracket subsequence with depth >= 2.
+    # We can do this by tracking how many unmatched '[' we have and how many ']' we can match.
+    
+    # Reset and try again with a cleaner approach:
+    # We want to know if we can form a valid bracket sequence with at least one nested pair.
+    # A nested pair means we have at least 2 levels of brackets.
+    
+    # Let's count: we need at least 4 brackets in a valid nested sequence: "[[]]"
+    # We can scan through and try to find if we can build such a sequence.
+    
+    # Alternative: track the number of open brackets. If at any point we have >= 2 open brackets 
+    # and later we close them in a way that forms valid pairs, we have nesting.
+    
+    # Let me try: maintain a count of open brackets. When we see '[', increment. When we see ']', 
+    # if count > 0, decrement. Track the maximum count. If max count >= 2, we might have nesting.
+    # But we also need to ensure the brackets can be properly closed.
+    
+    # Actually, the key insight: if we ever have 2 or more unmatched '[' at some point, and later 
+    # we have enough ']' to close them, then we have nesting.
+    
+    open_count = 0
+    max_open = 0
+    
+    for char in string:
+        if char == '[':
+            open_count += 1
+            max_open = max(max_open, open_count)
+        elif char == ']':
+            if open_count > 0:
+                open_count -= 1
+    
+    # If max_open >= 2, it means at some point we had at least 2 open brackets.
+    # But we need to ensure they can be closed. The total number of ']' should be enough.
+    # Actually, if max_open >= 2, we just need to check if there are enough closing brackets 
+    # to close at least 2 of them in a nested fashion.
+    
+    # Hmm, let me think about '[[]][[' - max_open would be 2 (from the first '[[]]'), 
+    # and it returns True. And '[]]]]]]][[[[[]' - let's trace:
+    # '[' -> open=1, max=1
+    # ']' -> open=0
+    # ']' -> open=0 (no open to close)
+    # ... all remaining ']' don't increase open
+    # '[' -> open=1, max=1
+    # '[' -> open=2, max=2
+    # '[' -> open=3, max=3
+    # '[' -> open=4, max=4
+    # '[' -> open=5, max=5
+    # '[' -> open=6, max=6
+    # '[' -> open=7, max=7
+    # '[' -> open=8, max=8
+    # '[' -> open=9, max=9
+    # '[' -> open=10, max=10
+    # '[' -> open=11, max=11
+    # '[' -> open=12, max=12
+    # '[' -> open=13, max=13
+    # '[' -> open=14, max=14
+    # '[' -> open=15, max=15
+    # '[' -> open=16, max=16
+    # '[' -> open=17, max=17
+    # '[' -> open=18, max=18
+    # '[' -> open=19, max=19
+    # '[' -> open=20, max=20
+    # '[' -> open=21, max=21
+    # '[' -> open=22, max=22
+    # '[' -> open=23, max=23
+    # '[' -> open=24, max=24
+    # '[' -> open=25, max=25
+    # '[' -> open=26, max=26
+    # '[' -> open=27, max=27
+    # '[' -> open=28, max=28
+    # '[' -> open=29, max=29
+    # '[' -> open=30, max=30
+    # '[' -> open=31, max=31
+    # '[' -> open=32, max=32
+    # '[' -> open=33, max=33
+    # '[' -> open=34, max=34
+    # '[' -> open=35, max=35
+    # '[' -> open=36, max=36
+    # '[' -> open=37, max=37
+    # '[' -> open=38, max=38
+    # '[' -> open=39, max=39
+    # '[' -> open=40, max=40
+    # '[' -> open=41, max=41
+    # '[' -> open=42, max=42
+    # '[' -> open=43, max=43
+    # '[' -> open=44, max=44
+    # '[' -> open=45, max=45
+    # '[' -> open=46, max=46
+    # '[' -> open=47, max=47
+    # '[' -> open=48, max=48
+    # '[' -> open=49, max=49
+    # '[' -> open=50, max=50
+    # '[' -> open=51, max=51
+    # '[' -> open=52, max=52
+    # '[' -> open=53, max=53
+    # '[' -> open=54, max=54
+    # '[' -> open=55, max=55
+    # '[' -> open=56, max=56
+    # '[' -> open=57, max=57
+    # '[' -> open=58, max=58
+    # '[' -> open=59, max=59
+    # '[' -> open=60, max=60
+    # '[' -> open=61, max=61
+    # '[' -> open=62, max=62
+    # '[' -> open=63, max=63
+    # '[' -> open=64, max=64
+    # '[' -> open=65, max=65
+    # '[' -> open=66, max=66
+    # '[' -> open=67, max=67
+    # '[' -> open=68, max=68
+    # '[' -> open=69, max=69
+    # '[' -> open=70, max=70
+    # '[' -> open=71, max=71
+    # '[' -> open=72, max=72
+    # '[' -> open=73, max=73
+    # '[' -> open=74, max=74
+    # '[' -> open=75, max=75
+    # '[' -> open=76, max=76
+    # '[' -> open=77, max=77
+    # '[' -> open=78, max=78
+    # '[' -> open=79, max=79
+    # '[' -> open=80, max=80
+    # '[' -> open=81, max=81
+    # '[' -> open=82, max=82
+    # '[' -> open=83, max=83
+    # '[' -> open=84, max=84
+    # '[' -> open=85, max=85
+    # '[' -> open=86, max=86
+    # '[' -> open=87, max=87
+    # '[' -> open=88, max=88
+    # '[' -> open=89, max=89
+    # '[' -> open=90, max=90
+    # '[' -> open=91, max=91
+    # '[' -> open=92, max=92
+    # '[' -> open=93, max=93
+    # '[' -> open=94, max=94
+    # '[' -> open=95, max=95
+    # '[' -> open=96, max=96
+    # '[' -> open=97, max=97
+    # '[' -> open=98, max=98
+    # '[' -> open=99, max=99
+    # '[' -> open=100, max=100
+    
+    # So max_open = 100, but the expected result is False. So my approach is wrong.
+    
+    # The issue is that in '[]]]]]]][[[[[]', even though we have many open brackets at the end, 
+    # there are no closing brackets to match them, so we can't form a valid nested sequence.
+    
+    # We need to ensure that the brackets we use for nesting can actually be closed.
+    
+    # Let me try a different approach: find the longest valid bracket subsequence and check if it has depth >= 2.
+    # Or: track open brackets and when we close, check if we had depth >= 2 at some point during a valid match.
+    
+    # Let me try: use a stack. Push '[' onto stack. When we see ']', if stack is not empty, pop.
+    # Track the depth when we pop. If we pop at depth >= 2 (meaning there was at least one other open bracket below), 
+    # then we have nesting.
+    
+    stack = []
+    for char in string:
+        if char == '[':
+            stack.append(char)
+        elif char == ']':
+            if stack:
+                # Before popping, check the current depth
+                if len(stack) >= 2:
+                    return True
+                stack.pop()
+    
+    return False
+```
+### REASONING_CONTENT:
+

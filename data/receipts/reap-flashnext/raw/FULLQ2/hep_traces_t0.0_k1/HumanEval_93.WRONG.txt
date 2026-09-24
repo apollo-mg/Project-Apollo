@@ -1,0 +1,64 @@
+### HumanEval/93  pass_frac=0.00 (of K=1)  first-fail bucket=WRONG finish=stop gzip_ratio=1.000 code_src=content
+### PROMPT:
+
+def encode(message):
+    """
+    Write a function that takes a message, and encodes in such a 
+    way that it swaps case of all letters, replaces all vowels in 
+    the message with the letter that appears 2 places ahead of that 
+    vowel in the english alphabet. 
+    Assume only letters. 
+    
+    Examples:
+    >>> encode('test')
+    'TGST'
+    >>> encode('This is a message')
+    'tHKS KS C MGSSCGG'
+    """
+
+### CONTENT:
+```python
+def encode(message):
+    """
+    Write a function that takes a message, and encodes in such a 
+    way that it swaps case of all letters, replaces all vowels in 
+    the message with the letter that appears 2 places ahead of that 
+    vowel in the english alphabet. 
+    Assume only letters. 
+    
+    Examples:
+    >>> encode('test')
+    'TGST'
+    >>> encode('This is a message')
+    'tHKS KS C MGSSCGG'
+    """
+    vowels = 'aeiouAEIOU'
+    result = []
+    for char in message:
+        if char.isalpha():
+            # Swap case
+            swapped = char.swapcase()
+            # Check if original char is a vowel
+            if char in vowels:
+                # Find the letter 2 places ahead in the alphabet
+                # We need to handle both lowercase and uppercase
+                lower_char = char.lower()
+                # Get the index in the alphabet
+                idx = ord(lower_char) - ord('a')
+                # Add 2
+                new_idx = idx + 2
+                # Get the new character
+                new_char = chr(ord('a') + new_idx)
+                # If the original was uppercase, make the new char uppercase
+                if char.isupper():
+                    new_char = new_char.upper()
+                result.append(new_char)
+            else:
+                result.append(swapped)
+        else:
+            # Non-alpha characters (like spaces) are kept as-is
+            result.append(char)
+    return ''.join(result)
+```
+### REASONING_CONTENT:
+

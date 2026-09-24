@@ -1,0 +1,46 @@
+### HumanEval/91  pass_frac=0.00 (of K=1)  first-fail bucket=WRONG finish=stop gzip_ratio=1.000 code_src=content
+### PROMPT:
+
+def is_bored(S):
+    """
+    You'll be given a string of words, and your task is to count the number
+    of boredoms. A boredom is a sentence that starts with the word "I".
+    Sentences are delimited by '.', '?' or '!'.
+   
+    For example:
+    >>> is_bored("Hello world")
+    0
+    >>> is_bored("The sky is blue. The sun is shining. I love this weather")
+    1
+    """
+
+### CONTENT:
+```python
+def is_bored(S):
+    """
+    You'll be given a string of words, and your task is to count the number
+    of boredoms. A boredom is a sentence that starts with the word "I".
+    Sentences are delimited by '.', '?' or '!'.
+   
+    For example:
+    >>> is_bored("Hello world")
+    0
+    >>> is_bored("The sky is blue. The sun is shining. I love this weather")
+    1
+    """
+    import re
+    sentences = re.split(r'[.?!]', S)
+    count = 0
+    for sentence in sentences:
+        stripped = sentence.strip()
+        if stripped.startswith("I"):
+            # Check if "I" is a standalone word (not part of another word like "I'm" or "Ice")
+            # Actually, the problem says "starts with the word 'I'", so we need to check
+            # that the first word is exactly "I"
+            words = stripped.split()
+            if words and words[0] == "I":
+                count += 1
+    return count
+```
+### REASONING_CONTENT:
+

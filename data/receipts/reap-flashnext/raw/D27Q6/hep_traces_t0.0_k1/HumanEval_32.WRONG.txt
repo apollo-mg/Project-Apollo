@@ -1,0 +1,110 @@
+### HumanEval/32  pass_frac=0.00 (of K=1)  first-fail bucket=WRONG finish=stop gzip_ratio=1.000 code_src=content
+### PROMPT:
+import math
+
+
+def poly(xs: list, x: float):
+    """
+    Evaluates polynomial with coefficients xs at point x.
+    return xs[0] + xs[1] * x + xs[1] * x^2 + .... xs[n] * x^n
+    """
+    return sum([coeff * math.pow(x, i) for i, coeff in enumerate(xs)])
+
+
+def find_zero(xs: list):
+    """ xs are coefficients of a polynomial.
+    find_zero find x such that poly(x) = 0.
+    find_zero returns only only zero point, even if there are many.
+    Moreover, find_zero only takes list xs having even number of coefficients
+    and largest non zero coefficient as it guarantees
+    a solution.
+    >>> round(find_zero([1, 2]), 2) # f(x) = 1 + 2x
+    -0.5
+    >>> round(find_zero([-6, 11, -6, 1]), 2) # (x - 1) * (x - 2) * (x - 3) = -6 + 11x - 6x^2 + x^3
+    1.0
+    """
+
+### CONTENT:
+```python
+import math
+
+
+def poly(xs: list, x: float):
+    """
+    Evaluates polynomial with coefficients xs at point x.
+    return xs[0] + xs[1] * x + xs[1] * x^2 + .... xs[n] * x^n
+    """
+    return sum([coeff * math.pow(x, i) for i, coeff in enumerate(xs)])
+
+
+def find_zero(xs: list):
+    """ xs are coefficients of a polynomial.
+    find_zero find x such that poly(x) = 0.
+    find_zero returns only only zero point, even if there are many.
+    Moreover, find_zero only takes list xs having even number of coefficients
+    and largest non zero coefficient as it guarantees
+    a solution.
+    >>> round(find_zero([1, 2]), 2) # f(x) = 1 + 2x
+    -0.5
+    >>> round(find_zero([-6, 11, -6, 1]), 2) # (x - 1) * (x - 2) * (x - 3) = -6 + 11x - 6x^2 + x^3
+    1.0
+    """
+    # Use bisection method to find a zero
+    # We need to find an interval [a, b] where poly(a) and poly(b) have opposite signs
+    
+    # First, let's find a reasonable range
+    # The polynomial has even number of coefficients, so degree is odd
+    # For odd degree polynomials, there's always at least one real root
+    
+    # Let's try to find bounds
+    # Start with a small range and expand if needed
+    a = -1.0
+    b = 1.0
+    
+    # Expand the range until we find a sign change
+    max_expansion = 100
+    for _ in range(max_expansion):
+        fa = poly(xs, a)
+        fb = poly(xs, b)
+        if fa * fb <= 0:
+            break
+        a *= 2
+        b *= 2
+    
+    # If we still haven't found a sign change, try a different approach
+    if fa * fb > 0:
+        # Try scanning for a sign change
+        step = 1.0
+        found = False
+        for i in range(-1000, 1001):
+            x1 = i * step
+            x2 = (i + 1) * step
+            f1 = poly(xs, x1)
+            f2 = poly(xs, x2)
+            if f1 * f2 <= 0:
+                a = x1
+                b = x2
+                found = True
+                break
+        if not found:
+            # Fallback: return 0 or raise an error
+            return 0.0
+    
+    # Bisection method
+    tolerance = 1e-10
+    max_iterations = 1000
+    for _ in range(max_iterations):
+        mid = (a + b) / 2
+        fmid = poly(xs, mid)
+        if abs(fmid) < tolerance or (b - a) / 2 < tolerance:
+            return mid
+        fa = poly(xs, a)
+        if fa * fmid <= 0:
+            b = mid
+        else:
+            a = mid
+    
+    return (a + b) / 2
+```
+### REASONING_CONTENT:
+
