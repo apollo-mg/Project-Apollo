@@ -38,6 +38,24 @@ despite a 9 GB budget. The likely cause is one card starved by the drafter and m
 `CUDA pool allocation failed (out of VRAM)` inside the MTP draft context. The workaround BACKLOG listed for the
 `-np 4 -sm tensor` crash does not work as configured.
 
+## Warm-head feasibility probe (for a wake-proxy pre-warm of Hermes's system prompt + tools)
+
+`warm_head_probe.py`, daily config, `-np 1`. Synthetic Hermes-shaped head: 30k chars of system text ending in a
+Hermes-style date line, plus 6 tool schemas. The Qwen3.8 template renders the tools first, then the system text.
+Raw: `raw/warm_head_probe.jsonl`.
+
+| step | cached | prefilled | wall |
+|---|---:|---:|---:|
+| 1. cold: head + question A (through the proxy, includes the 35 s load) | 0 | 8,172 | 90.6 s |
+| 2. unrelated request (evicts the slot) | | | |
+| 3. warm-up: raw `/completion` of the rendered head, **cut exactly where the user turn starts** | | 8,150 | 53.8 s |
+| 4. head + a *different* question B | **8,150** | **16** | **2.1 s** |
+
+**The whole head is reused on the hybrid model** when the warm-up ends exactly at the user-turn boundary. The server
+then holds a restorable state at that point, which the recurrent layers require. Rendering comes from the server's
+own `/apply-template`, so the cut is byte-exact. The wake proxy forwards only `/v1/*`, `/props` and `/slots`, so a
+pre-warm has to call `/apply-template` and `/completion` on the node directly (steps 2-4 did).
+
 ## Scored against the prereg
 
 | # | claim | result |
