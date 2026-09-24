@@ -68,6 +68,15 @@ someone find it, and the claim in a form that is checkable.
 
 | **Qwen3.8 template defaults compound**: `reasoning_effort=xhigh`, `preserve_thinking=on`, `cache_prompt=true` — max exploration + growing reasoning tail + reused prefix | `qwen38-template/RESULT_TEMPLATE_AUDIT.md` | 08-16 |
 | buun's 25 template fixes did **not** survive the 3.6->3.8 rewrite: `| safe`, `loop.previtem`, 9 `raise_exception` sites, and the `developer` role all still unaddressed | `qwen38-template/RESULT_TEMPLATE_AUDIT.md` | 08-16 |
+| **DavidAU TURBO 'reduces thinking tokens 1/2 to 1/10' -- NOT reproduced; it thinks MORE on 4 of 5** | `qwen4exp/RESULT_TURBO_THINKING.md` | 09-03 |
+| TURBO at `reasoning_effort: medium`: the thinking-reduction claim fails harder, and cleanly | `qwen4exp/RESULT_TURBO_THINKING_MEDIUM.md` | 09-03 |
+| **The tool-calling regime, not TURBO, is what collapses the thinking** | `qwen4exp/RESULT_TURBO_TOOL_REGIME.md` | 09-03 |
+| einstein does not loop; **the template's DEFAULT effort does** -- on base weights and on DavidAU's tune | `viability/RESULT_EINSTEIN_TERMINATION.md` | 09-12 |
+| At Q6_K **a thinking cap is a clean win, the injected message changed nothing**, and there is a structural reason it cannot | `viability/RESULT_OVERTHINK_INJECTION_Q6K.md` | 09-12 |
+| Why `reasoning_budget_message` cannot interrupt a thought, and the ~10-line change that would let it | `viability/NOTE_MIDTHOUGHT_INJECTION_FEASIBILITY.md` | 09-12 |
+| **Two template engines disagree, and the Frogger template's reasoning modes are broken in both** | `davidau-templates/RESULT_TEMPLATE_MINJA_DIFF.md` | 09-13 |
+| DavidAU TURBO IQ2_M **runs away on anything non-trivial**; VBR and MTP exonerated | `viability/RESULT_TURBO_IQ2M_WALLED.md` | 09-09 |
+| DavidAU 40B merge: coherence smoke + measured power | `viability/RESULT_DAVIDAU_40B_SMOKE.md` | 09-08 |
 
 ## speculative decoding · MTP · drafters
 
@@ -87,6 +96,8 @@ someone find it, and the claim in a form that is checkable.
 | DFlash's depth optimum is **model-dependent**: peaks n=8 on Ornith-9B, not the monotonic-to-15 recorded for the 27B. Do not carry a depth constant across models | `spec-rdna4/RESULT_SPEC_RDNA4_ORNITH.md` | 08-26 |
 | **buun fork: DFlash silently drafts nothing** (`n_target_layers=0, target_ids=[]`, ~0 MB ring) — costs ~10%, logs no acceptance, reports success. Works on Tom's fork with identical inputs | `spec-rdna4/BUG_BUUN_DFLASH_SILENT_NODRAFT.md` | 08-26 |
 | **Dynamic VBR is default-ON in buun's build and bars ALL draft-model speculation** (co-tenancy ledger, `llama-context.cpp:670`). MTP unaffected (embedded head). Workaround: `-ctk f16 -ctv f16` | `spec-rdna4/BUG_BUUN_DFLASH_SILENT_NODRAFT.md` | 08-26 |
+| **MTP beats DFlash-2 on a 16 GiB card, and DFlash-2 cannot run at its design depth at all** | `dflash-pascal/RESULT_DFLASH2_VS_MTP_RDNA4.md` | 09-03 |
+| The MTP sidecar tensor-share bug has a SILENT variant -- benign where it is silent | `mtp-sm60/RESULT_MTP_SHARE_SILENT_CASE.md` | 09-03 |
 
 ## split modes · multi-GPU
 
@@ -159,6 +170,14 @@ someone find it, and the claim in a form that is checkable.
 | **At equal KV VRAM, FROZEN VBR beats static `q8_0` by 71 % at depth** (543.5 vs 544 MiB, KLD 0.00064 vs 0.00224, positions 16k-32k, 9/9 chunks, p=0.0039) and is **bit-identical to f16 before its knee** (69,120 positions). Frozen mode (`VBR_FREEZE=1`); the win persists after every tensor reaches turbo8, so it is not only "part stayed f16" (sink-stash untested) | `kv-depth/RESULT_KV_DEPTH_MATCHED_ALLOCATION.md` | 09-23 |
 | **As shipped, VBR collapsed to its 1.25-bpv floor after the first long request.** Unfrozen `llama-perplexity`, 544M/768M/2048M: chunk 1 KLD <= 0.0003, then every later chunk degraded from 0 cells after a logged full reset (KLD 0.133, 60x q8_0). Free VRAM never below 3.9 GiB, so NOT the free-VRAM clamp; mechanism open. Type a `--vbr-floor` | `kv-depth/RESULT_KV_DEPTH_MATCHED_ALLOCATION.md`, `FAILURE_MODES.md` AFM-46 | 09-23 |
 | **U5f's "bits belong on V" does NOT survive to 16k-32k on Qwen3.5-9B**: K-rich `q8_0`/`q4_0` beats V-rich by 48 %, 9/9 chunks (model also changed, 27B->9B). At depth on buun `38ada0e1b`, **turbo4 is smaller AND 10 % better than `q4_0`**, differing from U5b (model, depth, build and hardware all changed) | `kv-depth/RESULT_KV_DEPTH_MATCHED_ALLOCATION.md` | 09-23 |
+| **VBR at ~4.2 bits/value retrieves 18/18, including at 147,772 tokens where f16 cannot run** | `vbr-backend/RESULT_VBR_DEEP_RETRIEVAL.md` | 09-03 |
+| VBR walks the degrade ladder cleanly on Qwen3.8-27B at 2/3 bpw -- 30/30 under an 8x budget squeeze | `vbr-backend/RESULT_VBR_FORCED_DEGRADE.md` | 09-03 |
+| VBR on Qwen3.8-27B at 2/3 bpw runs -- **but that run did NOT exercise degradation** (read with FORCED_DEGRADE) | `vbr-backend/RESULT_VBR_QWEN38_GSQ.md` | 09-03 |
+| **The turbo-KV collapse is BUUN-SIDE**: same card, same model, same probe, opposite result on Tom's fork | `kv-tensor-split/RESULT_TURBO_COLLAPSE_IS_BUUN_SIDE.md` | 09-03 |
+| The turbo-KV collapse does NOT reproduce on current turboquant HEAD | `kv-tensor-split/RESULT_TURBO_COLLAPSE_NONREPRO.md` | 09-03 |
+| Turbo FA kernels are CORRECT at hsk=256 -- the collapse is not in flash attention | `kv-tensor-split/RESULT_TURBO_FA_GQA_SWEEP.md` | 09-03 |
+| Verified: buun `424c3361e` fixes the turbo-KV collapse on a second RDNA4 card | `kv-tensor-split/RESULT_TURBO_FIXED_AT_HEAD.md` | 09-03 |
+| buun `a56eeef5` verified on our own P100s -- tensor-split prompt caching restored | `vbr-artifact-store/RESULT_A56_VERIFIED_ON_P100.md` | 09-08 |
 
 ## hardware-specific
 
@@ -179,6 +198,24 @@ someone find it, and the claim in a form that is checkable.
 | buun's `4d90517b1` Pascal support **qualified on real hardware**: `test-exl3-byte-dot` PASS (65,536 states), `test-backend-ops MUL_MAT` 1529/1529 on CUDA0. Checked non-vacuous — sm_60 takes the scalar `#else` branch | `exl3-campaign/RESULT_PASCAL_QUALIFICATION_BUUN.md` | 09-20 |
 | buun `08826ad6` vs `c9c52d71` on 2x P100: **+13.4% decode**, driven by MTP acceptance 42.5% -> 56.5%; prefill unchanged like-for-like | `exl3-campaign/RESULT_BUUN_AB_OLD_VS_NEW.md` | 09-20 |
 | buun **issue #134 does not reproduce** on Pascal/Linux/CUDA 12.4: clean to 195,170 tokens past the 174,827 abort point, with VBR driven to `kv_bpv 4.34` against a 4.125 floor | `buun-issue134/RESULT_I134_PASCAL_NO_REPRO.md` | 09-20 |
+| **Breeze TTS 2 runs on RDNA4 (9070) unmodified**: 8.8 GB, RTF 3.2-7.7, ~120 W -- vendor says CUDA/NVIDIA only | `rdna4-tts/RESULT_BREEZE_TTS2_RDNA4.md` | 09-22 |
+| turboquant #348 on RDNA4: the deadlock fix is correct, and it uncovers a second bug underneath | `rdna4-kernel-census/RESULT_TQ348_RDNA4.md` | 09-05 |
+| The gfx1103 HIP flash-attention LINK failure (turboquant #250, `ggml_cuda_flash_attn_ext_vec_case` undefined) does NOT reproduce on gfx1201 | `turboquant-hip-fa/RESULT_GFX1201_FA_LINK.md` | 09-17 |
+| **SCALE's `cuModuleGetFunction` succeeds on symbols that do not exist** (1.7.3, gfx1201) | `scale-gfx1201/RESULT_SCALE_MODULEGETFN.md` | 09-17 |
+| **SCALE's `cudaMemGetInfo` 4x over-charge survives 1.7.3 and caps every gfx1201 board at ~24.6 % of its VRAM** | `scale-gfx1201/RESULT_SCALE_MEMINFO.md` | 09-17 |
+| Atlas gfx1201 bring-up S0 (environment): PASS, verified past the literal gate | `atlas-gfx1201/RESULT_S0_ENVIRONMENT.md` | 09-17 |
+| Atlas gfx1201 S1: kernel compile census 180/180 clean, matches the PRD baseline | `atlas-gfx1201/RESULT_S1_CENSUS_PROBES.md` | 09-17 |
+| Atlas gfx1201 S2: all 176 kernels compile, count matches the r9700 baseline | `atlas-gfx1201/RESULT_S2_KERNEL_BUILD.md` | 09-17 |
+| **Atlas serves on a 16 GB consumer gfx1201**; 0.85 GPU-memory util is too aggressive there | `atlas-gfx1201/RESULT_S3_SERVE.md` | 09-17 |
+| Atlas RST charters (a) coherence + (e) REST conformance: both pass at the documented gate (TheTom's own kit) | `atlas-gfx1201/RESULT_S4ae_COHERENCE_REST.md` | 09-18 |
+| Atlas RST (b) VRAM boundary: the charter's range produces NO refusal to name, by design | `atlas-gfx1201/RESULT_S4b_VRAM_BOUNDARY.md` | 09-17 |
+| Atlas RST (c) cancel/recovery: PASS, and the utilization knob is inert | `atlas-gfx1201/RESULT_S4c_CANCEL_RECOVERY.md` | 09-18 |
+| Atlas RST (d) sustained decode: 10 minutes, no drift, no throttling | `atlas-gfx1201/RESULT_S4d_SUSTAINED_DECODE.md` | 09-18 |
+| Atlas RST (f) concurrency soak: PASS, and **batch 8 collapses exactly as atlas#1118 says** | `atlas-gfx1201/RESULT_S4f_CONCURRENCY_SOAK.md` | 09-18 |
+| Atlas S5: SCALE 1.7.1 vs 1.7.3 on gfx1201, side by side (census, decode, TTFT) | `atlas-gfx1201/RESULT_S5_SCALE_AB.md` | 09-18 |
+| **Atlas already has PrismML ternary (Q2_0) kernels, built for gfx1201** -- the codec is supported even though Bonsai is not a target | `atlas-gfx1201/FINDING_TERNARY_Q2_0.md` | 09-18 |
+| **.73 load 770 from an unbounded `nvidia-smi` pileup** (862 stuck processes, 1,762 sshd) driven by external telemetry polling | `agentic-ladder/INCIDENT_73_NVIDIA_SMI_PILEUP.md` | 09-19 |
+| **.194 power economics: 216 s to boot, 218 W at idle**, and the BMC was never on the wire | `power-management/RESULT_194_POWER_CYCLE.md` | 09-03 |
 
 ## instrument validity — read before designing a benchmark
 
@@ -249,6 +286,99 @@ someone find it, and the claim in a form that is checkable.
 | **`prompt_per_second` is meaningless under caching** — 30 of 34 tokens cached made prefill read "-50.5%" while wall time fell 76%. Compare prefill WALL TIME at matched `prompt_n`, and record `prompt_n` + `cache_n` beside any prefill figure | `exl3-campaign/RESULT_BUUN_AB_OLD_VS_NEW.md` | 09-20 |
 | **The wake proxy owns llama-server.** `WP_START_CMD` hardcodes the binary, so killing the server relaunches the OLD one and a manual replacement dies with cudaMalloc OOM. Stop the proxy, verify the pid is gone AND VRAM fell, then swap | `exl3-campaign/RESULT_BUUN_AB_OLD_VS_NEW.md` | 09-20 |
 | A **confident task cannot detect nondeterminism** — "list five primes" returns 24 identical tokens under any perturbation. Probe with open-ended prose at temp 1.0, where one logit wobble flips a token and compounds | `argus-v2/RESULT_TENSOR_SPLIT_DETERMINISM.md` | 09-20 |
+| Model-availability audit: which receipts depend on artifacts that exist in only one place (and which upstream files were re-quantized in place under the same name) | `RESULT_MODEL_AVAILABILITY_AUDIT.md` | 09-15 |
+| Cleanup: 23/23 candidate duplicates byte-identical .194 vs control plane (sha256 on both hosts before any deletion) | `RESULT_CLEANUP_DEDUP_2026-09-14.md` | 09-14 |
+
+## agent benchmarks · argus · harness validity (backfill 2026-09-24)
+
+| finding | receipt | date |
+|---|---|---|
+| **argus noise floor = 10.3 %, identical to the between-quant signal** (same Q6_K file both arms, only the sampling draw differs) -- every single-rep quant comparison on v4 is void. See AFM entry on NO-ATTEMPT voiding (10.3 % vs 12.9 %) | `argus-v2/RESULT_NOISE_FLOOR.md` | 09-22 |
+| **argus v4 pilot RE-RUN with a correct scorer: the Q6_K-vs-IQ3_S direction flip vanishes and so does the discordance gain -- both claims withdrawn** (supersedes RESULT_PILOT_V4) | `argus-v2/RESULT_PILOT_V4_RERUN.md` | 09-22 |
+| Three argus scorer fixes: fixture **timezone pinned** (the agent took the host zone, so the same corpus scored differently by machine/DST), `WRONG` split into `WRONG-ACTION`/`WRONG-INACTION`, actions de-duplicated by (action, target) | `argus-v2/RESULT_THREE_SCORER_FIXES.md` | 09-21 |
+| ~~v4 respacing raised discordance 12.1 % -> 22.2 % and flipped direction~~ **SUPERSEDED** by RESULT_PILOT_V4_RERUN (broken scorer) | `argus-v2/RESULT_PILOT_V4.md` | 09-21 |
+| families_v4: inert rungs 4-5 cut, the act/ask flip moved to mid-ladder (rungs 3/4 bracket it), **every item machine-decidable** against the fixture world | `argus-v2/RESULT_FAMILIES_V4.md` | 09-21 |
+| **argus discordance concentrates in the rungs that bracket the act/ask flip; rungs 4-5 are pure cost** (0 discordant pairs, most of the voids) -- respacing is the sizing lever, not more items of every kind | `argus-v2/RESULT_BRACKET_CONCENTRATION.md` | 09-21 |
+| Agentic low-bit panel (one binary, frozen world, temp 0): **all three predictions falsified, and the corpus saturates** | `agentic-ladder/RESULT_PANEL.md` | 09-19 |
+| **A score is only comparable on the same instrument, version and configuration** -- machine, build, suite and index revision; three instances where ignoring this would have been published | `agentic-ladder/FINDING_INSTRUMENT_VERSION.md` | 09-19 |
+| Bonsai 2's chat template drops the `high` -> `xhigh` reasoning_effort alias (a documented value becomes a hard error); the panel is NOT confounded -- `medium` renders byte-identical to stock Qwen3.8-27B | `agentic-ladder/FINDING_BONSAI_TEMPLATE_DEFECT.md` | 09-19 |
+| Agentic panel gate P-A0: **temp 0 is byte-stable** even on the most damaged arm (Bonsai 2 PQ2_0, KLD 0.358), and it does not fall flat | `agentic-ladder/RESULT_PA0_GATE.md` | 09-19 |
+| **Four harness generations in one day, and every defect was first blamed on the model** -- harness bugs masquerade as capability loss | `sysadmin-corpus/RESULT_HARNESS_ITERATIONS.md` | 09-02 |
+| **Agent-corpus runaways were a HARNESS defect: declared token budgets were never applied** -- not the model, not VBR | `viability/RESULT_RUNAWAY_ROOT_CAUSE.md` | 09-09 |
+| Golden-trace replay: **the harness now tests itself** (replays known traces through the scorer before any model run) | `viability/RESULT_CORPUS_HARDENING_GOLDEN.md` | 09-08 |
+| hermesbench dispatcher fix confirmed LIVE, not just in offline re-scoring | `viability/RESULT_DISPATCHER_FIX_LIVE.md` | 09-08 |
+| **The agent timeout wall is content-dependent MTP acceptance, not server degradation** | `viability/RESULT_TIMEOUT_WALL_ROOT_CAUSE.md` | 09-09 |
+| Finetunes did not give up CAPABILITY, they gave up RELIABILITY -- **one retry erases the HumanEval+ deficit** | `nex-mini-ab/NOTE_CAPABILITY_VS_CONSISTENCY.md` | 09-12 |
+| **The stock base beat both finetunes on HumanEval+**, and only the replicate control makes that readable | `nex-mini-ab/RESULT_THREE_WAY.md` | 09-12 |
+
+## quant formats · EXL3 · low-bit ladder · scored bytes (backfill 2026-09-24)
+
+| finding | receipt | date |
+|---|---|---|
+| Who can MAKE a quant, per format x hardware: **GGUF quantizes anywhere incl. CPU; EXL3 needs a CUDA GPU -- blocked on Pascal, impossible on RDNA4** | `exl3-campaign/NOTE_QUANTIZER_SUPPORT_MATRIX.md` | 09-20 |
+| EXL3 supply on HF: **>= 1,000 repos** (page-limit floor); top publishers ArtusDev 170, turboderp 64 | `exl3-campaign/NOTE_EXL3_SUPPLY.md` | 09-20 |
+| What changed between Bonsai v1 and Bonsai 2, read from GGUF metadata only; KLD vs Qwen3.8-27B is valid (same base) | `lowbit-ladder/ANALYSIS_BONSAI_V1_VS_V2.md` | 09-19 |
+| **Bonsai ternary costs 2.67x the compute of a stock IQ2_XS on sm_60** (s/pass, same corpus and P100s) | `lowbit-ladder/FINDING_BONSAI_SPEED.md` | 09-19 |
+| **A '3-bit' quant is ~3.5 real scored bits, and the label spans 26 %** -- compare by scored bytes, never label | `lowbit-ladder/FINDING_LABEL_VS_REAL_BPW.md` | 09-19 |
+| **KLD decays ~ln(4) per bit** (exp fit on scored bytes) across three codec families | `lowbit-ladder/FINDING_DECAY_IS_LN4.md` | 09-19 |
+| Method: quality per SCORED byte -- subtract bytes `llama-perplexity` never exercises (e.g. MTP head) before comparing files | `lowbit-ladder/METHOD_SCORED_BYTES.md` | 09-19 |
+| **One 18-point fidelity curve across five codec families** (EXL3 campaign + low-bit ladder on one reference), and GSQ-RCO sits OFF it | `lowbit-ladder/FINDING_MERGED_CURVE.md` | 09-19 |
+| Low-bit ladder gate P-L0 PASS: the EXL3 campaign's KLD reference reproduces exactly (self-KLD < 1e-4, same-top >= 99.9 %) | `lowbit-ladder/RESULT_PL0_GATE.md` | 09-19 |
+| **Dense 27B: EXL3 is 1.3-1.5x closer to the reference than GGUF at matched VRAM** -- a steady 5-10 % VRAM saving, not a low-end breakthrough | `exl3-campaign/RESULT_EXL3_COMPRESSION.md` | 09-14 |
+| The earlier 1.45x EXL3 advantage was an INTERPOLATION artifact; the 5-bpw advantage survives, now measured directly | `exl3-campaign/RESULT_EXL3_UD3_XL.md` | 09-14 |
+| **At a distribution tie the task is a tie too**: EXL3 3.00bpw and UD-IQ3_XXS solve the same problems, EXL3 in ~1 GB less | `exl3-campaign/RESULT_EXL3_USABLE.md` | 09-13 |
+| **At matched VRAM EXL3 is 24 % closer to the reference than GGUF, while PERPLEXITY ranks them the other way** -- PPL and KLD disagree | `exl3-campaign/RESULT_EXL3_KLD.md` | 09-12 |
+| Decision table: **GGUF is faster at every quality level, EXL3 is smaller at every quality level** | `exl3-campaign/RESULT_EXL3_LADDER_SPEED.md` | 09-12 |
+| EXL3 as a daily-driver drop-in runs at **0.65x** its speed: MTP buys EXL3 1.24x, GGUF 1.69x | `exl3-campaign/RESULT_EXL3_DROPIN.md` | 09-12 |
+| **EXL3's int8 kernel does not amortize a multi-row (MTP verify) batch; GGUF's MMVQ does** -- that is the MTP gap | `exl3-campaign/RESULT_EXL3_MTP_SWEEP.md` | 09-12 |
+| EXL3 MTP depth sweep: gate FAILED -- **per-request MTP depth is ignored**; server-side depth 7 makes MTP a net loss for EXL3 | `exl3-campaign/RESULT_EXL3_DEPTH.md` | 09-12 |
+| EXL3 runs on RDNA4: buun's port works, **10x faster on the 9070**, and his own tests pass on it | `exl3-campaign/RESULT_EXL3_RDNA4.md` | 09-13 |
+| On RDNA4 **MTP gives EXL3 nothing and GGUF 1.7x**, so the matched-size speed gap is 2.1-2.4x | `exl3-campaign/RESULT_EXL3_RDNA4_MTP.md` | 09-13 |
+| Early EXL3 HIP port on RDNA4: loads and answers correctly, at CPU speed -- **no EXL3 weight ever reached the GPU** (later builds: see RESULT_EXL3_RDNA4) | `exl3-campaign/RESULT_EXL3_HIP.md` | 09-12 |
+| Where EXL3 weights live on RDNA4 (descriptive placement A/B, not preregistered) | `exl3-campaign/hip/NOTE_PLACEMENT_AB.md` | 09-12 |
+| What a HIP port of EXL3 would take (ledger O1, source reading) | `exl3-campaign/NOTE_EXL3_HIP_PORT.md` | 09-12 |
+| Can we make EXL3 quants on Pascal? (ledger O8, source reading) -- see [[triton-no-matmul-on-sm60]]: `tl.dot` fp16 crashes | `exl3-campaign/NOTE_EXL3_QUANTIZER_ON_SM60.md` | 09-12 |
+| **The dense sm_60 fallback reaches ~30 % of FP16 peak**; the memory-bandwidth argument for a new kernel is weak | `exl3-campaign/RESULT_SM60_DENSE_PATH.md` | 09-14 |
+| **EXL3 runs correctly on Pascal: +0.55 % perplexity vs Q6_K on 61 % of the bits** | `kv-tensor-split/RESULT_EXL3_SM60_INFERENCE.md` | 09-12 |
+| buun's Pascal restore qualifies on real P100 silicon once a CUDA-12.8 dependency is guarded | `kv-tensor-split/RESULT_SM60_EXL3_QUALIFICATION.md` | 09-12 |
+| **`ggml-cuda` does not build on CUDA < 12.8 for ANY architecture** at that head (humming FP8) -- found qualifying the Pascal restore; see [[buun-cuda-128-floor]] | `kv-tensor-split/NOTE_HUMMING_FP8_NEEDS_CUDA_128.md` | 09-12 |
+| O11 retired: buun's upstream e8m0 guard replaces our local patch (the test suite is a separate story) | `exl3-campaign/RESULT_O11_CLEAN_BUILD.md` | 09-13 |
+| O11 predictions before the result: does buun's upstreamed e8m0 guard remove our local patch? | `exl3-campaign/NOTE_O11_CLEAN_BUILD.md` | 09-13 |
+| Independent RDNA4 validation of buun's INT8-WMMA multi-row EXL3 kernel (base vs tip, only variable) | `rdna4-exl3-kernel/RESULT_EXL3_WMMA.md` | 09-15 |
+| GestaltLabs EXL3 11.5 GB pelicans: INFORMAL, 3 reps thinking-off -- **deliberately NOT a svgbench arm** | `exl3-pelican/NOTE_GESTALT_EXL3_PELICANS.md` | 09-21 |
+| At matched footprint the EXL3 quality gap is visible to trained raters and was NOT visible to me | `qwen4exp/NOTE_MATCHED_FOOTPRINT_PELICANS.md` | 09-14 |
+| **svgbench v1 scorer never rewards a revision, and twice punishes one** -- instrument defect | `qwen4exp/NOTE_SVGBENCH_SCORER_COUNTEREXAMPLE.md` | 09-14 |
+| Dirk-Qwen3.8-27B: same bytes as ISTA, a **3.3x longer chat template**, and the hybrid KV geometry | `gguf-librarian/RESULT_DIRK_GSQ_RCO_HYBRID.md` | 09-03 |
+| **Every MiMo-Distill GGUF tested declares 33 blocks and ships 32, including ggml-org's own** -- Q5_K_S unloadable (`blk.32.attn_norm.weight not found`) | `mtp-transfer/RESULT_MIMO_Q5KS_BROKEN.md` | 09-22 |
+
+## MoE · Flash-Next (qwen4exp) · expert offload · pruning (backfill 2026-09-24)
+
+| finding | receipt | date |
+|---|---|---|
+| REAP-320 Q2 is a **pure byte-copy prune** of the local UD-Q2_K_XL: 576/576 sampled experts identical, 48/48 routers exact row-subsets | `reap-flashnext/NOTE_REAP320_Q2_PARENT_VERIFIED.md` | 09-23 |
+| **.194 RAM upgrade (4 -> 8 channels) doubled host bandwidth (+77 % triad), prefill followed, DECODE barely moved** (Flash-Next full-spill rung 48: 8.36 tok/s) | `qwen4exp/RESULT_DIMM_AFTER.md` | 09-19 |
+| DIMM pre-upgrade baseline (4 channels, 1189 MHz/250 W) -- the frozen anchor for the after-run | `qwen4exp/RESULT_DIMM_BEFORE.md` | 09-15 |
+| **The expert-spill curve has a ~3 % noise floor**, and dense sampling is the wrong instrument for it | `qwen4exp/RESULT_FLASHNEXT_BREAK.md` | 09-15 |
+| **Flash-Next runs in 7.4 GB of VRAM at 8.6 tok/s, and expert spill gets CHEAPER per byte the more of it you do** | `qwen4exp/RESULT_FLASHNEXT_SPILL_LADDER.md` | 09-13 |
+| Flash-Next on .194: **residency buys decode, not prefill**; spilling EXPERTS is nearly free where spilling LAYERS is not | `qwen4exp/RESULT_FLASHNEXT_RESIDENCY.md` | 09-13 |
+| A 180B-class model runs on four P100s at ~9 tok/s (-ngl 44, layer split), **but not by the mechanism the card advertises**; 0.74 tok/s CPU-only | `qwen4exp/RESULT_FLASHNEXT_PASCAL.md` | 09-13 |
+| **Flash-Next prefill is ~35 tok/s and flat** -- pp/tg 3-4x where healthy hardware is 10-100x (host expert fetch bottleneck) | `qwen4exp/RESULT_FLASHNEXT_PREFILL.md` | 09-12 |
+| Batching does not rescue Flash-Next for a single user | `qwen4exp/RESULT_BATCH_PARALLELISM.md` | 09-03 |
+| **Layer split is inert at every device count; tensor split PEAKS at three cards** (27B, P100) | `qwen4exp/RESULT_SPLITMODE_SWEEP_27B.md` | 09-14 |
+| `-sm tensor` on qwen4exp is fixed (buun), and layer is still the faster choice on 4x P100 | `qwen4exp/NOTE_TSPLIT_RECHECK_2026-09-14.md` | 09-14 |
+| Who owns Flash-Next support now -- the 09-02 'no overlap' read is obsolete | `qwen4exp/NOTE_SUPPORT_SPLIT_2026-09-13.md` | 09-13 |
+| What .194's per-card utilization shows during a Flash-Next request (guiTOP smears sub-second hand-offs) | `qwen4exp/NOTE_GUITOP_XQ2_UTILIZATION.md` | 09-13 |
+| **`qwen4exp` under `-sm tensor` produces NaN, and `test-llama-archs` cannot see it** | `qwen4exp/RESULT_QWEN4EXP_TENSOR_NAN.md` | 09-03 |
+| The `head_count_kv` rule is FALSIFIED on current heads -- both forks, 2/3/4 devices | `qwen4exp/RESULT_HEADCOUNTKV_FALSIFIED.md` | 09-03 |
+| Flash-Next tensor-split throughput: **buun's fork ~35 % faster, and 4 GPUs slower than 2** | `qwen4exp/RESULT_HCKV_SPEED.md` | 09-03 |
+| **Deterministic segfault in `ggml_backend_meta_graph_compute` on a prefix-extension prompt** (qwen4exp tensor split) -- run with `--no-cache-prompt` | `qwen4exp/RESULT_META_BACKEND_SEGFAULT.md` | 09-03 |
+| REAM-60Pct: knowledge intact, **answer-termination gone** (1/5 vs control 5/5) | `qwen4exp/RESULT_REAM60_QUALITY.md` | 09-02 |
+| REAM-60Pct GGUF does not load: the pruning pipeline **zeroed `compress_ratios`** | `qwen4exp/RESULT_REAM60_METADATA_BUG.md` | 09-02 |
+| DS4 tensor split on `85eb0596a`: memset cleared, one op left, 2 devices WORKING | `qwen4exp/RESULT_85eb0596a_DS4.md` | 09-02 |
+| buun's qwen4 support vs the Tom/Mark/jabba DS4 direction -- different axes, no overlap (as of 09-02; see NOTE_SUPPORT_SPLIT) | `qwen4exp/RESULT_BUUN_MASTER_COMPARISON.md` | 09-02 |
+| buun master on Pascal: qwen4 passes, **NCCL AllReduce hard-aborts** (set GGML_CUDA_ALLREDUCE=internal), grok test broken everywhere | `buun-qwen4-pascal/RESULT_BUUN_MASTER_SM60.md` | 09-02 |
+| Model MRI resurrected: MoE expert-routing capture (`ffn_moe_probs`), locality and fine-tune diffs -- first look | `model-mri/RESULT_MOE_ROUTING_MRI.md` | 09-16 |
+| Salience-27B-R6 shakedown: the reasoning-economy claim shows a signal; **the MTP claim is untestable from this GGUF** | `qwen4exp/NOTE_SALIENCE_R6_SHAKEDOWN.md` | 09-14 |
 
 ## which binary produced this
 
