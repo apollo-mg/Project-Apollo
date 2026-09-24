@@ -1,3 +1,5 @@
+> **UPDATE 2026-09-24: the lean did NOT replicate.** With the prompt cache on, the same test gave MTP **+9.2 pp (p = 0.0098)**, the opposite sign, and 17 % faster tasks. See `RESULT_MTP_AGENTIC_SPEED.md`. Read this receipt as one run of a direction-unstable effect.
+
 # MTP on multi-turn agents: inconclusive, leaning toward harm. -5.8 pp, not significant, and not equivalent either
 
 **2026-09-23/24**, RX 9070 XT, buun `38ada0e1b`, `Qwen3.8-27B-UD-IQ3_XXS` (stock unsloth, native
