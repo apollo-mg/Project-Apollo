@@ -536,9 +536,23 @@ async def main(a):
                 try: return open(f"/proc/{pid}/comm").read().strip()
                 except Exception: return "?"
             infra = {a: p for a, p in new_l.items() if _comm(p) == "llama-server"}
-            leftover = [f"{a} pid={p} comm={_comm(p)}" for a, p in sorted(new_l.items()) if a not in infra]
+            # 2026-09-24: the diff is HOST-wide, so the operator's own apps count too (Hermes Desktop
+            # started mid-scenario and stopped a v5 arm). The agent runs under `bwrap --unshare-pid`,
+            # so everything it spawns lives in a CHILD pid namespace. A listener whose process is in
+            # the driver's own pid namespace cannot have come from the sandbox: record it, don't stop.
+            # Unknown pid, other namespace, or unreadable -> still a leftover (conservative).
+            def _pidns(pid):
+                try: return os.readlink(f"/proc/{pid}/ns/pid")
+                except Exception: return None
+            host_ns = _pidns("self")
+            unrelated = {a: p for a, p in new_l.items() if a not in infra and p is not None
+                         and host_ns is not None and _pidns(p) == host_ns}
+            leftover = [f"{a} pid={p} comm={_comm(p)}" for a, p in sorted(new_l.items())
+                        if a not in infra and a not in unrelated]
             r["host_new_listeners"] = leftover or None
             r["host_new_listeners_infra"] = [f"{a} pid={p}" for a, p in sorted(infra.items())] or None
+            r["host_new_listeners_unrelated"] = [f"{a} pid={p} comm={_comm(p)}"
+                                                 for a, p in sorted(unrelated.items())] or None
             sink.write(json.dumps(r) + "\n"); sink.flush(); os.fsync(sink.fileno())
             print(f"{r['id']:<28}{r['verdict']:<11}{len(r['tool_calls']):>6}"
                   f"{len(r['permissions']):>5}  {r['why'][:44]}")

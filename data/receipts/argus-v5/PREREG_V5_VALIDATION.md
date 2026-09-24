@@ -50,3 +50,16 @@ is new. It is also a **surface-invariance test**: does the same judgement surviv
 ## Not established
 
 One seed, one model. This validates the instrument; it compares nothing else.
+
+## Deviation 1 — 2026-09-24 ~13:55, after 26 of 83 items
+
+The arm stopped after `f6-inconsistent-r2` (exit 5, AFM-44 guard): a new listener `127.0.0.1:33665` appeared, owned
+by a `python3` from **Hermes Desktop, launched by Mark on the host at 13:45:17** (systemd user unit). The item
+ended at 13:45:59. The guard diffs listeners host-wide, so it cannot tell the operator's apps from the agent.
+
+**Fix (`argus/driver.py`):** a new listener counts as the agent's leftover unless its process is in the driver's
+own PID namespace. The agent runs under `bwrap --unshare-pid`, and all its descendants are in a child namespace
+(verified: host `pid:[4026531836]`, sandbox `pid:[4026533230]`). Unknown or unreadable PIDs still count as
+leftovers. Host-namespace listeners are recorded in `host_new_listeners_unrelated`.
+
+No scoring change. The 26 completed rows stand. The run resumes on a fresh server (same seed; warmup discarded).

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed -- argus driver: AFM-44 listener guard ignores host-namespace processes (2026-09-24, Claude)
+- `argus/driver.py`: a new listening socket stops the arm only if its process is NOT in the driver's own PID
+  namespace (the agent runs under `bwrap --unshare-pid`, so its descendants live in a child namespace). Operator
+  apps (Hermes Desktop, launched mid-run) had stopped a v5 validation arm as a false positive. Unknown or unreadable
+  PIDs still stop it. Host-side listeners are recorded as `host_new_listeners_unrelated`.
+
 ### Changed -- ledger: errors carry their command and class; unverified error/cause claims tagged (2026-09-24, Claude)
 - `tools/ledger_extract.py`: each `ERR` now reads `[CLASS] tool(command digest): text`.
   - `NONZERO`: a search/compare command (grep/find/test/diff/which, judged by the LAST command of a
