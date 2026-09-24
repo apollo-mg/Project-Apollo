@@ -10,7 +10,7 @@ T=$W/wiki.test.raw
 BASE=$W/base_f16_u16.kld
 mkdir -p $W/dumps $W/logs $W/traces
 export GGML_CUDA_ALLREDUCE=internal CUDA_VISIBLE_DEVICES=$GPU
-FLAGS=(-ngl 99 -fa on -c 32768 -b 512 -ub 512)
+FLAGS=(-ngl 99 -fa on -c 16384 -b 512 -ub 512 -v)   # -v: the KV buffer size line only prints verbose
 f16mib () { grep -o 'KV buffer size = *[0-9.]*' $W/logs/REF.log | grep -o '[0-9.]*$' | sort -n | tail -1; }   # max: the first line can read 0.00
 case $ARM in
   REF) KV=(-ctk f16 -ctv f16);;

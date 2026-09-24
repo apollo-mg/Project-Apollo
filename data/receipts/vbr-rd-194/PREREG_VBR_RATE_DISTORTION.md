@@ -65,3 +65,24 @@ before pressure on Pascal. That matters more than any curve point, and it goes t
 
 One weights file (2-bit body; KV sensitivity could differ at higher weight precision), one text, 32k depth. Frozen
 VBR is a test mode: the curve describes the allocator, not the live controller (see AFM-46).
+
+## Amendment 1 (2026-09-24 19:35, before any arm produced data): `-c 32768` -> `-c 16384`
+
+The first `REF` attempt at 32k ran out of VRAM on one P100 at position 16,896, the first batch of the scored half:
+`ggml_backend_cuda_graph_compute: CUDA pool allocation failed (out of VRAM)` with 4.3 GB free (model 8.6 GB,
+f16 KV 2.2 GB, compute 0.5 GB). Log kept as `REF_c32k_oom.log`. It was the first scored batch that needed the extra
+memory. A plausible cause, not verified: Pascal lacks MMQ for this path, so the 248k-vocab output projection
+dequantizes to f16 through the CUDA pool.
+
+Two options were considered:
+- keep 32k on 2-GPU testers: changes device count to 2, and the per-device VBR budget semantics are unverified;
+- **halve the context on 1 GPU (chosen).**
+
+Consequences:
+- scored positions become **8,192-16,382** per chunk, and wikitext yields **18 chunks** instead of 9 (minimum
+  attainable sign-flip p falls from 0.0039 to ~7.6e-6);
+- the chunk-count criterion "8/9" in R2-R4 becomes **">= 16/18"**;
+- VBR budgets remain fractions of the f16 KV size, now read from the 16k `REF` log.
+
+Everything else is unchanged. A one-chunk smoke test at 32k (GPU 1, frozen 594 MiB) confirmed that frozen VBR works on
+CUDA: budget honoured, 28 price-ordered degrades by 15k tokens, mapped ~588 MiB.
