@@ -7,6 +7,31 @@ Prereg: `PREREG_MTP_AGENTIC.md` + Amendment 1 (timeouts). Scorer: `analyze_mtp_a
 (committed before the run). Raw rows and events: `raw/` (home-directory paths redacted to `~`).
 Reproduce: `analyze_mtp_agentic.py data/receipts/mtp-agentic/raw`.
 
+## CORRECTION (2026-09-24): the agent was told UTC-12 while the world is UTC
+
+The prereg's "calendar pinned" setup (`TZ=Etc/GMT+12 HERMES_TIMEZONE=Etc/GMT+12`) did not do what it
+said:
+- `driver.py` overrides `TZ` to the world profile's `UTC` when it spawns the agent.
+- `HERMES_TIMEZONE` was inherited, and Hermes reads it first
+  (`hermes-go/agent/system_prompt.py:809-840`). So the model's system prompt said
+  **`Conversation started: Wednesday, September 23, 2026 (Etc/GMT+12, UTC-12:00)`** while every world
+  timestamp is UTC.
+- It surfaced in the transcripts at least once: *"If you meant 11am in your local time (UTC-12), that
+  would be 23:00 UTC..."*.
+
+**What still stands:** both arms of every pair ran under the identical condition, so the paired
+MTP-vs-off comparison is valid.
+
+**What does not:**
+- Absolute pass rates were taken under a timezone mismatch that no earlier argus run had. Earlier runs
+  had `TZ=UTC` and no `HERMES_TIMEZONE`, so Hermes fell back to UTC. Do not compare 75.0 % / 69.2 %
+  with other argus receipts.
+- The mismatch may have hurt the time-of-day items (f4/f6/f8) in both arms. Whether it *interacts*
+  with MTP is untested.
+
+**Fix going forward:** set `HERMES_TIMEZONE` to the world's zone (UTC), never to a pinning zone, and
+keep run windows inside one UTC day. Found by review (advisor) while designing families_v5.
+
 ## Primary result (judge void rule, unit = item, as registered)
 
 | | MTP off | MTP on |
