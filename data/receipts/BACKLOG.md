@@ -23,6 +23,16 @@ cost tokens only to start and interpret, which is the actual scarce resource.
 | ~~B2~~ | ~~Reconcile the parse-rate disagreement~~ **DONE 08-18** — `RESULT_B2_PARSE_RATE.md`. **7/7 disputed parses are `finish_reason == "length"`**; 43 % contain multiple `Exact Answer:` strings, i.e. drafts. `run_hle_mini.py` (content-only) is correct; `rejudge.py` must skip `reasoning` when truncated. Bigger finding: among responses that *finish*, the content parser is **12/12 = 100 %** — the "22.8 % parse rate" is the **79 % truncation rate**, a token-budget problem, not a parsing one. |
 | ~~B3~~ | ~~Finish the KV degradation pin~~ **DONE 08-16** — see `kv-tensor-split/RESULT_TWO_KV_BUGS.md`. Two bugs found; every stock quantized KV codec collapses, every buun codec works. | — | Arm B showed `q8_0` K+V degenerating 5/5 on the first request, but both arms carried `-sm tensor` **and** MTP, so the general claim was overstated. Mark runs K=q8_0/V=turbo4 daily without trouble. P5 (his pair, current build) discriminates codec bug from build regression. Script staged at `~/kv_pin.sh` on `.73`. |
 
+## Open bugs blocking daily-driver features (added 2026-09-24) -- check each new buun build
+
+- **.73 can't run more than one slot** (`-np >1` + `-sm tensor` + hybrid qwen35 + VBR host cache -> SIGABRT in
+  `ggml_backend_meta_buffer_get_tensor` during idle recurrent capture). `vbr-artifact-store/INCIDENT_73_NP4_TENSOR_CAPTURE_ABORT.md`.
+  Costs today: every Open WebUI follow-up/title/tag call and every Hermes session-title call evicts the chat's cache
+  (46 s re-prefill at 6.8k tokens); parallel subagents serialize and evict each other. Not fixed as of buun
+  `2ef0317dd` (09-23). Untested workaround: `-sm layer -np 4` (no meta buffer; costs decode).
+- **VBR sticky floor after a full reset** (unfrozen explicit budget, llama-perplexity). `kv-depth/RESULT_KV_DEPTH_MATCHED_ALLOCATION.md`,
+  AFM-46. Not yet checked in llama-server (watch `kv_bpv` in Open WebUI's message info). Not fixed as of `2ef0317dd`.
+
 ## Cheap and high-value
 
 | # | thread | cost | note |
