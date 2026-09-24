@@ -27,6 +27,8 @@ def gen(url, prompt, seed):
 
 
 def run_arm(arm, url):
+    # the first generation after a model load is unreliable (memory: server-uptime rule): discard one
+    gen(url, "Write one sentence about rivers.", 7)
     out = HERE / "raw" / f"{arm}.jsonl"; out.parent.mkdir(exist_ok=True)
     outl = HERE / "raw" / f"{arm}_ledger.jsonl"   # gitignored: diary text summarizes private chat
     done = set()
