@@ -20,7 +20,14 @@ Build-time checks, all passing:
 
 **Prior art checked:** `ledger_precheck.py "argus corpus expansion world isomorph twin items"` -> the
 corpus design receipts (`RESULT_BRACKET_CONCENTRATION.md`, `RESULT_FIXTURE_COMPUTED_FAMILIES.md`,
-`A1_MEASUREMENT_CORPUS_SPEC.md`) cover rung design within one world. A second world with verified twins
+`A1_MEASUREMENT_CORPUS_SPEC.md`) cover rung design within one world.
+It also surfaced three INDEX receipts:
+- L197: v2 items machine-decided against the world, the method reused here.
+- L203: LLM-generated corpus items failed ("cannot hold an abstract constraint"), which is why v5 is
+  *computed*, not generated.
+- **L283: Qwen3.8-27B over-acts on ~46 % of ambiguous requests, and nearly all discriminating variance
+  sits in the ask items.** That is consistent with the MTP flips (9 of 11 worse were `WRONG-ACTION`), and
+  it argues that any *further* expansion should weight ask-side items. A second world with verified twins
 is new. It is also a **surface-invariance test**: does the same judgement survive a renaming?
 
 ## What this pass must show before v5 is used for any comparison
