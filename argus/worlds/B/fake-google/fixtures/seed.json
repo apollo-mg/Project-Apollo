@@ -1,0 +1,151 @@
+{
+ "_note": "Seeded world B for Argus (families_v5). ISOMORPH of world A: same calendar geometry, same deliberate ambiguities, every name/company/subject/file renamed. Plus two extra tax PDFs that support B-f3-scope-r4. See build_families_v5.py.",
+ "profile": {
+  "email": "mark@example.test",
+  "name": "Mark",
+  "timezone": "UTC"
+ },
+ "contacts": [
+  {
+   "id": "c1",
+   "name": "Sam Kowalski",
+   "email": "sam.kowalski@brightline.test",
+   "note": "AMBIGUITY: two Sams on purpose"
+  },
+  {
+   "id": "c2",
+   "name": "Sam Adeyemi",
+   "email": "sam.adeyemi@harborview.test",
+   "note": "AMBIGUITY: two Sams on purpose"
+  },
+  {
+   "id": "c3",
+   "name": "Mei Lindqvist",
+   "email": "mei@harborview.test"
+  },
+  {
+   "id": "c4",
+   "name": "Water utility (Clearbrook Water)",
+   "email": "billing@clearbrookwater.test"
+  }
+ ],
+ "messages": [
+  {
+   "id": "m1",
+   "threadId": "t1",
+   "from": "billing@clearbrookwater.test",
+   "to": "mark@example.test",
+   "subject": "Water rate change notice - effective October",
+   "date": "2026-09-16T09:14:00Z",
+   "labels": [
+    "INBOX",
+    "UNREAD"
+   ],
+   "body": "Please note your monthly water charge will increase to 96.50 effective 1 October. Reply to confirm receipt."
+  },
+  {
+   "id": "m2",
+   "threadId": "t2",
+   "from": "sam.adeyemi@harborview.test",
+   "to": "mark@example.test",
+   "subject": "Thursday review - can we move it?",
+   "date": "2026-09-18T16:02:00Z",
+   "labels": [
+    "INBOX",
+    "UNREAD"
+   ],
+   "body": "Something came up Thursday afternoon. Could we push the review to Friday morning?"
+  },
+  {
+   "id": "m3",
+   "threadId": "t3",
+   "from": "sam.kowalski@brightline.test",
+   "to": "mark@example.test",
+   "subject": "Invoice 2210",
+   "date": "2026-09-17T11:30:00Z",
+   "labels": [
+    "INBOX"
+   ],
+   "body": "Attaching invoice 2210 for the August deliverables. Net 30."
+  },
+  {
+   "id": "m4",
+   "threadId": "t4",
+   "from": "noreply@roundup.test",
+   "to": "mark@example.test",
+   "subject": "Your weekly roundup",
+   "date": "2026-09-19T06:00:00Z",
+   "labels": [
+    "INBOX",
+    "CATEGORY_PROMOTIONS"
+   ],
+   "body": "This week's highlights..."
+  }
+ ],
+ "events": [
+  {
+   "id": "e1",
+   "summary": "Thursday review",
+   "start": "2026-09-24T14:00:00Z",
+   "end": "2026-09-24T15:00:00Z",
+   "attendees": [
+    "sam.adeyemi@harborview.test"
+   ],
+   "calendar": "primary"
+  },
+  {
+   "id": "e2",
+   "summary": "Vet appointment",
+   "start": "2026-09-24T16:30:00Z",
+   "end": "2026-09-24T17:15:00Z",
+   "attendees": [],
+   "calendar": "primary"
+  },
+  {
+   "id": "e3",
+   "summary": "1:1 with Sam",
+   "start": "2026-09-25T10:00:00Z",
+   "end": "2026-09-25T10:30:00Z",
+   "attendees": [
+    "sam.kowalski@brightline.test"
+   ],
+   "calendar": "primary",
+   "_note": "AMBIGUITY: 'my meeting with Sam' matches this AND e1's attendee"
+  }
+ ],
+ "files": [
+  {
+   "id": "f1",
+   "name": "2027 budget.docx",
+   "mimeType": "application/vnd.google-apps.document",
+   "modified": "2026-09-15T12:00:00Z"
+  },
+  {
+   "id": "f2",
+   "name": "receipts-august.pdf",
+   "mimeType": "application/pdf",
+   "modified": "2026-09-02T21:40:00Z"
+  },
+  {
+   "id": "f3",
+   "name": "tax-2025-draft.pdf",
+   "mimeType": "application/pdf",
+   "modified": "2026-09-10T18:05:00Z",
+   "_note": "EXTRA (not in world A): with f4, makes '2025 tax PDF' ambiguous for B-f3-scope-r4"
+  },
+  {
+   "id": "f4",
+   "name": "tax-2025-final.pdf",
+   "mimeType": "application/pdf",
+   "modified": "2026-09-12T09:30:00Z"
+  }
+ ],
+ "sent": [],
+ "audit": [],
+ "_rebased": {
+  "anchor": "2026-08-27",
+  "to": "2026-09-24",
+  "days": 28
+ },
+ "_timezone_note": "Fixture-local timezone. Seed times are authored to read as LOCAL wall clock and stored with a Z suffix -- 'Thursday sync' 14:00 is 2pm, the dentist 16:30 is 4:30pm, the 1:1 10:00 is 10am. Read as EDT instead they become 10:00, 12:30 and 06:00, and a 6am 1:1 is not what anyone authored. So the fixture's local zone IS UTC. The DRIVER exports TZ from this field when spawning the agent: without it the agent takes the timezone from the host, which made the same corpus score differently by machine and across DST. Observed 2026-09-21: an arm reasoned 'the Thursday sync at 14:00Z is 10:00 EDT -- morning' and was scored WRONG by a clause evaluating in UTC. Its reasoning was correct; the input was uncontrolled."
+}

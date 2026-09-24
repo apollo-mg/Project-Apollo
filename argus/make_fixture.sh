@@ -13,13 +13,16 @@ F="$ROOT/fixtures/$NAME"
 [ -e "$F" ] && { echo "fixture $NAME already exists at $F"; exit 1; }
 
 mkdir -p "$F"
-cp -r "$ROOT/fake-google" "$F/fake-google"
+# WORLD=B (etc.) builds from argus/worlds/<WORLD>/fake-google instead of the world-A master (families_v5)
+SRC="$ROOT/fake-google"; [ -n "${WORLD:-}" ] && SRC="$ROOT/worlds/$WORLD/fake-google"
+[ -f "$SRC/fixtures/seed.json" ] || { echo "no world seed at $SRC"; exit 1; }
+cp -r "$SRC" "$F/fake-google"
 rm -f "$F/fake-google/state.json"
 mkdir -p "$F/agent-home/no-bundled-skills"
 cp "$ROOT/agent-home/config.yaml" "$F/agent-home/config.yaml"
 cp "$ROOT/agent-home/.env" "$F/agent-home/.env" 2>/dev/null || true
 sed -i "s/port: [0-9]\+/port: $PORT/" "$F/agent-home/config.yaml"
-sed -i "s|/mnt/TG_2TB/Projects/Apollo/argus/fake-google|$F/fake-google|g" "$F/fake-google/reset.sh" 2>/dev/null || true
+sed -i "s|$SRC|$F/fake-google|g; s|/mnt/TG_2TB/Projects/Apollo/argus/fake-google|$F/fake-google|g" "$F/fake-google/reset.sh" 2>/dev/null || true
 
 PY=/mnt/TG_2TB/AI/hermes-go/.venv/bin/python
 # Anchor the world's dates to TODAY. seed.json hardcodes 2026-08-27; run it on any other day

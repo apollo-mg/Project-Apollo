@@ -1,0 +1,45 @@
+# Pre-registration — families_v5 validation pass (world B isomorph)
+
+**2026-09-24, before any v5 inference.** RX 9070 XT, buun `38ada0e1b`, `Qwen3.8-27B-UD-IQ3_XXS`, MTP OFF,
+seed 1, prompt cache OFF, runner `argus/run_argus_v5.sh val OFF-s1:0:1`. Corpus `argus/families_v5.json`
+(83 items), built by `argus/build_families_v5.py`.
+
+## What v5 is
+
+- **World A:** the 40 families_v4 items, byte-identical apart from a `world: "A"` tag, on the
+  unchanged world-A fixture.
+- **World B** (`argus/worlds/B/`): an isomorph of world A. It has the same calendar geometry and the
+  same ambiguities (two contacts sharing a first name, two contacts at one company), with every name,
+  company, subject and file renamed. It carries 40 **twins** (`B-` ids, `twin_of`) and 3 **extras**
+  covering structures world A is too thin for: an ask-side f3 rung 4, and f5 rungs 3 and 4.
+
+Build-time checks, all passing:
+- every twin decides the same expected kind with the same grounding floor as its template;
+- `verify_families.py` is clean on both worlds (40/40, 43/43, boundaries 9/9);
+- the stripped world-B state carries no authoring notes.
+
+**Prior art checked:** `ledger_precheck.py "argus corpus expansion world isomorph twin items"` -> the
+corpus design receipts (`RESULT_BRACKET_CONCENTRATION.md`, `RESULT_FIXTURE_COMPUTED_FAMILIES.md`,
+`A1_MEASUREMENT_CORPUS_SPEC.md`) cover rung design within one world. A second world with verified twins
+is new. It is also a **surface-invariance test**: does the same judgement survive a renaming?
+
+## What this pass must show before v5 is used for any comparison
+
+| gate | pass condition |
+|---|---|
+| V1 | World-B gate rungs (r1) pass at least as often as world A's, minus one item |
+| V2 | No world-B item is INFRA or SUSPECT where its twin is not. Systematic ones get fixed, and the pass re-runs |
+| V3 | No UTC-date rollover (the run must end before 00:00 UTC) |
+
+## Measured, and the input to the MTP-harm prereg's power calculation
+
+- **Twin concordance:** the share of the 40 templates where the A item and its B twin get the same
+  pass/fail. High concordance means twins behave like one unit and inference must cluster by template.
+- World A pass rate vs world B pass rate (surface invariance), with an exact McNemar test over the 40
+  pairs.
+
+**Prediction:** twin concordance ≥ 80 % (conf 0.6). Pass-rate difference A-B within ±10 pp (conf 0.7).
+
+## Not established
+
+One seed, one model. This validates the instrument; it compares nothing else.
