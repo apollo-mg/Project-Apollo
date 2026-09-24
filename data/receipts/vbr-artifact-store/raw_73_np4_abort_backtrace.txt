@@ -1,0 +1,223 @@
+           PID: 3450370 (llama-server)
+           UID: 1000 (mark)
+           GID: 1000 (mark)
+        Signal: 6 (ABRT)
+     Timestamp: Thu 2026-09-24 14:16:35 EDT (8min ago)
+  Command Line: ~/buun-llama-cpp/build_sm60_0920/bin/llama-server -m $'/mnt/models/AI_Models/Qwen 3.8/Qwen3.8-27B-Q6_K.gguf' --mmproj $'/mnt/models/AI_Models/Qwen 3.8/mmproj-F16.gguf' -ngl 99 -c 262144 -ctk vbr -ctv vbr --vbr-floor t4 --vbr-vram auto -np 4 -fit off -sm tensor -fa on --spec-type draft-mtp --draft-max 3 --jinja --kv-unified --chat-template-kwargs $'{"reasoning_effort":"medium"}' --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.0 --presence-penalty 0.0 --host 0.0.0.0 --port 8080
+    Executable: ~/buun-llama-cpp/build_sm60_0920/bin/llama-server
+ Control Group: /user.slice/user-1000.slice/session-380368.scope
+          Unit: session-380368.scope
+         Slice: user-1000.slice
+       Session: 380368
+     Owner UID: 1000 (mark)
+       Boot ID: 26c4959087e14af3984020e301566c5d
+    Machine ID: dd9a4e2eaa8e4d76bcfe580a030ae005
+      Hostname: ai-p100-sli
+       Storage: /var/lib/systemd/coredump/core.llama-server.1000.26c4959087e14af3984020e301566c5d.3450370.1790273795000000.zst (present)
+  Size on Disk: 417.5M
+       Message: Process 3450370 (llama-server) of user 1000 dumped core.
+                
+                Module linux-vdso.so.1 from deb linux-7.0.0-31.31.amd64
+                Module libgomp.so.1 from deb gcc-16-16-20260322-1ubuntu1.amd64
+                Module libgcc_s.so.1 from deb gcc-16-16-20260322-1ubuntu1.amd64
+                Module libstdc++.so.6 from deb gcc-16-16-20260322-1ubuntu1.amd64
+                Stack trace of thread 3450370:
+                #0  0x00007b1cb56a61ac __pthread_kill_implementation (libc.so.6 + 0xa61ac)
+                #1  0x00007b1cb5645b7e __GI_raise (libc.so.6 + 0x45b7e)
+                #2  0x00007b1cb56288ec __GI_abort (libc.so.6 + 0x288ec)
+                #3  0x00007b1cb42ad556 ggml_abort (libggml-base.so.0 + 0x21556)
+                #4  0x00007b1cb42e466f _ZL35ggml_backend_meta_buffer_get_tensorP19ggml_backend_bufferPK11ggml_tensorPvmm (libggml-base.so.0 + 0x5866f)
+                #5  0x00007b1cb4a9a212 _ZN12_GLOBAL__N_115chain_io_writer12write_tensorEP11ggml_tensormm (libllama.so.0 + 0x69a212)
+                #6  0x00007b1cb481125d _ZNK22llama_memory_recurrent16state_write_dataER16llama_io_write_iRKSt6vectorISt4pairIjjESaIS4_EE (libllama.so.0 + 0x41125d)
+                #7  0x00007b1cb4812405 _ZNK22llama_memory_recurrent11state_writeER16llama_io_write_iij (libllama.so.0 + 0x412405)
+                #8  0x00007b1cb4a9b264 _ZN12_GLOBAL__N_127recurrent_companion_captureERKNS_24recurrent_companion_planEiRSt10unique_ptrI22artifact_segment_chainSt14default_deleteIS4_EERSt5arrayIhLm32EER27vbr_explicit_capture_statusPvPDoFbSE_EPmSH_ (libllama.so.0 + 0x69b264)
+                #9  0x00007b1cb4aa5cc2 _Z27vbr_capture_projected_batchR14llama_memory_iRK35vbr_projected_capture_batch_request (libllama.so.0 + 0x6a5cc2)
+                #10 0x00007b1cb61b9caf _ZN25server_vbr_artifact_store28capture_projected_host_batchER14llama_memory_iSt6vectorI38vbr_projected_capture_manifest_requestSaIS3_EEmRS2_I40server_vbr_projected_host_publish_resultSaIS6_EEPK38server_vbr_projected_capture_admissionP45server_vbr_projected_host_capture_diagnostics (libllama-server-impl.so + 0x3b9caf)
+                #11 0x00007b1cb5fe4819 _ZN19server_context_impl22publish_idle_vbr_batchERN12server_queue20idle_capture_sessionEb.isra.0 (libllama-server-impl.so + 0x1e4819)
+                #12 0x00007b1cb607907d _ZNSt17_Function_handlerIFvvEZN19server_context_impl4initEvEUlvE2_E9_M_invokeERKSt9_Any_data (libllama-server-impl.so + 0x27907d)
+                #13 0x00007b1cb5f85132 _ZN12server_queue10start_loopEl (libllama-server-impl.so + 0x185132)
+                #14 0x00007b1cb5f2ddd9 _Z12llama_serverR13common_paramsiPPc (libllama-server-impl.so + 0x12ddd9)
+                #15 0x00007b1cb5f30367 _Z12llama_serveriPPc (libllama-server-impl.so + 0x130367)
+                #16 0x00007b1cb562a601 __libc_start_call_main (libc.so.6 + 0x2a601)
+                #17 0x00007b1cb562a718 __libc_start_main_impl (libc.so.6 + 0x2a718)
+                #18 0x000061900155a2a5 _start (~/buun-llama-cpp/build_sm60_0920/bin/llama-server + 0x12a5)
+                
+                Stack trace of thread 3450391:
+                #0  0x00007b1cb56ac802 __syscall_cancel_arch (libc.so.6 + 0xac802)
+                #1  0x00007b1cb56a030c __internal_syscall_cancel (libc.so.6 + 0xa030c)
+                #2  0x00007b1cb56a06e7 __futex_abstimed_wait_common64 (libc.so.6 + 0xa06e7)
+                #3  0x00007b1cb56a30c7 __pthread_cond_wait_common (libc.so.6 + 0xa30c7)
+                #4  0x00007b1cb6207877 _ZN7httplib10ThreadPool6workerEb (libllama-server-impl.so + 0x407877)
+                #5  0x00007b1cb5af5ef9 n/a (libstdc++.so.6 + 0xf5ef9)
+                #6  0x00007b1cb56a3dfa start_thread (libc.so.6 + 0xa3dfa)
+                #7  0x00007b1cb57375cc __clone3 (libc.so.6 + 0x1375cc)
+                
+                Stack trace of thread 3450383:
+                #0  0x00007b1cb56ac802 __syscall_cancel_arch (libc.so.6 + 0xac802)
+                #1  0x00007b1cb56a039c __internal_syscall_cancel (libc.so.6 + 0xa039c)
+                #2  0x00007b1cb5727c0e __GI___poll (libc.so.6 + 0x127c0e)
+                #3  0x00007b1c97319fa7 n/a (libcuda.so.1 + 0x319fa7)
+                #4  0x00007b1c974069e7 n/a (libcuda.so.1 + 0x4069e7)
+                #5  0x00007b1c97306de3 n/a (libcuda.so.1 + 0x306de3)
+                #6  0x00007b1cb56a3dfa start_thread (libc.so.6 + 0xa3dfa)
+                #7  0x00007b1cb57375cc __clone3 (libc.so.6 + 0x1375cc)
+                
+                Stack trace of thread 3450390:
+                #0  0x00007b1cb56ac802 __syscall_cancel_arch (libc.so.6 + 0xac802)
+                #1  0x00007b1cb56a039c __internal_syscall_cancel (libc.so.6 + 0xa039c)
+                #2  0x00007b1cb5738f42 accept4 (libc.so.6 + 0x138f42)
+                #3  0x00007b1cb61f9276 _ZN7httplib6Server15listen_internalEv (libllama-server-impl.so + 0x3f9276)
+                #4  0x00007b1cb5af5ef9 n/a (libstdc++.so.6 + 0xf5ef9)
+                #5  0x00007b1cb56a3dfa start_thread (libc.so.6 + 0xa3dfa)
+                #6  0x00007b1cb57375cc __clone3 (libc.so.6 + 0x1375cc)
+                
+                Stack trace of thread 3450394:
+                #0  0x00007b1cb56ac802 __syscall_cancel_arch (libc.so.6 + 0xac802)
+                #1  0x00007b1cb56a030c __internal_syscall_cancel (libc.so.6 + 0xa030c)
+                #2  0x00007b1cb56a06e7 __futex_abstimed_wait_common64 (libc.so.6 + 0xa06e7)
+                #3  0x00007b1cb56a30c7 __pthread_cond_wait_common (libc.so.6 + 0xa30c7)
+                #4  0x00007b1cb6207877 _ZN7httplib10ThreadPool6workerEb (libllama-server-impl.so + 0x407877)
+                #5  0x00007b1cb5af5ef9 n/a (libstdc++.so.6 + 0xf5ef9)
+                #6  0x00007b1cb56a3dfa start_thread (libc.so.6 + 0xa3dfa)
+                #7  0x00007b1cb57375cc __clone3 (libc.so.6 + 0x1375cc)
+                
+                Stack trace of thread 3450397:
+                #0  0x00007b1cb56ac802 __syscall_cancel_arch (libc.so.6 + 0xac802)
+                #1  0x00007b1cb56a030c __internal_syscall_cancel (libc.so.6 + 0xa030c)
+                #2  0x00007b1cb56a06e7 __futex_abstimed_wait_common64 (libc.so.6 + 0xa06e7)
+                #3  0x00007b1cb56a30c7 __pthread_cond_wait_common (libc.so.6 + 0xa30c7)
+                #4  0x00007b1cb6207877 _ZN7httplib10ThreadPool6workerEb (libllama-server-impl.so + 0x407877)
+                #5  0x00007b1cb5af5ef9 n/a (libstdc++.so.6 + 0xf5ef9)
+                #6  0x00007b1cb56a3dfa start_thread (libc.so.6 + 0xa3dfa)
+                #7  0x00007b1cb57375cc __clone3 (libc.so.6 + 0x1375cc)
+                
+                Stack trace of thread 3450381:
+                #0  0x00007b1cb56ac802 __syscall_cancel_arch (libc.so.6 + 0xac802)
+                #1  0x00007b1cb56a030c __internal_syscall_cancel (libc.so.6 + 0xa030c)
+                #2  0x00007b1cb56a06e7 __futex_abstimed_wait_common64 (libc.so.6 + 0xa06e7)
+                #3  0x00007b1cb56a30c7 __pthread_cond_wait_common (libc.so.6 + 0xa30c7)
+                #4  0x00007b1cb52fb1ac _ZNSt6thread11_State_implINS_8_InvokerISt5tupleIJZN10common_log6resumeEvEUlvE_EEEEE6_M_runEv (libllama-common.so.0 + 0x2fb1ac)
+                #5  0x00007b1cb5af5ef9 n/a (libstdc++.so.6 + 0xf5ef9)
+                #6  0x00007b1cb56a3dfa start_thread (libc.so.6 + 0xa3dfa)
+                #7  0x00007b1cb57375cc __clone3 (libc.so.6 + 0x1375cc)
+                
+                Stack trace of thread 3450396:
+                #0  0x00007b1cb56ac802 __syscall_cancel_arch (libc.so.6 + 0xac802)
+                #1  0x00007b1cb56a030c __internal_syscall_cancel (libc.so.6 + 0xa030c)
+                #2  0x00007b1cb56a06e7 __futex_abstimed_wait_common64 (libc.so.6 + 0xa06e7)
+                #3  0x00007b1cb56a30c7 __pthread_cond_wait_common (libc.so.6 + 0xa30c7)
+                #4  0x00007b1cb6207877 _ZN7httplib10ThreadPool6workerEb (libllama-server-impl.so + 0x407877)
+                #5  0x00007b1cb5af5ef9 n/a (libstdc++.so.6 + 0xf5ef9)
+                #6  0x00007b1cb56a3dfa start_thread (libc.so.6 + 0xa3dfa)
+                #7  0x00007b1cb57375cc __clone3 (libc.so.6 + 0x1375cc)
+                
+                Stack trace of thread 3450400:
+                #0  0x00007b1cb56ac802 __syscall_cancel_arch (libc.so.6 + 0xac802)
+                #1  0x00007b1cb56a030c __internal_syscall_cancel (libc.so.6 + 0xa030c)
+                #2  0x00007b1cb56a06e7 __futex_abstimed_wait_common64 (libc.so.6 + 0xa06e7)
+                #3  0x00007b1cb56a30c7 __pthread_cond_wait_common (libc.so.6 + 0xa30c7)
+                #4  0x00007b1cb6207877 _ZN7httplib10ThreadPool6workerEb (libllama-server-impl.so + 0x407877)
+                #5  0x00007b1cb5af5ef9 n/a (libstdc++.so.6 + 0xf5ef9)
+                #6  0x00007b1cb56a3dfa start_thread (libc.so.6 + 0xa3dfa)
+                #7  0x00007b1cb57375cc __clone3 (libc.so.6 + 0x1375cc)
+                
+                Stack trace of thread 3450395:
+                #0  0x00007b1cb56ac802 __syscall_cancel_arch (libc.so.6 + 0xac802)
+                #1  0x00007b1cb56a030c __internal_syscall_cancel (libc.so.6 + 0xa030c)
+                #2  0x00007b1cb56a06e7 __futex_abstimed_wait_common64 (libc.so.6 + 0xa06e7)
+                #3  0x00007b1cb56a30c7 __pthread_cond_wait_common (libc.so.6 + 0xa30c7)
+                #4  0x00007b1cb6207877 _ZN7httplib10ThreadPool6workerEb (libllama-server-impl.so + 0x407877)
+                #5  0x00007b1cb5af5ef9 n/a (libstdc++.so.6 + 0xf5ef9)
+                #6  0x00007b1cb56a3dfa start_thread (libc.so.6 + 0xa3dfa)
+                #7  0x00007b1cb57375cc __clone3 (libc.so.6 + 0x1375cc)
+                
+                Stack trace of thread 3450402:
+                #0  0x00007b1cb56ac802 __syscall_cancel_arch (libc.so.6 + 0xac802)
+                #1  0x00007b1cb56a030c __internal_syscall_cancel (libc.so.6 + 0xa030c)
+                #2  0x00007b1cb56a06e7 __futex_abstimed_wait_common64 (libc.so.6 + 0xa06e7)
+                #3  0x00007b1cb56a30c7 __pthread_cond_wait_common (libc.so.6 + 0xa30c7)
+                #4  0x00007b1cb6207877 _ZN7httplib10ThreadPool6workerEb (libllama-server-impl.so + 0x407877)
+                #5  0x00007b1cb5af5ef9 n/a (libstdc++.so.6 + 0xf5ef9)
+                #6  0x00007b1cb56a3dfa start_thread (libc.so.6 + 0xa3dfa)
+                #7  0x00007b1cb57375cc __clone3 (libc.so.6 + 0x1375cc)
+                
+                Stack trace of thread 3450392:
+                #0  0x00007b1cb56ac802 __syscall_cancel_arch (libc.so.6 + 0xac802)
+                #1  0x00007b1cb56a030c __internal_syscall_cancel (libc.so.6 + 0xa030c)
+                #2  0x00007b1cb56a06e7 __futex_abstimed_wait_common64 (libc.so.6 + 0xa06e7)
+                #3  0x00007b1cb56a30c7 __pthread_cond_wait_common (libc.so.6 + 0xa30c7)
+                #4  0x00007b1cb6207877 _ZN7httplib10ThreadPool6workerEb (libllama-server-impl.so + 0x407877)
+                #5  0x00007b1cb5af5ef9 n/a (libstdc++.so.6 + 0xf5ef9)
+                #6  0x00007b1cb56a3dfa start_thread (libc.so.6 + 0xa3dfa)
+                #7  0x00007b1cb57375cc __clone3 (libc.so.6 + 0x1375cc)
+                
+                Stack trace of thread 3450382:
+                #0  0x00007b1cb56ac802 __syscall_cancel_arch (libc.so.6 + 0xac802)
+                #1  0x00007b1cb56a030c __internal_syscall_cancel (libc.so.6 + 0xa030c)
+                #2  0x00007b1cb56a06e7 __futex_abstimed_wait_common64 (libc.so.6 + 0xa06e7)
+                #3  0x00007b1cb56a3689 __pthread_cond_wait_common (libc.so.6 + 0xa3689)
+                #4  0x00007b1cb608c9cf _ZN22stream_session_manager7gc_loopEv (libllama-server-impl.so + 0x28c9cf)
+                #5  0x00007b1cb5af5ef9 n/a (libstdc++.so.6 + 0xf5ef9)
+                #6  0x00007b1cb56a3dfa start_thread (libc.so.6 + 0xa3dfa)
+                #7  0x00007b1cb57375cc __clone3 (libc.so.6 + 0x1375cc)
+                
+                Stack trace of thread 3450401:
+                #0  0x00007b1cb56ac802 __syscall_cancel_arch (libc.so.6 + 0xac802)
+                #1  0x00007b1cb56a030c __internal_syscall_cancel (libc.so.6 + 0xa030c)
+                #2  0x00007b1cb56a06e7 __futex_abstimed_wait_common64 (libc.so.6 + 0xa06e7)
+                #3  0x00007b1cb56a30c7 __pthread_cond_wait_common (libc.so.6 + 0xa30c7)
+                #4  0x00007b1cb6207877 _ZN7httplib10ThreadPool6workerEb (libllama-server-impl.so + 0x407877)
+                #5  0x00007b1cb5af5ef9 n/a (libstdc++.so.6 + 0xf5ef9)
+                #6  0x00007b1cb56a3dfa start_thread (libc.so.6 + 0xa3dfa)
+                #7  0x00007b1cb57375cc __clone3 (libc.so.6 + 0x1375cc)
+                
+                Stack trace of thread 3450393:
+                #0  0x00007b1cb56ac802 __syscall_cancel_arch (libc.so.6 + 0xac802)
+                #1  0x00007b1cb56a030c __internal_syscall_cancel (libc.so.6 + 0xa030c)
+                #2  0x00007b1cb56a06e7 __futex_abstimed_wait_common64 (libc.so.6 + 0xa06e7)
+                #3  0x00007b1cb56a30c7 __pthread_cond_wait_common (libc.so.6 + 0xa30c7)
+                #4  0x00007b1cb6207877 _ZN7httplib10ThreadPool6workerEb (libllama-server-impl.so + 0x407877)
+                #5  0x00007b1cb5af5ef9 n/a (libstdc++.so.6 + 0xf5ef9)
+                #6  0x00007b1cb56a3dfa start_thread (libc.so.6 + 0xa3dfa)
+                #7  0x00007b1cb57375cc __clone3 (libc.so.6 + 0x1375cc)
+                
+                Stack trace of thread 3450523:
+                #0  0x00007b1cb56ac802 __syscall_cancel_arch (libc.so.6 + 0xac802)
+                #1  0x00007b1cb56a039c __internal_syscall_cancel (libc.so.6 + 0xa039c)
+                #2  0x00007b1cb5727c0e __GI___poll (libc.so.6 + 0x127c0e)
+                #3  0x00007b1c97319fa7 n/a (libcuda.so.1 + 0x319fa7)
+                #4  0x00007b1c974069e7 n/a (libcuda.so.1 + 0x4069e7)
+                #5  0x00007b1c97306de3 n/a (libcuda.so.1 + 0x306de3)
+                #6  0x00007b1cb56a3dfa start_thread (libc.so.6 + 0xa3dfa)
+                #7  0x00007b1cb57375cc __clone3 (libc.so.6 + 0x1375cc)
+                
+                Stack trace of thread 3450614:
+                #0  0x00007b1cb56ac802 __syscall_cancel_arch (libc.so.6 + 0xac802)
+                #1  0x00007b1cb56a039c __internal_syscall_cancel (libc.so.6 + 0xa039c)
+                #2  0x00007b1cb5727c0e __GI___poll (libc.so.6 + 0x127c0e)
+                #3  0x00007b1c97319fa7 n/a (libcuda.so.1 + 0x319fa7)
+                #4  0x00007b1c974069e7 n/a (libcuda.so.1 + 0x4069e7)
+                #5  0x00007b1c97306de3 n/a (libcuda.so.1 + 0x306de3)
+                #6  0x00007b1cb56a3dfa start_thread (libc.so.6 + 0xa3dfa)
+                #7  0x00007b1cb57375cc __clone3 (libc.so.6 + 0x1375cc)
+                
+                Stack trace of thread 3462425:
+                #0  0x00007b1cb56ac802 __syscall_cancel_arch (libc.so.6 + 0xac802)
+                #1  0x00007b1cb56a030c __internal_syscall_cancel (libc.so.6 + 0xa030c)
+                #2  0x00007b1cb56a06e7 __futex_abstimed_wait_common64 (libc.so.6 + 0xa06e7)
+                #3  0x00007b1cb56a30c7 __pthread_cond_wait_common (libc.so.6 + 0xa30c7)
+                #4  0x00007b1cb5f84d34 _ZN12server_queue11worker_loopEv (libllama-server-impl.so + 0x184d34)
+                #5  0x00007b1cb5af5ef9 n/a (libstdc++.so.6 + 0xf5ef9)
+                #6  0x00007b1cb56a3dfa start_thread (libc.so.6 + 0xa3dfa)
+                #7  0x00007b1cb57375cc __clone3 (libc.so.6 + 0x1375cc)
+                
+                Stack trace of thread 3450398:
+                #0  0x00007b1cb56ac802 __syscall_cancel_arch (libc.so.6 + 0xac802)
+                #1  0x00007b1cb56a030c __internal_syscall_cancel (libc.so.6 + 0xa030c)
+                #2  0x00007b1cb56a06e7 __futex_abstimed_wait_common64 (libc.so.6 + 0xa06e7)
+                #3  0x00007b1cb56a30c7 __pthread_cond_wait_common (libc.so.6 + 0xa30c7)
+                #4  0x00007b1cb6207877 _ZN7httplib10ThreadPool6workerEb (libllama-server-impl.so + 0x407877)
+                #5  0x00007b1cb5af5ef9 n/a (libstdc++.so.6 + 0xf5ef9)
+                #6  0x00007b1cb56a3dfa start_thread (libc.so.6 + 0xa3dfa)
+                #7  0x00007b1cb57375cc __clone3 (libc.so.6 + 0x1375cc)
+                ELF object binary architecture: AMD x86-64
