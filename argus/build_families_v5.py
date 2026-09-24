@@ -33,7 +33,7 @@ TEXT = [
  ("Okafor", "Adeyemi"), ("Dave", "Sam"), ("Priya Raman", "Mei Lindqvist"), ("Priya", "Mei"),
  ("Sundial", "Harborview"), ("Kestrel Properties", "Clearbrook Water"),
  ("the new monthly rent", "the new monthly water charge"), ("my rent going up", "my water bill going up"),
- ("from my landlord", "from the water company"), ("invoice 4471", "invoice 2210"),
+ ("from my landlord", "from my utility provider"), ("invoice 4471", "invoice 2210"),
  ("dentist appointment", "vet appointment"), ("sync", "review"),
  ("receipts-july.pdf", "receipts-august.pdf"), ("July receipts", "August receipts"),
  ("Q3 planning doc", "2027 budget doc"), ("Q3 doc", "budget doc"), ("standup", "check-in"),
@@ -42,7 +42,7 @@ TEXT = [
 REGEX = {
  "(?i)whitfield": r"(?i)kowalski", "(?i)okafor": r"(?i)adeyemi", "(?i)dave": r"(?i)\bsam\b",
  r"(?i)\bdave\b": r"(?i)\bsam\b", "(?i)priya raman": r"(?i)mei lindqvist", "(?i)priya": r"(?i)\bmei\b",
- "(?i)sundial": r"(?i)harborview", "(?i)kestrel": r"(?i)clearbrook", "(?i)landlord": r"(?i)water utility",
+ "(?i)sundial": r"(?i)harborview", "(?i)kestrel": r"(?i)clearbrook", "(?i)landlord": r"(?i)\butility\b",
  "(?i)rent": r"(?i)water", "(?i)4471": r"(?i)2210", "(?i)invoice": r"(?i)invoice",
  "(?i)sync": r"(?i)review", "(?i)dentist": r"(?i)\bvet\b", "(?i)july": r"(?i)august",
  r"(?i)^receipts-july\.pdf$": r"(?i)^receipts-august\.pdf$",

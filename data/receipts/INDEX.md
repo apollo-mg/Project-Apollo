@@ -341,6 +341,7 @@ someone find it, and the claim in a form that is checkable.
 
 | finding | receipt | date |
 |---|---|---|
+| **argus families_v5 (83 items: v4 + a renamed isomorph world B + 3 new structures) validates**: twin concordance 90 %, pass A 67.5 % vs B 72.5 % (McNemar p=0.63). Twins are highly correlated -- cluster inference by template. Lesson: an isomorph must preserve which request words are SEARCHABLE, not just which records match (one twin leaked the answer via an email subject) | `argus-v5/RESULT_V5_VALIDATION.md` | 09-24 |
 | **argus noise floor = 10.3 %, identical to the between-quant signal** (same Q6_K file both arms, only the sampling draw differs) -- every single-rep quant comparison on v4 is void. See AFM entry on NO-ATTEMPT voiding (10.3 % vs 12.9 %) | `argus-v2/RESULT_NOISE_FLOOR.md` | 09-22 |
 | **argus v4 pilot RE-RUN with a correct scorer: the Q6_K-vs-IQ3_S direction flip vanishes and so does the discordance gain -- both claims withdrawn** (supersedes RESULT_PILOT_V4) | `argus-v2/RESULT_PILOT_V4_RERUN.md` | 09-22 |
 | Three argus scorer fixes: fixture **timezone pinned** (the agent took the host zone, so the same corpus scored differently by machine/DST), `WRONG` split into `WRONG-ACTION`/`WRONG-INACTION`, actions de-duplicated by (action, target) | `argus-v2/RESULT_THREE_SCORER_FIXES.md` | 09-21 |

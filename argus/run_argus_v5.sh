@@ -84,6 +84,7 @@ arm () {  # $1=label   runs every item with a pristine agent-home restored befor
     local items; items=$("$PY" -c "import json,sys;d=json.load(open(sys.argv[1]));print(' '.join(x['id']+'@'+x['world'] for x in d['scenarios']))" "$SCEN")
     for iw in $items; do
         local id=${iw%@*} w=${iw#*@}; local FX=${FXOF[$w]}
+        if [ -n "${ONLY:-}" ] && [[ " $ONLY " != *" $id "* ]]; then continue; fi   # ONLY="id1 id2": re-run just these
         local HOME_SNAP="$A/fixtures/$FX.agent-home.pristine.tar"
         local sk="$A/fixtures/$FX/agent-home/skills/google/google-workspace/SKILL.md"
         grep -q "\"id\": \"$id\"" "$OUT/$1.jsonl" 2>/dev/null && continue    # resume
