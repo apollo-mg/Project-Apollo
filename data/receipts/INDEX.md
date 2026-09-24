@@ -113,6 +113,7 @@ someone find it, and the claim in a form that is checkable.
 | finding | receipt | date |
 |---|---|---|
 | `-sm tensor` is **1.62x over one P100**; `-sm layer` across two is **inert** (and bit-identical to single) | `qwen38-splitmode/RESULT_P100_SM_TENSOR.md` | 08-14 |
+| **.73 daily config at depth (tensor split): prefill 151 -> 99 tok/s and decode 27 -> 8 tok/s from 2k to 128k**; reading 128k costs 22 min. Layer split (default -ts) ties prefill at 16k, halves decode, and OOMs at 64k+ (Pascal FA f16 dequant scratch); `-np 4 -sm layer` serves 0/6 requests (draft-context OOM), so it is not a workaround for the np>1 tensor abort. **No VBR sticky floor in llama-server**: every new prompt resets to f16 and bpv tracks depth | `split-prefill-73/RESULT_SPLIT_PREFILL_73.md` | 09-24 |
 | Split mode and MTP **compose multiplicatively** — 2.433x measured vs 2.432x predicted | `qwen38-splitmode/RESULT_SPLIT_X_MTP.md` | 08-15 |
 | `--numa distribute` is worth **+13.6%** warm decode but makes cold first-response ~2x worse | `battle16gb/DS4_REBASELINE_NUMA.md` | 08-02 |
 | **`-np 4` + `-sm tensor` + hybrid (qwen35) + VBR host cache ABORTS llama-server** (buun 08826ad6e, .73): idle capture of recurrent state from a meta buffer hits a GGML_ASSERT in `ggml_backend_meta_buffer_get_tensor`. `--cache-ram 0` avoids it but disables ALL prefix reuse on this model; `-np 1` reuses consecutive turns (2,423 tok, 1.0 s vs 17 s) but a client side request evicts the slot | `vbr-artifact-store/INCIDENT_73_NP4_TENSOR_CAPTURE_ABORT.md` | 09-24 |

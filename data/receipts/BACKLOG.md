@@ -29,9 +29,9 @@ cost tokens only to start and interpret, which is the actual scarce resource.
   `ggml_backend_meta_buffer_get_tensor` during idle recurrent capture). `vbr-artifact-store/INCIDENT_73_NP4_TENSOR_CAPTURE_ABORT.md`.
   Costs today: every Open WebUI follow-up/title/tag call and every Hermes session-title call evicts the chat's cache
   (46 s re-prefill at 6.8k tokens); parallel subagents serialize and evict each other. Not fixed as of buun
-  `2ef0317dd` (09-23). Untested workaround: `-sm layer -np 4` (no meta buffer; costs decode).
+  `2ef0317dd` (09-23). Workaround `-sm layer -np 4` TESTED 09-24 and FAILS as configured: 0/6 requests served (draft-context OOM), and layer split halves decode anyway (`split-prefill-73/RESULT_SPLIT_PREFILL_73.md`).
 - **VBR sticky floor after a full reset** (unfrozen explicit budget, llama-perplexity). `kv-depth/RESULT_KV_DEPTH_MATCHED_ALLOCATION.md`,
-  AFM-46. Not yet checked in llama-server (watch `kv_bpv` in Open WebUI's message info). Not fixed as of `2ef0317dd`.
+  AFM-46. **Checked 09-24 in llama-server (`08826ad6e`, .73): NOT reproduced** -- each new prompt resets to f16 and bpv tracks depth (`split-prefill-73/`). Still open for llama-perplexity / unfrozen explicit budgets.
 
 ## Cheap and high-value
 
