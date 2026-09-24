@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed -- ledger: errors carry their command and class; unverified error/cause claims tagged (2026-09-24, Claude)
+- `tools/ledger_extract.py`: each `ERR` now reads `[CLASS] tool(command digest): text`.
+  - `NONZERO`: a search/compare command (grep/find/test/diff/which, judged by the LAST command of a
+    compound line) exited non-zero, which usually means "no match".
+  - `FAIL`: an error signature, a timeout (124), or a harness refusal.
+  - `EXIT`: any other non-zero exit.
+  - Previously an ERR was the first 120 chars of any `is_error` result with no command, so a `grep`
+    that found nothing read as a failure.
+- `tools/ledger_build.py`:
+  - Prompt rules: `[NONZERO]` is never an error or cause, and causal claims need the events and the
+    assistant's own text to connect them.
+  - `annotate_unverified()`: a sentence claiming an error, failure or cause whose identifiers appear
+    only in `[NONZERO]` output is tagged `_[unverified: ...]_` inline, never deleted. So is a causal
+    sentence inside an error paragraph with no matching failure.
+  - Tested on this session's diaries (09-22..09-24): exactly the 2 invented claims of 09-23 tagged,
+    0 false positives.
+- Trigger: the 09-23 diary said "`argus/driver.py:9` hit a route ... Worked around by setting `TZ`
+  and `HERMES_TIMEZONE`". Line 9 was a docstring in grep output, and the TZ change was an unrelated
+  bug. `FAILURE_MODES.md` AFM-47.
+
 - **argus harness hardened: the agent under test now runs sandboxed (Claude, 2026-09-22):**
   `argus/sandboxed_agent.sh` wraps `--agent-cmd` in bubblewrap (empty `/home` and `/mnt`, only its
   code, Python, fixture and scenario sandbox bound in; pid namespace unshared). `reset.sh` now writes

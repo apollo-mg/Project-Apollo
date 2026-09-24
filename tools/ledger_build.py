@@ -73,6 +73,12 @@ Rules:
 - Lead with what was DECIDED and WHY, not a list of what was run.
 - Every error, retry loop and human correction in the skeleton exists because something went
   wrong. Explain the cause where the events support it. Do not invent causes.
+- ERR lines carry a class. [NONZERO] means a search/compare command (grep, find, test, diff, which)
+  exited non-zero: it usually found NOTHING. It is NOT a failure, and its output text is search
+  results, not an error message. Never describe a [NONZERO] line as an error, a bug or a cause.
+- Only write "X caused Y", "worked around by", "root cause" or "fixed by" when the events show Y
+  following X AND the assistant's own SAY text connects them. Adjacent events are not causation.
+  If unsure, state the two facts separately without linking them.
 - Record dead ends and false starts explicitly. They are the most valuable content: they stop
   the work being redone.
 - If a claim was corrected or retracted, say so plainly.
@@ -146,6 +152,54 @@ def call_model(host, prompt, model=None, timeout=1800):
         raise RuntimeError("model hit the token limit before writing an entry (all reasoning)")
     return text
 
+CLAIM_WORDS = re.compile(r"(?i)\b(error|errors|errored|fail(?:ed|s|ure)?|crash(?:ed)?|broke|broken|bug|"
+                         r"hit a|worked around|workaround|caused by|root cause|because of)\b")
+CAUSAL = re.compile(r"(?i)\b(worked around|workaround|caused by|root cause|because of|hit a|led to|fixed by)\b")
+IDENT = re.compile(r"`([^`\n]{2,80})`|\b([\w./-]+\.(?:py|sh|md|json|jsonl|cpp|h|cu|yaml|txt)(?::\d+)?)\b")
+
+def annotate_unverified(entry, ev):
+    """Mechanical check added 2026-09-24 after the 09-23 diary invented a cause from a `grep` that
+    found nothing. A sentence that claims an error/failure/cause AND names an identifier must have
+    that identifier inside a genuine failure (ERR [FAIL] or [EXIT]). If it only appears in [NONZERO]
+    search output, or in no error at all, the sentence is tagged inline -- never deleted, because a
+    true claim the check cannot see should survive, and a tag is cheap to read past."""
+    real = " ".join(v for k, v in ev if k == "ERR" and not v.startswith("[NONZERO]"))
+    nonzero = " ".join(v for k, v in ev if k == "ERR" and v.startswith("[NONZERO]"))
+    tagged = 0
+    context = {"error_para": False}
+    def check(sent):
+        nonlocal tagged
+        if not CLAIM_WORDS.search(sent) or "_[unverified" in sent:
+            return sent
+        ids = [a or b for a, b in IDENT.findall(sent)]
+        ids = [i for i in ids if len(i) >= 3]
+        if not ids or any(i in real for i in ids):
+            return sent
+        if any(i in nonzero for i in ids):
+            why = "appears only in a search that found nothing, not in a failure"
+        elif context["error_para"] and (CAUSAL.search(sent) or re.match(r"\s*(\*\*|- \*\*)?error", sent, re.I)):
+            # absent evidence only matters inside an error narrative: a sentence already tagged in
+            # this paragraph, or a paragraph headed **Error**. Root causes found by READING source
+            # (no failing tool call) and design talk about "workarounds" stay untagged.
+            why = "no tool failure in this window mentions it"
+        else:
+            return sent        # plain mention of a failure elsewhere (e.g. the system under test)
+        tagged += 1
+        return sent.rstrip() + f" _[unverified: `{ids[0]}` {why}]_"
+    out = []
+    context = {"error_para": False}
+    for line in entry.split("\n"):
+        parts = re.split(r"(?<=[.!?])\s+(?=[A-Z*`_])", line)
+        context["error_para"] = bool(re.match(r"\s*(- )?\*\*error", line, re.I))
+        done = []
+        for p in parts:
+            q = check(p)
+            if q != p:
+                context["error_para"] = True     # later causal sentences in this paragraph are suspect
+            done.append(q)
+        out.append(" ".join(done))
+    return "\n".join(out), tagged
+
 def render_skeleton(s):
     L=[]
     L.append(f"- tool calls: {sum(s['tools'].values())} "
@@ -187,6 +241,10 @@ def main(a):
         if bad:
             print(f"REJECTED entry from {a.host}: {bad}", file=sys.stderr)
             return 2
+    if entry:
+        entry, n_unv = annotate_unverified(entry, ev)
+        if n_unv:
+            print(f"annotated {n_unv} unverified error/cause claim(s)", file=sys.stderr)
 
     day = datetime.now().strftime("%Y-%m-%d")
     out = a.out or f"/mnt/TG_2TB/Projects/Apollo/data/dev_diaries/{day}_ledger.md"

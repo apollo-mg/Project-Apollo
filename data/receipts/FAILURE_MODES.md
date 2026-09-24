@@ -1602,3 +1602,20 @@ every tensor to the t1 floor. State outlived the reset.
 **For users on current buun:** until this is understood, a typed `--vbr-floor` (for example `t4`)
 bounds the worst case. For benchmarks, `VBR_FREEZE=1` + `VBR_BUDGET_MIB` makes the schedule a pure
 function of the budget. The implicit no-flag default floors at t4.
+
+## AFM-47 — a non-zero exit is not an error: a search that found nothing became a diary "bug"
+
+**2026-09-24.** The ledger's extractor logged every `is_error` tool result as `ERR <first 120 chars>`,
+with no command attached. A compound `grep ...; which faketime` exited 1 (no match), so its ordinary
+search output (`argus/driver.py:9: ...route that exists in no Hermes codebase`, an old docstring) went
+into the diary skeleton as an error. The local model then wrote a cause-and-effect story connecting it
+to an unrelated change: "hit a route ... Worked around by setting `TZ` and `HERMES_TIMEZONE`". Neither
+half was true, and the "workaround" was itself a bug (see the MTP-agentic timezone correction).
+
+**The lesson generalizes to any tool that summarizes tool output:** exit status is a property of the
+LAST command, and for search/compare commands non-zero usually means "nothing found". Attach the
+command and a class to every error before a model reasons about it. Treat a model-written narrative
+of *why* something failed as a claim that needs the failing call cited, not as a record.
+
+**Fix:** classed ERR lines, prompt rules, and an inline `_[unverified]_` tagger (CHANGELOG
+2026-09-24). Found by a human-requested spot-check of the diary, the ledger's acceptance criterion (1).
