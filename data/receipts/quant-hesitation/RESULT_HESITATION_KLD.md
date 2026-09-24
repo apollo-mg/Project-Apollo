@@ -171,11 +171,25 @@ damage, and every arm has the same curve. Any "protect uncertain positions" sche
    logit perturbation reshuffles less than diffuse uncertainty does.
 3. **The pattern does not depend on bit count.** Raw ratio 1.20-1.39 and matched ratio 0.59-0.69 across a **67x**
    range in mean KLD (Q2_K_XL 0.0738 -> Q6_K 0.0011). Fewer bits scale the damage up without moving it toward
-   hesitation. IQ3_XXS is the lowest arm in every ratio column; nothing here explains why.
+   hesitation. IQ3_XXS is the lowest arm in every ratio column; it is also the only arm from a different
+   (earlier) Unsloth build (see Arm provenance).
 4. **For the "protect uncertain positions" question:** the mechanism to key on is the model's own entropy at the
    position. The source's marker penalty (12-23 % shorter CoT) works on the symptom, and nothing here argues
    against it as a length control. What this removes is the rationale that markers are a quantization weak spot:
    they are the opposite.
+
+## Arm provenance (checked after publishing; changes how to read IQ3_XXS)
+
+Checked against `unsloth/Qwen3.8-27B-GGUF` on 2026-09-24. The repo README advertises Unsloth Dynamic 3.0, and its
+model files have not changed since 08-19.
+- **UD-Q2_K_XL, UD-IQ4_XS, UD-Q4_K_M:** byte sizes identical to the files served today; imatrix 1,251 chunks.
+- **UD-IQ3_XXS is not the file served today.** Ours is 11,913,559,104 B, built with a *45-chunk* imatrix
+  (`unsloth_calibration_Qwen3.8-27B.txt`). The current file is 10,934,860,704 B (sha256 `c0b7c303...`). It is an
+  earlier upload.
+
+IQ3_XXS is the lowest arm in every ratio column, and it is the only arm from a different build. **Its deviations are
+attributable to the build (calibration and recipe), not to the IQ3_XXS format.** The registered verdicts do not
+depend on it: every arm fails H1-H4 the same way. The same 11.91 GB file is the IQ3_XXS point in `lowbit-ladder/`.
 
 ## Not delivered from the prereg
 
