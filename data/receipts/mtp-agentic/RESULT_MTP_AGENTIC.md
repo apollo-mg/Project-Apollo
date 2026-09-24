@@ -42,6 +42,27 @@ timeouts-void sensitivity is identical to the primary.
   t-test rather than the sign-flip, and choosing it after seeing both would be p-hacking. The
   registered test says p = 0.12.
 
+## Consequence breakdown (post-hoc, 2026-09-24, Mark's framing: "harmful only if it changes the result")
+
+Same item, same seed, MTP vs MTP-off (120 pairs):
+
+| | count | share |
+|---|---:|---:|
+| identical path and reply | 1 | 0.8 % |
+| **different path, same outcome** | **102** | **85.0 %** |
+| different failure label, same pass/fail | 2 | 1.7 % |
+| outcome **better** under MTP | 4 | 3.3 % |
+| outcome **worse** under MTP | **11** | **9.2 %** (9 of them `WRONG-ACTION`) |
+
+- **MTP changes the trajectory in 119 of 120 runs,** but 85 % of those changes are free: the same
+  outcome, +0.14 tool calls on average, and a median time change of -0.3 s.
+- **Outcome flips are 12.5 %** and run **11:4 against MTP** (binomial p ≈ 0.12, consistent with the
+  registered test).
+- **Deployment reading:** path differences are irrelevant. Outcome flips are the risk, and they are
+  mostly *irreversible wrong actions*, which speed cannot buy back. For retryable, verifiable work, the
+  right metric is expected time to success (per-attempt time / success rate), and there MTP's decode
+  speed likely wins. That needs the caching-on time-to-completion run.
+
 ## What the smoke established
 
 The same seed with MTP off reproduced **byte-identical** replies, tool-call sequences and thinking
