@@ -1,12 +1,24 @@
-# Quantization does not single out hesitation tokens: the 1.4x raw excess is entropy, and at matched entropy "Wait"/"But"/"Maybe" positions take LESS damage
+# Quantization does not single out hesitation tokens: their 1.2-1.4x raw KLD excess is entropy, and at matched entropy "Wait"/"But"/"Maybe" positions take LESS damage
 
 **2026-09-24**, `.194` (4x P100, 1063 MHz / 150 W), buun `08826ad6e` `llama-perplexity`, `-c 2048 -b 512 -ub 512
 -fa on`, f16 KV, `-sm layer`, identical flags on every arm. Prereg: `PREREG_HESITATION_KLD.md` (written before any
 KLD pass). Registered scorer: `analyze_hes.py` (unchanged, sha256 `a4520952c30faee4...`). Raw: `raw/`.
 
-Source claim (Lotfi et al., shared by buun): under GPTQ/AWQ/FlatQuant, per-token KL at hesitation markers is ~100x
-the KL at math tokens, and this drives overthinking at low bits. The prereg's question: is that about the words, or
-about the uncertainty that sits where the words are?
+## What the source actually says (re-read after scoring; the prereg's paraphrase drifted)
+
+Lotfi et al., "Quantized reasoning models" (blog, shared by buun), DeepSeek-R1-Distill-Qwen-1.5B on MATH-500, BF16 vs
+3-bit AWQ, both models run under identical generation prefixes:
+- They average KL **per token type** (types with >= 50 occurrences) and plot the 20 highest and 20 lowest. The
+  highest are overthinking markers; the lowest are math and formatting tokens. Their "~100x" is the ratio of the
+  **largest value on each plot** (1.30 vs 0.015), not a ratio of class means.
+- **They already attribute this to uncertainty:** position-level KL correlates with BF16 next-token entropy at
+  Spearman rho = 0.92, and "quantization most affects positions where the model is already uncertain".
+- Separately, a logit penalty on 50 curated markers shortens CoT by 12-23 % across 5 models.
+
+The prereg described the claim as "~100x at hesitation markers vs math tokens" and the entropy control as something
+"the source does not report". Both overstate it. The source reports the entropy correlation; what it does not
+report is a **class-conditional comparison at matched entropy**, which is what this test adds. Read that way, this
+result **agrees** with the source's mechanism and sharpens it.
 
 ## Setup, as run
 
@@ -41,20 +53,27 @@ OTHER 0.716** (2.25x).
 | H4 | HES-KLD separation (Q2_K_XL / Q6_K) > mean-KLD separation | 66.73 vs 66.92 (no CI registered) | **FALSE** (equal) |
 
 **Registered reading:** H1 false -> "the source's effect does not transfer to imatrix GGUF quants" at the
-registered threshold. The reading table has no row for H2 *reversing*; that part is an unregistered observation,
-reported below as such.
+registered threshold. Given the section above, the better wording is: *the word-specific version of the effect,
+which the prereg attributed to the source, does not exist here.* The reading table has no row for H2 *reversing*;
+that part is an unregistered observation, examined below.
 
-## Exploratory (not registered): is the reversal a matching artifact?
+## Exploratory (not registered)
 
-`explore_hes.py`, run after scoring. It recomputes the same float64 entropy (the decile edges reproduce the
-registered ones exactly) and saves per-position entropy and reference top-1 probability
-(`raw/EXPLORE_hes.{H,P1}.npy`), so every number here can be recomputed without the 62 GB base.
+`explore_hes.py` and `explore2_hes.py`, run after scoring. The first recomputes the same float64 entropy (its decile
+edges reproduce the registered ones exactly) and saves per-position entropy and reference top-1 probability. The
+second exports the token ids and class masks (`raw/hes_tokens.npz`). With those and `raw/dumps/`, every number here
+reproduces without the 62 GB base: checked on the desktop from `raw/` alone (n_hes 945, Q2_K_XL raw 1.3874,
+entropy-matched 0.6855, identical to the registered output).
 
-**E1. The registered deciles match well except at the top.** Within deciles 2-9, HES and OTHER mean entropy differ
-by at most 0.03 nats. In the top decile (2.03-6.9 nats, where 300 of the 945 HES positions sit), HES averages
-2.37 nats against 2.64 for OTHER. The coarse top bin flatters OTHER a little.
+### E1. How good is the registered entropy matching?
 
-**E2/E3/E5. Tightening the match moves the ratio from ~0.66 to ~0.71. Nothing crosses 1:**
+Deciles are numbered 1-10 below (decile 1 holds no HES).
+- In deciles 2-9, HES and OTHER mean entropy differ by at most 0.03 nats. In deciles 5, 7, 8 and 9 HES entropy is
+  slightly *higher*, so the registered match is conservative there.
+- In the top decile (2.03-6.9 nats, 300 of the 945 HES), HES averages 2.37 nats against 2.64 for OTHER. OTHER's
+  higher entropy there inflates its KLD and pushes the ratio **down**. That is why tighter matching moves it up.
+
+### E2/E3/E5. Tighter matching: ~0.66 -> ~0.71, and nothing crosses 1
 
 | arm | deciles (registered) | 50 bins | 100 bins | **20 nearest neighbours in H** | top-1-prob deciles | top-1-prob 50 bins |
 |---|---:|---:|---:|---:|---:|---:|
@@ -65,39 +84,73 @@ by at most 0.03 nats. In the top decile (2.03-6.9 nats, where 300 of the 945 HES
 | Q6_K | 0.66 [0.60, 0.72] | 0.69 [0.64, 0.75] | 0.69 [0.64, 0.76] | **0.73 [0.67, 0.79]** | 0.67 [0.61, 0.73] | 0.67 [0.61, 0.74] |
 
 - Bin CIs: chunk bootstrap, 2,000 resamples. Nearest-neighbour CIs: 500 resamples over a fixed match set.
-- Nearest-neighbour matching is near-exact: the mean |dH| between a HES position and its matches is 0.0003 nats.
-- **Best estimate: hesitation positions take ~27-36 % less KLD than positions of the same entropy.** That holds in
-  every arm and under every matching scheme, including matching on top-1 probability instead of entropy.
+- Nearest-neighbour matching is near-exact: mean |dH| between a HES position and its matches is 0.0003 nats.
+- **Best estimate: hesitation positions take ~27-36 % less KLD than positions of the same entropy**, in every arm
+  and under every matching scheme, including matching on top-1 probability.
 
-**E4. The source's own comparison class does not reproduce ~100x here either.** Positions whose next token is a
-digit (8,510 of them, mean entropy 0.22 nats):
+### E7. About half of that is "sentence start", not "hesitation word" (confound check)
 
-| arm | KLD at HES | KLD at digit | HES / digit |
+91 % of HES positions follow a sentence or line end. SSTART = the 5,644 **non-HES** positions whose context token
+ends a sentence or line and whose next token starts with a capital letter. Their mean entropy (1.607 nats) is
+almost exactly HES's (1.611).
+
+| arm | (a) SSTART vs OTHER, matched on H | (b) **HES vs SSTART**, matched on H |
+|---|---:|---:|
+| UD-Q2_K_XL | 0.83 [0.78, 0.89] | **0.83 [0.77, 0.89]** |
+| UD-IQ3_XXS | 0.74 [0.70, 0.79] | **0.81 [0.74, 0.87]** |
+| UD-IQ4_XS | 0.80 [0.74, 0.87] | **0.85 [0.76, 0.94]** |
+| UD-Q4_K_M | 0.78 [0.72, 0.85] | **0.85 [0.76, 0.94]** |
+| Q6_K | 0.81 [0.76, 0.87] | **0.83 [0.77, 0.90]** |
+
+20 nearest neighbours in H, chunk bootstrap 500 (mean |dH| 0.0005 and 0.003 nats).
+- **(a) Sentence starts in general are protected**, ~17-26 % below other positions of the same entropy.
+- **(b) Hesitation markers are protected even among sentence starts**, ~15-19 % below them. Every CI excludes 1.
+- The two compound to the overall ~0.7 (e.g. Q2_K_XL: 0.83 x 0.83 = 0.69).
+
+### E6. The source's own statistic on this data
+
+Mean KLD per next-token type, 333 types with >= 50 occurrences, top 20 vs bottom 20:
+
+| arm | largest high | largest low | ratio | markers in top 20 | marker ranks (of 333) |
+|---|---:|---:|---:|---:|---|
+| UD-Q2_K_XL | 0.221 (` e`) | 0.0103 | 21x | **1** (` Maybe`, #19) | ` Actually` 38, ` Hmm` 43, ` But` 68, `But` 93, ` Wait` 151, `Maybe` 158 |
+| UD-IQ3_XXS | 0.185 (`stead`) | 0.0053 | 35x | **0** | ` Maybe` 34, ` Hmm` 53, ` Actually` 64, ` But` 86, `But` 110, `Maybe` 113, ` Wait` 227 |
+
+On this model and corpus the top of the ranking is **not** dominated by overthinking markers. It holds generic
+connective and instruction words (` use`, ` ensure`, ` The`, ` So`, `Thinking`) and word fragments. The bottom is
+deterministic subword continuations. The range ratio (21-35x) is below the source's ~100x, but the corpus, model
+size and codec all differ, so the size of that gap is not a finding.
+
+### E4. HES vs digit tokens (class means), and an IQ3_XXS digit anomaly
+
+| arm | KLD at HES | KLD at digit (8,510 positions, mean H 0.22) | HES / digit |
 |---|---:|---:|---:|
 | UD-Q2_K_XL | 0.1021 | 0.0467 | 2.19 |
-| UD-IQ3_XXS | 0.0475 | 0.0425 | 1.12 |
+| UD-IQ3_XXS | 0.0475 | **0.0425** | 1.12 |
 | UD-IQ4_XS | 0.0171 | 0.0102 | 1.67 |
 | UD-Q4_K_M | 0.0080 | 0.0049 | 1.65 |
 | Q6_K | 0.0015 | 0.0011 | 1.36 |
 
-"Math tokens" in the source may be a broader class (operators, LaTeX) and was measured during generation, so this is
-a partial reconciliation. But on GGUF imatrix quants of Qwen3.8, even the raw gap against low-entropy numeric
-tokens is 1.1-2.2x, two orders of magnitude below the reported ~100x.
+This is a class-mean ratio, not the source's statistic (that is E6). The anomaly is IQ3_XXS: its **digit** KLD is
+91 % of Q2_K_XL's, while its mean KLD is 54 %. In E6, `9`, `7` and `8` sit in IQ3_XXS's top 20 despite reference
+entropy of only 0.2-0.3 nats. IQ3_XXS is also the lowest arm in every ratio column above. This points to a
+**codec**-specific weakness on digit predictions, not a bit-count effect. It is untested beyond this corpus.
 
 ## What it means
 
-1. **At these positions, quantization damage follows the reference model's uncertainty, not the word.** The raw
-   1.4x excess at hesitation positions is fully explained by their 2.25x higher entropy, with room to spare.
-2. **Hesitation positions are, if anything, protected.** At equal entropy they take about 30 % less KLD. One
-   untested guess: a sentence-initial branch point spreads its mass over a few well-separated discourse tokens
-   ("But", "So", "Wait"), which a small logit perturbation reshuffles less than diffuse uncertainty. The top-1-prob
-   match gives the same answer, so it is not just the top-1 margin.
-3. **The shape of the damage does not depend on bits.** The raw ratio is 1.20-1.39 and the matched ratio
-   0.59-0.69 across a **67x** range in mean KLD (Q2_K_XL 0.0738 -> Q6_K 0.0011). Fewer bits scale the damage up
-   uniformly; they do not redistribute it toward hesitation.
-4. **For the fix Mark asked about ("protect uncertain positions"):** the target is entropy, not a word list. A
-   marker-targeted logit penalty (plan step 2) is not supported by this data. Anything that helps should key on
-   the model's own uncertainty at the position.
+1. **Quantization damage follows the reference model's uncertainty, not the word.** This agrees with the source
+   (rho = 0.92). The raw 1.2-1.4x excess at hesitation positions is fully explained by their 2.25x higher entropy.
+2. **At equal entropy, hesitation positions take ~30 % less damage.** About half of that is a sentence-start
+   effect shared by every capitalized sentence opener; the rest is specific to the markers (E7b). One untested
+   guess: a sentence-initial branch point splits its mass over a few well-separated discourse tokens, which a small
+   logit perturbation reshuffles less than diffuse uncertainty does.
+3. **The pattern does not depend on bit count.** Raw ratio 1.20-1.39 and matched ratio 0.59-0.69 across a **67x**
+   range in mean KLD (Q2_K_XL 0.0738 -> Q6_K 0.0011). Fewer bits scale the damage up without moving it toward
+   hesitation. The one arm that departs is IQ3_XXS, which departs on digits (E4). That is a codec effect.
+4. **For the "protect uncertain positions" question:** the mechanism to key on is the model's own entropy at the
+   position. The source's marker penalty (12-23 % shorter CoT) works on the symptom, and nothing here argues
+   against it as a length control. What this removes is the rationale that markers are a quantization weak spot:
+   they are the opposite.
 
 ## Not delivered from the prereg
 
@@ -107,17 +160,20 @@ tokens is 1.1-2.2x, two orders of magnitude below the reported ~100x.
 
 ## Not established
 
-- One model family (Qwen3.8-27B), one packager (Unsloth UD) plus one Q6_K.
-- Teacher-forced; the source measured during generation, where a changed token changes everything after it.
+- One model (Qwen3.8-27B), one packager (Unsloth UD) plus one Q6_K; imatrix k-/i-quants only (the source used AWQ).
+- Teacher-forced on fixed text; the source compared distributions under shared generation prefixes, which is
+  close, but its text came from generation on MATH-500.
 - Traces from the stock model at mixed quants; plain-text formatting instead of the chat template.
-- Whether any of this affects overthinking is a separate, generative test. This result removes the motivation for
-  a marker-specific version of that test; an entropy-keyed version would still be open.
-- The positions scored are the second half of each 2,048-token chunk (the llama-perplexity convention).
+- Whether any of this changes overthinking is a separate, generative test.
+- Scored positions are the second half of each 2,048-token chunk (the llama-perplexity convention).
 
 ## Files
 
 - `PREREG_HESITATION_KLD.md`, `PLAN.md`, `corpus_reasoning.txt`, `run_hes.sh`, `analyze_hes.py` (registered),
-  `explore_hes.py` (exploratory).
-- `raw/RESULT_hes.json` (registered output), `raw/EXPLORE_hes.json`, `raw/EXPLORE_hes.{H,P1}.npy`,
-  `raw/dumps/*.kld.bin` (per-position KLD, 5 arms), `raw/logs/` (llama-perplexity logs, home paths redacted).
-- The 62 GB Q8_0 uint16 base is not committed; it regenerates from `run_hes.sh REF` in about 30 min.
+  `explore_hes.py` and `explore2_hes.py` (exploratory).
+- `raw/RESULT_hes.json` (registered output), `raw/EXPLORE_hes.json`, `raw/EXPLORE2_hes.json`,
+  `raw/EXPLORE_hes.{H,P1}.npy` (per-position entropy and top-1 prob), `raw/hes_tokens.npz` (token ids and class
+  masks), `raw/dumps/*.kld.bin` (per-position KLD, 5 arms), `raw/logs/` (llama-perplexity logs, home paths
+  redacted).
+- The 62 GB Q8_0 uint16 base is not committed. Everything above reproduces from `raw/`; the base regenerates from
+  `run_hes.sh REF` in about 30 min.
