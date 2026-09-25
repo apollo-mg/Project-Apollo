@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added -- wake proxy pre-warms the agent head after a cold load (2026-09-24, Claude)
+- `modules/wake_proxy.py`: the proxy remembers the last agent-shaped head it forwarded (a `/v1/chat/completions` with
+  tools and a system prompt of >= 4k chars) in `run/warm_head.json`. That file is gitignored because it contains
+  personal memory text.
+- After a load that no chat request is waiting on (a client's `/props`, `/slots` or `GET /v1/*` startup probe),
+  and on the new `POST /warm`, it does three things:
+  - re-dates Hermes's `Conversation started:` line to today and drops the multi-day "as of" line;
+  - renders the head through the node's `/apply-template`, cut exactly where the user turn starts;
+  - prefills it with `n_predict 1`.
+- `/status` gains `warm` (captured head and last result). `WP_WARM_ON_LOAD=0` disables the automatic path.
+- Why: on the qwen35 hybrid, a warm-up that ends at the user-turn boundary is fully reusable. The probe gave
+  8,150/8,150 cached tokens, 2.1 s against 90.6 s cold. Live e2e: a head captured with yesterday's date was
+  re-dated and warmed in 3.8 s; the next request reused 9,106 tokens and answered in 1.33 s.
+  `data/receipts/split-prefill-73/`.
+- Not yet exercised: the automatic post-load path (the e2e suspend step was correctly refused while .73 was busy).
+
 ### Changed -- argus driver: AFM-44 listener guard ignores host-namespace processes (2026-09-24, Claude)
 - `argus/driver.py`: a new listening socket stops the arm only if its process is NOT in the driver's own PID
   namespace (the agent runs under `bwrap --unshare-pid`, so its descendants live in a child namespace). Operator

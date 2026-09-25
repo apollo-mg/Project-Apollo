@@ -47,6 +47,19 @@ class Cfg:
 
 C = Cfg()
 LOG = os.getenv("WP_LOG", "/mnt/TG_2TB/Projects/Apollo/run/wake_proxy.log")
+WARM_FILE = os.getenv("WP_WARM_FILE", "/mnt/TG_2TB/Projects/Apollo/run/warm_head.json")
+WARM_MIN_CHARS = int(os.getenv("WP_WARM_MIN_CHARS", "4000"))   # agent heads only, not chat UIs
+WARM_TIMEOUT = float(os.getenv("WP_WARM_TIMEOUT", "1800"))
+WARM_ON_LOAD = os.getenv("WP_WARM_ON_LOAD", "1") == "1"
+
+def _redate(system: str) -> str:
+    """Hermes stamps 'Conversation started: <Weekday>, <Month> <DD>, <YYYY>' (date-only, so the head is
+    byte-stable for a day). A head captured yesterday must be re-dated or reuse stops at that line.
+    Multi-day sessions add a 'Today's date (as of the last context rebuild)' line a new session lacks."""
+    import re
+    today = time.strftime("%A, %B %d, %Y")
+    system = re.sub(r"(Conversation started: )[A-Z][a-z]+, [A-Z][a-z]+ \d{2}, \d{4}", r"\g<1>" + today, system)
+    return re.sub(r"\nToday's date \(as of the last context rebuild\):[^\n]*", "", system)
 
 def log(msg: str) -> None:
     line = f"{time.strftime('%Y-%m-%dT%H:%M:%S')} {msg}"
@@ -279,6 +292,69 @@ class Node:
         self.state = "suspended" if rc == 0 else "suspend-failed"
         log(f"suspend: {self.state}")
 
+    # ---- pre-warm: prefill the agent's system prompt + tools so the first message after a cold
+    # load does not pay for it. Hermes's head is ~25k tokens, ~3 min of prefill on .73. Measured
+    # (data/receipts/split-prefill-73, warm-head probe): a raw warm-up cut EXACTLY at the user-turn
+    # boundary gives full reuse on the qwen35 hybrid (8,150/8,150 cached, 2.1 s vs 90.6 s cold).
+    # The cut matters: the recurrent layers can only restore at a saved state, and the end of the
+    # warm-up prompt is where that state is saved.
+    last_warm: dict = {}
+
+    def capture_head(self, body: bytes) -> None:
+        """Remember the last agent-shaped head (big system prompt + tools) this proxy forwarded.
+        Stored locally only (run/warm_head.json is gitignored): it contains personal memory text."""
+        try:
+            d = json.loads(body)
+            msgs, tools = d.get("messages") or [], d.get("tools") or []
+            if not (tools and msgs and msgs[0].get("role") == "system"
+                    and isinstance(msgs[0].get("content"), str) and len(msgs[0]["content"]) >= WARM_MIN_CHARS):
+                return
+            head = {"system": msgs[0]["content"], "tools": tools,
+                    "kwargs": {k: d[k] for k in ("chat_template_kwargs", "reasoning_effort") if k in d},
+                    "captured_at": time.strftime("%Y-%m-%dT%H:%M:%S")}
+            key = hash((head["system"], json.dumps(tools, sort_keys=True)))
+            if key == getattr(self, "_head_key", None):
+                return
+            self._head_key = key
+            tmp = WARM_FILE + ".tmp"
+            with open(tmp, "w") as f:
+                json.dump(head, f); f.flush(); os.fsync(f.fileno())
+            os.replace(tmp, WARM_FILE)
+            log(f"warm: captured head ({len(head['system'])} chars system, {len(tools)} tools)")
+        except Exception as e:
+            log(f"warm: capture skipped: {type(e).__name__}: {e}")
+
+    async def warm(self, reason: str) -> dict:
+        """Prefill the captured head on the node. Safe to call any time the node is serving."""
+        try:
+            head = json.load(open(WARM_FILE))
+        except (OSError, ValueError):
+            self.last_warm = {"ok": False, "reason": reason, "detail": "no captured head yet"}
+            return self.last_warm
+        system = _redate(head["system"])
+        mark = "WARM_USER_CONTENT_MARKER_7f3a"
+        self.inflight += 1          # never suspend mid-warm
+        t0 = time.time()
+        try:
+            async with httpx.AsyncClient(timeout=WARM_TIMEOUT) as cl:
+                r = await cl.post(self.base + "/apply-template", json={
+                    "messages": [{"role": "system", "content": system}, {"role": "user", "content": mark}],
+                    "tools": head["tools"], **head.get("kwargs", {})})
+                rendered = r.json()["prompt"]
+                prefix = rendered[:rendered.index(mark)]
+                r = await cl.post(self.base + "/completion", json={
+                    "prompt": prefix, "n_predict": 1, "temperature": 0, "cache_prompt": True})
+                t = r.json().get("timings", {})
+            self.last_warm = {"ok": True, "reason": reason, "tokens": t.get("prompt_n"),
+                              "cached_already": t.get("cache_n"), "seconds": round(time.time() - t0, 1),
+                              "at": time.strftime("%Y-%m-%dT%H:%M:%S")}
+        except Exception as e:
+            self.last_warm = {"ok": False, "reason": reason, "detail": f"{type(e).__name__}: {e}"}
+        finally:
+            self.inflight -= 1
+        log(f"warm: {self.last_warm}")
+        return self.last_warm
+
 
 N = Node(C)
 app = FastAPI(title="Apollo wake-on-demand proxy")
@@ -314,15 +390,35 @@ async def idle_monitor():
 
 @app.get("/status")
 async def status():
+    try:
+        h = json.load(open(WARM_FILE))
+        head = {"system_chars": len(h["system"]), "tools": len(h["tools"]), "captured_at": h.get("captured_at")}
+    except (OSError, ValueError, KeyError):
+        head = None
     return {"node": C.host, "state": N.state, "inflight": N.inflight,
             "idle_seconds": round(time.time() - N.last_request),
             "idle_timeout": C.idle_secs, "serving": await N.serving(),
-            "suspend_enabled": C.enable_suspend}
+            "suspend_enabled": C.enable_suspend,
+            "warm": {"on_load": WARM_ON_LOAD, "head": head, "last": N.last_warm}}
 
 @app.post("/wake")
 async def manual_wake():
     ok, why = await N.ensure_ready()
     return JSONResponse({"ok": ok, "detail": why}, status_code=200 if ok else 503)
+
+@app.post("/warm")
+async def manual_warm():
+    """Wake if needed, then prefill the captured agent head. Blocks until the prefill is done."""
+    ok, why = await N.ensure_ready()
+    if not ok:
+        return JSONResponse({"ok": False, "detail": why}, status_code=503)
+    return await N.warm("manual /warm")
+
+def _warm_after_load(why: str, via: str) -> None:
+    """Warm only after a load NO chat request is waiting on (a client's startup probe). If a chat
+    triggered the load, it prefills its own head anyway and a warm-up would only queue ahead of it."""
+    if WARM_ON_LOAD and why == "woken and loaded":
+        asyncio.create_task(N.warm(f"post-load via {via}"))
 
 @app.post("/suspend")
 async def manual_suspend():
@@ -368,6 +464,7 @@ async def passthrough(request: Request):
     if not ok:
         return JSONResponse({"error": {"message": f"node unavailable: {why}", "type": "wake_failed"}},
                             status_code=503, headers={"Retry-After": "60"})
+    _warm_after_load(why, request.url.path)
     N.inflight += 1
     try:
         async with httpx.AsyncClient(timeout=30) as cl:
@@ -384,6 +481,8 @@ async def proxy(path: str, request: Request):
     body = await request.body()
     want_stream = b'"stream": true' in body or b'"stream":true' in body
     url_path = path
+    if request.method == "POST" and path == "chat/completions":
+        N.capture_head(body)
 
     if want_stream:
         # Start the response IMMEDIATELY and wake INSIDE the generator, emitting SSE comments
@@ -444,6 +543,8 @@ async def proxy(path: str, request: Request):
     if not ok:
         return JSONResponse({"error": {"message": f"node unavailable: {why}", "type": "wake_failed"}},
                             status_code=503, headers={"Retry-After": "60"})
+    if request.method == "GET":             # e.g. /v1/models at client startup: nothing is queued
+        _warm_after_load(why, f"/v1/{path}")
     N.inflight += 1
     try:
         async with httpx.AsyncClient(timeout=None) as cl:

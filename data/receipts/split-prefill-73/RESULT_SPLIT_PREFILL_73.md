@@ -56,6 +56,15 @@ then holds a restorable state at that point, which the recurrent layers require.
 own `/apply-template`, so the cut is byte-exact. The wake proxy forwards only `/v1/*`, `/props` and `/slots`, so a
 pre-warm has to call `/apply-template` and `/completion` on the node directly (steps 2-4 did).
 
+**Built into the wake proxy the same day** (`modules/wake_proxy.py`, CHANGELOG). Live end-to-end test,
+`warm_proxy_e2e.py` -> `raw/warm_proxy_e2e.jsonl`:
+- A Hermes-shaped chat stamped with *yesterday's* date was captured (9,123 tokens, cold 61.6 s).
+- `POST /warm` re-dated it, reused 8,607 tokens (the nearest saved state before the date line), prefilled 499, and
+  took 3.8 s.
+- A request with today's date and a new question then reused **9,106** tokens, prefilled 15, and took **1.33 s**.
+- The automatic post-load leg did not run: `/suspend` answered 409 because .73 was genuinely busy (98 % GPU, a
+  real 8k request in the slot).
+
 ## Scored against the prereg
 
 | # | claim | result |
