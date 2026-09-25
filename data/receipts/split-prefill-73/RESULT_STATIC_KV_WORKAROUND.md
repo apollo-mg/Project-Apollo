@@ -29,6 +29,16 @@ remaining VRAM, so this never came up with it. Every run below uses **`-c 131072
 - About 11 tok/s on the cold first turn, which includes MTP ramp-up.
 - Two concurrent requests shared the cards at roughly 6-10 tok/s each.
 
+## The automatic warm-up on this config, live (2026-09-25 14:46-14:52)
+
+With the static config and `WP_WARM_ON_LOAD=1`:
+- `.73` was asleep. A `GET /props` through the proxy (what Hermes does at startup) woke it (10 s), loaded the
+  server (35 s), and then **warmed the captured real Hermes head by itself: 16,028 tokens in 109.9 s**.
+- A Hermes-shaped chat through the proxy (same system prompt and 25 tools, top-level `reasoning_effort: xhigh`, a new
+  question) then **reused all 16,028 tokens, prefilled 15, and answered in 3.1 s** (about 115 s cold).
+- `/apply-template` renders a top-level `reasoning_effort` identically to `chat_template_kwargs` (and differently
+  from no effort), so the warm-up renders the same head Hermes sends.
+
 ## What it means
 
 - **Both of today's daily-driver problems go away with a static pair:** the idle-reuse abort, and the single-slot
