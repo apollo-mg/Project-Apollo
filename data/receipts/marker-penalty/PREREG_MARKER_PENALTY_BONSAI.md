@@ -51,3 +51,11 @@ reported alongside.
 
 16 items, `xhigh` only, one very-low-bit model, and PQ2_0 as a stand-in for PTQ1_0 (equal fidelity per the
 lowbit-ladder receipt).
+
+## Deviation 1 (2026-09-25 18:02, before any generation): `-sm tensor` -> `-sm layer`
+
+At launch, both prism servers aborted in `ggml_backend_meta_get_split_state` with `GGML_ASSERT(split_state.ne[j] % div ==
+0)` (`ggml-backend-meta.cpp:1086`). The ternary PQ2_0 tensors do not divide across two devices under tensor split.
+The log is in `raw_bonsai/`. Every Bonsai arm runs under **`-sm layer`** on the same two 2-GPU testers, so the device
+count and instrument are identical across A, B and C. The registered comparisons are within Bonsai, so nothing else
+changes. (The Q6_K/IQ3_XXS run used `-sm tensor`; cross-model numbers are descriptive only.)

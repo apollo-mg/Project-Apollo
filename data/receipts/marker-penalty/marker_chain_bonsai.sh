@@ -5,7 +5,7 @@ set -u
 cd ~/marker
 BIN=~/prism_llama_cpp/build_sm60/bin/llama-server
 M=~/AI/Models/ladder/Ternary-Bonsai-2-27B-PQ2_0.gguf
-FLAGS="-ngl 99 -c 16384 -np 1 -fa on --kv-unified -ctk f16 -ctv f16 -sm tensor --jinja --host 0.0.0.0"
+FLAGS="-ngl 99 -c 16384 -np 1 -fa on --kv-unified -ctk f16 -ctv f16 -sm layer --jinja --host 0.0.0.0"   # Deviation 1: prism aborts under -sm tensor
 { echo "## RUNLOG $(date -Is)"; echo "binary $BIN commit $(cd ~/prism_llama_cpp && git rev-parse HEAD)"
   echo "model $M bytes $(stat -c %s $M) sha256 $(sha256sum $M | cut -c1-64)"; } > RUNLOG_bonsai.txt
 start () {   # gpus port tag
