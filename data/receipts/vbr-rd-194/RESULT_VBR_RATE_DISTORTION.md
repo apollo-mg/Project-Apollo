@@ -46,10 +46,9 @@ Exact sign-flip permutation over 18 chunks (minimum p = 7.6e-6). A pass needs >=
 
 **Registered reading:** R2-R4 false -> VBR's allocator advantage does **not** generalize from Qwen3.5-9B on ROCm
 (`kv-depth`: -71 % vs q8_0) to Qwen3.8-27B on CUDA/Pascal at this depth. R1 false as registered: VF is not bit-identical to the f16
-base. **Its cause is untested:** S4 had no `C0` (f16 against the f16 base). kv-depth's `C0` proved the instrument
-bit-exact on ROCm, but that was never shown on Pascal, so this may be `llama-perplexity` not reproducing itself
-rather than VBR's f16 tier. `C0` runs as Amendment 2. The deviation is about 1e-5, 1-3 orders of magnitude below
-every comparison above.
+base. **Amendment 2 resolves the cause in VBR's favour:** `C0` (stock f16 against the same base) is **bitwise
+identical to VF**, with the same max of 7.2e-5. The deviation belongs to the instrument: `llama-perplexity` on Pascal
+does not reproduce its own f16 base run to run. **VBR's f16 tier is bit-identical to stock f16.**
 
 ## Where the loss comes from (descriptive)
 
@@ -79,19 +78,46 @@ every comparison above.
      the budget axis). On this model, the cheapest-first order buys bits, not fidelity (the same observation as
      `vbr-fidelity` 08-25, now at matched bytes).
 
+## Amendment 2 (post-hoc controls, run after scoring; descriptive, no registered verdict changes)
+
+**`C0` (stock f16 against the f16 base) is bitwise identical to `VF`** (147,427 of 147,438 positions nonzero, max
+7.2e-5, in both). The instrument does not reproduce its own f16 base exactly on Pascal; VBR's f16 tier adds nothing.
+
+**Floor t4, `.73`'s setting.** `--vbr-floor` is an aggregate bits/value floor (flag help: "the degrade order stops at
+the last step whose aggregate stays at or above the floor"). Individual tensors still go below t4.
+
+| arm | budget | per-chunk degrades | mapped MiB | mean KLD | vs static at its own allocation |
+|---|---:|---|---:|---:|---|
+| V40F4 | 410 | never reaches the floor | 452 | 0.003907 | bitwise identical to V40 |
+| V29F4 | 297 | t8 32, t4 29, t3 8, t2 1, t1 1; clamped at the floor | 340 | 0.014658 | q4_0 (288 MiB): **-7 %**, 13/18, p = 0.32 (a tie at +18 % memory) |
+| **V22F4** | 225 | same as V29F4; clamped at the floor | **328** | **0.024361** | **turbo4 (264 MiB): +50 %**, 5/18, p = 0.0006; q4_0: +55 %, p = 4e-5 |
+
+(V29F4 and V22F4 log identical degrade counts, but V22F4's smaller budget triggers them earlier in each chunk, so more
+positions attend to degraded KV.)
+
+**This is `.73` pinned at its floor:**
+- **24 % more memory than uniform turbo4** (328 vs 264 MiB), for the same 4.125 bpv aggregate;
+- **and 50 % more KLD.**
+
+**Above the floor the picture reverses:** VBR is bit-exact before pressure, near-exact at ~9.4 bpv (V55: 0.00018), and
+~0.004 at ~7 bpv. So on this model VBR is the better choice for contexts that stay above the floor, and uniform
+turbo4 (or q4_0) is better for a cache that lives at it.
+
 ## What this means
 
 - **VBR's value on this fleet is elasticity, not fidelity per byte.** It lets `.73` hold a 262k context on 32 GB at
   whatever depth the prompt reaches, and it is exact-ish before pressure. At a fixed, known budget, a static uniform
   codec is as good or better on this model.
-- **This curve does not describe `.73`.** Every registered VBR arm used `--vbr-floor t1`, and `.73` runs `--vbr-floor
-  t4`, so it can never take a tensor below t4, which is exactly where these losses come from. Floor-t4 arms run as
-  Amendment 2.
+- **`.73`'s floor regime is measured in Amendment 2 below.** `--vbr-floor` is an *aggregate* floor ("the degrade
+  order stops at the last step whose aggregate stays at or above the floor"), not a per-tensor minimum. So `.73` at
+  t4 still takes some tensors to t1-t3.
 - **For buun:**
   - the ~40 MiB peak over budget while a tensor transcodes (a transient double mapping, not a constant cost);
+  - **at the floor, a mixed-tier cache maps 328 MiB where uniform turbo4 maps 264, and has 50 % more KLD**
+    (Amendment 2). Should the floor converge to a uniform t4 layout rather than a mix?
   - whether the Qwen3.6-27B table should apply to Qwen3.8-27B;
   - whether early t1/t2 steps belong in the order at all at mid budgets;
-  - whether the f16 tier is bit-exact on Pascal: pending `C0` (Amendment 2). This is not yet a finding.
+  - (resolved) the f16 tier IS bit-exact on Pascal; the instrument is not (`C0` == `VF` bitwise).
 
 ## Not established
 
