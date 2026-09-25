@@ -29,7 +29,7 @@ def ssh(cmd, timeout=300):
 
 def write(rec):
     with open(OUT, "a") as f:
-        f.write(json.dumps({"t": time.time(), **rec}) + "\n"); f.flush(); os.fsync(f.fileno())
+        f.write(json.dumps({"t": time.time(), "build": os.environ.get("BUILD_TAG", "2acf5b10f"), **rec}) + "\n"); f.flush(); os.fsync(f.fileno())
     print(json.dumps(rec)[:360], flush=True)
 
 def start(extra, log):

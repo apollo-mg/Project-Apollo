@@ -11,15 +11,17 @@ from pathlib import Path
 from warm_crash_repro_lib import system, tools, KW
 NODE = "http://10.0.0.73:8080"
 OUT = Path(__file__).parent / "raw" / "static_kv_test.jsonl"
-BIN = "~/buun-llama-cpp/build_sm60_0920/bin/llama-server"   # daily build 08826ad6e
-KV = {"T8T4": "-ctk turbo8 -ctv turbo4", "Q8T4": "-ctk q8_0 -ctv turbo4"}
+BIN = os.environ.get("BIN_OVERRIDE", "~/buun-llama-cpp/build_sm60_0920/bin/llama-server")   # default: daily build 08826ad6e
+KV = {"T8T4": "-ctk turbo8 -ctv turbo4", "Q8T4": "-ctk q8_0 -ctv turbo4",
+      "VBR": "-ctk vbr -ctv vbr --vbr-floor t4 --vbr-vram auto"}   # VBR: to retest the fix in buun 0b2789f23
+CTX = {"VBR": 262144}
 CFG, MODE = sys.argv[1], sys.argv[2]
 NP = 4 if MODE == "np4" else 1
 FLAGS = ("-m '/mnt/models/AI_Models/Qwen 3.8/Qwen3.8-27B-Q6_K.gguf' --mmproj '/mnt/models/AI_Models/Qwen 3.8/mmproj-F16.gguf' "
-         f"-ngl 99 -c 131072 {KV[CFG]} -np {NP} -fit off -sm tensor -fa on --spec-type draft-mtp --draft-max 3 --jinja "
+         f"-ngl 99 -c {CTX.get(CFG, 131072)} {KV[CFG]} -np {NP} -fit off -sm tensor -fa on --spec-type draft-mtp --draft-max 3 --jinja "
          "--kv-unified --chat-template-kwargs '{\"reasoning_effort\":\"medium\"}' --temp 1.0 --top-p 0.95 --top-k 20 "
          "--min-p 0.0 --presence-penalty 0.0 --host 0.0.0.0 --port 8080")
-TAG = f"{CFG}_{MODE}"
+TAG = f"{CFG}_{MODE}" + os.environ.get("TAG_SUFFIX", "")
 
 def call(method, path, body=None, timeout=900):
     r = urllib.request.Request(NODE + path, method=method, data=None if body is None else json.dumps(body).encode(),

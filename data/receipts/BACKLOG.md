@@ -25,6 +25,7 @@ cost tokens only to start and interpret, which is the actual scarce resource.
 
 ## Open bugs blocking daily-driver features (added 2026-09-24) -- check each new buun build
 
+- **FIXED in buun `0b2789f23` (09-25, verified on .73: `vbr-artifact-store/RESULT_FIX_0B2789F23_ON_73.md`)** -- the three tensor-split abort entries below. Open follow-up: VBR host restore of a displaced slot into an empty slot at `-np 4` (`destination=invalid`).
 - **.73 can't run more than one slot** (`-np >1` + `-sm tensor` + hybrid qwen35 + VBR host cache -> SIGABRT in
   `ggml_backend_meta_buffer_get_tensor` during idle recurrent capture). `vbr-artifact-store/INCIDENT_73_NP4_TENSOR_CAPTURE_ABORT.md`.
   Costs today: every Open WebUI follow-up/title/tag call and every Hermes session-title call evicts the chat's cache
