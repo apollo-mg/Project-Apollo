@@ -14,15 +14,17 @@ FLAGS=(-ngl 99 -fa on -c 16384 -b 512 -ub 512 -v)   # -v: the KV buffer size lin
 f16mib () { grep -o 'KV buffer size = *[0-9.]*' $W/logs/REF.log | grep -o '[0-9.]*$' | sort -n | tail -1; }   # max: the first line can read 0.00
 case $ARM in
   REF) KV=(-ctk f16 -ctv f16);;
+  C0)  KV=(-ctk f16 -ctv f16);;          # Amendment 2 (post-hoc): is the instrument bit-exact on Pascal?
   Q8)  KV=(-ctk q8_0 -ctv q8_0);;
   Q4)  KV=(-ctk q4_0 -ctv q4_0);;
   T4)  KV=(-ctk turbo4 -ctv turbo4);;
   T3)  KV=(-ctk turbo3_tcq -ctv turbo3_tcq);;
-  VF|V75|V55|V40|V29|V22|V16)
-    case $ARM in VF) F=2.0;; V75) F=0.75;; V55) F=0.55;; V40) F=0.40;; V29) F=0.29;; V22) F=0.22;; V16) F=0.16;; esac
+  VF|V75|V55|V40|V29|V22|V16|V40F4|V29F4|V22F4)
+    case $ARM in VF) F=2.0;; V75) F=0.75;; V55) F=0.55;; V40*) F=0.40;; V29*) F=0.29;; V22*) F=0.22;; V16) F=0.16;; esac
+    FLOOR=t1; case $ARM in *F4) FLOOR=t4;; esac   # Amendment 2 (post-hoc): .73's real floor
     FM=$(f16mib); [ -n "$FM" ] || { echo "ABORT $ARM: no f16 KV size in REF.log"; exit 3; }
     B=$(python3 -c "print(int(round($FM*$F)))")
-    KV=(-ctk vbr -ctv vbr --vbr-vram ${B}M --vbr-floor t1)
+    KV=(-ctk vbr -ctv vbr --vbr-vram ${B}M --vbr-floor $FLOOR)
     export VBR_FREEZE=1 VBR_BUDGET_MIB=$B VBR_TRACE=$W/traces/$ARM.vbrtrace.tsv;;
   *) echo "unknown arm $ARM"; exit 2;;
 esac

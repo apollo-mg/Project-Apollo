@@ -1,4 +1,4 @@
-# On Qwen3.8-27B / Pascal, frozen VBR does not beat static KV codecs at matched allocation: it ties q8_0 at best and loses to q4_0 (-45 %) and turbo3_tcq (-89 %). The 9B/ROCm win does not generalize
+# On Qwen3.8-27B / Pascal, frozen VBR does not beat static KV codecs at matched allocation: it ties q8_0 at best and has 45 % more KLD than q4_0 and 89 % more than turbo3_tcq. The 9B/ROCm win does not generalize
 
 **2026-09-24/25**, `.194`, one P100 per arm (1063 MHz / 150 W), buun `08826ad6e` `build_sm60_0920` `llama-perplexity`,
 `-ngl 99 -fa on -c 16384 -b 512 -ub 512`, `Qwen3.8-27B-UD-Q2_K_XL`, wikitext-2 test. **18 chunks x 8,191 scored
@@ -45,15 +45,22 @@ Exact sign-flip permutation over 18 chunks (minimum p = 7.6e-6). A pass needs >=
 `turbo4` (frontier point, not a test): 0.0163 against VBR's 0.0291 at the same 264 MiB.
 
 **Registered reading:** R2-R4 false -> VBR's allocator advantage does **not** generalize from Qwen3.5-9B on ROCm
-(`kv-depth`: -71 % vs q8_0) to Qwen3.8-27B on CUDA/Pascal at this depth. R1 false -> VBR's CUDA path is not
-bit-identical to f16 before pressure on Pascal. The deviation is about 1e-5, 1-3 orders of magnitude below every
-comparison above.
+(`kv-depth`: -71 % vs q8_0) to Qwen3.8-27B on CUDA/Pascal at this depth. R1 false as registered: VF is not bit-identical to the f16
+base. **Its cause is untested:** S4 had no `C0` (f16 against the f16 base). kv-depth's `C0` proved the instrument
+bit-exact on ROCm, but that was never shown on Pascal, so this may be `llama-perplexity` not reproducing itself
+rather than VBR's f16 tier. `C0` runs as Amendment 2. The deviation is about 1e-5, 1-3 orders of magnitude below
+every comparison above.
 
 ## Where the loss comes from (descriptive)
 
-1. **Mapping overhead: VBR maps ~40 MiB more than its budget at every size** (+32 to +46 MiB; budget 563 -> 604,
-   225 -> 264). That is 6 % of the allocation at V75 and 16-20 % at V22/V16. Scoring on the *budget* axis instead
-   removes this, and gives the allocator's own contribution:
+1. **The allocation axis records a transient peak.** The registered x is the per-chunk maximum `mapped_bytes`,
+   which sits +32 to +46 MiB above budget. It is not a constant pool cost: VF maps 1,028 MiB against static f16's
+   1,024. The overshoot appears only under pressure, as the temporary double mapping while a tensor transcodes
+   ("mapped ... pre-release" in the degrade log). End-of-chunk mapped is close to budget (V22: 224 MiB on a 225 MiB
+   budget; V75: 790 on 768).
+   - Static arms report steady state, so the registered axis is **conservative toward VBR**.
+   - For a hard VRAM limit the peak is what must fit, so both readings are defensible.
+   - Scoring on the *budget* axis is the steady-state view:
 
    | at the allocation of | VBR (budget axis) vs static | chunks VBR lower | p |
    |---|---:|---:|---:|
@@ -66,23 +73,25 @@ comparison above.
 2. **The allocation is deep and uneven.** The degrade order is `160 baked steps (arch + KV-layout matched; n_layer
    65 vs table 64 -- MTP/nextn-style variant)`: the table measured on **Qwen3.6-27B**, applied to Qwen3.8-27B.
    - It sends some tensors to `turbo2_tcq` / `turbo1_tcq` while most layers are still at turbo4-turbo8.
-   - V29 (5.31 bpv on average) logged per-chunk degrades to t1 x1, t2 x2, t3 x11, t4 x32 and t8 x32.
-   - A uniform codec at a lower average (q4_0, 4.5 bpv) beats it. On this model, the cheapest-first price order buys
-     bits, not fidelity (the same observation as `vbr-fidelity` 08-25, now at matched bytes).
+   - V29 (budget 297 MiB, ~4.6 bpv) logged per-chunk degrades to t1 x1, t2 x2, t3 x11, t4 x32 and t8 x32. It ties
+     q4_0 (4.5 bpv, uniform) on the budget axis, and loses on the registered peak axis.
+   - Below ~4.5 bpv the uneven allocation loses to uniform codecs on either axis (turbo4 +20 %, turbo3_tcq +33 % on
+     the budget axis). On this model, the cheapest-first order buys bits, not fidelity (the same observation as
+     `vbr-fidelity` 08-25, now at matched bytes).
 
 ## What this means
 
 - **VBR's value on this fleet is elasticity, not fidelity per byte.** It lets `.73` hold a 262k context on 32 GB at
   whatever depth the prompt reaches, and it is exact-ish before pressure. At a fixed, known budget, a static uniform
   codec is as good or better on this model.
-- **`.73`'s operating points, read off the curve:**
-  - at 5.83 bpv (observed at 128k), about KLD 0.0095;
-  - at the t4 floor (4.125 bpv), about 0.029, roughly 1.8x turbo4's 0.016 at the same bytes.
+- **This curve does not describe `.73`.** Every registered VBR arm used `--vbr-floor t1`, and `.73` runs `--vbr-floor
+  t4`, so it can never take a tensor below t4, which is exactly where these losses come from. Floor-t4 arms run as
+  Amendment 2.
 - **For buun:**
   - the ~40 MiB constant mapping overhead;
   - whether the Qwen3.6-27B table should apply to Qwen3.8-27B;
   - whether early t1/t2 steps belong in the order at all at mid budgets;
-  - the f16-tier numerical difference on Pascal (tiny, but not bit-exact, unlike ROCm).
+  - whether the f16 tier is bit-exact on Pascal: pending `C0` (Amendment 2). This is not yet a finding.
 
 ## Not established
 

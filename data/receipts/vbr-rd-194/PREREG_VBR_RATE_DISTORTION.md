@@ -86,3 +86,15 @@ Consequences:
 
 Everything else is unchanged. A one-chunk smoke test at 32k (GPU 1, frozen 594 MiB) confirmed that frozen VBR works on
 CUDA: budget honoured, 28 price-ordered degrades by 15k tokens, mapped ~588 MiB.
+
+## Amendment 2 (2026-09-25 00:45, AFTER scoring R1-R5; exploratory arms, not registered tests)
+
+Added after review of the scored result, labeled post-hoc:
+- **`C0`** (f16 KV against the f16 base): R1 found VF within 7e-5 of f16 but not bit-exact. Without a C0 it is
+  untested whether that is VBR's f16 tier or `llama-perplexity` not reproducing itself on Pascal (kv-depth's C0 was
+  bit-exact on ROCm).
+- **`V40F4`, `V29F4`, `V22F4`**: the same budgets with `--vbr-floor t4`, `.73`'s daily setting. Every registered VBR
+  arm used floor t1, and the losses concentrate where t1/t2 tensors exist. `V22F4`'s budget (225 MiB) is below
+  all-t4 (~264 MiB), so it should clamp to uniform turbo4: does VBR's t4 match static turbo4?
+
+These arms change no registered verdict. They are read descriptively in the result.
