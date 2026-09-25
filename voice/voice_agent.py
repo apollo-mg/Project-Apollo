@@ -96,7 +96,8 @@ class Agent:
             await ws.recv()                                               # session.created
             await ws.send(json.dumps({"type": "session.update", "session": {
                 "sample_rate": 16000, "speaker_diarization": True, "endpointing_ms": self.a.endpointing_ms}}))
-            sender = asyncio.create_task(self.feed_file(ws) if self.a.input_wav else self.feed_mic(ws))
+            src = self.feed_file(ws) if self.a.input_wav else (self.feed_pw(ws) if self.a.pw_source else self.feed_mic(ws))
+            sender = asyncio.create_task(src)
             print("listening... (Ctrl+C to stop)" if not self.a.input_wav else f"feeding {self.a.input_wav}", flush=True)
             async for msg in ws:
                 ev = json.loads(msg)
@@ -107,6 +108,11 @@ class Agent:
                     runs = speaker_runs(ev)
                     if not runs or self.speaking.is_set():
                         continue
+                    conf = [w.get("confidence", 1.0) for w in ev.get("words") or []]
+                    mean = sum(conf) / len(conf) if conf else 1.0
+                    if mean < self.a.min_confidence or (len(conf) == 1 and mean < 0.9):
+                        print(f"\r  (ignored noise: {ev.get('transcript', '')[:50]!r}, confidence {mean:.2f})" + " " * 10, flush=True)
+                        continue
                     text = "\n".join(f"Speaker {s}: {w}" for s, w in runs)
                     print("\r" + " " * 80 + "\r" + "\n".join(f"  you [{s}]> {w}" for s, w in runs), flush=True)
                     await self.respond(text)
@@ -115,6 +121,19 @@ class Agent:
                 elif t == "error":
                     print("server error:", ev, file=sys.stderr)
             sender.cancel()
+
+    async def feed_pw(self, ws):
+        """Mic via PipeWire (e.g. the WebRTC echo-cancel virtual source): pw-record raw s16 mono 16 kHz on stdout."""
+        p = await asyncio.create_subprocess_exec("pw-record", "--target", self.a.pw_source, "--rate", "16000",
+                                                 "--channels", "1", "--format", "s16", "--raw", "-",
+                                                 stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL)
+        silence = bytes(3200)
+        try:
+            while True:
+                chunk = await p.stdout.readexactly(3200)                  # 100 ms
+                await ws.send(silence if self.speaking.is_set() else chunk)
+        finally:
+            p.kill()
 
     async def feed_mic(self, ws):
         import sounddevice as sd
@@ -148,11 +167,19 @@ def main():
     ap.add_argument("--max-turns", type=int, default=20, help="conversation turns kept in context")
     ap.add_argument("--input-device", default=None); ap.add_argument("--output-device", default=None)
     ap.add_argument("--list-devices", action="store_true")
+    ap.add_argument("--pw-source", default=None, help="PipeWire source node to record from (default: voice_ec_source if "
+                    "present, the WebRTC echo-cancel mic; '' for the sounddevice default)")
+    ap.add_argument("--min-confidence", type=float, default=0.6, help="drop utterances whose mean word confidence is below this")
     ap.add_argument("--input-wav", help="headless test: stream this 16 kHz mono WAV instead of the mic")
     ap.add_argument("--save-dir", help="also save every spoken reply as a WAV here")
     ap.add_argument("--no-play", action="store_true", help="do not play audio (headless)")
     ap.add_argument("--quiet", action="store_true", help="hide live partial transcripts")
     a = ap.parse_args()
+    if a.pw_source is None and not a.input_wav:
+        import subprocess
+        nodes = subprocess.run(["pw-cli", "ls", "Node"], capture_output=True, text=True).stdout
+        a.pw_source = "voice_ec_source" if 'node.name = "voice_ec_source"' in nodes else ""
+        print(f"mic: {'PipeWire ' + a.pw_source + ' (WebRTC echo-cancel + noise suppression)' if a.pw_source else 'sounddevice default'}")
     if a.list_devices:
         import sounddevice as sd; print(sd.query_devices()); return
     try:

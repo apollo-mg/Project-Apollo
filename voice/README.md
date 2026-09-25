@@ -40,6 +40,13 @@ cd /mnt/TG_2TB/Projects/Apollo
 - **Half-duplex:** while the agent talks, the mic is replaced by silence, so it does not hear itself. There is no
   barge-in yet.
 - A turn ends after `--endpointing-ms` of silence (default 700).
+- **Noisy room (fan, A/C, PCs):** a PipeWire drop-in, `~/.config/pipewire/pipewire.conf.d/60-voice-echo-cancel.conf`,
+  adds a virtual mic `voice_ec_source` running WebRTC noise suppression, AGC, high-pass and echo cancellation (the
+  reference is the default speaker's monitor). The agent records from it automatically through `pw-record` when it
+  exists (`--pw-source ''` falls back to the sounddevice default). Capture follows the system default mic, which the
+  drop-in does not change.
+- Utterances with mean word confidence < `--min-confidence` (0.6), or a lone word < 0.9, are ignored as noise.
+  Clean speech scores 1.0.
 
 ## Measured (2026-09-25, headless test with `--input-wav`)
 
