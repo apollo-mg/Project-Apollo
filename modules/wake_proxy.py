@@ -315,7 +315,9 @@ class Node:
             head = {"system": msgs[0]["content"], "tools": tools,
                     "kwargs": {k: d[k] for k in ("chat_template_kwargs", "reasoning_effort") if k in d},
                     "captured_at": time.strftime("%Y-%m-%dT%H:%M:%S")}
-            key = hash((head["system"], json.dumps(tools, sort_keys=True)))
+            # kwargs are part of the key: reasoning_effort renders BEFORE the tools in the Qwen3.8 template, so two
+            # clients with different efforts share no prefix at all (observed 09-25: 16k-token head, sim 0.000)
+            key = hash((head["system"], json.dumps(tools, sort_keys=True), json.dumps(head["kwargs"], sort_keys=True)))
             if key == getattr(self, "_head_key", None):
                 return
             self._head_key = key
@@ -323,7 +325,7 @@ class Node:
             with open(tmp, "w") as f:
                 json.dump(head, f); f.flush(); os.fsync(f.fileno())
             os.replace(tmp, WARM_FILE)
-            log(f"warm: captured head ({len(head['system'])} chars system, {len(tools)} tools)")
+            log(f"warm: captured head ({len(head['system'])} chars system, {len(tools)} tools, kwargs {head['kwargs']})")
         except Exception as e:
             log(f"warm: capture skipped: {type(e).__name__}: {e}")
 
