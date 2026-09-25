@@ -5,7 +5,7 @@ set -u
 cd "$(dirname "$0")"
 HOST=$1; OUT=$2
 mkdir -p "$OUT"
-ITEMS="CAL-A1 CAL-A2 CAL-A3 CAL-A4 CAL-A5 CAL-A6 CAL-A7 CAL-A8 CAL-U1 CAL-U2 CAL-U3 CAL-U4 CAL-U5 CAL-U6 CAL-U7 CAL-U8"
+ITEMS=${ITEMS:-"CAL-A1 CAL-A2 CAL-A3 CAL-A4 CAL-A5 CAL-A6 CAL-A7 CAL-A8 CAL-U1 CAL-U2 CAL-U3 CAL-U4 CAL-U5 CAL-U6 CAL-U7 CAL-U8"}   # Bonsai run splits items across testers
 
 done_already () {    # arm rep item -> 0 if that row exists
   local f="$OUT/arm${1}_rep${2}.jsonl"
