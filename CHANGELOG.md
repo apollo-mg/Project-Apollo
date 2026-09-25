@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed -- .73 daily driver: static KV turbo8/turbo4, -c 131072, -np 4 (temporary) (2026-09-25, Claude)
+- Wake proxy `WP_START_CMD` (user unit, not in the repo): `-c 262144 -ctk vbr -ctv vbr --vbr-floor t4 --vbr-vram auto
+  -np 1` became `-c 131072 -ctk turbo8 -ctv turbo4 -np 4`. Also set `WP_WARM_ON_LOAD=1`.
+- Why: dynamic VBR on 2-GPU `-sm tensor` aborts llama-server whenever a request reuses a slot after its idle capture
+  published (`vbr-artifact-store/INCIDENT_73_NP1_IDLE_REUSE_ABORT.md`). The static pair never touches the artifact
+  store: no abort, and `-np 4` keeps reuse across side requests
+  (`split-prefill-73/RESULT_STATIC_KV_WORKAROUND.md`). 131072 is the fit: at 262144 the static cache leaves no room
+  for the mmproj.
+- Hermes: `providers.custom[.models].context_length` 262144 -> 131072; the 8099 entries in
+  `context_length_cache.yaml` were cleared.
+- **Revert to VBR** when buun fixes the meta-buffer recurrent read (`ggml-backend-meta.cpp:1783`). The unit backup
+  is in the session scratchpad; the old line is quoted above.
+
 ### Added -- wake proxy pre-warms the agent head after a cold load (2026-09-24, Claude)
 - `modules/wake_proxy.py`: the proxy remembers the last agent-shaped head it forwarded (a `/v1/chat/completions` with
   tools and a system prompt of >= 4k chars) in `run/warm_head.json`. That file is gitignored because it contains
