@@ -69,7 +69,7 @@ every comparison above.
    | turbo4 (264) | +20 % | 8/18 | 0.037 |
    | turbo3_tcq (208) | +33 % | 2/18 | 0.003 |
 
-   Without the overhead, VBR ties at ~4.5 bpv and still loses below it.
+   On the budget axis VBR ties at ~4.5 bpv and still loses below it.
 2. **The allocation is deep and uneven.** The degrade order is `160 baked steps (arch + KV-layout matched; n_layer
    65 vs table 64 -- MTP/nextn-style variant)`: the table measured on **Qwen3.6-27B**, applied to Qwen3.8-27B.
    - It sends some tensors to `turbo2_tcq` / `turbo1_tcq` while most layers are still at turbo4-turbo8.
@@ -88,7 +88,7 @@ every comparison above.
   t4`, so it can never take a tensor below t4, which is exactly where these losses come from. Floor-t4 arms run as
   Amendment 2.
 - **For buun:**
-  - the ~40 MiB constant mapping overhead;
+  - the ~40 MiB peak over budget while a tensor transcodes (a transient double mapping, not a constant cost);
   - whether the Qwen3.6-27B table should apply to Qwen3.8-27B;
   - whether early t1/t2 steps belong in the order at all at mid budgets;
   - whether the f16 tier is bit-exact on Pascal: pending `C0` (Amendment 2). This is not yet a finding.
