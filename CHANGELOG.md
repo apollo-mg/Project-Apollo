@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed -- .73 back on VBR (buun 0b2789f23), 262k, -np 4; proxy suspend waits for exit (2026-09-25, Claude)
+- Wake proxy `WP_START_CMD` (user unit): binary `~/buun-resume/build_sm60_resume` (buun `0b2789f23`) with
+  `-c 262144 -ctk vbr -ctv vbr --vbr-floor t4 --vbr-vram auto -np 4`. This replaces the temporary static
+  turbo8/turbo4 128k config. `0b2789f23` fixes the tensor-split recurrent-capture abort
+  (`vbr-artifact-store/RESULT_FIX_0B2789F23_ON_73.md`).
+- Hermes `providers.custom` context_length is back to 262144; the context cache was cleared.
+- `modules/wake_proxy.py` `sleep_node`: waits (up to 300 s) for llama-server to exit before suspending, instead of a
+  fixed 8 s, so a `--resume` shutdown save is not cut off. SIGKILL only as a last resort, and logged.
+- `--resume` is NOT enabled yet. Pending: a store location (.73's NVMe has ~10 GB free; `/mnt/HDD` is a spinning
+  drive) and a retention policy. Known gap: at `-np 4`, a slot displaced by a prefix-sharing request is not
+  VBR-host-restored.
+
 ### Changed -- .73 daily driver: static KV turbo8/turbo4, -c 131072, -np 4 (temporary) (2026-09-25, Claude)
 - Wake proxy `WP_START_CMD` (user unit, not in the repo): `-c 262144 -ctk vbr -ctv vbr --vbr-floor t4 --vbr-vram auto
   -np 1` became `-c 131072 -ctk turbo8 -ctv turbo4 -np 4`. Also set `WP_WARM_ON_LOAD=1`.

@@ -50,9 +50,9 @@ LOG = os.getenv("WP_LOG", "/mnt/TG_2TB/Projects/Apollo/run/wake_proxy.log")
 WARM_FILE = os.getenv("WP_WARM_FILE", "/mnt/TG_2TB/Projects/Apollo/run/warm_head.json")
 WARM_MIN_CHARS = int(os.getenv("WP_WARM_MIN_CHARS", "4000"))   # agent heads only, not chat UIs
 WARM_TIMEOUT = float(os.getenv("WP_WARM_TIMEOUT", "1800"))
-# OFF by default (2026-09-24): on buun 08826ad6e + -sm tensor, the first chat after a fresh-server warm-up aborted
-# llama-server in the VBR recurrent capture (ggml-backend-meta.cpp:1783 GGML_ASSERT(size % row_stride == 0)),
-# the same bug as vbr-artifact-store/INCIDENT_73_NP4_TENSOR_CAPTURE_ABORT.md. Re-enable once fixed.
+# OFF by default in code (2026-09-24): on buun 08826ad6e + -sm tensor + VBR, the first chat after a fresh-server warm-up
+# aborted llama-server (ggml-backend-meta.cpp:1783). FIXED in buun 0b2789f23 (vbr-artifact-store/RESULT_FIX_0B2789F23_ON_73.md);
+# the .73 unit sets WP_WARM_ON_LOAD=1.
 WARM_ON_LOAD = os.getenv("WP_WARM_ON_LOAD", "0") == "1"
 
 def _redate(system: str) -> str:
@@ -278,7 +278,13 @@ class Node:
         # ALWAYS unload first: /var (24 GiB) cannot hold a 32 GiB VRAM spill.
         log("suspend: stopping llama-server before suspend (VRAM spill would not fit)")
         await ssh(self.c.host, "pkill -x llama-server || true", timeout=30)
-        await asyncio.sleep(8)
+        # Wait for the process to EXIT, not a fixed 8 s: with --resume the shutdown saves every slot to disk (41.6 s for
+        # a 9.2k-token slot on .73, 2026-09-25), and suspending mid-save loses it. Bounded; SIGKILL only as a last resort.
+        rc, _ = await ssh(self.c.host, "for i in $(seq 1 150); do pgrep -x llama-server >/dev/null || exit 0; sleep 2; "
+                          "done; pkill -9 -x llama-server; exit 1", timeout=330)
+        if rc != 0:
+            log("suspend: llama-server did not exit within 300 s -- SIGKILLed (a --resume save may be lost)")
+        await asyncio.sleep(2)
         # LAST-MOMENT RE-CHECK. The 8 s unload window is long enough for a request to arrive and
         # for ensure_ready() to begin a load. Suspending on top of that is what broke .73 on
         # 2026-09-19: suspend armed 14:38:55, load started 14:38:56, machine slept 14:39:04 with
