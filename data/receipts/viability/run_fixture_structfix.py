@@ -128,6 +128,7 @@ RUN_HOST = None
 BUDGET = None   # set from --budget; thinking-token cap, None = unrestricted (arm A)
 BUDGET_MSG = None   # set from --budget-message
 ARM = None      # set from --arm; recorded in the jsonl so arms can be separated at scoring time
+LOGIT_BIAS = None   # set from --logit-bias-file; None = no bias (every earlier receipt)
 
 TPS_FLOOR = 2.5   # assumed worst-case decode rate; .194 measured 7.7 tok/s on a 27B Q6_K
 
@@ -138,6 +139,8 @@ def ask(host, q, n_predict=512, timeout=None, prompt=None):
             "n_predict": n_predict, **SAMPLING}
     if EFFORT:
         body["chat_template_kwargs"] = {"reasoning_effort": EFFORT}
+    if LOGIT_BIAS is not None:
+        body["logit_bias"] = LOGIT_BIAS      # [[token_id, bias], ...]; marker-penalty/PREREG_MARKER_PENALTY.md
     if BUDGET is not None:
         body["reasoning_budget_tokens"] = BUDGET
         if BUDGET_MSG:
@@ -474,6 +477,8 @@ if __name__ == "__main__":
     ap.add_argument("--budget-message", default=None,
                     help="text injected before the forced end-of-thinking tag when the cap binds")
     ap.add_argument("--arm", default=None, help="arm label recorded in each jsonl row")
+    ap.add_argument("--logit-bias-file", default=None,
+                    help="JSON list of [token_id, bias] pairs sent as logit_bias on every request (opt-in)")
     ap.add_argument("--effort", choices=["low", "medium", "xhigh"],
                     help="reasoning_effort via chat_template_kwargs. NOT a sampling knob — the "
                          "chat template turns it into injected system text (AFM-23). 'high' is "
@@ -494,6 +499,9 @@ if __name__ == "__main__":
     globals()["BUDGET"] = a.budget
     globals()["BUDGET_MSG"] = a.budget_message
     globals()["ARM"] = a.arm
+    if a.logit_bias_file:
+        globals()["LOGIT_BIAS"] = json.load(open(a.logit_bias_file))
+        print(f"logit_bias: {len(LOGIT_BIAS)} tokens from {a.logit_bias_file}")
     if a.budget is not None:
         print(f"thinking cap: {a.budget} tokens | arm {a.arm} | "
               f"message {'set (' + str(len(a.budget_message or '')) + ' chars)' if a.budget_message else 'NONE'}")
