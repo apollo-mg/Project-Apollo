@@ -30,6 +30,7 @@ cost tokens only to start and interpret, which is the actual scarce resource.
   Costs today: every Open WebUI follow-up/title/tag call and every Hermes session-title call evicts the chat's cache
   (46 s re-prefill at 6.8k tokens); parallel subagents serialize and evict each other. Not fixed as of buun
   `2ef0317dd` (09-23). Workaround `-sm layer -np 4` TESTED 09-24 and FAILS as configured: 0/6 requests served (draft-context OOM), and layer split halves decode anyway (`split-prefill-73/RESULT_SPLIT_PREFILL_73.md`).
+- **.73 at `-np 1` aborts when a request reuses a slot after its idle VBR capture published** (4/4 in repro, `ggml-backend-meta.cpp:1783 GGML_ASSERT(size % row_stride == 0)` via `try_automatic_vbr_restore -> ensure_vbr_replacement_recovery`). Same capture family as the np>1 abort, now with the assert text. `vbr-artifact-store/INCIDENT_73_NP1_IDLE_REUSE_ABORT.md`. `--no-vbr-prompt-cache` avoids it but kills reuse. Wake-proxy auto-warm is OFF until fixed.
 - **VBR sticky floor after a full reset** (unfrozen explicit budget, llama-perplexity). `kv-depth/RESULT_KV_DEPTH_MATCHED_ALLOCATION.md`,
   AFM-46. **Checked 09-24 in llama-server (`08826ad6e`, .73): NOT reproduced** -- each new prompt resets to f16 and bpv tracks depth (`split-prefill-73/`). Still open for llama-perplexity / unfrozen explicit budgets.
 

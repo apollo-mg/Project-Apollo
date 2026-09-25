@@ -21,7 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   8,150/8,150 cached tokens, 2.1 s against 90.6 s cold. Live e2e: a head captured with yesterday's date was
   re-dated and warmed in 3.8 s; the next request reused 9,106 tokens and answered in 1.33 s.
   `data/receipts/split-prefill-73/`.
-- Not yet exercised: the automatic post-load path (the e2e suspend step was correctly refused while .73 was busy).
+- **Automatic warm is OFF by default** (`WP_WARM_ON_LOAD=0`). Exercised end to end, it warmed 9,197 tokens by
+  itself, but the chat after it hit a llama-server abort that ordinary chat also triggers
+  (`vbr-artifact-store/INCIDENT_73_NP1_IDLE_REUSE_ABORT.md`). `POST /warm` and head capture stay available.
 
 ### Changed -- argus driver: AFM-44 listener guard ignores host-namespace processes (2026-09-24, Claude)
 - `argus/driver.py`: a new listening socket stops the arm only if its process is NOT in the driver's own PID

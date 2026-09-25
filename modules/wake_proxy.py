@@ -50,7 +50,10 @@ LOG = os.getenv("WP_LOG", "/mnt/TG_2TB/Projects/Apollo/run/wake_proxy.log")
 WARM_FILE = os.getenv("WP_WARM_FILE", "/mnt/TG_2TB/Projects/Apollo/run/warm_head.json")
 WARM_MIN_CHARS = int(os.getenv("WP_WARM_MIN_CHARS", "4000"))   # agent heads only, not chat UIs
 WARM_TIMEOUT = float(os.getenv("WP_WARM_TIMEOUT", "1800"))
-WARM_ON_LOAD = os.getenv("WP_WARM_ON_LOAD", "1") == "1"
+# OFF by default (2026-09-24): on buun 08826ad6e + -sm tensor, the first chat after a fresh-server warm-up aborted
+# llama-server in the VBR recurrent capture (ggml-backend-meta.cpp:1783 GGML_ASSERT(size % row_stride == 0)),
+# the same bug as vbr-artifact-store/INCIDENT_73_NP4_TENSOR_CAPTURE_ABORT.md. Re-enable once fixed.
+WARM_ON_LOAD = os.getenv("WP_WARM_ON_LOAD", "0") == "1"
 
 def _redate(system: str) -> str:
     """Hermes stamps 'Conversation started: <Weekday>, <Month> <DD>, <YYYY>' (date-only, so the head is

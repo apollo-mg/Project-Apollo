@@ -62,8 +62,13 @@ pre-warm has to call `/apply-template` and `/completion` on the node directly (s
 - `POST /warm` re-dated it, reused 8,607 tokens (the nearest saved state before the date line), prefilled 499, and
   took 3.8 s.
 - A request with today's date and a new question then reused **9,106** tokens, prefilled 15, and took **1.33 s**.
-- The automatic post-load leg did not run: `/suspend` answered 409 because .73 was genuinely busy (98 % GPU, a
-  real 8k request in the slot).
+- The automatic post-load leg did not run in that test: `/suspend` answered 409 because .73 was genuinely busy
+  (98 % GPU; it was the hourly ledger build).
+- Re-run with only `llama-server` stopped (`warm_proxy_postload.py`): the `/props` probe loaded the server in 35 s,
+  and the proxy warmed the head by itself (9,197 tokens, 61 s). **The next chat aborted llama-server.** The repro
+  shows that ordinary chat triggers the same abort whenever a request reuses a slot after its idle VBR capture has
+  published: `vbr-artifact-store/INCIDENT_73_NP1_IDLE_REUSE_ABORT.md`. **The automatic warm is therefore shipped OFF**
+  (`WP_WARM_ON_LOAD=0`) until buun's fix.
 
 ## Scored against the prereg
 
