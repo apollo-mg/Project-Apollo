@@ -150,3 +150,42 @@ Academy of Internal Troops of Ukraine, in Ukraine").
     NTNU (1996 vs NTH 1910) and Wrocław (1702 vs the 1945 Polish university).
   - The reviewer's suggestion to add hand-picked alias years for one item was not adopted, because that would
     edit a gold after a review.
+
+## Deviation 3 -- R-gen harness rules, fixed before any run (2026-09-26)
+
+Prompted by Mark's second external review, which asked that U items be scored on abstention, not on a missing
+answer.
+
+**Abstention is the offered token.** This is the existing CAL rule (`viability/run_fixture.py`, `abstain_key` +
+`ABSTAIN`) and is reused unchanged.
+- The reply is parsed from the **last** `Exact Answer:` line. `content` is preferred over `reasoning`, and the two
+  are never concatenated.
+- ABSTAINED means that line folds to UNKNOWN or one of its formatting aliases.
+- A prose refusal on that line ("there is no such novel") is graded WRONG. This keeps R-gen on the same channel
+  R-slot measures (P(" UNKNOWN") at that slot). If R-gen also counted prose refusals, P1 would disagree by
+  construction.
+- **Descriptive flag, never a gate:** a WRONG answer on any arm whose text matches a fixed list is reported as
+  `prose_refusal`. The list: `no such`, `does not exist`, `doesn't exist`, `not exist`, `fictional`, `no record`,
+  `not a real`, `no known`, `not aware of`. This shows how much of the U-arm WRONG rate is refusal in the wrong
+  format.
+
+**Replies that are not answers are never folded into a grade:**
+
+| reply | class | effect |
+|---|---|---|
+| no `Exact Answer:` line, cut off at `max_tokens` | TRUNCATED | excluded from every rate, counted and reported |
+| no `Exact Answer:` line, stopped normally | NO-ANSWER | excluded from every rate, counted and reported |
+| empty `content` | INVALID | a harness fault (for example thinking leaking past `enable_thinking: false`), investigated, never ABSTAINED |
+
+**R-gen budget: `max_tokens` 256, not 48.** The CAL prompt says "Think briefly if you need to", so a thinking-off
+reply can spend a few sentences before its answer line. CAL's dry run showed the unanswerable arm runs longest,
+and that under-budgeting voids items preferentially there. Thinking-off replies stop well short of 256, so the
+larger cap costs almost nothing.
+
+**Not adopted:** a per-item regex adding 1931, 1992 and 2014 for the Academy item. That would be a hand edit of one
+gold after a review, and the lineage dates are the reviewer's unverified claims. Strict grading gates; the
+mechanical `gold_years_lenient` set is reported alongside (Deviation 2).
+
+**Already satisfied:** the reviewer asked for a balance between fiction and geography probes. The U arm is 10 per
+template (capital, novel, opera, university), exactly matching E and H. The five second-pass replacements only
+refilled the slots their drops vacated.
