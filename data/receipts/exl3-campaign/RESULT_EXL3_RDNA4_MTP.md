@@ -1,5 +1,7 @@
 # Result — on RDNA4, MTP gives EXL3 nothing and GGUF 1.7×, so the gap at matched size is 2.1–2.4×
 
+> **Superseded on the current build (2026-09-26):** on buun `0b2789f23`, MTP gives EXL3 1.80-1.96x and the gap is 1.19-1.29x. The EXL3 int8 GEMV rework (09-17/18) fixed the 4- and 8-row scaling measured below. See `RESULT_EXL3_RDNA4_RERUN.md`. The numbers here remain correct for `da458765d`.
+
 **Run 2026-09-13, 09:55–10:07, on the control plane's RX 9070 XT (gfx1201), buun `da458765d`.**
 Pre-registered in `PREREG_EXL3_RDNA4_MTP.md` (`4b581ef`), driver and scorer `exl3_rdna4_mtp.py`,
 committed with it. Raw data in `rdna4_mtp/`. EXL3 campaign test 9, ledger O5. **Mark's question:** the
