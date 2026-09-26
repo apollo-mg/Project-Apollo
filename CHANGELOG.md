@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added -- guest gateway for the .73 wake proxy (2026-09-25, Claude)
+
+- `modules/guest_gateway.py`: an authenticated front door (localhost :8098) so friends can test the .73 model over
+  Tailscale.
+  - Per-person expiring keys (sha256 only, `run/guest_keys.json`, gitignored).
+  - Two routes only (chat completions, models).
+  - `max_tokens` clamp, body cap, slot fields dropped, one guest request at a time (429 beyond).
+  - A sleeping node answers 503 + Retry-After with a single background wake.
+  - Usage log without prompt text.
+- All of this was tested locally. `modules/GUEST_GATEWAY.md` has the checks and the step-2 exposure procedure.
+- **Nothing is exposed yet.** The tailnet access rule (shared users -> desktop :443 only) must come first: the default
+  policy would expose SSH, SMB and the unauthenticated proxy on :8099.
+
 ### Changed -- .73 back on VBR (buun 0b2789f23), 262k, -np 4; proxy suspend waits for exit (2026-09-25, Claude)
 - Wake proxy `WP_START_CMD` (user unit): binary `~/buun-resume/build_sm60_resume` (buun `0b2789f23`) with
   `-c 262144 -ctk vbr -ctv vbr --vbr-floor t4 --vbr-vram auto -np 4`. This replaces the temporary static
