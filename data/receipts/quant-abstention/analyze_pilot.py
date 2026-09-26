@@ -119,7 +119,40 @@ def main():
                        "P_abs_answerable_not_higher": (A["B"]["timidity_E"] + A["B"]["timidity_H"]) <=
                                                        (A["C"]["timidity_E"] + A["C"]["timidity_H"])}
         P["Q4"] = A["C"]["AUROC_U_vs_EH"] >= 0.85
+    # ---- DESCRIPTIVE (not gates): what the registered numbers rest on --------------------------------------------
+    T = ("capital", "novel", "opera", "university")
+    desc = out["descriptive"] = {}
+    for a, (hdr, R) in D.items():
+        g = [r for r in R.values() if r["grade"] in GRADED]
+        tab = {f"slot_{s}_gen_{t}": sum(((r["P_abs"] > 0.5) == s) and ((r["grade"] == "ABSTAINED") == t) for r in g)
+               for s in (True, False) for t in (True, False)}
+        wt = {tp: auroc([r["P_abs"] for r in R.values() if r["arm"] == "U" and r["template"] == tp],
+                        [r["P_abs"] for r in R.values() if r["arm"] in "EH" and r["template"] == tp]) for tp in T}
+        n = len(g); st = tab["slot_True_gen_True"] + tab["slot_True_gen_False"]; gt = tab["slot_True_gen_True"] + tab["slot_False_gen_True"]
+        po = (tab["slot_True_gen_True"] + tab["slot_False_gen_False"]) / n; pe = (st * gt + (n - st) * (n - gt)) / n ** 2
+        desc[a] = {"P1_2x2": tab, "P1_baseline_never_abstain": round(rate([r["grade"] != "ABSTAINED" for r in g]), 3),
+                   "P1_kappa": round((po - pe) / (1 - pe), 3),
+                   "not_graded_slot": [(r["id"], round(r["P_abs"], 3)) for r in R.values() if r["grade"] not in GRADED],
+                   "AUROC_within_template": {k: round(v, 3) for k, v in wt.items()},
+                   "AUROC_within_template_mean": round(sum(wt.values()) / len(wt), 3),
+                   "knowledge_E_lenient": round(A[a]["knowledge_E_lenient"], 3),
+                   "knowledge_H_lenient": round(A[a]["knowledge_H_lenient"], 3),
+                   "U_abstain_by_template": {tp: f"{sum(r['grade'] == 'ABSTAINED' for r in g if r['arm'] == 'U' and r['template'] == tp)}/"
+                                                 f"{sum(1 for r in g if r['arm'] == 'U' and r['template'] == tp)}" for tp in T},
+                   "H_correct_by_template": {tp: f"{sum(r['grade'] == 'CORRECT' for r in g if r['arm'] == 'H' and r['template'] == tp)}/"
+                                                 f"{sum(1 for r in g if r['arm'] == 'H' and r['template'] == tp)}" for tp in T}}
+    if "C" in D:
+        RC = D["C"][1]
+        for a in ("M", "L", "B"):
+            if a not in D:
+                continue
+            Ra = D[a][1]
+            both = [i for i in RC if i in Ra and RC[i]["grade"] in GRADED and Ra[i]["grade"] in GRADED]
+            sgn = lambda arm, k: {"arm_only": sum(Ra[i]["grade"] == k and RC[i]["grade"] != k for i in both if RC[i]["arm"] == arm),
+                                  "C_only": sum(RC[i]["grade"] == k and Ra[i]["grade"] != k for i in both if RC[i]["arm"] == arm)}
+            desc[a]["discordant_vs_C"] = {"H_correct": sgn("H", "CORRECT"), "U_abstained": sgn("U", "ABSTAINED")}
     json.dump(out, open(HERE / "RESULT_pilot.json", "w"), indent=1)
+    print(json.dumps(desc, indent=1))
     cols = ["P1_agreement", "knowledge_E", "knowledge_H", "abstain_U", "confab_U_gen", "overabstain_E", "overabstain_H",
             "timidity_E", "timidity_H", "confab_U_slot", "AUROC_U_vs_EH"]
     print("arm  " + "  ".join(f"{c[:13]:>13s}" for c in cols))
