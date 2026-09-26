@@ -50,7 +50,13 @@ def fetch(name, q):
 def pools():
     P = {}
     for name, q in QUERIES.items():
-        rows = fetch(name, q)
+        cached = (RAW / f"{name}.json").exists()
+        raw = sorted(fetch(name, q), key=lambda x: (x["item"]["value"], x["ans"]["value"], x.get("ctxLabel", {}).get("value", "")))
+        seen, rows = set(), []
+        for x in raw:   # one row per (item, answer): a UNION double-tag or a 2nd author/country is not a 2nd answer
+            k = (x["item"]["value"], x["ans"]["value"])
+            if k not in seen:
+                seen.add(k); rows.append(x)
         n = {}
         for x in rows:
             n[x["item"]["value"]] = n.get(x["item"]["value"], 0) + 1
@@ -63,8 +69,9 @@ def pools():
         uniq = [x for x in single if lab[x["itemLabel"]["value"]] == 1]
         P[name] = {"E": [x for x in uniq if int(x["links"]["value"]) >= 40],
                    "H": [x for x in uniq if 3 <= int(x["links"]["value"]) <= 8]}
-        print(f"{name:10s} rows {len(rows):6d} usable {len(uniq):5d}  E {len(P[name]['E']):4d}  H {len(P[name]['H']):5d}", flush=True)
-        time.sleep(65)   # the query service budgets compute per minute; heavy queries back to back get 429
+        print(f"{name:10s} rows {len(raw):6d} dedup {len(rows):6d} usable {len(uniq):5d}  E {len(P[name]['E']):4d}  H {len(P[name]['H']):5d}", flush=True)
+        if not cached:
+            time.sleep(65)   # the query service budgets compute per minute; heavy queries back to back get 429
     return P
 
 
