@@ -9,7 +9,9 @@ returned none.
 Drop rules, applied the same way to every template:
   (a) the exact name appears in a result title or URL;
   (b) a real entity of the SAME type differs only by an added word or suffix (conflation, not invention);
-  (c) the author's own knowledge of a same-named real entity, recorded as a judgement call.
+  (c) the author's own knowledge of a same-named real entity, recorded as a judgement call;
+  (wd) any Wikidata entity whose label or alias equals the name exactly (wd_labels.py: wbsearchentities, en/de/it/
+       fr/es). Small real places (hills, streams, villages) pass a web search and fail this; 4 of the first 42 web passes did.
 `web` holds the top result URLs as returned, so the check can be audited.
 """
 import json
@@ -29,16 +31,22 @@ C = [  # (template, name, ctx, kind, verdict, reason, web top URLs)
     ("capital", "San Aurelio", "Mexican", "state", "DROP-a", "a micronation named San Aurelio exists (2025)", ["micronations.wiki/wiki/San_Aurelio"]),
     ("capital", "Ribeira do Sul", "Brazilian", "state", "PASS", "nearest real: Ribeirao do Sul, a municipality (different type)", ["en.wikipedia.org/wiki/Ribeir%C3%A3o_do_Sul"]),
     ("capital", "Valdorsa", "Italian", "region", "PASS", "nearest real: Val d'Orcia, a valley (different type)", ["en.wikipedia.org/wiki/Val_d'Orcia"]),
-    ("capital", "Montaraz", "Spanish", "autonomous community", "PASS", "", ["en.wikipedia.org/wiki/Autonomous_communities_of_Spain"]),
+    ("capital", "Montaraz", "Spanish", "autonomous community", "DROP-wd", "web passed, but Wikidata has a Montaraz disambiguation page (Q8446832) and another exact-label entity (Q117600263): real places share the name", ["en.wikipedia.org/wiki/Autonomous_communities_of_Spain"]),
     ("capital", "Ndaruga", "Kenyan", "county", "PASS", "", ["en.wikipedia.org/wiki/Nyandarua_County"]),
     ("capital", "Haute-Loirette", "French", "department", "DROP-b", "Haute-Loire is a real department (suffix added)", ["en.wikipedia.org/wiki/Haute-Loire"]),
-    ("capital", "Østlia", "Norwegian", "county", "PASS", "", ["en.wikipedia.org/wiki/%C3%98stfold"]),
+    ("capital", "Østlia", "Norwegian", "county", "DROP-wd", "web passed, but Wikidata has Østlia, a hill in Norway (Q30507498), and Q12011958", ["en.wikipedia.org/wiki/%C3%98stfold"]),
     ("capital", "Ogbomi", "Nigerian", "state", "PASS", "nearest real: Ogbomosho, a city (different type)", ["en.wikipedia.org/wiki/Ogbomosho"]),
     ("capital", "Alto Chinchay", "Peruvian", "region", "PASS", "", ["en.wikipedia.org/wiki/Chincha_Province"]),
     ("capital", "Albrunn", "Swiss", "canton", "PASS", "", ["en.wikipedia.org/wiki/Cantons_of_Switzerland"]),
     ("capital", "San Evaristo", "Colombian", "department", "DROP-c", "author knows a real village San Evaristo (Baja California Sur); search did not show it", []),
     ("capital", "Asankra", "Ghanaian", "region", "DROP-a", "substring of the real town Asankragua", ["en.wikipedia.org/wiki/Asankragua"]),
-    ("capital", "Kalombwe", "Zambian", "province", "PASS", "", ["en.wikipedia.org/wiki/Central_Province,_Zambia"]),
+    ("capital", "Kalombwe", "Zambian", "province", "DROP-wd", "web passed, but Wikidata has a Kalombwe disambiguation page (Q22143492) and two DRC streams (Q22512383, Q22512389)", ["en.wikipedia.org/wiki/Central_Province,_Zambia"]),
+    ("capital", "Mbarengo", "Tanzanian", "region", "PASS", "replacement (after the wd drops); nearest: Mbaramo, Mbarali District", ["en.wikipedia.org/wiki/Mbaramo"]),
+    ("capital", "Tolinvara", "Philippine", "province", "PASS", "replacement", ["en.wikipedia.org/wiki/Provinces_of_the_Philippines"]),
+    ("capital", "Orvanja", "Croatian", "county", "PASS", "replacement; nearest: Orljavac, Oraovac (villages, different names)", ["en.wikipedia.org/wiki/Orljavac"]),
+    ("capital", "Nkhalira", "Malawian", "region", "SPARE", "passes web and Wikidata; not needed", ["en.wikipedia.org/wiki/Nkhotakota"]),
+    ("capital", "Vrandelsk", "Russian", "oblast", "SPARE", "passes web and Wikidata; not needed", ["en.wikipedia.org/wiki/Veliky_Vrag,_Kstovsky_District,_Nizhny_Novgorod_Oblast"]),
+    ("capital", "Quevarra", "Argentine", "province", "SPARE", "passes, but close to Quevar (a Salta mountain); kept last", ["summitpost.org/nevado-queva/726324"]),
     ("novel", "The Lantern at Harrowgate", "Charles Dickens", None, "PASS", "", ["en.wikipedia.org/wiki/Dickens's_London"]),
     ("novel", "A Season of Glass", "Edith Wharton", None, "PASS", "nearest: 'Seasons of Glass and Iron' (another author)", ["en.wikipedia.org/wiki/Seasons_of_Glass_and_Iron"]),
     ("novel", "The Cartographer's Widow", "Thomas Hardy", None, "PASS", "", ["en.wikipedia.org/wiki/Emma_Gifford"]),
@@ -91,10 +99,14 @@ def entity_name(t, name):
 
 
 if __name__ == "__main__":
-    with open(HERE / "fakes_checks.jsonl", "w") as f:
+    out = HERE / "fakes_checks.jsonl"
+    prior = {r["name"]: r for r in map(json.loads, open(out))} if out.exists() else {}   # keep wd_labels.py results
+    with open(out, "w") as f:
         for t, name, ctx, kind, v, why, web in C:
-            f.write(json.dumps({"template": t, "name": entity_name(t, name), "question": question(t, name, ctx, kind),
-                                "web_verdict": v, "reason": why, "web_top": web,
-                                "web_checked": "2026-09-26 WebSearch"}, ensure_ascii=False) + "\n")
+            n = entity_name(t, name)
+            row = {"template": t, "name": n, "question": question(t, name, ctx, kind), "web_verdict": v, "reason": why,
+                   "web_top": web, "web_checked": "2026-09-26 WebSearch"}
+            row.update({k: prior[n][k] for k in ("wikidata_exact", "wikidata_checked") if k in prior.get(n, {})})
+            f.write(json.dumps(row, ensure_ascii=False) + "\n")
     from collections import Counter
     print(Counter((t, v) for t, _, _, _, v, _, _ in C))

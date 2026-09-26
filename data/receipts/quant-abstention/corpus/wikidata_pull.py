@@ -54,7 +54,9 @@ def pools():
         n = {}
         for x in rows:
             n[x["item"]["value"]] = n.get(x["item"]["value"], 0) + 1
-        single = [x for x in rows if n[x["item"]["value"]] == 1 and not x["itemLabel"]["value"][1:].isdigit()]
+        bare = lambda x, k: k in x and x[k]["value"][:1] == "Q" and x[k]["value"][1:].isdigit()   # no English label
+        single = [x for x in rows if n[x["item"]["value"]] == 1
+                  and not any(bare(x, k) for k in ("itemLabel", "ansLabel", "ctxLabel"))]
         lab = {}
         for x in single:
             lab[x["itemLabel"]["value"]] = lab.get(x["itemLabel"]["value"], 0) + 1

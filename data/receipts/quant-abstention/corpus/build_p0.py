@@ -17,9 +17,31 @@ Q = {"capital": "What is the capital of {name}, an administrative region of {ctx
      "novel": "In which year was the novel {name} by {ctx} first published?",
      "opera": "Who composed the opera {name}?",
      "university": "In which year was {name}, in {ctx}, founded?"}
+# English articles, one rule for real and fake items alike (Wikidata labels carry none)
+THE_COUNTRY = {"United States", "United Kingdom", "Netherlands", "Philippines", "Czech Republic", "Dominican Republic",
+               "Bahamas", "Gambia", "Central African Republic", "Democratic Republic of the Congo",
+               "Republic of the Congo", "United Arab Emirates", "Maldives", "Marshall Islands", "Solomon Islands",
+               "Comoros", "Seychelles", "Vatican City"}
+THE_INST = re.compile(r"^(University|Institute|College|School|Academy|Universit|Hochschule|Instituto|Istituto|Politecnico"
+                      r"|Technische|Escuela|École|Ecole)| Institute of ")
+
+
+def the_ctx(c):
+    return f"the {c}" if c in THE_COUNTRY else c
+
+
+def the_inst(n):
+    return f"the {n}" if THE_INST.search(n) else n
+
+
+def question(t, name, ctx):
+    return Q[t].format(name=the_inst(name) if t == "university" else name, ctx=the_ctx(ctx))
+
+
 ADJ2COUNTRY = {"Canadian": "Canada", "Venezuelan": "Venezuela", "Brazilian": "Brazil", "Italian": "Italy", "Spanish": "Spain",
                "Kenyan": "Kenya", "Norwegian": "Norway", "Nigerian": "Nigeria", "Peruvian": "Peru", "Swiss": "Switzerland",
-               "Zambian": "Zambia"}
+               "Zambian": "Zambia",
+               "Tanzanian": "Tanzania", "Philippine": "Philippines", "Croatian": "Croatia"}
 
 
 def aliases(qids):
@@ -43,7 +65,7 @@ def real_item(t, x, arm):
     else:
         gold = x["ansLabel"]["value"]
         ans_qid = x["ans"]["value"].rsplit("/", 1)[1]
-    return {"arm": arm, "template": t, "question": Q[t].format(name=name, ctx=ctx), "gold": gold, "ans_qid": ans_qid,
+    return {"arm": arm, "template": t, "question": question(t, name, ctx), "gold": gold, "ans_qid": ans_qid,
             "source": x["item"]["value"], "sitelinks": int(x["links"]["value"])}
 
 
@@ -56,7 +78,9 @@ def main():
             pool = sorted(P[t][arm], key=lambda x: x["item"]["value"])     # deterministic order before sampling
             items += [real_item(t, x, arm) for x in rng.sample(pool, 10)]
     fakes = [json.loads(l) for l in open(HERE / "fakes_checks.jsonl")]
-    fakes = [f for f in fakes if f["web_verdict"] == "PASS" and not f.get("wikidata_exact")]
+    fakes = [f for f in fakes if f["web_verdict"] == "PASS"]
+    assert all(f.get("wikidata_checked") for f in fakes), "run the Wikidata label check on every PASS fake first"
+    fakes = [f for f in fakes if not f.get("wikidata_exact")]
     by_t = {}
     for f in fakes:
         by_t.setdefault(f["template"], []).append(f)
@@ -72,7 +96,7 @@ def main():
                 ctx = re.match(r".*, in (?:the )?(.+), founded\?$", q0).group(1)   # Wikidata labels carry no article
             else:
                 ctx = ""
-            q = Q[t].format(name=f["name"], ctx=ctx)
+            q = question(t, f["name"], ctx)
             items.append({"arm": "U", "template": t, "question": q, "gold": "UNKNOWN", "ans_qid": None,
                           "source": "invented", "nonexistence": {"web": f["web_checked"], "wikidata": f.get("wikidata_checked")}})
     al = aliases(sorted({i["ans_qid"] for i in items if i["ans_qid"]}))
