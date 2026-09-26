@@ -57,7 +57,11 @@ ADMIN = {"oblast", "krai", "region", "province", "prefecture", "state", "county"
 ADJ2COUNTRY = {"Canadian": "Canada", "Venezuelan": "Venezuela", "Brazilian": "Brazil", "Italian": "Italy", "Spanish": "Spain",
                "Kenyan": "Kenya", "Norwegian": "Norway", "Nigerian": "Nigeria", "Peruvian": "Peru", "Swiss": "Switzerland",
                "Zambian": "Zambia", "Tanzanian": "Tanzania", "Philippine": "Philippines", "Croatian": "Croatia",
-               "Russian": "Russia", "Argentine": "Argentina"}
+               "Russian": "Russia", "Argentine": "Argentina", "Polish": "Poland", "Romanian": "Romania",
+               "Turkish": "Turkey", "Indonesian": "Indonesia", "Ghanaian": "Ghana", "Swedish": "Sweden",
+               "Kazakh": "Kazakhstan", "Estonian": "Estonia", "Guinean": "Guinea", "Ecuadorian": "Ecuador",
+               "Gabonese": "Gabon", "Congolese": "Republic of the Congo", "Chadian": "Chad", "Honduran": "Honduras",
+               "Uzbek": "Uzbekistan", "Mexican": "Mexico"}
 
 
 def the_ctx(c):

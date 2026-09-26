@@ -16,10 +16,12 @@ as a real Verne novel. Controls: "Treaty of Westphalia" returned many matching r
 returned none.
 
 Drop rules, applied the same way to every template:
-  (a) the exact name, ignoring a leading "The", appears in a result title or URL and names a place, a creative work
-      or an institution. A person's name or a username alone does not drop a candidate (Ndaruga, Mbarengo and
-      Quevarra hit only on those), because it cannot supply an answer to the question;
-  (b) a real entity of the SAME type differs only by an added word or suffix (conflation, not invention);
+  (a) the exact name, ignoring a leading article ("The", "A"), appears in a result title or URL and names a place, a
+      creative work or an institution. A person's name or a username alone does not drop a candidate (Ndaruga,
+      Mbarengo and Quevarra hit only on those), because it cannot supply an answer to the question;
+  (b) a real entity of the SAME type differs only by an added word or suffix (conflation, not invention). Sharing a
+      head noun with a real work while the place differs is NOT (b): it is a note on the row (the Rosamunda
+      d'Aquileia / Rosmonda d'Inghilterra precedent from P0);
   (c) the author's own knowledge of a same-named real entity, recorded as a judgement call;
   (wd) any Wikidata entity whose label or alias equals the name exactly (wd_labels.py: wbsearchentities, en/de/it/
        fr/es). Small real places (hills, streams, villages) pass a web search and fail this; 4 of the first 42 web passes did.
@@ -142,6 +144,63 @@ C = [  # (template, name, ctx, kind, verdict, reason, web top URLs)
     ("opera", "La principessa di Mantova", None, None, "DROP-a", "main batch; a real novel with the exact title (Marie Ferranti)", ["ibs.it/principessa-di-mantova-libro-marie-ferranti/e/9788879726023"]),
     ("opera", "Le Serment de Kerlouan", None, None, "DROP-b", "main batch; the real opera Le Serment (Auber, 1832) plus added words", ["loc.gov/item/2010659506"]),
     ("opera", "I pescatori di Chioggia", None, None, "DROP-a", "main batch; a real prose work with the exact title (Giovanni Comisso)", ["premiocomisso.it/i-pescatori-di-chioggia-di-giovanni-comisso/"]),
+    ("university", "Ashcombe University", "the United Kingdom", None, "PASS", "main batch; nearest: The Ashcombe School (Dorking, secondary)", ["en.wikipedia.org/wiki/The_Ashcombe_School"]),
+    ("university", "Delmont Institute of Technology", "the United States", None, "PASS", "main batch; nearest: Delmon University (Bahrain)", ["en.wikipedia.org/wiki/Delmon_University_for_Science_&_Technology"]),
+    ("university", "the University of Kilmore", "Ireland", None, "PASS", "main batch; note: U3A Kilmore (University of the Third Age, Victoria) and Kilmore schools exist, no University of Kilmore", ["mitchellshire.vic.gov.au/community/community-directory/u3a-kilmore-and-district-university-of-the-third-age"]),
+    ("university", "the Universität Bad Lindau", "Germany", None, "PASS", "main batch", ["ortsdienst.de/bayern/lindau-bodensee/hochschule/"]),
+    ("university", "the Politecnico di Val Seriana", "Italy", None, "PASS", "main batch; note: Politecnico di Milano research on the Val Seriana, no institution of this name", ["altrelombardie.polimi.it/territori/val_seriana_e_val_di_scalve/"]),
+    ("university", "Wellsford University", "New Zealand", None, "PASS", "main batch; nearest: Wellspring University (Nigeria), Wells College", ["en.wikipedia.org/wiki/Wellspring_University"]),
+    ("university", "the University of Port Arlen", "Australia", None, "PASS", "main batch; nearest: a fan page for the fictional Arlen University (King of the Hill)", ["arlentexas.tripod.com/au.html"]),
+    ("university", "Hollingworth University", "Canada", None, "PASS", "main batch; nearest: the Hollingworth Center (Teachers College)", ["tc.columbia.edu/hollingworth/"]),
+    ("university", "the University of Kasemba", "Zambia", None, "PASS", "main batch; nearest: University of Kabwe, Kasem Bundit University", ["unika.edu.zm/"]),
+    ("university", "Clearwater Polytechnic University", "the United States", None, "PASS", "main batch; note: Clearwater Christian College (closed 2015) and Florida Poly (Lakeland) exist", ["en.wikipedia.org/wiki/Clearwater_Christian_College"]),
+    ("university", "Västerholm University", "Sweden", None, "PASS", "main batch", ["en.wikipedia.org/wiki/M%C3%A4lardalen_University"]),
+    ("university", "the University of Tinsley Bay", "South Africa", None, "PASS", "main batch; bare hits are Tinsley buildings and people", ["accessguide.ox.ac.uk/tinsley-building"]),
+    ("university", "the Hochschule Winterfeld", "Germany", None, "PASS", "main batch; bare hits are people surnamed Winterfeld", ["de.linkedin.com/in/j%C3%B6rg-winterfeld-b2875315b"]),
+    ("university", "the Instituto Tecnológico de Villacerro", "Chile", None, "PASS", "main batch; note: Instituto Tecnológico de Villahermosa (Mexico) is a different name", ["en.wikipedia.org/wiki/Villahermosa_Institute_of_Technology"]),
+    ("university", "Madoc University", "the United Kingdom", None, "PASS", "main batch; note: MADOC is the University of Mannheim's repository, not a university", ["v2.sherpa.ac.uk/id/repository/2393"]),
+    ("university", "Northfield State University", "the United States", None, "DROP-b", "main batch; 'Northfield University' exists as a diploma-mill demonstration site (cf. Northbridge State, P0)", ["hep.physics.illinois.edu/home/g-gollin/oregon_north_dakota/Northfield/index.html"]),
+    ("university", "the Université de Rochemaure", "France", None, "DROP-a", "main batch; the phrase is a directory page title (cf. Haute-Garonne, P0)", ["demarchesadministratives.fr/universite/rochemaure-07400"]),
+    ("university", "the Universidad de San Telmo", "Argentina", None, "DROP-b", "main batch; San Telmo Business School and the Universidad del Cine (in San Telmo) are real: conflation", ["santelmo.org/"]),
+    ("university", "the Tecnológico de Montesierra", "Mexico", None, "DROP-c", "main batch; one syllable from the famous Tecnológico de Monterrey", ["tec.mx/en"]),
+    ("university", "the Universidade Federal do Alto Tietê", "Brazil", None, "DROP-b", "main batch; a bill proposes a (state) Alto Tietê university: near-name of a planned institution", ["al.sp.gov.br/noticia/?id=290176"]),
+    ("capital", "Wielkorzecze", "Polish", "voivodeship", "PASS", "main batch", ["pl.wikipedia.org/wiki/Wielkoraki"]),
+    ("capital", "Timorava", "Romanian", "county", "PASS", "main batch; nearest: TIMORVARA OÜ (an Estonian company)", ["inforegister.ee/en/11233925-TIMORVARA-OU/"]),
+    ("capital", "Göksenli", "Turkish", "province", "PASS", "main batch; bare query hits only a personal name (an actor)", ["imdb.com/name/nm9554201/"]),
+    ("capital", "Tanah Raya", "Indonesian", "province", "PASS", "main batch; note: Tanah Raja (an Aceh map feature) and many -Raya regencies exist", ["mindat.org/feature-6721933.html"]),
+    ("capital", "Dambeso", "Ghanaian", "region", "PASS", "main batch", ["en.wikipedia.org/wiki/Dambe"]),
+    ("capital", "Vättersund", "Swedish", "county", "PASS", "main batch; nearest: Vättersö (an island)", ["sv.wikipedia.org/wiki/V%C3%A4tters%C3%B6"]),
+    ("capital", "Aktaryn", "Kazakh", "region", "PASS", "main batch; bare hits are the surname Aktary", ["github.com/aktary"]),
+    ("capital", "Valgemaa", "Estonian", "county", "PASS", "main batch; note: the surname Valgemäe and a Tallinn congregation of that name (different spelling)", ["facebook.com/VALGEMAE/"]),
+    ("capital", "Kouroudé", "Guinean", "region", "PASS", "main batch; nearest: Kourou, Kourouma", ["en.wikipedia.org/wiki/Kourouma_Department"]),
+    ("capital", "Río Chalanco", "Ecuadorian", "province", "PASS", "main batch; note: Chalguaco (an old name of the Chilean Río Cholguaco) and Ecuador's Río Chalaco are near", ["es.wikipedia.org/wiki/R%C3%ADo_Cholguaco"]),
+    ("capital", "Haut-Mabali", "Gabonese", "province", "PASS", "main batch; nearest: Mabali Island (a Pakistani resort)", ["mabaliisland.com/"]),
+    ("capital", "Bas-Kotango", "Congolese", "department", "PASS", "main batch; note: Kotango is a DRC governor's surname; Bas-Congo is a real former district", ["congo-press.com/provinces/nord-ubangi-jean-bosco-kotango-confirme-gouverneur-par-la-cour-dappel/"]),
+    ("capital", "Nord-Keléma", "Chadian", "province", "PASS", "main batch; nearest: Nord Kanem (a real Chadian department, different name)", ["en.wikipedia.org/wiki/Nord_Kanem"]),
+    ("capital", "Sierra Tacona", "Honduran", "department", "PASS", "main batch; nearest: Sierra de Tacuichamona (Sinaloa)", ["natureandculture.org/directory/sierra-de-tacuichamona/"]),
+    ("capital", "Upper Mirawa", "Ghanaian", "region", "PASS", "main batch; bare hits are restaurants named Mirawa", ["tripadvisor.com/Restaurant_Review-g292026-d2240557-Reviews-Mirawa-Tegucigalpa"]),
+    ("capital", "Serra do Itaparé", "Brazilian", "state", "SPARE", "main batch; passes; nearest: Serra do Itapeti (São Paulo)", ["pt.wikipedia.org/wiki/Serra_do_Itapeti"]),
+    ("capital", "Namazar", "Uzbek", "region", "SPARE", "main batch; passes; bare hits are a musician and prayer apps", ["soundcloud.com/ak-namazar"]),
+    ("capital", "Altos de Zapotal", "Mexican", "state", "SPARE", "main batch; passes; many places named Zapotal exist", ["en.wikipedia.org/wiki/Zapotal_District"]),
+    ("capital", "Lurumba", "Mozambican", "province", "DROP-a", "main batch; a website titled 'Lurumba' (lurumba.de) no longer resolves, so it cannot be shown not to be a place or institution", ["lurumba.de"]),
+    ("capital", "Phra Kaen", "Thai", "province", "DROP-c", "main batch; one word from Khon Kaen (a real Thai province)", ["en.wikipedia.org/wiki/Khon_Kaen_province"]),
+    ("capital", "Guayupé", "Colombian", "department", "DROP-a", "main batch; the Guayupe are a real Indigenous people of Meta department, with a museum of that name", ["en.wikipedia.org/wiki/Guayupe"]),
+    ("capital", "Tarijuelo", "Bolivian", "department", "DROP-b", "main batch; a diminutive of Tarija, a real Bolivian department (cf. Haute-Loirette, P0)", ["en.wikipedia.org/wiki/Tarija"]),
+    ("capital", "Oberlandl", "Austrian", "state", "DROP-b", "main batch; Oberland (real regions, a former Swiss canton) with a dialect suffix; the exact form is a photo-tag title", ["alamy.com/stock-photo/oberlandl.html"]),
+    ("capital", "Järvenmaa", "Finnish", "region", "DROP-b", "main batch; one letter from Järvamaa (a real Estonian county)", ["fi.wikipedia.org/wiki/J%C3%A4rvamaa"]),
+    ("capital", "Zolotopil", "Ukrainian", "oblast", "DROP-a", "main batch; a variant spelling of Zlatopil, a real Kharkiv-oblast city", ["en.wikipedia.org/wiki/Zlatopil"]),
+    ("capital", "Khangai-Uul", "Mongolian", "province", "DROP-c", "main batch; 'uul' means mountain: the name reads as the real Khangai Mountains (and Khan-Uul is a real district)", ["en.wikipedia.org/wiki/Khangai"]),
+    ("capital", "Quilmahue", "Chilean", "region", "DROP-a", "main batch; real villages of this name (Araucanía, Los Lagos)", ["mapcarta.com/es/N5047125451"]),
+    ("capital", "Yanapamba", "Ecuadorian", "province", "DROP-a", "main batch; a real reserve and hacienda (Imbabura)", ["facebook.com/yanapambaec/"]),
+    ("capital", "Sary-Bel", "Kyrgyz", "region", "DROP-a", "main batch; a real mountain pass (Osh region)", ["kg.geoview.info/pereval_sarybel,8393160"]),
+    ("capital", "Llanos del Tambor", "Venezuelan", "state", "DROP-c", "main batch; search describes 'Los Llanos del Tambor' as a real landscape feature in Grazalema (Spain)", ["tambordelllano.es/en/landscape-and-botany/"]),
+    ("capital", "Kéréba", "Senegalese", "region", "DROP-wd", "main batch; Wikidata exact label Q119842342", []),
+    ("capital", "Mbéla", "Cameroonian", "region", "DROP-wd", "main batch; Wikidata exact label Q49743636", []),
+    ("capital", "Andravola", "Malagasy", "region", "DROP-wd", "main batch; Wikidata exact label Q4810793", []),
+    ("capital", "Belovitsa", "Bulgarian", "province", "DROP-wd", "main batch; Wikidata exact label Q2011970", []),
+    ("capital", "Tsiskari", "Georgian", "region", "DROP-wd", "main batch; Wikidata exact label Q16378375", []),
+    ("capital", "Tacuaral", "Paraguayan", "department", "DROP-wd", "main batch; Wikidata exact labels Q140293807, Q6137913", []),
+    ("capital", "Mokgalo", "Botswanan", "district", "DROP-wd", "main batch; Wikidata exact label Q915810", []),
 ]
 
 

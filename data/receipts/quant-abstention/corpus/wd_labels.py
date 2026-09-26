@@ -2,7 +2,7 @@
 """Wikidata exact-label nonexistence check for every fake in fakes_checks.jsonl (rule wd in fakes.py). Resumable:
 rows already carrying wikidata_checked are skipped; the file is rewritten after every row. Run from this directory."""
 import json, time, httpx, unicodedata, sys
-UA = {"User-Agent": "Apollo-quant-abstention/0.1 (local research; one request at a time)"}
+UA = {"User-Agent": "Apollo-quant-abstention/0.2 (https://github.com/apollo-mg/Project-Apollo; receipts research)"}
 norm = lambda s: unicodedata.normalize("NFKC", s).casefold().strip()
 def search(name, lang):
     for attempt in range(8):
