@@ -140,3 +140,11 @@ and cross-checks every `decide()` result against those triples (tolerance 1e-4).
 - One quant of the 27B, and two wordings.
 - The judge sees the request once, with no dialogue.
 - Nothing here says how a gate would behave inside a live loop.
+
+## Deviation 1 (2026-09-25, after commit `34e26e7`, before any argus item was scored): gate G1's matcher
+
+The first 4B launch aborted at G1. The matcher flagged any log message containing "missing", and it caught a
+transformers rope-config notice (`Missing validation function in 'RotaryEmbeddingConfigMixin' for 'rope_type'='axial'`),
+which is not a weight-load problem. The matcher was narrowed to the load report's own phrases ("newly initialized",
+"missing keys", "were not used", "unexpected keys", "not initialized"). A stronger probe was added: the loaded
+`score` head must be byte-equal to the checkpoint's `score.weight` tensor. G2-G5 and every scoring path are unchanged.

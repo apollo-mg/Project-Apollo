@@ -1,4 +1,4 @@
-# Qwen3.8-27B can judge act-vs-ask on argus in one token (AUROC 0.85-0.92); a 4B NLI judge cannot (0.63). Most of the signal is in the request text, and the world moves calibration, not ranking
+# Qwen3.8-27B ranks act-vs-ask on argus in one token (AUROC 0.85-0.92); a 4B NLI judge cannot (0.63). But the request text alone ranks as well, and at the registered rule the judge is no better a gate than the agent
 
 **2026-09-25.** RX 9070 XT. Prereg `PREREG_OPENJEV_JUDGE.md` (commit `34e26e7`, before any forward pass).
 - **Data:** `items.jsonl`, 77 argus v5 instruction items (47 act, 30 ask), 40 template clusters.
@@ -44,7 +44,8 @@ to search for it. The agent acted on 46/47 act items and 18/30 ask items.
 | G4: longest pair (limit 4096) | 1,190 tokens | 1,190 tokens | 1,190 tokens | |
 | G5: minimum letter mass | | | | 0.959 |
 
-Every `decide()` result matched the raw triples within 1e-4.
+G1 is as amended by prereg Deviation 1: the matcher was narrowed after it fired on a rope-config notice, and the
+score-head equality probe was added, both before any argus item was scored. Every `decide()` result matched the raw triples within 1e-4.
 
 ## J5 held for a reason that does not support it
 
@@ -62,11 +63,30 @@ had no control for how often the judge says ask.** The controlled versions below
 agent over-acted on well above the act items (0.78-0.89). They are harder for it than the items the agent got right
 (0.95-0.97), so the agent's failures are not random: it over-acts where the judgement is also less clear-cut.
 
-**As a gate, with an exploratory threshold fitted on these same items:** set the threshold where about 9 % of act
-items are stopped (4/47, the 90th percentile of act-item P(ask)). Qwen W2 with the world then stops **21/30 ask
-items, including 10 of the 18 the agent over-acted on**. Behind that gate, the agent's 18 over-actions would have
-been 8, at a cost of 4 needless questions on act items. That is an in-sample threshold under oracle retrieval, so
-it is an upper bound on what a gate could do, not an estimate of what it will do.
+**As a gate, at the registered rule (W1, world, P(ask) > 0.5):** the judge stops all 30 ask items, including all 18
+the agent over-acted on, and it also stops **29 of the 47 act items**. Its balanced accuracy is 0.691, against the
+agent's 0.689: no better, with the opposite error. The agent almost never asks when it shouldn't (1/47) and
+over-acts on 18/30. The judge never over-acts and asks needlessly on 29/47. Swapping 18 wrong actions for 29
+needless questions is not a clear improvement.
+
+**At a fitted threshold (exploratory):** set the threshold where about 9 % of act items are stopped (4/47, the 90th
+percentile of act-item P(ask)), fitted on these same items.
+
+| QJ | threshold | ask items stopped | of the agent's 18 over-actions | act items stopped |
+|---|---:|---:|---:|---:|
+| W1 world | 0.997 | 14 / 30 | 4 | 4 / 47 |
+| W2 world | 0.650 | 21 / 30 | 10 | 4 / 47 |
+| W1 request only | 0.999 | 8 / 30 | 5 | 4 / 47 |
+| **W2 request only** | **0.972** | **22 / 30** | **15** | 4 / 47 |
+
+**At a fitted threshold, the world bought nothing.** Request-only W2 catches more of the over-actions than W2 with
+the world (15 vs 10). Its threshold sits at 0.972 on nearly saturated probabilities, so it is fragile: a small shift
+in wording or model would move it. Every row here is in-sample and uses oracle retrieval, so these are upper bounds
+on what a gate could do, not estimates of what it will do.
+
+**This narrows the J5 reading.** Over-acted vs act ranks at 0.931 from the request alone (W2), above the 0.889 with
+the world. So "the 27B has the judgement and the agent throws it away" amounts to something narrower: asked
+directly, the 27B sees these requests as under-specified, and the agent acts anyway.
 
 ## Most of the ranking is in the request text
 
@@ -81,11 +101,13 @@ The request-only control was meant to catch a judge that reads surface cues. It 
 - balanced accuracy at 0.5 goes from 0.50 to 0.81;
 - ECE goes from 0.55 to 0.17.
 
-So the world is what lets a fixed threshold work, even though the order was already there.
+So the world is what lets the fixed 0.5 rule work, even though the order was already there. With a threshold
+fitted per condition it adds nothing (the table above).
 
 **What this says about argus.** Its ask items are lexically marked. The rung ladder moves from "Dave Whitfield's
 email about invoice 4471" to "Dave's email" to "Move it to Thursday", so specificity and gold are correlated. That
-is partly legitimate (an under-specified request *is* a reason to check), but it means **argus cannot currently tell
+is partly legitimate (an under-specified request *is* a reason to check), but it is the shallow-cue pass FAILURE_MODES
+~L445 warned about, and it means **argus cannot currently tell
 a model that reads the world from one that reads the request.** The v5 twins do not help here: they were built to
 reach the *same* gold in both worlds (`build_families_v5.py`). The direct test is **flip twins**: the same request
 string, act in one world and ask in the other, because the world, not the words, decides it. That is a design note
@@ -139,10 +161,18 @@ not by the judge.
 
 - **J1/J2 false:** a 4B NLI classifier cannot carry the act/ask gate here. It reads existence, not ambiguity or
   time, and gets nothing from the world.
-- **J3 true, J5 true under the control:** the 27B has the judgement in one token, and the agent loop throws it away
-  on the items where the judgement is less clear.
-- **So the cheaper fix is a self-judge:** the same model, one fixed-choice call with thinking off (under a second: 616 calls in 414 s here)
-  before each side-effecting tool call, with a threshold. It does not need a second model.
+- **J3 true; J5 true only after the control, and narrower:** asked directly, the 27B ranks act vs ask well in one
+  token, and it ranks the agent's over-actions above the act items. Most of that ranking comes from the request
+  wording (0.921 without the world).
+- **A self-judge gate is promising, but not shown.** At the registered wording and rule it trades 18 wrong actions
+  for 29 needless questions (balanced accuracy 0.691 vs the agent's 0.689). It helps only under the post-hoc
+  wording (W2) and a threshold fitted in-sample. A real test needs:
+  - a threshold fixed in advance;
+  - retrieval by the agent rather than oracle retrieval;
+  - flip twins, so the world rather than the wording decides.
+
+  The cost is small: one fixed-choice call with thinking off, under a second (616 calls in 414 s here), and no
+  second model.
 
 Two parts should still be code, not the judge: time and conflict checks, and retrieval, since the judge here had
 oracle retrieval.
