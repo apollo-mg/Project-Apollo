@@ -8,9 +8,9 @@ Usage:  exl3_rdna4_mtp.py depths | bench | score
 """
 import json, os, re, signal, statistics, subprocess, sys, time, urllib.request
 
-BUILD = "/mnt/TG_2TB/Projects/buun-da458/build_rocm"
+BUILD = os.getenv("RDNA4_BUILD", "/mnt/TG_2TB/Projects/buun-da458/build_rocm")   # re-runs override (09-26)
 BIN = f"{BUILD}/bin"
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "rdna4_mtp")
+OUT = os.getenv("RDNA4_OUT", os.path.join(os.path.dirname(os.path.abspath(__file__)), "rdna4_mtp"))
 RES = os.path.join(OUT, "results.jsonl")
 PORT = 8195
 H = f"http://127.0.0.1:{PORT}"
