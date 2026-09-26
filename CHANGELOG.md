@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed -- .73 start command: 512 MiB stack + server-log rotation (2026-09-26, Claude)
+
+- `WP_START_CMD` in the wake-proxy unit now begins
+  `ulimit -s 524288; mv -f ~/wake_proxy_server.log ~/wake_proxy_server.log.prev 2>/dev/null;`.
+- **Why:** buun `0b2789f23` overflowed the 8 MB stack in `ggml_backend_meta_get_split_state` (~282-level recursion;
+  `vbr-artifact-store/INCIDENT_73_META_SPLIT_STATE_STACK_OVERFLOW.md`). The larger stack dodges the overflow until the
+  recursion is fixed upstream. The relaunch used to truncate the crashed server's log, which is why the rotation
+  was added.
+- **Verified** on the live process: `Max stack size 536870912` in `/proc/<pid>/limits`, and `.prev` present.
+- Unit backup: `~/.config/systemd/user/apollo-wake-proxy.service.bak-20260926-stack`. Approved by Mark.
+
 ### Added -- guest gateway for the .73 wake proxy (2026-09-25, Claude)
 
 - `modules/guest_gateway.py`: an authenticated front door (localhost :8098) so friends can test the .73 model over
