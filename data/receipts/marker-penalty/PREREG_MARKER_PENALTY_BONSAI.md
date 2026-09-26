@@ -59,3 +59,10 @@ At launch, both prism servers aborted in `ggml_backend_meta_get_split_state` wit
 The log is in `raw_bonsai/`. Every Bonsai arm runs under **`-sm layer`** on the same two 2-GPU testers, so the device
 count and instrument are identical across A, B and C. The registered comparisons are within Bonsai, so nothing else
 changes. (The Q6_K/IQ3_XXS run used `-sm tensor`; cross-model numbers are descriptive only.)
+
+## Deviation 2 (2026-09-25 20:30, during the run, before any scoring): token-id check
+
+The instrument says the marker token ids are "verified at launch"; `marker_chain_bonsai.sh` did not do it. The check
+ran during the run, on both serving instances. `/detokenize [id]` equals the expected string, and `/tokenize` of the
+string equals `[id]`: 20/20 on :8096 and :8097. The result is in `raw/bonsai/TOKENIZER_CHECK.txt`. Nothing else
+changes.
