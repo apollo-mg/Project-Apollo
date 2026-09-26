@@ -48,3 +48,12 @@ before the HIP code.
 **Load probe (must hold before scoring):** each log must report the ternary tensors under the expected type (PQ2_0 /
 Q2_0_G128), print a final PPL estimate, and show no NaN. `llama-perplexity` exits 0 on failure, so the exit code
 proves nothing.
+
+## Deviation 1 (21:25, before any forward pass completed): the eval text
+
+The registered text (sha256 `f36668ddf2240...`) is `data/wikitext/wiki.test.raw` in this repo. It is **15 bytes: a
+saved Hugging Face "Entry not found" page**, and the reference run refused it at tokenization ("tokenizes to only 3
+tokens"). The same directory's `wikitext-2-raw-v1.zip` is 0 bytes. Both have been stubs since 2026-03-30.
+
+The text is now the real WikiText-2 test file from .194: `~/wikitext-2-raw/wiki.test.raw`, 1,290,590 bytes, sha256
+`173c87a53759e020...`. A byte-identical copy is used on the 9070. Nothing else changes.
