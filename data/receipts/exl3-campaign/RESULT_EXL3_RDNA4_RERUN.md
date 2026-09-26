@@ -22,6 +22,12 @@ build's options). Prereg `PREREG_EXL3_RDNA4_RERUN.md` (`96e2294`). The instrumen
 
 The MTP gate holds in every arm: drafts engage, and drafted-per-token rises with depth.
 
+**Depth 3 was effectively depth 2 on the measured requests.** In E3, E35 and G3m, the d3 server logs show 3-token
+drafts only on the warm-up request. The measured requests drafted 2 tokens exclusively, with verify histograms and
+draft counts identical to d2 (E3 74/106, E35 72/108, G3m 72/109): the adaptive draft sizing settled on 2. So
+d2 vs d3 differences in those arms are noise between identical configurations, and "E35 best at depth 3" (and
+the script's P-N4/B verdict) is void. Only G3x ran a distinct depth 3.
+
 ## Why: the EXL3 4- and 8-row path was rewritten
 
 `llama-bench -p 64`, throughput at micro-batch *m* relative to *m* = 1 (A(m)):
@@ -37,7 +43,7 @@ The MTP gate holds in every arm: drafts engage, and drafted-per-token rises with
 - **2 rows did not change** (1.16), which is why depth 1 is still flat.
 - **16 rows did not change** (1.57). Past 8 rows EXL3 takes its reconstruct + BLAS path (`exl3-on-pascal`), which
   this work did not touch.
-- **Source:** buun's EXL3 int8 GEMV rework between the builds: `exl3-gemv-int8.cuh` (+414 lines), a new
+- **Likely source** (inferred from which files changed between the builds, not bisected): buun's EXL3 int8 GEMV rework between the builds: `exl3-gemv-int8.cuh` (+414 lines), a new
   `exl3-int8-warpk.cuh`, and `exl3.cu` (+367), 09-17/18. The commits are titled for NVIDIA SM86/SM75; the 9070
   inherits the shared code through HIP.
 
@@ -75,9 +81,10 @@ can move another.**
 
 - **The 09-13 decision table ("GGUF is faster at every quality level, EXL3 smaller at every quality level") needs
   its speed half reweighed on this build.** GGUF is still faster at matched size, but by 1.2-1.3x, not 2.1-2.4x.
-- **EXL3's quality edge is 24 % lower KLD than GGUF at matched VRAM** (`RESULT_EXL3_KLD.md`, measured on Pascal).
-  On the 9070 that edge now costs about a quarter of the speed instead of more than half. On a 16 GB card where
-  every GB matters, EXL3 3.50 bpw at 40.9 t/s is now a serious option.
+- **The speed gap is measured here; the quality gap at these sizes is not.** The known quality edge (24 % lower KLD
+  at matched VRAM, `RESULT_EXL3_KLD.md`) was EXL3 **4.00** bpw vs UD-IQ4_XS, on Pascal. These arms are 3.00/3.50 bpw
+  against GSQ-RCO IQ3_XXS and i1-IQ3_M. Whether EXL3 still leads on quality at ~10-12 GB is the next measurement
+  (KLD of these four arms against one reference).
 - **What is left for buun:** the 2-row case (depth 1) and the > 8-row path (A(16) 1.57, against GGUF's 6.46).
   Prefill is still where GGUF wins by far.
 

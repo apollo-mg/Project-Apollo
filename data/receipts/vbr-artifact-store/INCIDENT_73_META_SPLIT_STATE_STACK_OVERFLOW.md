@@ -59,15 +59,17 @@ Nothing was lost except the in-flight probe.
 - Not reproduced yet. The request sequence above is recorded, and the same traces are in
   `loop-logits/raw/full_*` + `cross_model.py`.
 - A repro needs the 2-GPU tensor split; the 9070 is single-GPU, so it cannot be tested there.
+- **After the mitigation (512 MiB stack), the cross-model re-run completed the same 11,003-token probe.** That is
+  *consistent* with the stack-overflow diagnosis, **not confirmation**. Slot state differed: a fresh load with
+  warm-on-load, and a different request history, so the unmemoized walk may simply not have been triggered.
 
-## Mitigation for the daily driver (proposed, not applied)
+## Mitigation for the daily driver (APPLIED 2026-09-26 ~09:45, approved by Mark)
 
-- Start llama-server with a larger stack (`ulimit -s` of 256 MB or more in the proxy's start command). This avoids
-  the overflow without fixing the recursion.
-- Needs Mark's OK: it is a change to the unit's start command.
+- The proxy's start command now begins `ulimit -s 524288;`, a 512 MiB stack. Verified on the live process:
+  `Max stack size 536870912`. This avoids the overflow without fixing the recursion (see CHANGELOG).
 
 ## Also found
 
-- The proxy **truncates `~/wake_proxy_server.log` on every relaunch**. The crashed server's log survived only
-  because it had been tailed before the restart. For forensics, a relaunch should rotate the old log, not
-  overwrite it.
+- The proxy **truncated `~/wake_proxy_server.log` on every relaunch**. The crashed server's log survived only
+  because it had been tailed before the restart. **Fixed:** the start command now moves the old log to
+  `~/wake_proxy_server.log.prev` first (verified).

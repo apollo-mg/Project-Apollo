@@ -12,6 +12,41 @@ N73 = "http://10.0.0.73:8080"
 THINK_END = 248069
 
 
+def every(n=10, traces=("LOOP_CAL-U2_rep3", "LOOP_CAL-U5_rep2", "LOOP_CAL-U5_rep3", "LONG-OK_CAL-U2_rep2")):
+    """Amendment 1: probe every n-th newline boundary of the given traces."""
+    c = httpx.Client(timeout=900)
+    fx = json.load(open(ROOT / "data/receipts/viability/fixture_v0_beta.json"))["tier_cal"]
+    qs = {i["id"]: i["q"] for i in fx["items"]}
+    rows = {}
+    for d in ("out_bonsai1", "out_bonsai2"):
+        for f in glob.glob(str(ROOT / f"data/receipts/marker-penalty/raw/{d}/armA_rep*.jsonl")):
+            rep = f.split("_rep")[1][0]
+            for l in open(f):
+                r = json.loads(l); rows[(r["id"], rep)] = r
+    out = open(HERE / "raw/xmodel_q6k_every10.jsonl", "a")
+    done = set()
+    for l in open(HERE / "raw/xmodel_q6k_every10.jsonl"):
+        r = json.loads(l); done.add((r.get("trace"), r.get("trace_pos")))
+    for name in traces:
+        L = [json.loads(l) for l in open(HERE / f"raw/full_{name}.jsonl")]
+        m = L[0]["meta"]
+        P = c.post(f"{N73}/apply-template", json={"messages": [{"role": "user", "content": fx["prompt"].format(q=qs[m["id"]])}],
+                                                  "chat_template_kwargs": {"reasoning_effort": "xhigh"}}).json()["prompt"]
+        ids = c.post(f"{N73}/tokenize", json={"content": P + rows[(m["id"], m["rep"])]["reasoning"]}).json()["tokens"]
+        assert len(ids) == m["n_total"] and all(ids[r["pos"]] == r["next_id"] for r in L[1:] if not r["end"]), name
+        bnd = [r for r in L[1:] if not r["end"]][::n]
+        for br in bnd:
+            if (name, br["trace_pos"]) in done:
+                continue
+            r = c.post(f"{N73}/completion", json={"prompt": ids[:br["pos"]], "n_predict": 1, "n_probs": 20, "temperature": 0,
+                                                  "cache_prompt": False, "post_sampling_probs": False}).json()
+            top = [(t["id"], t["token"], t["logprob"]) for t in r["completion_probabilities"][0]["top_logprobs"]]
+            rec = {"trace": name, "trace_pos": br["trace_pos"], "pos": br["pos"], "bonsai_next": br["next_piece"],
+                   "q6k_top": top, "bonsai_top": br["top"], "prompt_n": r["timings"]["prompt_n"]}
+            out.write(json.dumps(rec) + "\n"); out.flush(); os.fsync(out.fileno())
+            print(f"{name} @{br['trace_pos']:5d} Q6K {top[0][1]!r} {math.exp(top[0][2]):.2f} | Bonsai {br['top'][0][1]!r} {math.exp(br['top'][0][2]):.2f}", flush=True)
+
+
 def main():
     c = httpx.Client(timeout=900)
     props = c.get(f"{N73}/props").json()
@@ -62,4 +97,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    every() if sys.argv[1:] == ["every10"] else main()

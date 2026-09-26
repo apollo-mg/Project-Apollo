@@ -1,4 +1,4 @@
-# Fed Bonsai's exact loop text, a near-Q8 Qwen3.8 makes the same close-or-continue call at 26 of 26 decision points: Bonsai's stopping behaviour is intact, and what loops is the content it generates
+# At the end of Bonsai's wrap-up lines, a near-Q8 Qwen3.8 fed the same text makes the same close-or-continue call (16 of 16, plus 10 of 10 real ends): that decision is not where Bonsai breaks
 
 **2026-09-26.** Prereg `PREREG_CROSS_MODEL.md` (`d11cfe1`). The healthy model was `.73`'s Qwen3.8-27B **Q6_K** (KLD
 0.0028 against Q8_0), buun `0b2789f23`, called directly with `cache_prompt: false`. It was fed Bonsai 2's exact
@@ -29,23 +29,24 @@ token sequences from the 13 replayed traces that have wrap-up lines. Raw: `raw/x
 | SHORT U8 r1 @1749 | Let 0.98 | Let 0.984 |
 | every real END | `</think>` 0.98-1.00 | `</think>` 0.997-1.000 |
 
-## What it means
+## What it means (scoped)
 
-- **Bonsai's close-or-continue decision is Qwen3.8's.** Given the same text, the near-Q8 model makes the same call
-  every time, including re-checking correct UNKNOWN drafts (X2 false). The ternary quantization did not break
-  stopping.
-- **So the loop is upstream, in what Bonsai writes.** On the same prompts, the healthy quants' *own* traces
-  converge on "no such thing" (`RESULT_MARKER_PENALTY_BONSAI.md`: Q6_K and IQ3_XXS abstain; Bonsai invents "1385",
-  "9013", "1971", "1991"). Bonsai generates plausible invented candidates, such as a "Treaty of Kellworth, 1329 or
-  1330". Any Qwen3.8 reading that text would keep checking it, and Q6_K does.
-- **Stopping is not what to fix. What Bonsai believes is.** The calibration damage (invented facts on unanswerable
-  items) produces contexts where continuing is the right move for the model family. A penalty on re-check words
-  fights the family's normal behaviour, not the defect.
-- **buun's "the tokens are model-specific" point, refined.** The re-check vocabulary ("Double", "Let", "But",
-  "Need") is **Qwen3.8's**, shared by Bonsai and Q6_K. It is not Bonsai-specific; it differs from the paper's list
-  because the paper studied other models.
-- **The legitimately-hard-vs-pathological detector should watch content, not stopping probabilities.** A
-  healthy model and Bonsai emit the same stopping signals on the same text.
+- **The 26/26 is 10 real ENDs (the X1 control, trivially shared) plus 16 wrap-up points.** Those points were
+  chosen post hoc because the text nearly dictates the next move there, so agreement is expected even from a
+  moderately damaged model. The supported claim is narrow: **at the end of a wrap-up line, Q6_K makes the same
+  close-or-continue call Bonsai made**, including re-checking Bonsai's correct UNKNOWN drafts (X2 false).
+- **Not shown: that Bonsai's stopping is intact overall.** The untested question is whether a healthy model would
+  **start** wrapping up earlier in the same loop text, for example writing "Need final: Exact Answer: UNKNOWN" at a
+  boundary where Bonsai kept enumerating. That is Amendment 1 of the prereg (every 10th boundary inside the three
+  loops), run separately.
+- **The re-check vocabulary is shared.** "Double", "Let", "But" and "Need" at these points are Qwen3.8's, not
+  Bonsai-specific. They differ from the paper's list because the paper studied other models. That refines buun's
+  "model-specific tokens" point: specific to the model family.
+- **The "invented candidates" reading rests on one loop.** Only U5 r2 drafted an invented value ("1330") and kept
+  checking it. U2 r3 circled "UNKNOWN or a unit" without inventing one, and U5 r3 never drafted. On the same
+  prompts, the healthy quants' own traces converge on UNKNOWN (`RESULT_MARKER_PENALTY_BONSAI.md`), so the
+  difference is in what gets written upstream of these points. Which part of the upstream text differs is what
+  Amendment 1 looks at.
 
 ## Not established
 

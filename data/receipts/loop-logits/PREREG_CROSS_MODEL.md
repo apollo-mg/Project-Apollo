@@ -46,3 +46,22 @@ re-checks with the paper's markers ("Wait", "But") where Bonsai opens with "Doub
 - A teacher-forced replay of Bonsai's text into another model. Q6_K is reading Bonsai's words, not its own.
 - 3 correct-draft points, so X2 is close to anecdotal.
 - One healthy quant (Q6_K), not BF16.
+
+## Amendment 1 (2026-09-26 ~12:40, after the wrap-up-point results, before any mid-loop probe): every 10th boundary inside the loops
+
+The wrap-up-point result (16/16 agreement at the end of wrap-up lines) cannot show whether a healthy model would
+**start** wrapping up earlier in the same text, and those points were chosen where the text nearly dictates the
+next move. This amendment probes Q6_K at **every 10th newline boundary** of the 3 LOOP traces and of LONG-OK CAL-U2
+rep 2 (the reference). The probe is identical to above, and the positions are the ones in `full_*` (Bonsai's
+recorded top-20 at the same positions). Output: `raw/xmodel_q6k_every10.jsonl`.
+
+| # | claim | test | conf |
+|---|---|---|---:|
+| Z1 | mid-loop continuation choices are shared too | top-1 agreement, Q6_K vs Bonsai, over the sampled LOOP boundaries >= 80 % | 0.50 |
+| Z2 | a healthy model would have started wrapping up earlier | at >= 3 sampled LOOP boundaries, Q6_K's P("Need") exceeds Bonsai's by >= 0.30 | 0.35 |
+
+**Descriptive:**
+- the mean P("Need") of each model;
+- a top-20 divergence per boundary (KL over the union of both top-20s, with the missing mass lumped), LOOP vs the
+  LONG-OK reference;
+- the boundaries where the top-1 tokens differ, with both top-3s.
