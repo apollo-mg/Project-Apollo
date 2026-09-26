@@ -1,0 +1,24 @@
+# Excerpt of .73 ~/wake_proxy_server.log for the crashed llama-server (PID 1809477), captured by `tail -n 25` at
+# ~09:01 on 2026-09-26, before the proxy relaunch truncated the file. Verbatim; timestamps are relative to the
+# server start (08:55:46). The log ends mid-prefill with no error line: the process died by SIGSEGV (stack
+# overflow), which prints nothing. Kernel: "llama-server[1809477]: segfault at 7ffe99886198 ip 00007da8458dcc5c
+# sp 00007ffe99886198 error 6 in libggml-base.so.0.24.0" at 08:59:05.
+1.39.166.025 I slot      release: id  0 | task 0 | stop processing: n_tokens = 8084, truncated = 0
+1.39.240.595 I slot cache_plan_s: id  0 | task -1 | selected slot by LCP similarity, f_sim_best = 0.940 (> 0.100 thold), f_keep = 1.000
+1.39.240.724 I slot launch_slot_: id  0 | task 7 | processing task, is_child = 0
+1.39.240.740 I slot   operator(): id  0 | task 7 | edit/divergence sample (cached/incoming/lcp/reusable/rewind/append/cache_prompt) = (8084/8597/8084/0/0/513/0)
+1.52.300.074 I slot print_timing: id  0 | task 7 | prompt processing, n_tokens =   2048, progress = 0.24, t =  13.06 s / 156.82 tokens per second
+2.05.531.932 I slot print_timing: id  0 | task 7 | prompt processing, n_tokens =   4096, progress = 0.48, t =  26.29 s / 155.79 tokens per second
+2.19.011.289 I slot print_timing: id  0 | task 7 | prompt processing, n_tokens =   6144, progress = 0.71, t =  39.77 s / 154.49 tokens per second
+2.32.514.484 I slot print_timing: id  0 | task 7 | prompt processing, n_tokens =   8081, progress = 0.94, t =  53.27 s / 151.69 tokens per second
+2.32.643.471 W slot   operator(): id  0 | task 7 | created context checkpoint 1 of 32 (pos_min = 8080, pos_max = 8080, n_tokens = 8081, size = 181.397 MiB)
+2.36.112.236 I slot print_timing: id  0 | task 7 | prompt processing, n_tokens =   8593, progress = 1.00, t =  56.87 s / 151.10 tokens per second
+2.36.237.410 W slot   operator(): id  0 | task 7 | created context checkpoint 2 of 32 (pos_min = 8592, pos_max = 8592, n_tokens = 8593, size = 183.409 MiB)
+2.36.386.545 I slot print_timing: id  0 | task 7 | prompt eval time =   57143.71 ms /  8597 tokens (    6.65 ms per token,   150.45 tokens per second)
+2.36.386.959 I slot      release: id  0 | task 7 | stop processing: n_tokens = 8597, truncated = 0
+2.36.461.201 I slot cache_plan_s: id  1 | task -1 | selected slot by LRU, t_last = -1 (best rejected sim = 0.004)
+2.36.462.688 I slot launch_slot_: id  1 | task 14 | processing task, is_child = 0
+2.36.462.698 I slot   operator(): id  1 | task 14 | edit/divergence sample (cached/incoming/lcp/reusable/rewind/append/cache_prompt) = (0/11003/0/0/0/11003/0)
+2.50.521.348 I slot print_timing: id  1 | task 14 | prompt processing, n_tokens =   2048, progress = 0.19, t =  14.06 s / 145.68 tokens per second
+3.04.747.917 I slot print_timing: id  1 | task 14 | prompt processing, n_tokens =   4096, progress = 0.37, t =  28.29 s / 144.81 tokens per second
+3.19.191.930 I slot print_timing: id  1 | task 14 | prompt processing, n_tokens =   6144, progress = 0.56, t =  42.73 s / 143.79 tokens per second
