@@ -86,3 +86,14 @@ a little, but at Q6_K not enough, or not consistently enough, to clear the regis
   lambda at 2 and 4, one model family.
 - IQ3_XXS is the earlier Unsloth upload (see `quant-hesitation/`, Arm provenance).
 - No answer-quality measure beyond the CAL grading.
+
+## Erratum (2026-09-25, found while scoring the Bonsai follow-up)
+
+The token totals above use `completion_tokens`, which records only the final attempt. The CAL runner retries a run
+that hits 6,144 tokens with a 12,288 budget, and the spent 6,144 is not counted. With every attempt counted, arm C's
+total is:
+- **Q6_K: 0.836x A** (not a 20 % fall, 16 %);
+- **IQ3_XXS: 0.514x A** (not 40 %, 49 %).
+
+Retried rows (A/B/C): Q6_K 2/2/2, IQ3_XXS 4/2/1. The direction and every registered per-item statistic are
+unchanged, because those use reasoning characters.
