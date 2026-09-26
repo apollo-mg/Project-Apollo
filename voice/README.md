@@ -14,7 +14,10 @@ mic -> realtime ASR + diarization (words tagged Speaker 1..4) -> "Speaker N: ...
 ```bash
 cd /mnt/TG_2TB/Projects/nemo-speech
 build/vulkan-server/bin/nemo-speech serve --host 127.0.0.1 --port 8210 --device vulkan \
-  --asr-model nemotron-3.5 --diar-model nemotron-3-diarization --tts-model magpie
+  --asr-model nemotron-3.5 --diar-model nemotron-3-diarization --tts-model magpie --asr.endpointing.enable
+# --asr.endpointing.enable is REQUIRED for a live mic: it is off by default, and the realtime session's
+# endpointing_ms only sets the silence threshold. Without it a turn never completes (partial words flicker, no reply);
+# --input-wav tests pass anyway because they end with an explicit commit.
 # ready when: curl -s localhost:8210/ready  ->  {"capabilities":["asr","diarization","tts"],"device":"vulkan","ready":true}
 # the playground UI is at http://127.0.0.1:8210/
 ```

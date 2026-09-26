@@ -99,12 +99,15 @@ class Agent:
             src = self.feed_file(ws) if self.a.input_wav else (self.feed_pw(ws) if self.a.pw_source else self.feed_mic(ws))
             sender = asyncio.create_task(src)
             print("listening... (Ctrl+C to stop)" if not self.a.input_wav else f"feeding {self.a.input_wav}", flush=True)
+            partial = ""                                                    # this turn's words so far
             async for msg in ws:
                 ev = json.loads(msg)
                 t = ev.get("type", "")
                 if t.endswith("transcription.delta") and not self.a.quiet:
-                    print(f"\r  ...{(ev.get('delta') or ev.get('transcript') or '')[-70:]:70s}", end="", flush=True)
+                    partial += ev.get("delta") or ""
+                    print(f"\r  ...{partial[-70:]:70s}", end="", flush=True)
                 elif t.endswith("transcription.completed"):
+                    partial = ""
                     runs = speaker_runs(ev)
                     if not runs or self.speaking.is_set():
                         continue
