@@ -47,6 +47,9 @@ cd /mnt/TG_2TB/Projects/Apollo
   drop-in does not change.
 - Utterances with mean word confidence < `--min-confidence` (0.6), or a lone word < 0.9, are ignored as noise.
   Clean speech scores 1.0.
+- **Known flake (2026-09-25):** a restart right after another GPU job aborted once at startup with
+  `ggml-cpu.c:1270: GGML_ASSERT(ne3 == ne13)` (after the Magpie load). The identical command came up on the next
+  try. If `/ready` never answers, check the log for that assert and start it again.
 
 ## Measured (2026-09-25, headless test with `--input-wav`)
 

@@ -57,9 +57,20 @@ def main():
             "dtype": str(next(ce.model.parameters()).dtype), "max_len": ce.max_len, "load_s": round(time.time() - t0, 1)}
 
     # G1
-    bad = [m for m in msgs if "newly initialized" in m or "missing" in m.lower() or "not used" in m.lower()]
+    # match the load report's own phrases, not every message containing "missing" (a rope-config validation
+    # notice, "Missing validation function ... rope_type", is not a weight-load problem)
+    keys = ("newly initialized", "missing keys", "were not used", "unexpected keys", "not initialized")
+    bad = [m for m in msgs if any(k in m.lower() for k in keys)]
     meta["G1_load_warnings"] = bad
     assert not bad, f"G1 FAIL: {bad}"
+    # and the direct probe: the loaded score head must equal the checkpoint's tensor
+    from safetensors import safe_open
+    with safe_open(str(Path(a.ckpt) / "model.safetensors"), "pt") as st:
+        k = next(k for k in st.keys() if k.endswith("score.weight"))
+        ref = st.get_tensor(k)
+    got = ce.model.score.weight.detach().to("cpu", ref.dtype)
+    meta["G1_score_head_equal"] = bool(torch.equal(got, ref))
+    assert meta["G1_score_head_equal"], "G1 FAIL: score head differs from the checkpoint"
     # G2
     refund = jev.decide("Policy: refunds require a receipt and purchase within 30 days. The customer bought 12 days ago "
                         "but has no receipt.",
