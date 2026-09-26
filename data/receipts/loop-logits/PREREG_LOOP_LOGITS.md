@@ -80,3 +80,14 @@ on the card. It is the follow-up, alongside SWE-bench problem statements, which 
 - A teacher-forced replay of re-tokenized text.
 - CAL unanswerable items only, not real hard problems. The "legit hard problem" comparison buun describes needs
   SWE-bench-style prompts and a healthy model; this pass only prepares that.
+
+## Deviation 1 (22:05, after the SHORT set only; no LOOP or LONG-OK trace replayed): gate V failed, registered remedy applied
+
+On the 16 SHORT traces, 8 of 27 V checks exceeded 0.05. The max |delta logprob| over the shared top-20 was 0.115.
+- Every exceedance is on tail tokens (logprob -6 to -16), mostly where the top-1 token has probability 0.9-1.0.
+- The quantities this study reads agree tightly: |delta logprob| of the true next token is <= 0.005, and top-1
+  matches in 27/27.
+
+The gate is failed as written, so the registered remedy applies: **every probe of every set is re-run as a full
+prefill** (`cache_prompt: false`, the validated `-b` path). The incremental SHORT results are kept as a descriptive
+comparison (`raw/replay_SHORT_*`). The full-prefill outputs are `raw/full_*`.
