@@ -8,7 +8,7 @@ set -uo pipefail
 ARM=$1; MODEL=$2; PORT=${3:-8190}
 BIN=~/buun-0b278/build_sm60/bin/llama-server
 LOG=~/qa_pilot_server_$ARM.log; PID=~/qa_pilot_server.pid
-FLAGS="-ngl 99 -sm layer -c 4096 -ctk f16 -ctv f16 -np 1 -fit off --host 0.0.0.0 --port $PORT"
+FLAGS="-ngl 99 -sm layer -c 4096 -ctk f16 -ctv f16 -np 1 -fit off -lv 4 --host 0.0.0.0 --port $PORT"
 if [ -f "$PID" ] && kill -0 "$(cat "$PID")" 2>/dev/null; then
   kill "$(cat "$PID")"; while kill -0 "$(cat "$PID")" 2>/dev/null; do sleep 1; done
 fi
