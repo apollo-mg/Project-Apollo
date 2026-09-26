@@ -17,9 +17,11 @@ Construction rules (all fixed before any model sees an item; none looks at a mod
 - Capital items (E and H) must be current administrative regions (check_current_admin); capital H items must not
   share their exact name with a famous entity, >= 40 sitelinks (check_namesake). Both run on sampled items, and a
   failing item is replaced like a precision failure.
-- Sampling: each (template, arm) pool is sorted by QID, shuffled with one seeded RNG, and walked in order.
+- Sampling: each (template, arm) pool is sorted by QID, shuffled with one seeded RNG, and walked in order. At most
+  CAP = 2 items per (template, arm) share a country (capital, university), an author (novel) or a composer (opera);
+  the first build drew 4 Greek + 5 Ivorian capitals into capital-H and 3 Verdi + 3 Wagner into opera-E.
 - Wording: one template per question type; English articles by one rule for real and fake items alike ("the
-  United States", "the University of X"), since Wikidata labels carry none.
+  United States", "the University of X", "the Altai Republic"), since Wikidata labels carry none.
 - U items: the web-PASS fakes in fakes_checks.jsonl, every one Wikidata-checked (wd_labels.py) with no exact-label
   hit.
 Every E/H item records its gold's source QID and Wikidata property; name golds also carry the answer entity's
@@ -43,9 +45,11 @@ YEAR = ("novel", "university")
 THE_COUNTRY = {"United States", "United Kingdom", "Netherlands", "Philippines", "Czech Republic", "Dominican Republic",
                "Bahamas", "Gambia", "Central African Republic", "Democratic Republic of the Congo",
                "Republic of the Congo", "United Arab Emirates", "Maldives", "Marshall Islands", "Solomon Islands",
-               "Comoros", "Seychelles", "Vatican City"}
-THE_INST = re.compile(r"^(University|Institute|College|School|Academy|Universit|Hochschule|Instituto|Istituto|Politecnico"
-                      r"|Technische|Escuela|École|Ecole)| Institute of ")
+               "Comoros", "Seychelles", "Vatican City", "People's Republic of China"}
+THE_INST = re.compile(r"^(University|Institute|College|School|Academy|Universi|Hochschule|Instituto|Istituto|Politecnico"
+                      r"|Technische|Escuela|École|Ecole|Museu)| Institute of | University of ")
+THE_REGION = re.compile(r"^(Decentralized|Autonomous|Republic|Federal|Special)\b| Republic$")
+CAP = 2   # at most this many items per (template, arm) share a country / author / composer
 ADMIN = {"oblast", "krai", "region", "province", "prefecture", "state", "county", "district", "department",
          "governorate", "municipality", "territory", "republic", "autonomous", "community", "canton", "voivodeship",
          "city", "capital", "island", "islands", "division", "federal", "okrug", "raion", "parish", "emirate"}
@@ -63,7 +67,15 @@ def the_inst(n):
 
 
 def question(t, name, ctx):
-    return Q[t].format(name=the_inst(name) if t == "university" else name, ctx=the_ctx(ctx))
+    if t == "university":
+        name = the_inst(name)
+    elif t == "capital" and THE_REGION.search(name):
+        name = f"the {name}"
+    return Q[t].format(name=name, ctx=the_ctx(ctx))
+
+
+def div_key(t, x):
+    return x["ans"]["value"] if t == "opera" else x.get("ctxLabel", {}).get("value", "")
 
 
 def api(params):
@@ -233,11 +245,16 @@ def main():
                                                          for x in pool if leaks(t, x)][:8]
             assert len(clean) >= 10, (t, arm, len(clean), "pool too small after the leak filter: stop and ask")
             rng.shuffle(clean)
-            take, k = [], 0
+            take, k, capped = [], 0, 0
             while len(take) < 10:
-                batch = clean[k:k + 10 - len(take)]
+                batch = []
+                while len(batch) < 10 - len(take) and k < len(clean):
+                    x, k = clean[k], k + 1
+                    if sum(div_key(t, y) == div_key(t, x) for y in take + batch) >= CAP:
+                        capped += 1
+                        continue
+                    batch.append(x)
                 assert batch, (t, arm, "pool exhausted by the item checks")
-                k += len(batch)
                 for check in checks(t, arm):
                     why = check(batch, t)
                     for x in batch:
@@ -246,6 +263,7 @@ def main():
                                                    "label": x["itemLabel"]["value"], "reason": why[qid(x)]})
                     batch = [x for x in batch if not why[qid(x)]]
                 take += batch
+            log["pools"][f"{t}/{arm}"]["skipped_by_diversity_cap"] = capped
             items += [real_item(t, x, arm) for x in take]
     fakes = [json.loads(l) for l in open(HERE / "fakes_checks.jsonl")]
     fakes = [f for f in fakes if f["web_verdict"] == "PASS"]

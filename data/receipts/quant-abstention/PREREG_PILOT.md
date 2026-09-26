@@ -97,6 +97,9 @@ Construction rules added in the same pass, applied without looking at any model:
 - **Leak filter:** the answer must not be readable in the item or country label.
 - **Year golds** need year precision.
 - **Parenthetical labels** are dropped.
+- **Diversity cap:** at most 2 items per (template, arm) share a country, author or composer. The first full
+  build had drawn 4 Greek and 5 Ivorian capitals into capital-H, and 3 Verdi and 3 Wagner operas into opera-E.
+  This was decided on reading that build's items, before any model saw them and before Mark's spot-check.
 - **Articles:** added by one rule for real and fake items alike.
 - **Fake names:** 3 web passes shared an exact Wikidata label with small real places and were replaced (fakes.py
   rule wd).
