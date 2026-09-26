@@ -22,7 +22,7 @@ QUERIES = {
         ?item wdt:P7937 wd:Q8261; wdt:P50 ?ctx; wdt:P577 ?ans; wikibase:sitelinks ?links.   # form of creative work = novel
         FILTER(?links >= 3) {LABEL} }}""",
     "opera": f"""SELECT ?item ?itemLabel ?ans ?ansLabel ?links WHERE {{
-        ?item wdt:P31 wd:Q1344; wdt:P86 ?ans; wikibase:sitelinks ?links.
+        { ?item wdt:P31 wd:Q1344 } UNION { ?item wdt:P7937 wd:Q1344 } ?item wdt:P86 ?ans; wikibase:sitelinks ?links.
         FILTER(?links >= 3) {LABEL} }}""",
     "university": f"""SELECT ?item ?itemLabel ?ans ?ctxLabel ?links WHERE {{
         ?item wdt:P31 wd:Q3918; wdt:P571 ?ans; wdt:P17 ?ctx; wikibase:sitelinks ?links.
