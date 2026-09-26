@@ -25,7 +25,8 @@ Construction rules (all fixed before any model sees an item; none looks at a mod
 - U items: the web-PASS fakes in fakes_checks.jsonl, every one Wikidata-checked (wd_labels.py) with no exact-label
   hit.
 Every E/H item records its gold's source QID and Wikidata property; name golds also carry the answer entity's
-English aliases (wbgetentities) for grading.
+English aliases (wbgetentities) for grading. Year items also carry `gold_years_lenient` (lenient_years(); descriptive
+only, never a gate). The university template drops ", in <country>," when the country is already in the name.
 """
 import json, random, re, time, unicodedata
 from pathlib import Path
@@ -55,7 +56,8 @@ ADMIN = {"oblast", "krai", "region", "province", "prefecture", "state", "county"
          "city", "capital", "island", "islands", "division", "federal", "okrug", "raion", "parish", "emirate"}
 ADJ2COUNTRY = {"Canadian": "Canada", "Venezuelan": "Venezuela", "Brazilian": "Brazil", "Italian": "Italy", "Spanish": "Spain",
                "Kenyan": "Kenya", "Norwegian": "Norway", "Nigerian": "Nigeria", "Peruvian": "Peru", "Swiss": "Switzerland",
-               "Zambian": "Zambia", "Tanzanian": "Tanzania", "Philippine": "Philippines", "Croatian": "Croatia"}
+               "Zambian": "Zambia", "Tanzanian": "Tanzania", "Philippine": "Philippines", "Croatian": "Croatia",
+               "Russian": "Russia", "Argentine": "Argentina"}
 
 
 def the_ctx(c):
@@ -68,6 +70,8 @@ def the_inst(n):
 
 def question(t, name, ctx):
     if t == "university":
+        if ctx and ctx in name:     # "the Academy of Internal Troops of Ukraine, in Ukraine" -> drop the repeated country
+            return f"In which year was {the_inst(name)} founded?"
         name = the_inst(name)
     elif t == "capital" and THE_REGION.search(name):
         name = f"the {name}"
@@ -209,6 +213,31 @@ def checks(t, arm):
            ([check_namesake] if t == "capital" and arm == "H" else [])
 
 
+def lenient_years(xs, t):
+    """DESCRIPTIVE ONLY (the pilot's gates use the strict gold). Every year in a non-deprecated claim of the gold
+    property on the item; for universities also the inception (P571) of entities it replaces (P1365) or follows
+    (P155), since a founding date can belong to a predecessor (NTNU 1996 vs NTH 1910). One rule, applied at build
+    time to every year item."""
+    def years(claims, prop):
+        return {int(c["mainsnak"]["datavalue"]["value"]["time"][1:].split("-")[0]) for c in claims.get(prop, [])
+                if c.get("rank") != "deprecated" and "datavalue" in c["mainsnak"]}
+    ents = api({"action": "wbgetentities", "ids": "|".join(qid(x) for x in xs), "props": "claims"})["entities"]
+    out = {q: years(e.get("claims", {}), PROP[t]) for q, e in ents.items()}
+    if t == "university":
+        pred = {q: [c["mainsnak"]["datavalue"]["value"]["id"] for k in ("P1365", "P155")
+                    for c in e.get("claims", {}).get(k, []) if "datavalue" in c["mainsnak"]] for q, e in ents.items()}
+        ids = sorted({p for ps in pred.values() for p in ps})
+        py = {}
+        for i in range(0, len(ids), 50):
+            for q, e in api({"action": "wbgetentities", "ids": "|".join(ids[i:i + 50]), "props": "claims"})["entities"].items():
+                py[q] = years(e.get("claims", {}), "P571")
+        for q in out:
+            for p in pred[q]:
+                out[q] |= py.get(p, set())
+    time.sleep(1)
+    return {q: sorted(str(y) for y in v) for q, v in out.items()}
+
+
 def aliases(qids):
     out = {}
     for i in range(0, len(qids), 50):
@@ -264,7 +293,12 @@ def main():
                     batch = [x for x in batch if not why[qid(x)]]
                 take += batch
             log["pools"][f"{t}/{arm}"]["skipped_by_diversity_cap"] = capped
-            items += [real_item(t, x, arm) for x in take]
+            new = [real_item(t, x, arm) for x in take]
+            if t in YEAR:
+                ly = lenient_years(take, t)
+                for it, x in zip(new, take):
+                    it["gold_years_lenient"] = sorted(set(ly[qid(x)]) | {it["gold"]}, key=int)
+            items += new
     fakes = [json.loads(l) for l in open(HERE / "fakes_checks.jsonl")]
     fakes = [f for f in fakes if f["web_verdict"] == "PASS"]
     assert all(f.get("wikidata_checked") for f in fakes), "run the Wikidata label check on every PASS fake first"
@@ -286,7 +320,8 @@ def main():
                 ctx = ""
             items.append({"arm": "U", "template": t, "question": question(t, f["name"], ctx), "gold": "UNKNOWN",
                           "ans_qid": None, "source": "invented",
-                          "nonexistence": {"web": f["web_checked"], "wikidata": f["wikidata_checked"]}})
+                          "nonexistence": {"web": f["web_checked"], "web_queries": [q["query"] for q in f["web_queries"]],
+                                           "wikidata": f["wikidata_checked"]}})
     al = aliases(sorted({i["ans_qid"] for i in items if i["ans_qid"]}))
     for n, it in enumerate(items):
         it["id"] = f"P0-{it['arm']}-{it['template'][:3]}-{n:03d}"

@@ -105,3 +105,48 @@ Construction rules added in the same pass, applied without looking at any model:
   rule wd).
 
 The full rules are in the `corpus/build_p0.py` docstring. Every drop and redraw is in `corpus/P0_build.json`.
+
+## Deviation 2 -- the spot-check found a U-arm failure; the arm was reviewed; grading rules fixed before any run (2026-09-26)
+
+**Spot-check outcome.** Mark checked the seeded 12-item draw (4 per arm) with an outside model, Gemini 3.8 Flash in
+the web UI.
+- **E and H:** all 8 golds correct.
+- **U:** one failure. "A Season of Glass" exists as two real novels (John Caulfield; J. Mullican). Search confirmed
+  it.
+
+Per this prereg, a failure sends the arm's construction for review.
+
+**What the review found.** The first-pass web queries carried each item's context (`"A Season of Glass" Edith
+Wharton novel`). Naming the author hides same-title works by anyone else, so the flaw applies to every U item.
+
+**Fix:**
+- All 40 U items were re-run as bare exact-phrase queries. Novels were also run as `"<title>" novel`, because bare
+  queries on generic titles are flooded by buildings and villages.
+- 5 items dropped:
+  - A Season of Glass;
+  - The Cartographer's Widow (a real mystery novel);
+  - The Salt Orchard (a band and a Cape Town development);
+  - Tarapuy (an Ecuadorian locality and river);
+  - Valdorsa (a street in Vicenza).
+- Their replacements passed the same queries plus the Wikidata label check: The Pembury Letters, Harvest at
+  Coldmere, A Harbour in Winter, Vrandelsk and Quevarra.
+- Every query actually run is stored per U item.
+- Rule (a) is written out in full in `corpus/fakes.py`. It ignores a leading "The", and a hit on only a person's name
+  or a username does not drop an item.
+
+**Wording.** The university template drops ", in <country>," when the country is already part of the name ("the
+Academy of Internal Troops of Ukraine, in Ukraine").
+
+**R-gen grading, clarified before any model output exists:**
+- **Normalization** also strips diacritics (Tatabánya = Tatabanya).
+- **Person golds** (opera composers) match the Wikidata label, an English alias, or the bare surname alone. A
+  different given name with the same surname does not match (the Strauss and Scarlatti families).
+- **Year golds** are strict: the exact year.
+  - Strict CORRECT is the only grade used by P2, P3, P4 and Q2.
+  - `gold_years_lenient` is reported descriptively and never gates anything. It holds every year in the item's own
+    gold-property claims and, for universities, the inception of any predecessor it replaces (P1365) or follows
+    (P155).
+  - Lineage-ambiguous items seen at construction: the Academy of Internal Troops (1931 school vs 1992/2014 names),
+    NTNU (1996 vs NTH 1910) and Wrocław (1702 vs the 1945 Polish university).
+  - The reviewer's suggestion to add hand-picked alias years for one item was not adopted, because that would
+    edit a gold after a review.
