@@ -3,7 +3,7 @@
 
 One query at a time, spaced out, retrying on 429 with backoff. Raw results are cached in raw/<template>.json (with
 the query text and fetch time) so a re-run never re-queries. Pools are then filtered to single-valued answers and
-labels unique within the template, and split by sitelink count: E >= 40, H 3-8. The split is model-independent.
+labels unique within the template, and split by sitelink count: E >= 40, H 3-8 (capital 3-20, see HBAND). The split is model-independent.
 """
 import datetime as dt, json, time
 from pathlib import Path
@@ -14,6 +14,10 @@ RAW = HERE / "raw"; RAW.mkdir(exist_ok=True)
 UA = {"User-Agent": "Apollo-quant-abstention/0.1 (local research; one query at a time)",
       "Accept": "application/sparql-results+json"}
 LABEL = 'SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }'
+# H band per template. Capital is wider (decided 2026-09-26, before any model saw an item): real regions carry many
+# bot-stub sitelinks, so 3-8 held mostly anomalies (new regions named after their capital, historical units,
+# electoral districts, a low-sitelink duplicate of the Balearic Islands) and ~9 clean items.
+HBAND = {"capital": (3, 20)}
 QUERIES = {
     "capital": f"""SELECT ?item ?itemLabel ?ans ?ansLabel ?ctxLabel ?links WHERE {{
         ?item wdt:P36 ?ans; wdt:P131 ?ctx; wikibase:sitelinks ?links. ?ctx wdt:P31 wd:Q6256.
@@ -67,8 +71,9 @@ def pools():
         for x in single:
             lab[x["itemLabel"]["value"]] = lab.get(x["itemLabel"]["value"], 0) + 1
         uniq = [x for x in single if lab[x["itemLabel"]["value"]] == 1]
+        lo, hi = HBAND.get(name, (3, 8))
         P[name] = {"E": [x for x in uniq if int(x["links"]["value"]) >= 40],
-                   "H": [x for x in uniq if 3 <= int(x["links"]["value"]) <= 8]}
+                   "H": [x for x in uniq if lo <= int(x["links"]["value"]) <= hi]}
         print(f"{name:10s} rows {len(raw):6d} dedup {len(rows):6d} usable {len(uniq):5d}  E {len(P[name]['E']):4d}  H {len(P[name]['H']):5d}", flush=True)
         if not cached:
             time.sleep(65)   # the query service budgets compute per minute; heavy queries back to back get 429

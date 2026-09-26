@@ -76,3 +76,29 @@ receipts found:
 - 40 items per arm, one model, one PTQ packager (AD) plus Bonsai.
 - Thinking-off only.
 - Nothing here compares methods: that is the main campaign's job.
+
+## Deviation 1 -- corpus construction, before any model saw an item (2026-09-26)
+
+A dry run of the P0 builder showed the capital template's H pool (sitelinks 3-8) could not supply 10 clean items:
+- **28 of 42 leak the answer.** Most are Mali regions, Algerian provinces and Lithuanian city municipalities named
+  after their capitals.
+- **Most of the rest are anomalies:** historical uyezds, former provinces, electoral constituencies, NUTS
+  statistical regions, and a 3-sitelink duplicate item of the Balearic Islands.
+
+Real administrative regions collect many bot-stub sitelinks, so the low band holds oddities rather than obscure
+regions. Mark chose the fix:
+- **Capital H band:** 3-20 sitelinks (the other templates stay at 3-8).
+- **Two capital-only item checks:**
+  - E and H must be current, uncontested administrative regions.
+  - An H item's exact name must not belong to a famous entity (40+ sitelinks).
+
+Construction rules added in the same pass, applied without looking at any model:
+- **Rows:** one per (item, answer), so the opera UNION's double tags are no longer read as two answers.
+- **Leak filter:** the answer must not be readable in the item or country label.
+- **Year golds** need year precision.
+- **Parenthetical labels** are dropped.
+- **Articles:** added by one rule for real and fake items alike.
+- **Fake names:** 3 web passes shared an exact Wikidata label with small real places and were replaced (fakes.py
+  rule wd).
+
+The full rules are in the `corpus/build_p0.py` docstring. Every drop and redraw is in `corpus/P0_build.json`.

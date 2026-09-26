@@ -6,7 +6,7 @@ spot-check draw (4 per arm, seeded).
 Construction rules (all fixed before any model sees an item; none looks at a model):
 - Pools (wikidata_pull.pools()): one row per (item, answer); items with more than one answer dropped; items whose
   item/answer/context entity has no English label dropped; labels unique within the template; E = sitelinks >= 40,
-  H = 3-8.
+  H = 3-8, capital H = 3-20 (wikidata_pull.HBAND).
 - Leak filter, real items only: an item is dropped when its answer is readable in its question -- the answer label
   and the item or context label share a word of 3+ letters (or a 5-letter stem) other than an administrative-type
   word (Pskov Oblast -> Pskov; Bender -> Bendery; "... of Luxembourg" -> Luxembourg), or
@@ -14,6 +14,9 @@ Construction rules (all fixed before any model sees an item; none looks at a mod
 - Year golds (novel P577, university P571): the claim behind the gold must carry year precision or finer
   (Wikidata precision >= 9); a century- or decade-precision date is not a year. Checked on the sampled items;
   a failing item is replaced by the next one in the seeded shuffle, and the replacement is logged.
+- Capital items (E and H) must be current administrative regions (check_current_admin); capital H items must not
+  share their exact name with a famous entity, >= 40 sitelinks (check_namesake). Both run on sampled items, and a
+  failing item is replaced like a precision failure.
 - Sampling: each (template, arm) pool is sorted by QID, shuffled with one seeded RNG, and walked in order.
 - Wording: one template per question type; English articles by one rule for real and fake items alike ("the
   United States", "the University of X"), since Wikidata labels carry none.
@@ -118,6 +121,82 @@ def year_precision(xs, prop):
     return out
 
 
+NOT_CURRENT = re.compile(r"\bformer\b|\bdefunct\b|electoral|constituency|empire|military|NUTS|statistical|cohesion"
+                         r"|annex|occupied|disputed|partially recogni[sz]ed", re.I)
+ELECTORAL = re.compile(r"electoral|constituency", re.I)   # as a CLASS it is dual-use: Greenland and Kosrae are both
+
+
+def qid(x):
+    return x["item"]["value"].rsplit("/", 1)[1]
+
+
+def check_year(xs, t):
+    prec = year_precision(xs, PROP[t])
+    return {qid(x): None if prec[qid(x)] >= 9 else f"year precision {prec[qid(x)]}" for x in xs}
+
+
+def dissolved_after_founding(claims):
+    """True when the latest dissolution (P576) is not followed by a re-founding (P571): Qashqadaryo was dissolved in
+    1960 and re-established in 1964, and is current."""
+    def years(p):
+        return [int(c["mainsnak"]["datavalue"]["value"]["time"][:5]) for c in claims.get(p, [])
+                if c.get("rank") != "deprecated" and "datavalue" in c["mainsnak"]]
+    end, start = years("P576"), years("P571")
+    return bool(end) and max(end) >= max(start, default=-10 ** 6)
+
+
+def check_current_admin(xs, t):
+    """Capital items must be current, uncontested administrative regions: not dissolved, and no 'former',
+    historical-empire, electoral, military, statistical, annexed/occupied/disputed wording in the description or
+    the P31 classes."""
+    j = api({"action": "wbgetentities", "ids": "|".join(qid(x) for x in xs), "props": "descriptions|claims",
+             "languages": "en"})["entities"]
+    p31 = {q: [c["mainsnak"]["datavalue"]["value"]["id"] for c in e.get("claims", {}).get("P31", [])
+               if "datavalue" in c["mainsnak"]] for q, e in j.items()}
+    cls = sorted({c for cs in p31.values() for c in cs})
+    lab = {}
+    for i in range(0, len(cls), 50):
+        for q, e in api({"action": "wbgetentities", "ids": "|".join(cls[i:i + 50]), "props": "labels",
+                         "languages": "en"})["entities"].items():
+            lab[q] = e.get("labels", {}).get("en", {}).get("value", "")
+    out = {}
+    for q, e in j.items():
+        ended = dissolved_after_founding(e.get("claims", {}))
+        desc = e.get("descriptions", {}).get("en", {}).get("value", "")
+        bad = [w for w in [desc] if NOT_CURRENT.search(w)] + \
+              [w for w in (lab.get(c, "") for c in p31[q]) if NOT_CURRENT.search(w) and not ELECTORAL.search(w)]
+        out[q] = "dissolved (P576 after the latest P571)" if ended else (f"not current: {bad[0]}" if bad else None)
+    time.sleep(1)
+    return out
+
+
+def check_namesake(xs, t):
+    """A hard item's NAME must not be famous: drop it when any other Wikidata entity with the exact same English
+    label or alias has >= 40 sitelinks (a 3-sitelink duplicate item of the Balearic Islands is not obscure)."""
+    out = {}
+    for x in xs:
+        name = x["itemLabel"]["value"]
+        hits = [h["id"] for h in api({"action": "wbsearchentities", "search": name, "language": "en", "limit": 10})
+                .get("search", []) if h["id"] != qid(x) and any(norm(v) == norm(name) for v in
+                [h.get("label", "")] + [a for a in h.get("aliases", []) if isinstance(a, str)])]
+        top = 0
+        if hits:
+            ents = api({"action": "wbgetentities", "ids": "|".join(hits), "props": "sitelinks"})["entities"]
+            top = max(len(e.get("sitelinks", {})) for e in ents.values())
+        out[qid(x)] = f"famous namesake ({top} sitelinks)" if top >= 40 else None
+        time.sleep(1)
+    return out
+
+
+def norm(s):
+    return unicodedata.normalize("NFKC", s).casefold().strip()
+
+
+def checks(t, arm):
+    return ([check_year] if t in YEAR else []) + ([check_current_admin] if t == "capital" else []) + \
+           ([check_namesake] if t == "capital" and arm == "H" else [])
+
+
 def aliases(qids):
     out = {}
     for i in range(0, len(qids), 50):
@@ -143,7 +222,7 @@ def real_item(t, x, arm):
 def main():
     rng = random.Random(SEED)
     P = pools()
-    log = {"seed": SEED, "pools": {}, "leak_dropped_examples": {}, "precision_redraws": []}
+    log = {"seed": SEED, "pools": {}, "leak_dropped_examples": {}, "redraws": []}
     items = []
     for t in Q:
         for arm in ("E", "H"):
@@ -157,19 +236,16 @@ def main():
             take, k = [], 0
             while len(take) < 10:
                 batch = clean[k:k + 10 - len(take)]
-                assert batch, (t, arm, "pool exhausted by the precision check")
+                assert batch, (t, arm, "pool exhausted by the item checks")
                 k += len(batch)
-                if t in YEAR:
-                    prec = year_precision(batch, PROP[t])
+                for check in checks(t, arm):
+                    why = check(batch, t)
                     for x in batch:
-                        q = x["item"]["value"].rsplit("/", 1)[1]
-                        if prec[q] >= 9:
-                            take.append(x)
-                        else:
-                            log["precision_redraws"].append({"template": t, "arm": arm, "item": q,
-                                                             "label": x["itemLabel"]["value"], "precision": prec[q]})
-                else:
-                    take += batch
+                        if why[qid(x)]:
+                            log["redraws"].append({"template": t, "arm": arm, "item": qid(x),
+                                                   "label": x["itemLabel"]["value"], "reason": why[qid(x)]})
+                    batch = [x for x in batch if not why[qid(x)]]
+                take += batch
             items += [real_item(t, x, arm) for x in take]
     fakes = [json.loads(l) for l in open(HERE / "fakes_checks.jsonl")]
     fakes = [f for f in fakes if f["web_verdict"] == "PASS"]
@@ -203,7 +279,9 @@ def main():
             f.write(json.dumps(it, ensure_ascii=False) + "\n")
     json.dump(log, open(HERE / "P0_build.json", "w"), indent=1, ensure_ascii=False)
     print(json.dumps(log["pools"]))
-    print("precision redraws:", len(log["precision_redraws"]), [r["label"] for r in log["precision_redraws"]])
+    print("redraws:", len(log["redraws"]))
+    for r in log["redraws"]:
+        print(f"   {r['template']}/{r['arm']}  {r['label'][:40]:40s} {r['reason'][:70]}")
     print(len(items), "items;", {a: sum(i["arm"] == a for i in items) for a in "EHU"})
     rs = random.Random(SEED + 1)
     print("\nSPOT-CHECK DRAW (4 per arm):")
