@@ -35,7 +35,23 @@ A guest points any OpenAI-compatible client at `https://<desktop>.<tailnet>.ts.n
 **expect a 503 on the first request after the node has slept**, then retry after about 60 s. `/status` (no key
 needed) says asleep / waking / ready.
 
-## Step 2: exposing it on the tailnet (NOT done yet; needs Mark's go-ahead)
+## Deployment state (2026-09-25 ~22:45)
+
+- **Tailnet policy:** saved by Mark. `autogroup:member` keeps full access to everything; `autogroup:shared` gets port
+  443 only.
+  - The guest rule is written as `"443"` (all protocols) rather than `"tcp:443"`. That is harmless, since nothing
+    listens on UDP 443; tighten it when next editing.
+  - Verified afterwards: the owner's access to .73 over the tailnet still works (ping 1 ms direct, :22 reachable).
+- **Gateway:** running as a transient user unit, `systemd-run --user --unit=apollo-guest-gateway`, so it logs to the
+  journal and does **not** start at boot. Stop it with `systemctl --user stop apollo-guest-gateway`.
+- **`tailscale serve --bg --https=443`:** proxies to `127.0.0.1:8098`. The serve config persists across reboots; the
+  gateway does not, so after a reboot the URL answers 502 until the gateway is started again.
+  - Verified from the desktop over the real name: `/status` 200 with a valid Let's Encrypt certificate, chat
+    without a key 401, `/slots` 404.
+- **Not yet done:** sharing the desktop with a tester, and the guest-side port check (443 answers; 22, 445, 8099 do
+  not).
+
+## Step 2: exposing it on the tailnet (the procedure)
 
 **Do this first, or sharing is unsafe.** Tailscale's default policy lets a user you share a machine with reach
 *every* port on it. On the desktop that currently means:
