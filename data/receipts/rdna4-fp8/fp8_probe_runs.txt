@@ -1,0 +1,9 @@
+# runs 2 and 3 (run 1: bf16 70.6, fp8 197.5, int8 192.1; same session)
+bf16 matmul: 70.4 TFLOPS
+float8_e4m3fn _scaled_mm: OK, 197.0 TFLOPS, max rel err vs upcast 3.94e-03
+float8_e4m3fnuz _scaled_mm: FAILED: RuntimeError: CUDA error: HIPBLAS_STATUS_NOT_SUPPORTED when calling `HIPBLAS_STATUS_NOT_SUPPORTED`
+int8 _int_mm: OK, 192.2 TOPS
+bf16 matmul: 70.7 TFLOPS
+float8_e4m3fn _scaled_mm: OK, 196.2 TFLOPS, max rel err vs upcast 3.94e-03
+float8_e4m3fnuz _scaled_mm: FAILED: RuntimeError: CUDA error: HIPBLAS_STATUS_NOT_SUPPORTED when calling `HIPBLAS_STATUS_NOT_SUPPORTED`
+int8 _int_mm: OK, 192.3 TOPS
