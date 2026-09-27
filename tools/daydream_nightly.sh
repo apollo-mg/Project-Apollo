@@ -27,6 +27,6 @@ OUT=$("$PY" tools/daydream_brief.py 2>> "$LOG" | tail -1)
 ST=$(printf '%s' "$OUT" | "$PY" -c 'import json,sys; print(json.loads(sys.stdin.read()).get("status","error"))' 2>/dev/null || echo error)
 if [ ! -s "$M/$D.md" ]; then beat error "no brief written: $OUT"; notify "Daydream FAILED" "no brief; see $LOG"; exit 1; fi
 beat "$ST" "$OUT"
-SUM=$(printf '%s' "$OUT" | "$PY" -c 'import json,sys; d=json.loads(sys.stdin.read()); print(f"{d.get(\"picks\",0)} picks, {d.get(\"closed\",0)} closed, {d.get(\"suggested\",0)} to check, {d.get(\"backlog_close\",0)} BACKLOG edits")' 2>/dev/null || echo "see brief")
+SUM=$(printf '%s' "$OUT" | "$PY" -c 'import json,sys; d=json.loads(sys.stdin.read()); print("%d picks, %d closed, %d to check, %d BACKLOG edits" % tuple(d.get(k, 0) for k in ("picks", "closed", "suggested", "backlog_close")))' 2>/dev/null || echo "see brief")
 echo "Morning brief ($ST): $SUM -> data/dev_diaries/morning/$D.md" > "$ROOT/data/dev_diaries/.daydream_motd"
 notify "Morning brief ready ($ST)" "$SUM\ndata/dev_diaries/morning/$D.md"
