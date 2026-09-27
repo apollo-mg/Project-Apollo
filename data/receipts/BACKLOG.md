@@ -25,16 +25,28 @@ cost tokens only to start and interpret, which is the actual scarce resource.
 
 ## Open bugs blocking daily-driver features (added 2026-09-24) -- check each new buun build
 
-- **FIXED in buun `0b2789f23` (09-25, verified on .73: `vbr-artifact-store/RESULT_FIX_0B2789F23_ON_73.md`)** -- the three tensor-split abort entries below. Open follow-up: VBR host restore of a displaced slot into an empty slot at `-np 4` (`destination=invalid`).
-- **.73 can't run more than one slot** (`-np >1` + `-sm tensor` + hybrid qwen35 + VBR host cache -> SIGABRT in
+- **FIXED in buun `0b2789f23` (09-25, verified on .73: `vbr-artifact-store/RESULT_FIX_0B2789F23_ON_73.md`)** -- the three tensor-split abort entries below. ~~Open follow-up: VBR host restore of a displaced slot into an empty slot at `-np 4` (`destination=invalid`).~~ **FIXED in buun `1c5e564b` (09-27):** the displaced conversation is captured to host and restored into an empty slot in 333 ms (`vbr-artifact-store/RESULT_1C5E564B_ON_73.md`). The daily driver is still on `0b2789f23`; switching is Mark's call.
+- ~~**.73 can't run more than one slot**~~ **FIXED in `0b2789f23` (09-25), see above.** (`-np >1` + `-sm tensor` + hybrid qwen35 + VBR host cache -> SIGABRT in
   `ggml_backend_meta_buffer_get_tensor` during idle recurrent capture). `vbr-artifact-store/INCIDENT_73_NP4_TENSOR_CAPTURE_ABORT.md`.
   Costs today: every Open WebUI follow-up/title/tag call and every Hermes session-title call evicts the chat's cache
   (46 s re-prefill at 6.8k tokens); parallel subagents serialize and evict each other. Not fixed as of buun
   `2ef0317dd` (09-23). Workaround `-sm layer -np 4` TESTED 09-24 and FAILS as configured: 0/6 requests served (draft-context OOM), and layer split halves decode anyway (`split-prefill-73/RESULT_SPLIT_PREFILL_73.md`).
-- **.73 at `-np 1` aborts when a request reuses a slot after its idle VBR capture published** (4/4 in repro, `ggml-backend-meta.cpp:1783 GGML_ASSERT(size % row_stride == 0)` via `try_automatic_vbr_restore -> ensure_vbr_replacement_recovery`). Same capture family as the np>1 abort, now with the assert text. `vbr-artifact-store/INCIDENT_73_NP1_IDLE_REUSE_ABORT.md`. `--no-vbr-prompt-cache` avoids it but kills reuse. Wake-proxy auto-warm is OFF until fixed.
+- ~~**.73 at `-np 1` aborts when a request reuses a slot after its idle VBR capture published**~~ **FIXED in `0b2789f23` (09-25), see above.** (4/4 in repro, `ggml-backend-meta.cpp:1783 GGML_ASSERT(size % row_stride == 0)` via `try_automatic_vbr_restore -> ensure_vbr_replacement_recovery`). Same capture family as the np>1 abort, now with the assert text. `vbr-artifact-store/INCIDENT_73_NP1_IDLE_REUSE_ABORT.md`. `--no-vbr-prompt-cache` avoids it but kills reuse. Wake-proxy auto-warm is OFF until fixed.
   **Workaround available (09-25):** static `-ctk turbo8 -ctv turbo4 -c 131072 -np 4` has no abort and keeps reuse across side requests (`split-prefill-73/RESULT_STATIC_KV_WORKAROUND.md`).
 - **VBR sticky floor after a full reset** (unfrozen explicit budget, llama-perplexity). `kv-depth/RESULT_KV_DEPTH_MATCHED_ALLOCATION.md`,
   AFM-46. **Checked 09-24 in llama-server (`08826ad6e`, .73): NOT reproduced** -- each new prompt resets to f16 and bpv tracks depth (`split-prefill-73/`). Still open for llama-perplexity / unfrozen explicit budgets.
+
+## New from 2026-09-27
+
+| # | thread | cost | note |
+|---|---|---|---|
+| N1 | **Split-state stack overflow is still in source** | report to buun | `ggml-backend-meta.cpp:1211` still `clear()`s the whole `split_state_cache` on a `memcmp` mismatch (checked in `1c5e564b`). The daily driver survives on a 512 MiB `ulimit -s`. It was never reproduced on demand (`vbr-artifact-store/INCIDENT_73_META_SPLIT_STATE_STACK_OVERFLOW.md`). |
+| N2 | **.73 daily driver to `1c5e564b`**, then a real `--resume` across a proxy suspend/wake with a Hermes session | ~25 min | Verified 09-27: media resume, displaced-slot restore, 2.3x faster save. The proxy already waits for the save before suspending, so the suspend/wake test is unblocked. Mark's call. |
+| N3 | **Quant abstention with thinking ON** | overnight .194 | The natural sequel to `quant-abstention/RESULT_INCTX.md`: with thinking on, the decision should live in the reasoning. Score written decisions, not the forced slot (AFM-48). Fold in Swift-Qwen3.8 (trained to think less). |
+| N4 | **Forced-slot "gut check" as a guard before generation** | ~1 h prereg + a fresh corpus | Exploratory and cross-fitted in RESULT_INCTX: +0.04..+0.20 more invented questions refused for most files, at ~+0.01 false refusals, but worse on EXL3. Needs fresh items and a registered threshold rule. |
+| N5 | **Metrale RDNA4 (gfx1201) testing** | per port build | Plan: claude.ai/artifact/6F8FwBN4FvUX6W5yFj3ikN (shared in their dev channel). Tom or Thomas ports Atlas PR #1107; Mark runs S0-S3 on the 9070 XT, and VanillaSilverback's R9700 is for iteration. Receipts in Apollo, not code in their tree (neutrality). |
+| N6 | **FP8 on RDNA4** | ~2 min | SCALE can't emit FP8 WMMA (Atlas S1: e4m3 `mma.sync` rejected). Still open: does PyTorch/ROCm on the 9070 use FP8 GEMM (`torch._scaled_mm`)? That decides the Qwen-Image FP8 vs INT8 question and the plan's HIP-path item. |
+| N7 | **Daydream v2** | ~1 h | After the first unattended brief (09-28): link threads to "shelved" diary lines (the voice endpointer kept being picked); drop invented commands; propose new failure signatures (AFM-48 would be the first). |
 
 ## Cheap and high-value
 

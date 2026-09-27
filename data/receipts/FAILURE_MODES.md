@@ -1619,3 +1619,28 @@ of *why* something failed as a claim that needs the failing call cited, not as a
 
 **Fix:** classed ERR lines, prompt rules, and an inline `_[unverified]_` tagger (CHANGELOG
 2026-09-24). Found by a human-requested spot-check of the diary, the ledger's acceptance criterion (1).
+
+## AFM-48 — a proxy readout's shift was reported as a behaviour shift, with the behaviour readout already in hand
+
+**2026-09-27.** The quant-abstention main campaign's registered primary readout was the forced answer slot:
+P(UNKNOWN) when the prompt is followed straight by "Exact Answer:", with nothing written first. Generation (R-gen) was
+used only as a validity gate (kappa >= 0.5). Kappa checks whether the two readouts agree *per item*. It does not check
+whether they shift by the *same amount*. The receipt, the INDEX row and a public summary then said AD IQ2_XS "answers
+invented questions it should refuse (+21 points)". Its own generations answered them at Q8_0's rate (-0.020). Same items,
+forced minus generation: +0.182 [+0.082, +0.282]. The registered analysis had computed the generation shifts and
+stored them in `RESULT_main.json`. Nobody put them next to the labels. A calibration study (CALIB) was then built on the
+slot readout, and its live stage was about to spend 4-5 h of .194 on a fix for a shift that generation didn't have.
+
+**Why it happened:** the design treated a validated proxy as the behaviour. The gate passing ("the readouts agree") made
+the proxy feel like the thing itself. The claim was worded in behaviour terms ("answers", "confabulates") while the
+number came from the proxy. `quant-abstention/RESULT_INCTX.md` later showed the two are different readouts: the forced
+slot is the model's answer with nothing written first, and in generation the decision is made in the sentence it writes.
+
+**The check:** any claim phrased as behaviour (answers, refuses, confabulates, writes) cites the behaviour readout's
+number next to the proxy's, or says in the same sentence that it is a proxy. When a campaign has a registered proxy
+*and* a behaviour readout, the results table carries both columns. A validity gate on agreement (kappa, correlation)
+never licenses reporting the proxy's effect *size* as the behaviour's.
+
+**Caught by:** looking up the generation-level numbers while deciding what the CALIB live stage would test. That was
+before any .194 time was spent on it. It was corrected the same day: a Correction section in RESULT_MAIN, with the INDEX rows
+annotated.
