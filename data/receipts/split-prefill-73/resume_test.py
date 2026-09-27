@@ -11,7 +11,7 @@ from warm_crash_repro_lib import system, tools, KW
 NODE = "http://10.0.0.73:8080"
 HERE = Path(__file__).parent
 OUT = HERE / "raw" / "resume_test.jsonl"
-BIN = "~/buun-resume/build_sm60_resume/bin/llama-server"
+BIN = os.environ.get("BIN_OVERRIDE", "~/buun-resume/build_sm60_resume/bin/llama-server")
 STORE = "/mnt/models/resume-test"
 DAILY = ("-m '/mnt/models/AI_Models/Qwen 3.8/Qwen3.8-27B-Q6_K.gguf' --mmproj '/mnt/models/AI_Models/Qwen 3.8/mmproj-F16.gguf' "
          "-ngl 99 -c 262144 -ctk vbr -ctv vbr --vbr-floor t4 --vbr-vram auto -np 1 -fit off -sm tensor -fa on "
