@@ -1,5 +1,11 @@
 # Result -- quant-abstention CALIB: one logit bias per file restores Q8_0's "I don't know" for half the shifted files; the shift is not generally an offset
 
+> **Scope, added 2026-09-27.** Everything here is about the **forced answer slot**, where the model answers with no
+> text written first. That is the setting of log-prob confidence scoring and single-token answers. In the model's own
+> generations the confident files do not over-answer (`RESULT_MAIN.md`, Correction), so a slot-fitted bias applied
+> to generation would over-correct them. Stage 2 (live `logit_bias` generations) was **not run** for that reason;
+> the in-context readout (`PREREG_INCTX.md`) replaced it.
+
 **2026-09-27.** Pre-registration: `PREREG_CALIB.md` (commit 9bd05f4, written and committed before any quantized arm was
 scored). Analysis: `analyze_calib.py`. Output: `RESULT_calib.json` (arms), `RESULT_calib_CONTROLS.json` (controls).
 Data: the main campaign's stored answer-slot top 50 (`raw/main_*.jsonl`); nothing was re-run. **Offline, slot readout
@@ -181,6 +187,12 @@ the relevant one, and the two differ by 0.2-0.5 logits. **Stage 2 tests both.**
 | AD3XXS | -1.15 | [-1.58, -1.50] | -1.54 |
 
 Stage 2 still needs Mark's go-ahead and .194, and gets its own run note.
+
+**Re-scoped before any live run (2026-09-27).** When .194 came up for stage 2, main's own generations showed that the
+confident files already refuse invented items at Q8_0's rate (`RESULT_MAIN.md`, Correction). A slot-fitted bias
+would push their generations past Q8_0, so the registered stage 2 would mostly have measured a predictable
+over-correction. The session ran the in-context slot readout instead (`PREREG_INCTX.md`), which reads P(UNKNOWN)
+where generation actually decides. Stage 2 as written above was not run.
 
 ## Limits
 

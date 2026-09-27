@@ -1,5 +1,10 @@
 # Result -- quant-abstention MAIN: 2.5-4.5 bpw quants keep the ranking of "I know" vs "I don't" but shift the threshold, in directions set by the file, not the family
 
+> **Correction, added 2026-09-27 (see the last section).** The "confident" direction (AD IQ2_XS +0.21 and the other
+> four confident labels) is a property of the **forced answer slot**, not of generation. In the model's own
+> generations, none of the five confident files answers more invented questions than Q8_0. The timid shift carries
+> partly, and Bonsai's extra confabulation carries fully. The original text below is left as written.
+
 **2026-09-27.**
 
 | | |
@@ -157,3 +162,64 @@ AUROC down.
 - **Family traits:** whether direction belongs to a *family* (the within-family flips argue against it).
 - **Bonsai's training:** unknown. Bonsai is not a PTQ data point.
 - **EXL3 at low bpw:** EXL3 cannot reach below 3.59 scored bpw, because its embeddings are fp16.
+
+## Correction: the confident direction does not survive into generation (added 2026-09-27)
+
+**What was missed.** The labels above use the registered primary readout, R-slot: P(UNKNOWN) when the prompt is
+followed immediately by "Exact Answer:", so the model writes nothing first. R-gen served only as the kappa validity
+gate, which checks item-level agreement, not whether the two readouts shift by the same amount. The generation-level
+shifts were computed by the registered analysis and stored in `RESULT_main.json` (`gen_timidity`, `gen_confab`), but
+this receipt never set them against the labels.
+
+**Generation-level shift vs Q8_0** (R-gen, graded items; confabulation = WRONG rate on invented items; timidity =
+ABSTAINED rate on hard items; registered analysis, main's levels):
+
+| file | slot label | slot confabulation | generation confabulation | generation timidity |
+|---|---|---:|---:|---:|
+| AD IQ2_XS | confident | +0.213 | **-0.020** [-0.14, +0.10] | -0.010 |
+| AP IQ3_XXS | confident | +0.076 | +0.010 | +0.000 |
+| APEX I-Nano | confident | +0.113 | -0.031 | +0.000 |
+| EXL3 3.0 | confident | +0.061 | -0.040 | -0.010 |
+| EXL3 3.5 | confident | +0.054 | -0.071 | -0.020 |
+| AD IQ3_XXS | timid | -0.112 | **-0.135** [-0.28, +0.01] | +0.051 |
+| AD IQ3_S-mix | timid | -0.133 | -0.071 | +0.041 |
+| UD IQ3_XXS | timid | -0.144 | -0.062 | +0.000 |
+| Bonsai PQ2_0 (95 %) | mixed | +0.077 | **+0.151** [+0.05, +0.26] | +0.010 |
+
+**The same items, both readouts** (exploratory; invented items graded in both; the slot side is the greedy slot
+decision, paired, 95 %):
+
+| file | forced-slot shift | generation shift | forced - generation |
+|---|---:|---:|---|
+| AD IQ2_XS | +0.162 | -0.020 | **+0.182 [+0.082, +0.282]** |
+| APEX I-Nano | +0.093 | -0.031 | +0.124 [+0.010, +0.237] |
+| EXL3 3.5 | +0.081 | -0.071 | +0.152 [+0.060, +0.243] |
+| AP IQ3_XXS | +0.092 | +0.010 | +0.082 [-0.025, +0.188] |
+| EXL3 3.0 | +0.040 | -0.040 | +0.081 [-0.008, +0.169] |
+| AD IQ3_XXS | -0.146 | -0.135 | -0.010 [-0.114, +0.094] |
+| Bonsai PQ2_0 | +0.086 | +0.151 | -0.065 [-0.169, +0.040] |
+
+The pilot shows the same gap (AD IQ2_XS: forced +0.21 soft, generation +0.03), so the "pilot replication" above is a
+replication of the forced slot only. The AD ladder (INDEX L148) had AD IQ2_XS abstaining 24/24 in generation, which
+this receipt should have reconciled.
+
+**What changes:**
+
+- **"The threshold moves in both directions" holds for the forced slot only.** In generation, no confident label is
+  reproduced: all five are at +0.01 or below. The generation intervals are about +/-0.12 wide, so this reads "not
+  reproduced", not "zero". For AD IQ2_XS the forced-vs-generation gap on the same items excludes 0.
+- **The timid direction carries partly.** AD IQ3_XXS answers fewer invented items in generation (-0.135), about as
+  much as at the slot. AD IQ3_S-mix and UD IQ3_XXS point the same way but by about half.
+- **Bonsai is the one file that confabulates more in generation** (+0.15, 95 % interval excludes 0), more than at the
+  slot.
+- **H-method's pairs all include a confident label,** so its behavioural reading does not survive either.
+- **Still standing:**
+  - the forced-slot results as slot results (relevant to log-prob confidence scoring and single-token answers);
+  - discrimination at the slot;
+  - Bonsai losing the ranking.
+
+  Whether the ranking holds *at the decision point in generation* is being measured (`PREREG_INCTX.md`).
+- **Why the readouts differ** is open. In generation the model writes about one sentence before "Exact Answer:". The
+  in-context readout (`PREREG_INCTX.md`, run 2026-09-27) reads P(UNKNOWN) after that sentence, and splits the
+  difference into what the quant writes and how it reads.
+
