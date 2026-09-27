@@ -120,42 +120,6 @@
    "status": "open",
    "kind": "action"
   },
-  "c1cdd60a8b": {
-   "text": "**FIXED in buun `0b2789f23` (09-25, verified on .73: `vbr-artifact-store/RESULT_FIX_0B2789F23_ON_73.md`)** -- the three tensor-split abort entries below. Open follow-up: VBR host restore of a displaced slot into an empty slot at `-np 4` (`destination=invalid`).",
-   "first_seen": "2026-09-27",
-   "last_seen": "2026-09-27",
-   "mentions": 1,
-   "sources": [
-    "data/receipts/BACKLOG.md:28"
-   ],
-   "why": "trigger: follow-up",
-   "status": "open",
-   "kind": "action"
-  },
-  "7900a3a044": {
-   "text": "**.73 can't run more than one slot** (`-np >1` + `-sm tensor` + hybrid qwen35 + VBR host cache -> SIGABRT in `ggml_backend_meta_buffer_get_tensor` during idle recurrent capture). `vbr-artifact-store/INCIDENT_73_NP4_TENSOR_CAPTURE_ABORT.md`. Costs today: every Open WebUI follow-up/title/tag call and every Hermes session-title call evicts the chat's cache (46 s re-prefill at 6.8k tokens); parallel subagents serialize and evict each other. Not fixed as of buun `2ef0317dd` (09-23). Workaround `-sm layer -np 4` TESTED 09-24 and FAILS as configured: 0/6 requests served (draft-context OOM), and layer split halves decode anyway (`split-prefill-73/RESULT_SPLIT_PREFILL_73.md`).",
-   "first_seen": "2026-09-27",
-   "last_seen": "2026-09-27",
-   "mentions": 1,
-   "sources": [
-    "data/receipts/BACKLOG.md:29"
-   ],
-   "why": "trigger: follow-up",
-   "status": "open",
-   "kind": "action"
-  },
-  "ea1091787e": {
-   "text": "**VBR sticky floor after a full reset** (unfrozen explicit budget, llama-perplexity). `kv-depth/RESULT_KV_DEPTH_MATCHED_ALLOCATION.md`, AFM-46. **Checked 09-24 in llama-server (`08826ad6e`, .73): NOT reproduced** -- each new prompt resets to f16 and bpv tracks depth (`split-prefill-73/`). Still open for llama-perplexity / unfrozen explicit budgets.",
-   "first_seen": "2026-09-27",
-   "last_seen": "2026-09-27",
-   "mentions": 1,
-   "sources": [
-    "data/receipts/BACKLOG.md:36"
-   ],
-   "why": "trigger: NOT reproduced",
-   "status": "open",
-   "kind": "action"
-  },
   "7606561554": {
    "text": "10 chunks x 512 tokens, one text, f16 KV.",
    "first_seen": "2026-09-27",
@@ -1241,5 +1205,7 @@
    "status": "open",
    "kind": "scope"
   }
- }
+ },
+ "last_indexed_commit": "012905f2660e3aeccfac6c3c0be2d1323ec3b3f2",
+ "last_index_rc": 0
 }

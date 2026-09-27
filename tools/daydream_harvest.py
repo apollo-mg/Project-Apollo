@@ -52,8 +52,10 @@ def recent_files(root, days):
                      if p.name[:10] >= since.isoformat())
     out = subprocess.run(["git", "-C", str(root), "log", f"--since={since.isoformat()} 00:00", "--name-only",
                           "--pretty=format:", "--", "data/receipts"], capture_output=True, text=True).stdout
+    # INDEX.md / BACKLOG.md / FAILURE_MODES.md mirror other receipts; BACKLOG is diffed separately (stage 2), and
+    # harvesting its own lines re-surfaced stale entries as fresh threads (first brief, 2026-09-27).
     receipts = sorted({root / l for l in out.splitlines() if l.endswith(".md") and (root / l).exists()
-                       and not l.endswith("INDEX.md")})
+                       and not l.endswith(("INDEX.md", "BACKLOG.md", "FAILURE_MODES.md"))})
     return diaries + receipts
 
 
@@ -143,6 +145,8 @@ def main():
                 match = tid
             t = state["threads"][match]
             src = f"{rel}:{ln}"
+            if t["status"] == "closed" and src not in t["sources"] and t.get("closed_on", "") < today:
+                t["status"] = "open"; t["reopened_on"] = today      # mentioned again after closure: reopen
             if src not in t["sources"]:
                 t["sources"].append(src); t["mentions"] += 1
             t["last_seen"] = today
