@@ -23,11 +23,13 @@ ROOT = "/mnt/TG_2TB/AI/Models"
 PY = str(HERE.parents[2] / "venv_cachyos" / "bin" / "python3")
 PORT = {"A": 8190, "B": 8191}
 C_ON_194 = "~/AI/Models/ladder_ud/Qwen3.8-27B-Q8_0.gguf"      # the ceiling is already on .194, hash-verified
-N_ITEMS = sum(1 for _ in open(HERE / "corpus" / "M1.jsonl"))
+CORPUS = os.environ.get("QA_CORPUS", "M1")          # QA_CORPUS=SMOKE5 for the integration test
+SUFFIX = "" if CORPUS == "M1" else f".{CORPUS}"       # smoke outputs never collide with the real run
+N_ITEMS = sum(1 for _ in open(HERE / "corpus" / f"{CORPUS}.jsonl"))
 REG = {a["arm"]: a for a in json.load(open(HERE / "arms_main.json"))["arms"]}
-STATE_P = HERE / "raw" / "main_lanes_state.json"
-LOG_P = HERE / "raw" / "main_lanes.log"
-lock = threading.Lock()
+STATE_P = HERE / "raw" / f"main_lanes_state{SUFFIX}.json"
+LOG_P = HERE / "raw" / f"main_lanes{SUFFIX}.log"
+lock = threading.RLock()
 
 
 def log(msg):
@@ -46,6 +48,12 @@ def save(st):
         tmp = STATE_P.with_suffix(".tmp"); json.dump(st, open(tmp, "w"), indent=1); os.replace(tmp, STATE_P)
 
 
+def expected():
+    """The ceiling's rendered-prompt tail and UNKNOWN-variant ids: every arm must match them (pilot: all arms did)."""
+    h = json.loads(open(HERE / "raw" / f"main_C.A{SUFFIX}.jsonl").readline())
+    return h["render_tail"], h["variant_ids"]
+
+
 def ssh(cmd, check=True):
     r = subprocess.run(["ssh", "-o", "BatchMode=yes", H, cmd], capture_output=True, text=True, stdin=subprocess.DEVNULL)
     if check and r.returncode != 0:
@@ -54,12 +62,13 @@ def ssh(cmd, check=True):
 
 
 def done(name):
-    p = HERE / "raw" / f"main_{name}.jsonl"
+    p = HERE / "raw" / f"main_{name}{SUFFIX}.jsonl"
     return p.exists() and sum(1 for _ in open(p)) >= N_ITEMS + 1
 
 
 def free_gb():
-    return int(ssh("df --output=avail -B1G ~ | tail -n 1").strip())
+    # python on .194, not df: .194 runs uutils coreutils, whose output formats differ (the `tail -1` trap)
+    return int(ssh("python3 -c 'import shutil,os; print(shutil.disk_usage(os.path.expanduser(\"~\")).free >> 30)'").strip())
 
 
 def stage(lane, arm):
@@ -68,7 +77,7 @@ def stage(lane, arm):
     is_dir = os.path.isdir(src)
     size_gb = (sum(os.path.getsize(os.path.join(src, f)) for f in os.listdir(src)) if is_dir else os.path.getsize(src)) / 2**30
     need = size_gb * (2 if is_dir else 1) + 10          # EXL3 import stages a second copy in LLAMA_CACHE
-    for _ in range(60):
+    for _ in range(480):                         # up to 4 h: the other lane frees its copy when its arm ends
         if free_gb() >= need:
             break
         log(f"[{lane}] {arm}: waiting for disk ({need:.0f} GB needed)"); time.sleep(30)
@@ -108,16 +117,22 @@ def _run_arm(lane, name, model, sha):
     ssh(f"bash ~/qa_serve_main.sh {lane} {shlex.quote(name)} {model} {sha}")
     meta = json.loads(ssh(f"cat ~/qa_main_meta_{name}.json"))
     (HERE / "raw" / "logs").mkdir(parents=True, exist_ok=True)
-    json.dump(meta, open(HERE / "raw" / "logs" / f"main_meta_{name}.json", "w"), indent=1)
+    json.dump(meta, open(HERE / "raw" / "logs" / f"main_meta_{name}{SUFFIX}.json", "w"), indent=1)
     if not meta["kv_f16_verified"]:
         raise RuntimeError(f"{name}: f16 KV line not found in the server log")
+    if meta.get("mtp_or_draft_line_seen"):
+        raise RuntimeError(f"{name}: an MTP/draft line is in the server log (PREREG_MAIN: MTP must be off)")
+    extra = []
+    if not name.startswith("C."):
+        tail, var = expected()
+        extra = ["--expect-render-tail", tail, "--expect-variants", json.dumps(var)]
     log(f"[{lane}] {name}: running items")
     r = subprocess.run([PY, str(HERE / "run_main.py"), "--url", f"http://{H}:{PORT[lane]}", "--arm", name,
-                        "--meta", json.dumps(meta), "--corpus", "M1", "--max-tokens", "1024"],
-                       capture_output=True, text=True, cwd=HERE)
+                        "--meta", json.dumps(meta), "--corpus", CORPUS, "--max-tokens", "1024", *extra],
+                       capture_output=True, text=True, cwd=HERE, timeout=3 * 3600)
     if r.returncode != 0 or not done(name):
         raise RuntimeError(f"{name}: runner failed: {r.stderr[-600:]}")
-    logp = HERE / "raw" / "logs" / f"main_server_{name}.log"
+    logp = HERE / "raw" / "logs" / f"main_server_{name}{SUFFIX}.log"
     subprocess.run(["scp", "-q", f"{H}:qa_main_server_{name}.log", str(logp)], check=True)
     txt = re.sub(r"/home/[a-z]+", "~", open(logp, errors="replace").read())
     open(logp, "w").write(txt)
@@ -134,22 +149,29 @@ def worker(lane, q, st):
             return
         if done(arm):
             continue
-        if st["lane_of"].setdefault(arm, lane) != lane:
+        if REG[arm]["family"] == "EXL3" and lane != "A":
+            q.put(arm)                           # EXL3 runs serially on lane A only (verification order, disk)
+            if all(REG[x]["family"] == "EXL3" for x in list(q.queue)):
+                return
+            time.sleep(5); continue
+        with lock:
+            owner = st["lane_of"].setdefault(arm, lane)
+            save(st)
+        if owner != lane:
             q.put(arm); time.sleep(5)          # an interrupted arm resumes on its own lane
             if all(st["lane_of"].get(x) not in (None, lane) for x in list(q.queue)):
                 return
             continue
-        save(st)
         if REG[arm]["family"] == "EXL3" and "EXL3" in st["holds"]:
             log(f"[{lane}] {arm}: HELD (first EXL3 arm failed verification)"); continue
         try:
             model, sha = stage(lane, arm)
-            meta = run_arm(lane, arm, model, sha)
-            if REG[arm]["family"] == "EXL3" and meta.get("mtp_or_draft_line_seen"):
-                st["holds"].append("EXL3"); save(st)
-                log(f"[{lane}] {arm}: an MTP/draft line was seen in the EXL3 log: holding the other EXL3 arms")
+            run_arm(lane, arm, model, sha)
         except Exception as e:                  # noqa: BLE001
-            log(f"[{lane}] {arm}: ERROR {e}")
+            if REG[arm]["family"] == "EXL3":
+                with lock:
+                    st["holds"].append("EXL3"); save(st)
+                log(f"[{lane}] {arm}: EXL3 arm failed verification or run: holding the other EXL3 arms")
         finally:
             ssh(f"rm -rf ~/qa_stage/{lane}/* ~/qa_stage/cache_{lane}/*", check=False)
 
@@ -168,12 +190,14 @@ def main():
             sys.exit(1)
         sys.path.insert(0, str(HERE))
         from analyze_main import bridge
-        st["bridge"] = bridge(HERE / "raw" / "main_C.A.jsonl", HERE / "raw" / "main_C.B.jsonl")
+        st["bridge"] = bridge(HERE / "raw" / f"main_C.A{SUFFIX}.jsonl", HERE / "raw" / f"main_C.B{SUFFIX}.jsonl")
         save(st)
         log(f"BRIDGE: {st['bridge']}")
     lanes = "AB" if st["bridge"].get("pass") else "A"
     # 2. queue
-    order = sorted((a for a in REG if a != "C"), key=lambda a: (REG[a]["family"] == "EXL3", REG[a]["scored_bpw"] or 0))
+    only = [x for x in os.environ.get("QA_ARMS", "").split(",") if x]
+    order = sorted((a for a in REG if a != "C" and (not only or a in only)),
+                   key=lambda a: (REG[a]["family"] == "EXL3", REG[a]["scored_bpw"] or 0))
     q = queue.Queue()
     for a in order:
         q.put(a)

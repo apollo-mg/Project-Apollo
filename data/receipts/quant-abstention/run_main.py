@@ -43,9 +43,11 @@ def main():
     ap.add_argument("--meta", default="{}", help="JSON recorded in the header row (model file, sha256, commit, flags)")
     ap.add_argument("--corpus", default="M1")
     ap.add_argument("--max-tokens", type=int, default=1024)
+    ap.add_argument("--expect-render-tail", default=None, help="the ceiling's render tail; a mismatch stops the arm")
+    ap.add_argument("--expect-variants", default=None, help="the ceiling's UNKNOWN-variant ids (JSON)")
     a = ap.parse_args()
     items = [json.loads(l) for l in open(HERE / "corpus" / f"{a.corpus}.jsonl")]
-    out = HERE / "raw" / f"main_{a.arm}.jsonl"
+    out = HERE / "raw" / (f"main_{a.arm}.jsonl" if a.corpus == "M1" else f"main_{a.arm}.{a.corpus}.jsonl")
     out.parent.mkdir(exist_ok=True)
     done = {json.loads(l).get("id") for l in open(out)} if out.exists() else set()
     c = httpx.Client(timeout=600)
@@ -74,6 +76,13 @@ def main():
         ch = r.json()["choices"][0]
         return ch["message"].get("content") or "", ch["message"].get("reasoning_content") or "", ch["finish_reason"]
 
+    tail0 = render("Q")[-60:]
+    if a.expect_render_tail is not None and tail0 != a.expect_render_tail:
+        sys.exit(f"render tail differs from the ceiling's: {tail0!r} != {a.expect_render_tail!r}")
+    if a.expect_variants is not None and var_ids != json.loads(a.expect_variants):
+        sys.exit(f"UNKNOWN variant ids differ from the ceiling's: {var_ids} != {a.expect_variants}")
+    if "</think>" not in render("Q"):
+        sys.exit("thinking-off render has no closed think block")
     rgen("What is the capital of France?")        # discarded warm-up: the first request after a load is unreliable
 
     with open(out, "a") as f:
