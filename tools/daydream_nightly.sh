@@ -17,7 +17,8 @@ beat() {   # beat STATUS DETAIL
   "$PY" -c 'import json,sys,time; print(json.dumps({"ts": int(time.time()), "date": sys.argv[1], "status": sys.argv[2], "detail": sys.argv[3]}))' \
     "$D" "$1" "$2" | tee "$M/.heartbeat.json" >> "$M/.beats.jsonl"
 }
-notify() { command -v notify-send >/dev/null 2>&1 && notify-send -a "Apollo daydream" "$1" "$2" 2>/dev/null; true; }
+# -t 0: the brief lands at 04:30, so a normal toast would expire unseen (the first test run's did). Stay until dismissed.
+notify() { command -v notify-send >/dev/null 2>&1 && notify-send -a "Apollo daydream" -t 0 "$1" "$2" 2>/dev/null; true; }
 cd "$ROOT"
 echo "== $(date '+%F %T') nightly daydream" >> "$LOG"
 "$PY" tools/daydream_harvest.py >> "$LOG" 2>&1 || { beat error "harvest failed"; notify "Daydream FAILED" "harvest stage; see $LOG"; exit 1; }
@@ -26,5 +27,6 @@ OUT=$("$PY" tools/daydream_brief.py 2>> "$LOG" | tail -1)
 ST=$(printf '%s' "$OUT" | "$PY" -c 'import json,sys; print(json.loads(sys.stdin.read()).get("status","error"))' 2>/dev/null || echo error)
 if [ ! -s "$M/$D.md" ]; then beat error "no brief written: $OUT"; notify "Daydream FAILED" "no brief; see $LOG"; exit 1; fi
 beat "$ST" "$OUT"
-echo "Morning brief ($ST): data/dev_diaries/morning/$D.md" > "$ROOT/data/dev_diaries/.daydream_motd"
-notify "Morning brief ready ($ST)" "data/dev_diaries/morning/$D.md"
+SUM=$(printf '%s' "$OUT" | "$PY" -c 'import json,sys; d=json.loads(sys.stdin.read()); print(f"{d.get(\"picks\",0)} picks, {d.get(\"closed\",0)} closed, {d.get(\"suggested\",0)} to check, {d.get(\"backlog_close\",0)} BACKLOG edits")' 2>/dev/null || echo "see brief")
+echo "Morning brief ($ST): $SUM -> data/dev_diaries/morning/$D.md" > "$ROOT/data/dev_diaries/.daydream_motd"
+notify "Morning brief ready ($ST)" "$SUM\ndata/dev_diaries/morning/$D.md"
