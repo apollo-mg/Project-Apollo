@@ -5,6 +5,9 @@
 > generations the confident files do not over-answer (`RESULT_MAIN.md`, Correction), so a slot-fitted bias applied
 > to generation would over-correct them. Stage 2 (live `logit_bias` generations) was **not run** for that reason;
 > the in-context readout (`PREREG_INCTX.md`) replaced it.
+> **Result (`RESULT_INCTX.md`):** after the model's sentence P(UNKNOWN) is already 0 or 1, so a logit bias on the
+> answer token cannot act where generation decides. This fix is forced-slot only; one for generation would have to act
+> while the sentence is being written.
 
 **2026-09-27.** Pre-registration: `PREREG_CALIB.md` (commit 9bd05f4, written and committed before any quantized arm was
 scored). Analysis: `analyze_calib.py`. Output: `RESULT_calib.json` (arms), `RESULT_calib_CONTROLS.json` (controls).

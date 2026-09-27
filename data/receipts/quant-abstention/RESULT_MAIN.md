@@ -218,8 +218,11 @@ this receipt should have reconciled.
   - discrimination at the slot;
   - Bonsai losing the ranking.
 
-  Whether the ranking holds *at the decision point in generation* is being measured (`PREREG_INCTX.md`).
-- **Why the readouts differ** is open. In generation the model writes about one sentence before "Exact Answer:". The
-  in-context readout (`PREREG_INCTX.md`, run 2026-09-27) reads P(UNKNOWN) after that sentence, and splits the
-  difference into what the quant writes and how it reads.
+  The decision-point readout was run (`RESULT_INCTX.md`). After the model's sentence, P(UNKNOWN) is saturated (0 or 1), so
+    ranking at that point cannot be measured this way.
+- **Why the readouts differ (answered, `RESULT_INCTX.md`):** in generation the decision is made in the sentence the
+  model writes before "Exact Answer:". After it, every file reads the answer the same way. So a quant's generation-level
+  shift is entirely in what it writes, and four of the five confident files do not write more answers to invented
+  questions. The forced slot measures the model's answer with nothing written first, which the quants shift and their
+  written sentences mostly do not.
 
