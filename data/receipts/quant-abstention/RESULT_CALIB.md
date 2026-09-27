@@ -83,6 +83,71 @@ residual.
    What a slope below 1 means (the quant's logits compressed, or weaker item-level agreement with Q8_0) is open; see
    Exploratory, below.
 
+## Exploratory (after the registered result was committed; `explore_calib.py`, `EXPLORE_calib.json`)
+
+Nothing here changes a registered verdict or label.
+
+**1. A slope below 1 is mostly compression, not only weaker agreement.** Over the same items as the slope readout,
+slope = r x SD ratio, where the SD ratio is the arm's logit SD over Q8_0's. Independent item noise can only raise the
+SD ratio, so a ratio below 1 is conservative evidence that the arm's slot logits are **compressed**. The
+UNKNOWN-vs-answer odds are pulled toward indecision, like a temperature on that one choice.
+
+| pattern | files (SD ratio, r) |
+|---|---|
+| compressed (SD ratio 0.69-0.87) | AD3XXS (0.69, 0.92), AP2S (0.73, 0.76), UDQ2KXL (0.74, 0.74), GSQ2XS (0.78, 0.59), APEXN (0.79, 0.80), GSQ2S (0.80, 0.83), Bonsai (0.82, 0.63), AD2XS (0.83, 0.84), AP3S (0.84, 0.89), AD3S (0.85, 0.93), GSQ3XXS (0.86, 0.80), AP3XS (0.86, 0.90), UD2M (0.87, 0.82) |
+| spread kept (0.94-1.15) | AP3XXS (0.94, 0.84), APEXM (0.98, 0.93), UD4XS (1.01, 0.97), GSQ3S (1.01, 0.88), UD3XXS (1.02, 0.90), EXL3 (1.04-1.15, 0.88-0.96) |
+
+- AD3XXS is the clearest compression: its ranking agrees with Q8_0 at r = 0.92, but its spread is 0.69.
+- UD3XXS's slope of 0.92 is weaker agreement only: its spread is kept.
+- **Truncation is not behind this.** Refitting only on items where all three variants are in both top 50s (65-108
+  items) moves every slope by at most 0.06, except EXL25 (1.01 -> 0.87).
+
+**2. At the greedy decision, one offset recovers most of the pooled shift for the timid files, but the per-template
+rule fails.**
+- At temperature 0 the slot abstains iff the best variant's logit beats every other token, so a bias `b` flips item
+  i exactly when b crosses (best other - best variant).
+- `b` was fitted on these decisions with the same cross-fit and partition. The verdict uses the tolerances as
+  registered, applied to abstain rates.
+
+| file | before: over-abstain H / answer U | after | agreement with Q8_0's decisions |
+|---|---|---|---|
+| AD3XXS | +0.12 / -0.14 | +0.03 / -0.01 | 0.88 -> 0.94 |
+| AD3S | +0.14 / -0.15 | +0.01 / -0.02 | 0.87 -> 0.93 |
+| UD3XXS | +0.18 / -0.12 | +0.03 / -0.02 | 0.87 -> 0.93 |
+| APEXM | +0.04 / -0.10 | -0.01 / -0.03 | 0.92 -> 0.93 |
+| AD2XS | -0.01 / +0.16 | +0.01 / +0.02 | 0.91 -> 0.93 |
+| AP2S | +0.19 / -0.09 | +0.09 / +0.04 | 0.86 -> 0.87 |
+| AP3XXS | +0.04 / +0.09 | +0.04 / +0.08 | 0.90 -> 0.90 |
+| APEXN | -0.01 / +0.09 | +0.01 / +0.06 | 0.91 -> 0.91 |
+| EXL30 | +0.01 / +0.04 | +0.01 / +0.03 | 0.95 -> 0.96 |
+| EXL35 | +0.00 / +0.08 | +0.00 / +0.06 | 0.97 -> 0.97 |
+
+- Easy items are untouched (E +0.00 after correction for every labelled file).
+- **Only AD2XS passes the full verdict.** The worst cells of the other labelled files are 0.12-0.16, and 0.36 for
+  AP2S, AP3XXS and APEXN.
+- The cell rule is coarse at this readout: a cell holds 25 binary items, so one item is 0.04 and the 0.10 bound allows
+  two items. A 0.12-0.16 cell cannot be told from noise.
+- The slope synthetics do not control this readout, because an offset undoes any monotone affine logit map exactly at
+  a fixed threshold.
+- Even where the offset works (agreement 0.93-0.94), 6-7 % of items still disagree with Q8_0's decision. No
+  threshold reaches those.
+
+**3. The slot is still not the generation.** Slot-vs-generation kappa was 0.55-0.82 in main. Whether a live
+`logit_bias` moves generations the same way is stage 2, the practical test.
+
+## What this means for the summary
+
+- For the **timid** files (AD3XXS, AD3S, UD3XXS, APEXM) and for AD2XS, one negative (or, for AD2XS, positive) bias
+  on UNKNOWN recovers most of Q8_0's behaviour at the slot. At the registered soft readout, AD3XXS narrowly fails (0.034 against a
+  0.03 bound).
+- The **AP and APEX confident files** (AP3XXS, APEXN) and **AP2S** do not come back. Their shift is concentrated in one
+  template (novels or capitals), which no single number can fix.
+- The low-bit IQ files do not simply move the threshold: they **compress** the slot's UNKNOWN-vs-answer odds. A
+  per-file offset fixes the mean. A second parameter (a temperature on that choice) would be needed to fix the
+  shape, and llama-server's `logit_bias` cannot express one.
+- Every file keeps a residual that no threshold removes, the same size on both metrics (column "after"): 0.00-0.015
+  for the best files, 0.04-0.10 for the 2.5-3.0 bpw GSQ and UD files, AP2S and Bonsai.
+
 ## Limits
 
 - **Slot readout only.** Stage 2 (live `logit_bias` on .194: R-slot must reproduce the offline prediction; R-gen is
