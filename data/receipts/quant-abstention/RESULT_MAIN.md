@@ -105,12 +105,16 @@ The registered H-method test passes whenever *any* two files from different fami
 tell "method" from "file", and within families the direction flips with bit-width. Within any single byte bin there
 are **0** within-family opposite pairs, and 3 between-family pairs.
 
-**3. Bonsai 2's two files are almost the same model.**
-- PTQ1_0 and PQ2_0 (different sha256, run on different lanes) generate **identical text on 222 of 240 items**.
-  `P_abs` never differs by more than 0.014.
-- Both are "mixed": timidity *and* confabulation up, and ranking down. That is the only failure shape in the run that
-  loses discrimination.
-- It matches the pilot's Bonsai reading (mixed, AUROC down).
+**3. Bonsai 2 is one model, packed two ways, and the only arm class that loses the ranking.**
+- **Same weights (Mark, 2026-09-27):** PTQ1_0 and PQ2_0 hold the same ternary weights. PQ2_0 is a 2-bit layout chosen
+  for kernel speed. So the two are **one model at two packings, not two points on the byte axis**, and the 1.77 vs
+  2.14 scored-bpw gap is packing overhead, not information.
+- **The data agree:** identical text on **222 of 240 items**, and `P_abs` never differs by more than 0.014.
+- **The other 18 items** are what separate kernel and dequantization paths do to identical weights: small numeric
+  differences that flip a greedy token on a few items. The two files also ran on different lanes, which the bridge
+  showed to be bit-identical.
+- **Bonsai is "mixed":** timidity *and* confabulation up, and ranking down (-0.038 at 95 %). That is the only failure
+  shape in the run that loses discrimination, and it matches the pilot's reading of Bonsai.
 
 ## Robustness (registered)
 
