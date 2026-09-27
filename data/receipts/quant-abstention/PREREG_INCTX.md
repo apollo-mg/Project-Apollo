@@ -77,14 +77,18 @@ Main's statistics are used unchanged: paired t-intervals and a 200,000-resample 
 
 - **Labels in context** for all 22 arms, next to their main labels. Kappa is not reported: the in-context greedy
   decision *is* the generation's decision (that is the probe).
-- **Reading vs writing** for the 7 key files (U items, confabulation direction, P_C - P_arm form):
+- **Reading vs writing** for the 7 key files, U items, in the **confabulation direction** (positive = the arm
+  answers more). X(Y) is P_abs when reader X reads writer Y's prose.
 
   | component | definition | meaning |
   |---|---|---|
-  | total | own_arm - own_C | the full in-context shift |
-  | reading on Q8_0's prose | arm(C prose) - C(C prose) | how differently the arm reads the same sentence |
-  | writing | C(arm prose) - C(C prose) | what the arm's sentence does to Q8_0's reading |
-  | reading on the arm's prose | total - writing | |
+  | total | C(C) - arm(arm) | the full in-context shift |
+  | reading on Q8_0's prose | C(C) - arm(C) | how differently the arm reads the same sentence |
+  | writing | C(C) - C(arm) | what the arm's sentence does to Q8_0's reading |
+  | reading on the arm's prose | C(arm) - arm(arm) = total - writing | |
+
+  *Amended before any in-context output was opened:* the first draft wrote these as P_abs differences of the opposite
+  sign, which contradicted its stated direction.
 
 - **Forced vs in context vs generation**, per arm, side by side (forced and generation from main).
 
