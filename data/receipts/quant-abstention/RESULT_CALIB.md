@@ -87,20 +87,28 @@ residual.
 
 Nothing here changes a registered verdict or label.
 
-**1. A slope below 1 is mostly compression, not only weaker agreement.** Over the same items as the slope readout,
+**1. Where top-50 censoring is small, a slope below 1 is compression, not only weaker agreement.** Over the same items as the slope readout,
 slope = r x SD ratio, where the SD ratio is the arm's logit SD over Q8_0's. Independent item noise can only raise the
 SD ratio, so a ratio below 1 is conservative evidence that the arm's slot logits are **compressed**. The
 UNKNOWN-vs-answer odds are pulled toward indecision, like a temperature on that one choice.
 
-| pattern | files (SD ratio, r) |
+| pattern | files (SD ratio, r; arm-side censored items) |
 |---|---|
-| compressed (SD ratio 0.69-0.87) | AD3XXS (0.69, 0.92), AP2S (0.73, 0.76), UDQ2KXL (0.74, 0.74), GSQ2XS (0.78, 0.59), APEXN (0.79, 0.80), GSQ2S (0.80, 0.83), Bonsai (0.82, 0.63), AD2XS (0.83, 0.84), AP3S (0.84, 0.89), AD3S (0.85, 0.93), GSQ3XXS (0.86, 0.80), AP3XS (0.86, 0.90), UD2M (0.87, 0.82) |
-| spread kept (0.94-1.15) | AP3XXS (0.94, 0.84), APEXM (0.98, 0.93), UD4XS (1.01, 0.97), GSQ3S (1.01, 0.88), UD3XXS (1.02, 0.90), EXL3 (1.04-1.15, 0.88-0.96) |
+| **compressed**, little censoring (<= 3 items) | AD3XXS (0.69, 0.92; 2), AP2S (0.73, 0.76; 1), GSQ2XS (0.78, 0.59; 2), Bonsai (0.82, 0.63; 3), AP3S (0.84, 0.89; 0), AD3S (0.85, 0.93; 0), UD2M (0.87, 0.82; 0) |
+| compressed or floored, **unresolved** (6-43 items) | UDQ2KXL (0.74, 0.74; 43), APEXN (0.79, 0.80; 8), GSQ2S (0.80, 0.83; 15), AD2XS (0.83, 0.84; 13), GSQ3XXS (0.86, 0.80; 9), AP3XS (0.86, 0.90; 6) |
+| spread kept (0.94-1.15) | AP3XXS (0.94, 0.84; 6), APEXM (0.98, 0.93; 6), UD4XS (1.01, 0.97; 0), GSQ3S (1.01, 0.88; 3), UD3XXS (1.02, 0.90; 0), EXL3 (1.04-1.15, 0.88-0.96; 2-14) |
+
+**Censoring.** "Arm-side censored" counts the selected items (116; 8 of them are censored on Q8_0's side for every
+arm) where Q8_0 has all three variants in its top 50 but the arm does not. The arm's value there is an upper-bound
+floor, which shrinks the arm's spread and can fake compression. Where 6-43 items are floored, compression and
+flooring cannot be separated.
 
 - AD3XXS is the clearest compression: its ranking agrees with Q8_0 at r = 0.92, but its spread is 0.69.
 - UD3XXS's slope of 0.92 is weaker agreement only: its spread is kept.
-- **Truncation is not behind this.** Refitting only on items where all three variants are in both top 50s (65-108
-  items) moves every slope by at most 0.06, except EXL25 (1.01 -> 0.87).
+- **The all-variants subset does not clear truncation.** Refitting only on items where all three variants are in both
+  top 50s moves every slope by at most 0.06, except EXL25 (1.01 -> 0.87). But that subset selects on the arm's
+  value, which also shrinks slope and spread, so it cannot rule the artifact out. The censoring counts above are the
+  check that can.
 
 **2. At the greedy decision, one offset recovers most of the pooled shift for the timid files, but the per-template
 rule fails.**
@@ -142,11 +150,37 @@ rule fails.**
   0.03 bound).
 - The **AP and APEX confident files** (AP3XXS, APEXN) and **AP2S** do not come back. Their shift is concentrated in one
   template (novels or capitals), which no single number can fix.
-- The low-bit IQ files do not simply move the threshold: they **compress** the slot's UNKNOWN-vs-answer odds. A
-  per-file offset fixes the mean. A second parameter (a temperature on that choice) would be needed to fix the
-  shape, and llama-server's `logit_bias` cannot express one.
+- For **greedy (temperature 0) use**, one number is enough in principle. At a fixed threshold an offset undoes any
+  monotone rescaling of the logits, so compression costs nothing there. Two things limit the greedy fix:
+  - template heterogeneity (one question type shifted more than the others);
+  - the 6-7 % of items that disagree with Q8_0 at any threshold.
+- For the **soft readout** (the probability itself, e.g. a confidence score shown to a user or a sampled decision),
+  the low-bit IQ files with little censoring (AD3XXS clearest) also **compress** the UNKNOWN-vs-answer odds. A
+  per-file offset fixes the mean there, not the shape.
 - Every file keeps a residual that no threshold removes, the same size on both metrics (column "after"): 0.00-0.015
   for the best files, 0.04-0.10 for the 2.5-3.0 bpw GSQ and UD files, AP2S and Bonsai.
+
+## Stage 2 choice, fixed now (before any live run)
+
+The prereg names the full-sample soft `b`. Stage 2's practical test is greedy R-gen, where the decision-fit `b` is
+the relevant one, and the two differ by 0.2-0.5 logits. **Stage 2 tests both.**
+- R-slot at the soft `b` must reproduce the offline prediction.
+- R-gen is scored at both values, with the decision `b` primary.
+- The decision `b` is the midpoint of the full-sample minimising plateau (ties are flat intervals at this readout, and
+  a plateau edge is fragile to kernel-level numerics).
+- Files: the 5 labelled files fixed under H-fix, plus AD3XXS, declared now: it is the clearest compression case and
+  the question is whether greedy generations can be fixed when the soft readout cannot.
+
+| file | soft `b` (full sample) | decision plateau | decision `b` (midpoint) |
+|---|---:|---|---:|
+| AD2XS | +1.31 | [+0.92, +1.23] | +1.08 |
+| AD3S | -1.38 | [-1.92, -1.81] | -1.87 |
+| UD3XXS | -1.78 | [-2.17, -1.98] | -2.08 |
+| APEXM | -0.72 | [-1.00, -1.00] | -1.00 |
+| EXL35 | +0.40 | [+0.58, +0.77] | +0.68 |
+| AD3XXS | -1.15 | [-1.58, -1.50] | -1.54 |
+
+Stage 2 still needs Mark's go-ahead and .194, and gets its own run note.
 
 ## Limits
 
