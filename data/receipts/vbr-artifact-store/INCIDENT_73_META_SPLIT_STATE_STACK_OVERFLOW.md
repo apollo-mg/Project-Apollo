@@ -73,3 +73,11 @@ Nothing was lost except the in-flight probe.
 - The proxy **truncated `~/wake_proxy_server.log` on every relaunch**. The crashed server's log survived only
   because it had been tailed before the restart. **Fixed:** the start command now moves the old log to
   `~/wake_proxy_server.log.prev` first (verified).
+
+## Update 2026-09-27: fix landed upstream
+
+buun `510cbbbfa` ("ggml: resolve meta split states without recursive stack growth") replaces the recursion with an
+explicit parent stack, which is the second suggestion above. The whole-cache `clear()` stays; with iteration, the depth
+no longer matters. The commit adds CPU-backed tests for deep invalidated graphs. It has not been verified on .73 yet:
+the incident was never reproduced on demand, so the real check is running the daily driver on it with the default
+8 MB stack.
