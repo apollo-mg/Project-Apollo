@@ -81,6 +81,22 @@ def magic_packet(mac: str, bcast: str) -> None:
         s.sendto(pkt, (bcast, p))
     s.close()
 
+# Prints two numbers: interactive ssh logins, and running transfer/build processes.
+# An interactive login = a terminal (pts) whose session leader's PARENT is an sshd process. Why not the
+# obvious signals (all measured on .73, 2026-09-28):
+#   * `who`: utmp is empty on .73, so it was always 0 -- the node was suspended mid-build on 09-27;
+#   * logind "active remote sshd" sessions: rpi5-workstation's GPU dashboard (guiTOP) opens ~4 ssh
+#     sessions a second, and this proxy's own probes are sessions too, so .73 would never sleep;
+#   * logind's TTY property: empty even for an interactive `ssh -tt`;
+#   * every pts: a Konsole on .73's own desktop has held pts/1 since 09-19.
+# Matching is on the tty column and on comm (process NAME), never on command lines, so the probe
+# cannot match itself (CLAUDE.md, process control). Detached work after logout is caught by name.
+BUSY_PROBE = ("timeout 10 sh -c 'n=0; for s in $(ps -eo tty=,sid= | awk \"\\$1 ~ /^pts\\\\// {print \\$2}\" | sort -u); do "
+              "pp=$(ps -o ppid= -p \"$s\" | tr -d \" \"); [ -n \"$pp\" ] || continue; "
+              "case \"$(ps -o comm= -p \"$pp\")\" in sshd*) n=$((n+1));; esac; done; echo $n; "
+              "pgrep -c -x \"rsync|scp|cp|dd|tar|make|ninja|cmake|nvcc|cc1plus|cargo|rustc\"; true'")
+
+
 async def ssh(host: str, cmd: str, timeout: int = 30) -> tuple[int, str]:
     p = await asyncio.create_subprocess_exec(
         "ssh", "-n", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes", host, cmd,
@@ -98,6 +114,7 @@ class Node:
         self.c = cfg
         self.lock = asyncio.Lock()
         self.inflight = 0
+        self._busy_why = None     # last logged reason for "busy", so a long transfer logs once
         self.last_request = time.time()
         self.state = "unknown"
         # Without this, a FAILED wake is retried by every queued caller in turn: the lock
@@ -256,13 +273,18 @@ class Node:
         # -- none of those touch either signal, so a 30-minute transfer would be suspended out
         # from under itself and corrupt the copy. Treat a login session or a live transfer as
         # busy; the cost of a false "busy" is a machine that stays awake, which is recoverable.
-        rc, out = await ssh(self.c.host,
-            "timeout 10 sh -c \"who | wc -l; pgrep -c -x 'rsync|scp|cp|dd|tar' 2>/dev/null || echo 0\"",
-            timeout=15)
+        #
+        # What counts as a login, and why, is at BUSY_PROBE (BACKLOG N8, 2026-09-28).
+        rc, out = await ssh(self.c.host, BUSY_PROBE, timeout=15)
         if rc == 0:
             nums = [int(x) for x in out.split() if x.strip().isdigit()]
             if any(n > 0 for n in nums):
+                why = f"{nums[0] if nums else '?'} ssh session(s), {nums[1] if len(nums) > 1 else '?'} transfer/build process(es)"
+                if why != self._busy_why:
+                    log(f"busy: {why}")
+                    self._busy_why = why
                 return True
+        self._busy_why = None
         try:
             async with httpx.AsyncClient(timeout=5) as cl:
                 slots = (await cl.get(self.base + "/slots")).json()

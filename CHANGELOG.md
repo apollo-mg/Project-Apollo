@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed -- wake proxy no longer suspends .73 under an interactive ssh login or a build (2026-09-28, Claude)
+
+- `busy()` counted `who` lines, and `who` is always empty on .73, whose utmp is empty. So it never held the node
+  awake: on 09-27 .73 was suspended mid-build (BACKLOG N8).
+- **The new rule:** a login is a terminal (`pts`) whose session leader's parent is an `sshd` process. The process
+  check also counts build tools (`make ninja cmake nvcc cc1plus cargo rustc`) next to the transfer tools.
+- **Rejected on measurement:**
+  - logind "active remote sshd" sessions: `rpi5-workstation` (guiTOP) opens about 4 ssh sessions a second, and the
+    proxy's own probes are sessions too;
+  - logind's `TTY`: empty even for `ssh -tt`;
+  - all `pts`: a Konsole on .73's desktop has held one since 09-19.
+- Matching is on the tty column and the process NAME, never on command lines.
+- Tested on .73:
+  - idle, with guiTOP polling: 0/0, five times;
+  - interactive login: 1;
+  - a plain command over ssh: 0, by design;
+  - a detached `make`: 1.
+- A long CPU-only job run as a plain ssh command is still not protected.
+
 ### Changed -- nightly daydream: closure evidence from the thread's own file and from commits (2026-09-28, Claude)
 
 - **Why:** four of the five picks in the first unattended brief (09-28) were already answered or shelved:
