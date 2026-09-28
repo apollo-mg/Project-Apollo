@@ -421,6 +421,7 @@ someone find it, and the claim in a form that is checkable.
 | **.194 RAM upgrade (4 -> 8 channels) doubled host bandwidth (+77 % triad), prefill followed, DECODE barely moved** (Flash-Next full-spill rung 48: 8.36 tok/s) | `qwen4exp/RESULT_DIMM_AFTER.md` | 09-19 |
 | DIMM pre-upgrade baseline (4 channels, 1189 MHz/250 W) -- the frozen anchor for the after-run | `qwen4exp/RESULT_DIMM_BEFORE.md` | 09-15 |
 | **The expert-spill curve has a ~3 % noise floor**, and dense sampling is the wrong instrument for it | `qwen4exp/RESULT_FLASHNEXT_BREAK.md` | 09-15 |
+| **MTP on Flash-Next under heavy offload (-ncmoe 44): 1.30x on 2 GPUs, 1.44x on 4 -- the 09-02 prediction of >1.72x FAILED; acceptance 0.75, 2.49 tok/step.** Verifying a draft is not free when experts are read from host memory (each drafted token routes to different experts). Run 09-02, written up 09-28 | `qwen4exp/RESULT_FLASHNEXT_MTP_OFFLOAD.md` | 09-02 |
 | **Flash-Next runs in 7.4 GB of VRAM at 8.6 tok/s, and expert spill gets CHEAPER per byte the more of it you do** | `qwen4exp/RESULT_FLASHNEXT_SPILL_LADDER.md` | 09-13 |
 | Flash-Next on .194: **residency buys decode, not prefill**; spilling EXPERTS is nearly free where spilling LAYERS is not | `qwen4exp/RESULT_FLASHNEXT_RESIDENCY.md` | 09-13 |
 | A 180B-class model runs on four P100s at ~9 tok/s (-ngl 44, layer split), **but not by the mechanism the card advertises**; 0.74 tok/s CPU-only | `qwen4exp/RESULT_FLASHNEXT_PASCAL.md` | 09-13 |
