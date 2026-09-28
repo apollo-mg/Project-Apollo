@@ -51,6 +51,26 @@ needed) says asleep / waking / ready.
 - **Not yet done:** sharing the desktop with a tester, and the guest-side port check (443 answers; 22, 445, 8099 do
   not).
 
+## First tester (2026-09-28 ~01:00 local)
+
+- **Before sharing:** Tailscale on the desktop had logged itself out (`NeedsLogin`, probably key expiry), so the
+  share could not have connected. Mark ran `sudo tailscale up --operator=mark`.
+  - The `tailscale serve` config survived the logout.
+  - The gateway did not survive, since it is a transient unit; it was restarted with the same `systemd-run` line.
+- **Policy check, from our side:** `tailscale debug netmap` shows the packet filter this node actually applies:
+  - own devices: all ports;
+  - both shared-in users, `spiritbuun@github` and `h4rm0n1c@github`: `443-443` only.
+
+  The guest-side port probe is still not run. This check reads the rule the node enforces, not a connection
+  attempt.
+- **End to end, with a real client while .73 was asleep:**
+  - two streamed requests at 01:06:10 both got 503 "node waking";
+  - the wake completed, and the next request at 01:07:11 returned 200: 6,650 prompt tokens, 63 completion tokens,
+    52.8 s.
+  - The usage log attributed every request to key `h4rm0n1c` and to Tailscale login `h4rm0n1c@github`.
+- **Where the wait goes for agent clients:** prefill, not decode. About 50 of those 52.8 s were reading the 6,650-token
+  prompt, at roughly 130 tok/s on the P100 pair. Decode (~20 tok/s) was about 3 s.
+
 ## Step 2: exposing it on the tailnet (the procedure)
 
 **Do this first, or sharing is unsafe.** Tailscale's default policy lets a user you share a machine with reach
