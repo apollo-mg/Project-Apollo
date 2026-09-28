@@ -8,6 +8,8 @@ performance figures again on a current build."*
 (IQ3_XXS) and 28.2 -> 47.7 (i1-IQ3_M) with MTP; A(4) row scaling 1.27 (EXL3) vs 2.30 (GGUF). There are **81 buun
 commits** since `38ada0e1b`, including EXL3 load fixes (`a2fd78181`, `5f4fa8c28`) and HIP VRAM accounting
 (`0b2789f23`). None is an EXL3 kernel change by title.
+**[09-28 note: wrong base. The builds compared are `da458765d`..`0b2789f23`, 436 commits; this range covered 81.
+The 355 unread include `13f4a90d` "hip: use RDNA4 INT8 WMMA for multi-row EXL3". See the correction in the result.]**
 
 **What this adds:** the same instrument on the current build. It shows whether the 2.1-2.4x gap and EXL3's
 row-scaling penalty still hold.

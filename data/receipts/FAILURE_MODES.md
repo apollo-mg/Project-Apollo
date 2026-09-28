@@ -1644,3 +1644,31 @@ never licenses reporting the proxy's effect *size* as the behaviour's.
 **Caught by:** looking up the generation-level numbers while deciding what the CALIB live stage would test. That was
 before any .194 time was spent on it. It was corrected the same day: a Correction section in RESULT_MAIN, with the INDEX rows
 annotated.
+
+## AFM-49 — a build comparison reviewed the wrong commit range, then credited the change to commits that could not cause it
+
+**2026-09-26, found 2026-09-28.** `exl3-campaign/RESULT_EXL3_RDNA4_RERUN.md` measured EXL3+MTP on the 9070 on two
+buun builds, `da458765d` (09-13) and `0b2789f23`. There are 436 commits between them. The prereg's prior-art line
+reviewed "81 buun commits since `38ada0e1b`", a 09-21 merge, and concluded "none is an EXL3 kernel change by title".
+The measurements doubled. The receipt then inferred the cause from which files had changed and the commit titles it
+read (buun's SM86/SM75 int8 rework, 09-17/18). It drew a lesson from that: "a commit titled for one architecture can
+move another."
+
+The cause was `13f4a90d` (09-15), "hip: use RDNA4 INT8 WMMA for multi-row EXL3", which sat in the 355 unread
+commits. `exl3-gemv-int8.cuh:338` gates that kernel to RDNA4 at exactly 3, 4 and 8 rows, which is the receipt's own
+pattern. And `rdna4-exl3-kernel/RESULT_EXL3_WMMA.md` had already validated this commit, on this card, 11 days earlier.
+The SM86 path the receipt credited is gated to `cc == 860` and cannot run on either card.
+
+**Why it happened:** the range came from a remembered reference commit, not from the two builds being compared.
+Attribution then went by file names and titles, which is exactly the reading the receipt's own lesson warned against,
+and it produced a false lesson. The precheck query ("EXL3 RDNA4 9070 speed ...") did not surface the WMMA receipt,
+whose INDEX row is phrased as "validation of buun's INT8-WMMA multi-row EXL3 kernel".
+
+**The check:** a build-to-build comparison names its range as `git rev-list --count OLD..NEW` from the two builds'
+own hashes, in the prereg. Any causal attribution of a change is made from `git log OLD..NEW -- <changed files>` plus
+`git blame` on the line that switches the path, or labelled a guess. Before calling a result new, grep INDEX and the
+receipts for the candidate commit hashes: a validated commit is a receipt already.
+
+**Caught by:** Mark asking whether the RDNA4 EXL3+MTP speedup also applied to Pascal. Answering needed the actual
+dispatch code, and the arch branch was on the line that decides it. The receipt, its INDEX row and the prereg were
+corrected the same day. The measurements stand; the attribution and the lesson do not.

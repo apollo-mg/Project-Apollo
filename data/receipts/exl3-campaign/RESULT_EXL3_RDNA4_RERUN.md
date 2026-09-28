@@ -1,5 +1,20 @@
 # On buun's current build, MTP now doubles EXL3 on RDNA4: the GGUF speed lead at matched size falls from 2.1-2.4x to 1.2-1.3x
 
+> **Correction, added 2026-09-28: the cause is buun's RDNA4 INT8-WMMA kernel, not the SM86/SM75 rework, and the
+> "a commit titled for one architecture can move another" lesson below is withdrawn.** The measurements stand.
+> - `exl3-gemv-int8.cuh:338` is an RDNA4-only branch, `#if defined(GGML_USE_HIP) && defined(RDNA4)`, that switches
+>   int8 WMMA on for batches of exactly **3, 4 and 8 rows**. That is this receipt's pattern: 4 and 8 rows jumped,
+>   2 and 16 did not.
+> - `git blame` puts the branch in `13f4a90d` (09-15, "hip: use RDNA4 INT8 WMMA for multi-row EXL3"), next to
+>   `117300f7` ("cuda, hip: accelerate multi-row EXL3 matrix loads"). Both are between `da458765d` and `0b2789f23`.
+> - They are the two commits `rdna4-exl3-kernel/RESULT_EXL3_WMMA.md` validated on this card on 09-15: MTP decode
+>   2.03-2.16x, outputs bit-identical, acceptance unchanged. This receipt re-measured an effect we had already measured.
+> - The SM86 `warpk` kernel is gated to `cc == 860` exactly; neither the 9070 nor a P100 can take it.
+> - **How it happened:** the prereg reviewed commits since `38ada0e1b` (09-21): 81 of the 436 between the two builds.
+>   Both WMMA commits were in the 355 it did not read. See `FAILURE_MODES.md` AFM-49.
+> - **For Pascal:** a P100 has no matrix units and no `dp4a`, so this speedup does not transfer. The 09-12 Pascal
+>   EXL3+MTP result (1.24x, `RESULT_EXL3_DROPIN.md`) stands. Only the shared `117300f7` could move it slightly.
+
 **2026-09-26, 11:55-12:06**, RX 9070 XT (gfx1201), buun **`0b2789f23`** (built for gfx1201 with the `da458765d`
 build's options). Prereg `PREREG_EXL3_RDNA4_RERUN.md` (`96e2294`). The instrument is unchanged from
 `RESULT_EXL3_RDNA4_MTP.md` (09-13, `da458765d`): the same script `exl3_rdna4_mtp.py`, the same four arms, depths
@@ -43,7 +58,7 @@ the script's P-N4/B verdict) is void. Only G3x ran a distinct depth 3.
 - **2 rows did not change** (1.16), which is why depth 1 is still flat.
 - **16 rows did not change** (1.57). Past 8 rows EXL3 takes its reconstruct + BLAS path (`exl3-on-pascal`), which
   this work did not touch.
-- **Likely source** (inferred from which files changed between the builds, not bisected): buun's EXL3 int8 GEMV rework between the builds: `exl3-gemv-int8.cuh` (+414 lines), a new
+- **Likely source** (**WRONG, see the correction at the top**; inferred from which files changed between the builds, not bisected): buun's EXL3 int8 GEMV rework between the builds: `exl3-gemv-int8.cuh` (+414 lines), a new
   `exl3-int8-warpk.cuh`, and `exl3.cu` (+367), 09-17/18. The commits are titled for NVIDIA SM86/SM75; the 9070
   inherits the shared code through HIP.
 
@@ -74,8 +89,8 @@ EXL3's own quantization error. It is not zero; buun may want to know it exists.
 | R5 | the gap stays in [1.9, 2.6] | 1.29 / 1.19 | **false** |
 
 I predicted no change, at 0.55-0.70, reading the commit titles as "not an EXL3 kernel change". The titles were
-SM86/SM75, but the shared code path reached RDNA4. **Lesson: on buun's tree, a commit titled for one architecture
-can move another.**
+SM86/SM75, but the shared code path reached RDNA4. ~~**Lesson: on buun's tree, a commit titled for one architecture
+can move another.**~~ (withdrawn 09-28: the commit that moved RDNA4 was titled for RDNA4)
 
 ## What it means
 
