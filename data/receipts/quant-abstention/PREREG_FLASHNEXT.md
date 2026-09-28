@@ -88,3 +88,25 @@ bind port 8190. Each "healthy" check was then answered by the old Q2 server.
   when it does not (FNQ2).
 
 Arms, flags, placement rule and analysis are otherwise unchanged. All three arms rerun from scratch.
+
+### Deviation 2 (2026-09-28 ~15:35, before FNIQ4 or FNQ2X produced a row): IQ4's registered placement cannot load; use the measured `-ngl 44`
+
+The rerun's FNQ2 completed and verified (240 rows, own server, 49/49 layers on GPU). FNIQ4 then failed to load at
+every k from 4 to 12, the same way each time: `cudaMalloc` of 16,847 MiB on device 0.
+- The IQ4_XS file is **87.24 GiB** (4.24 BPW), including a 27 GB lazily-read per-layer embedding.
+- Layer split puts the LAST layers on GPU 3. Spilling their experts relieves GPU 3 and never GPU 0, whose share alone
+  exceeds a 16 GB P100. The registered rule could not work for IQ4 at any k.
+
+**Change:**
+- FNIQ4 uses the placement `qwen4exp/RESULT_FLASHNEXT_RESIDENCY.md` measured for this file: **`-ngl 44`**, the last
+  four whole layers on the CPU, 57,138 MiB on the GPUs.
+- FNQ2X, the placement control, uses the same `-ngl 44` with Q2, so P4 still asks whether moving part of the model
+  to the CPU changes the answers. It now moves whole layers where it used to move experts.
+- Verification switches from the `-ot` loader line to the load line `offloaded 44/49 layers to GPU` (FNQ2:
+  `49/49`).
+
+Nothing else changes. FNQ2 is kept as run.
+
+**Exploratory, promised in Deviation 1:** the fresh FNQ2 and the invalid first attempt's Q2 (the same file and flags,
+an older server) are **240/240 identical** (grade, answer, P_abs to six decimals). Temp-0 output on this instrument
+repeats across server boots.
