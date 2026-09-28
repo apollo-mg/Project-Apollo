@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed -- nightly daydream: closure evidence from the thread's own file and from commits (2026-09-28, Claude)
+
+- **Why:** four of the five picks in the first unattended brief (09-28) were already answered or shelved:
+  - two had their answer further down the same file, which stage 2 never searched;
+  - one was answered only in a commit message (`af1a11c`);
+  - one was on work shelved later the same day.
+- `daydream_links.py`, closure candidates now come from five sources:
+  - **edited in place:** the thread's sentence is gone from every file it came from, and the passage now at its line
+    is shown. RESULT_MAIN's "is being measured" had become "the readout was run", and the pick still asked for it;
+  - **prereg -> result:** a thread naming `PREREG_X.md` is answered by `RESULT_X*.md` in the same folder. The
+    evidence shown is the result's headline plus its best-matching line;
+  - **later in the same file:** an outcome heading below the thread's line;
+  - **commit subjects** since the thread's date, by embedding match;
+  - **the existing corpus search.**
+- Other `daydream_links.py` changes:
+  - the commits that wrote the thread's own line, or created its file, are excluded;
+  - the corpus search now tests every retrieved chunk, not just each file's first one. A fixed bug (the split-state
+    stack overflow, fixed in `510cbbbfa`) was picked as open because the INCIDENT file's "fix landed upstream" update
+    sat behind its original report;
+  - "fixes" and "deployed" now count as resolution words;
+  - BACKLOG rows led by `**FIXED` count as closed.
+- `daydream_harvest.py`:
+  - a thread keeps one source per file, so an edited receipt's line shift is no longer a new mention; `mentions`
+    counts distinct files;
+  - adjacent paragraphs of one passage merge into one thread (`status: merged`, `merged_into`);
+  - fragments that match a merged thread are credited to the thread they were merged into;
+  - a closed thread reopens only on a mention in a NEW file.
+- `daydream_brief.py`:
+  - threads the adjudicator calls closed, even on weaker evidence, are no longer picked;
+  - "partly" answers are passed to the picker;
+  - the BACKLOG add list takes at most two lines per source file.
+- New test `tools/test_daydream_links.py`: ten cases, all real threads from that night, anchored by content.
+
 ### Changed -- .73 daily driver on buun `510cbbbfa`, 512 MiB stack workaround removed (2026-09-27, Claude)
 
 - `WP_START_CMD` now runs `/mnt/HDD/buun-510cb/build_sm60/bin/llama-server` (worktree of `~/buun-llama-cpp` at

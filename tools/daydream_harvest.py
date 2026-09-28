@@ -60,8 +60,10 @@ def recent_files(root, days):
 
 
 def items(path):
-    """Yield (line_no, text, why) for every candidate thread in one markdown file. Preregistrations are procedure
-    ("if X, that is a Deviation"), so only their sections are harvested, never their trigger sentences."""
+    """Yield (line_no, text, why, end) for every candidate thread in one markdown file. `end` is the last line of a
+    paragraph, None for a bullet (bullets are separate items by construction; adjacent paragraphs may be one thread).
+    Preregistrations are procedure ("if X, that is a Deviation"), so only their sections are harvested, never their
+    trigger sentences."""
     prereg = Path(path).name.startswith("PREREG_")
     lines = open(path, errors="replace").read().splitlines()
     in_details = in_code = False
@@ -94,28 +96,65 @@ def items(path):
                     and (len(lines[j]) - len(lines[j].lstrip())) > indent:
                 text += " " + lines[j].strip(); j += 1
             if sec:
-                yield i + 1, text, f"section: {sec}"
+                yield i + 1, text, f"section: {sec}", None
             elif TRIGGER.search(text) and not prereg:
-                yield i + 1, text, f"trigger: {TRIGGER.search(text).group(0)}"
+                yield i + 1, text, f"trigger: {TRIGGER.search(text).group(0)}", None
             i = j; continue
         if l.strip() and not l.lstrip().startswith(("|", "<", ">")):
             j, para = i, []                                 # a whole paragraph: receipts hard-wrap at 120
             while j < len(lines) and lines[j].strip() and not BULLET.match(lines[j]) \
                     and not HEADING.match(lines[j].strip()) and not lines[j].strip().startswith(("```", "|", "<")):
                 para.append(lines[j].strip()); j += 1
-            text = " ".join(para)
+            text, end = " ".join(para), j
             if sec:
-                yield i + 1, text, f"section: {sec}"
+                yield i + 1, text, f"section: {sec}", end
             elif TRIGGER.search(text) and not prereg:
                 if len(text) <= 400:
-                    yield i + 1, text, f"trigger: {TRIGGER.search(text).group(0)}"
+                    yield i + 1, text, f"trigger: {TRIGGER.search(text).group(0)}", end
                 else:                                       # long paragraph: the triggered sentence + the one before
                     sents = re.split(r"(?<=[.!?])\s+", text)
                     for k, snt in enumerate(sents):
                         if TRIGGER.search(snt):
-                            yield i + 1, " ".join(sents[max(0, k - 1):k + 1]), f"trigger: {TRIGGER.search(snt).group(0)}"
+                            yield i + 1, " ".join(sents[max(0, k - 1):k + 1]), f"trigger: {TRIGGER.search(snt).group(0)}", end
             i = max(j, i + 1); continue
         i += 1
+
+
+def src_file(s):
+    return s.rpartition(":")[0]
+
+
+def normalize(state):
+    """One source per FILE, at its newest line: when a receipt is edited its lines shift, and the same sentence at a
+    new line number is not a new mention (09-28: RESULT_CALIB.md:189 and :192 counted as two). mentions = distinct
+    files. Applied on every load, so older state files are migrated in place."""
+    for t in state["threads"].values():
+        by_file = {}
+        for s in t["sources"]:
+            by_file[src_file(s)] = s
+        t["sources"] = list(by_file.values())
+        t["mentions"] = len(t["sources"])
+
+
+def survivor(state, tid):
+    while state["threads"][tid].get("status") == "merged":
+        tid = state["threads"][tid]["merged_into"]
+    return tid
+
+
+def merge(state, keep, drop):
+    """Fold thread `drop` into `keep`: adjacent paragraphs of one passage are one thread (09-28: a single 'stage 2
+    re-scoped' passage was harvested as three threads and filled the BACKLOG add list)."""
+    K, D = state["threads"][keep], state["threads"][drop]
+    if D["text"] not in K["text"]:
+        K["text"] = (K["text"] + " / " + D["text"])[:900]
+    have = {src_file(s) for s in K["sources"]}
+    K["sources"] += [s for s in D["sources"] if src_file(s) not in have]
+    K["mentions"] = len(K["sources"])
+    K["first_seen"] = min(K["first_seen"], D["first_seen"])
+    if D["kind"] == "action":
+        K["kind"] = "action"
+    D.update(status="merged", merged_into=keep)
 
 
 def main():
@@ -128,11 +167,13 @@ def main():
     outdir = root / "data" / "dev_diaries" / "morning"
     state_p = outdir / "threads_state.json"
     state = json.load(open(state_p)) if state_p.exists() else {"threads": {}}
+    normalize(state)
     today = datetime.date.today().isoformat()
     seen_run = []
     for f in recent_files(root, a.days):
         rel = str(f.relative_to(root))
-        for ln, text, why in items(f):
+        prev = None                                     # (end line, thread id) of the last paragraph item in this file
+        for ln, text, why, end in items(f):
             text = re.sub(r"\s+", " ", text).strip()
             if len(text) < 25:
                 continue
@@ -143,14 +184,22 @@ def main():
                                          "sources": [], "why": why, "status": "open",
                                          "kind": "action" if ACTION.search(text) else "scope"}
                 match = tid
+            match = survivor(state, match)              # a fragment folded into another thread counts for that thread
+            if end is not None and prev and ln - prev[0] <= 2 and survivor(state, prev[1]) != match:
+                keep = survivor(state, prev[1])         # same paragraph, or the next one after a blank line
+                merge(state, keep, match)
+                match = keep
+            prev = (end, match) if end is not None else None
             t = state["threads"][match]
             src = f"{rel}:{ln}"
-            if t["status"] == "closed" and src not in t["sources"] and t.get("closed_on", "") < today:
-                t["status"] = "open"; t["reopened_on"] = today      # mentioned again after closure: reopen
-            if src not in t["sources"]:
-                t["sources"].append(src); t["mentions"] += 1
+            files = {src_file(s) for s in t["sources"]}
+            if t["status"] == "closed" and rel not in files and t.get("closed_on", "") < today:
+                t["status"] = "open"; t["reopened_on"] = today      # mentioned in a NEW file after closure: reopen
+            t["sources"] = [s for s in t["sources"] if src_file(s) != rel] + [src]
+            t["mentions"] = len(t["sources"])
             t["last_seen"] = today
             seen_run.append(match)
+    seen_run = [survivor(state, k) for k in seen_run]
     run = sorted(set(seen_run), key=lambda k: (state["threads"][k]["kind"] != "action", -state["threads"][k]["mentions"],
                                                state["threads"][k]["first_seen"]))
     report = {"date": today, "days": a.days, "n_threads_seen": len(run), "threads": [{"id": k, **state["threads"][k]} for k in run]}

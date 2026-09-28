@@ -65,7 +65,7 @@ ADJ = """You are checking whether an open item from an engineering log has been 
 Open item (from {src}, {date}):
 <<{text}>>
 
-Later evidence (snippets from other files, newest work in this project):
+Later evidence (from further down the same file, commit messages, and other files in this project):
 {evidence}
 
 Say "closed" only if a snippet addresses THIS item's specific question or quantity and answers it (a fix verified,
@@ -153,8 +153,10 @@ def main():
     except Exception as e:                                  # noqa: BLE001
         status = "degraded"; notes.append(f"adjudication stopped after {n_calls} calls: {type(e).__name__}: {e}")
 
-    # 2. picks
-    open_ids = [k for k in links["threads"] if state["threads"][k]["status"] == "open"]
+    # 2. picks. A thread the adjudicator called closed on weaker evidence ("suggested") is listed for checking, not
+    # picked: in the first unattended brief (09-28) four of five picks were already answered or shelved.
+    open_ids = [k for k in links["threads"] if state["threads"][k]["status"] == "open"
+                and verdicts.get(k, {}).get("status") not in ("closed", "suggested")]
     ranked = sorted(open_ids, key=lambda k: (-state["threads"][k]["mentions"], state["threads"][k]["first_seen"]))[:25]
     picks = []
     if status == "ok" and ranked:
@@ -162,6 +164,8 @@ def main():
             f"[{k}] (mentioned {state['threads'][k]['mentions']}x, first seen {state['threads'][k]['first_seen']}, "
             f"from {links['threads'][k]['sources'][0]})\n{links['threads'][k]['text'][:600]}\n"
             + "".join(f"  related: {r['source']} ({r['date']}): {r['snippet'][:160]}\n" for r in links["threads"][k]["related"][:2])
+            + (f"  PARTLY ANSWERED since: {verdicts[k].get('why', '')} -- the next step is what is left, not the answered part\n"
+               if verdicts.get(k, {}).get("status") == "partly" else "")
             for k in ranked)
         try:
             try:
@@ -181,8 +185,16 @@ def main():
     # 3. brief
     closed_now = [k for k, v in verdicts.items() if v.get("status") == "closed"]
     suggested = [k for k, v in verdicts.items() if v.get("status") == "suggested"]
-    adds = [c for c in links["backlog"]["add_candidates"] if state["threads"][c["thread"]]["status"] == "open"]
+    adds = [c for c in links["backlog"]["add_candidates"] if state["threads"][c["thread"]]["status"] == "open"
+            and verdicts.get(c["thread"], {}).get("status") not in ("closed", "suggested")]
     adds.sort(key=lambda c: (-state["threads"][c["thread"]]["mentions"], state["threads"][c["thread"]]["first_seen"]))
+    per_file, capped = {}, []                         # one receipt's caveats must not fill the list (09-28: 6 of 8)
+    for c in adds:
+        f = c["sources"][0].rpartition(":")[0]
+        per_file[f] = per_file.get(f, 0) + 1
+        if per_file[f] <= 2:
+            capped.append(c)
+    adds = capped
     L = [f"# Morning brief -- {today}", "",
          f"*Nightly daydream: {len(links['threads'])} open action threads from the last few days, "
          f"{len(todo)} checked for closure, {n_calls} model calls on {a.host} (status: {status}).*", ""]

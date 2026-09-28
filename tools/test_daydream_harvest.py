@@ -6,6 +6,7 @@ human (or an agent reading the ledger by hand) would call open over the window 0
 faithful harvest line for it must match. The harvester sees only the files, never this key.
 
 Run: tools/test_daydream_harvest.py [--days 3]   (exit 0 if recall >= 6/8)
+The key covers 09-25..09-27; run later, pass --days to reach back to 09-25 (on 09-28: --days 4 -> 7/8).
 """
 import argparse, re, sys
 from pathlib import Path
@@ -33,7 +34,7 @@ def main():
     ap.add_argument("--days", type=int, default=3)
     a = ap.parse_args()
     root = Path(__file__).resolve().parents[1]
-    got = [(str(f.relative_to(root)), ln, t) for f in recent_files(root, a.days) for ln, t, _ in items(f)]
+    got = [(str(f.relative_to(root)), ln, t) for f in recent_files(root, a.days) for ln, t, *_ in items(f)]
     hits = 0
     for k, rx in KEY.items():
         m = next(((f, ln, t) for f, ln, t in got if re.search(rx, t, re.I)), None)
