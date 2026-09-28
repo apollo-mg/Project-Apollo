@@ -1,19 +1,28 @@
-# Project Apollo: Sovereign AI OS
+# Project Apollo
 
-**An air-gapped, local-first multi-node Swarm architecture designed for absolute human agency and resilient autonomous orchestration.**
+**A home lab for local LLM inference. Experiments are preregistered, every result has a receipt, and fixes go
+upstream.**
 
----
+The hardware is a desktop with an RX 9070 XT (RDNA4, 16 GB) and two servers holding six Tesla P100s. The questions
+are the ones you hit running models locally on hardware like this:
 
-> **📍 Current status (2026-08-30): most of the orchestration layer below is dormant.**
-> The Message Bus, TS Coordinator, Glass Cockpit, FastContext sidecar and Daydream daemon have
-> not run since early July. The project is in lab mode — hardware empirics on P100 / RDNA4 /
-> Pascal, published as receipts and upstream contributions. What still runs day to day is the
-> wake proxy, the ledger, diagnostics, and the receipts discipline.
-> **See [STATUS.md](STATUS.md) for what is verified live versus dormant.**
-> The architecture described below is accurate as *design*; treat it as a record of what was
-> built, not a description of what is currently running.
+- what a quantization actually costs;
+- why the same model gives different answers on different GPUs;
+- what a KV codec or a split mode does to the output and to the speed.
 
----
+The answers are in `data/receipts/`.
+
+## Start here
+
+- [`data/receipts/INDEX.md`](data/receipts/INDEX.md) holds the findings, keyed by mechanism: determinism, KV-cache
+  fidelity, speculative decoding, split modes, quant formats, MoE offload and hardware-specific behaviour. Grep it
+  before designing an experiment.
+- [`data/receipts/FAILURE_MODES.md`](data/receipts/FAILURE_MODES.md) lists the ways these measurements have gone
+  wrong, and the control each one produced.
+- [`STATUS.md`](STATUS.md) says what runs day to day and what is dormant.
+
+**How results are reported.** Predictions are registered before the run and scored afterwards. Falsifications are
+published next to confirmations. A claim that turns out wrong is corrected where it was made.
 
 ## Public artifacts
 
@@ -21,90 +30,42 @@ Things here that other people use, with the evidence behind each:
 
 | what | where | status |
 |---|---|---|
-| **Twin-Turbo chat-template fix** — restores tool calling for DavidAU's Qwen3.8-27B tune; the shipped template silently dropped `tool_calls` from history | [`templates/twin-turbo/`](templates/twin-turbo/) | adopted upstream by the model author ([discussion #10](https://huggingface.co/DavidAU/Qwen3.8-27B-TWIN-TURBO-Fable-Cold-Fusion-709-L-Uncensored-NM-DAU-NEO-MTP-GGUF/discussions/10)) |
-| **sm_60 FAST_FP16 carve-out** — Pascal P100s ran half-precision attention math for years; a 3-line gate took median KLD 0.0023 → 0.000001 at no speed cost | [`data/receipts/mtp-sm60/SUMMARY.md`](data/receipts/mtp-sm60/SUMMARY.md) | merged upstream |
-| **D=256 quantized-KV collapse** — `q8_0`/`q4_0` with K *and* V quantized emits garbage on hardware without Turing-MMA or AMD-WMMA; clean on RDNA4, same fork | [`data/receipts/kv-tensor-split/RESULT_RDNA4.md`](data/receipts/kv-tensor-split/RESULT_RDNA4.md) | reported to both forks |
-
-**How this repo reports results.** Predictions are registered before runs, scored honestly
-afterwards, and falsifications are published alongside confirmations. Start at
-[`data/receipts/INDEX.md`](data/receipts/INDEX.md), which is keyed by mechanism rather than by
-experiment.
+| **Slot save/restore checkpoint sidecar**: llama-server restored a saved session, then discarded it on the next request. With the sidecar, a parked 100K-token session resumes in about 4 s instead of a 12-minute re-prefill | [writeup](https://gist.github.com/apollo-mg/6defe7c0e3aba47727c758df03360b3e) | merged in [llama-cpp-turboquant #206](https://github.com/TheTom/llama-cpp-turboquant/pull/206) |
+| **sm_60 FAST_FP16 carve-out**: Pascal P100s did quality-sensitive math in fp16 for years. A 3-line gate took median KLD from 0.0023 to 0.000001 at no speed cost | [`data/receipts/mtp-sm60/SUMMARY.md`](data/receipts/mtp-sm60/SUMMARY.md), [writeup](https://gist.github.com/apollo-mg/9218d50a209d70a85f033bf182657818) | merged in two forks ([llama-cpp-turboquant #212](https://github.com/TheTom/llama-cpp-turboquant/pull/212), [buun-llama-cpp #80](https://github.com/spiritbuun/buun-llama-cpp/pull/80)); upstream issue [ggml-org/llama.cpp #25593](https://github.com/ggml-org/llama.cpp/issues/25593) open |
+| **Twin-Turbo chat-template fix**: restores tool calling for DavidAU's Qwen3.8-27B tune. The shipped template silently dropped `tool_calls` from history | [`templates/twin-turbo/`](templates/twin-turbo/) | adopted upstream by the model author ([discussion #10](https://huggingface.co/DavidAU/Qwen3.8-27B-TWIN-TURBO-Fable-Cold-Fusion-709-L-Uncensored-NM-DAU-NEO-MTP-GGUF/discussions/10)) |
+| **D=256 quantized-KV collapse**: `q8_0`/`q4_0` with K *and* V quantized emits garbage on hardware without Turing-MMA or AMD-WMMA. Clean on RDNA4, same fork | [`data/receipts/kv-tensor-split/RESULT_RDNA4.md`](data/receipts/kv-tensor-split/RESULT_RDNA4.md) | reported to both forks |
 
 ---
 
-## 🛑 The Mission
-Project Apollo is a "Sovereign AI" operating system built on the premise that if you don't own the hardware, you don't own the truth. It is designed to run complex, asynchronous, multi-agent workloads entirely locally on consumer-grade and surplus datacenter hardware (like the AMD RX 9070 XT and Nvidia Tesla P100). 
+## History: the orchestration layer (dormant since July 2026)
 
-The goal is absolute privacy, deterministic execution, and immunity from the "Censorship Tax" and "Cloud Tax" imposed by proprietary API providers.
+Apollo began as a local multi-agent orchestration layer. Most of it has not run since early July 2026, when the
+work turned to measurement. [STATUS.md](STATUS.md) says which parts are verified live, and `CLAUDE.md` documents
+the code. The pieces:
 
-## 🏗️ System Architecture (The Distributed Swarm)
-Apollo has evolved from a single-node monolithic script into a datacenter-grade distributed orchestration layer. It relies on a decoupled "Architect/Worker" topology connected by a high-speed local database.
+| component | where |
+|---|---|
+| SQLite message bus (WAL mode, atomic task claiming, tasks routed to nodes by context and precision requirements) | `message_bus_api.py`, `modules/message_bus.py` |
+| Coordinator and WebSocket WebUI ("Glass Cockpit"), plus a terminal equivalent | a local checkout of [open-multi-agent](https://github.com/open-multi-agent/open-multi-agent); these two files were never published |
+| Worker daemon for the remote P100 nodes | `worker_daemon.py` |
+| Per-role agent profiles: endpoint, model, sampling, tools | `profiles.yaml` |
+| Memory: hybrid BM25 + vector search, graph memory, daydream daemon | `modules/`, `vault/` |
 
-### 1. The SQLite Message Bus (The Nervous System)
-At the heart of Apollo is the `message_bus_api.py`, backed by a SQLite database running in **WAL (Write-Ahead Logging)** mode. This allows the primary Architect node and dozens of Worker nodes to read and write to the same queue simultaneously without database locking.
-* **Atomic Claiming:** Workers poll the queue and claim tasks using `EXCLUSIVE TRANSACTION` locks, guaranteeing zero "Double Claims" even under extreme Thundering Herd stress tests.
-* **Hardware Physics Routing:** Tasks define explicit hardware constraints (e.g., `min_context: 32768`, `precision_bits: 4.0`). The Message Bus natively routes heavy logic tasks to high-VRAM nodes (P100) and OS-level tasks to local integrated nodes.
+Two things from that period still run: the wake-on-demand proxy that serves the daily-driver model, and a nightly
+pass that collects open threads from the ledger into a morning brief.
 
-### 2. A2A State-Sync (The Agentic Scratchpad)
-To solve the "Split-Brain" problem of distributed file systems, Apollo implements an **Agent-to-Agent (A2A) State-Sync Protocol**. 
-Instead of masking hardware boundaries with NFS, the models actively negotiate memory routing over the network:
-* **The Push:** The Lead Architect pushes file strings and context to the SQLite `/scratchpad` REST endpoints via FastMCP.
-* **The Pull:** The remote Worker daemon claims the task, utilizes its profile-injected system instructions, and executes the `starbuck_read_scratchpad` MCP tool to pull the exact context over the local network before execution.
+---
 
-### 3. Project Starbuck (OS Management Layer)
-Apollo can autonomously manage its host Linux environment via `starbuck_daemon.py`. By wrapping native Linux tools (`systemctl`, `journalctl`, `apt`, `pacman`) in strict JSON schemas and exposing them via **FastMCP**, the LLM can safely repair its own infrastructure.
-* **YOLO Permission Hierarchy:** Operations are strictly gated by YOLO levels (0 to 3), preventing unauthorized or destructive bare-metal executions without explicit Architect consent.
-
-### 4. The Glass Cockpit
-A real-time WebSocket-powered WebUI (`apollo_server.ts`) providing a visual 2D spatial canvas of the Swarm's operations. It actively pipes streaming `stdout` from distributed native Linux shell commands directly to the browser while preserving strict LLM token truncation limits.
-
-## 🛠️ The Hardware Reality & "Battle Scars"
-This project serves as a proving ground for **Distributed Inference Optimization** and **ROCm/CUDA Interoperability**.
-
-**Current Fleet:** 
-* **The Architect:** AMD Radeon RX 9070 XT (16GB VRAM) / Ryzen 7 5700X3D
-* **The Executioner:** Headless Dual-Nvidia Tesla P100 Server (32GB VRAM)
-
-**Engineering Standards Discovered:**
-* **Context Bleed Protection:** Raw tool output dumps (like a `tree -L 5` or a 10MB log file) will instantly crash the KV Cache of local LLMs. Apollo strictly enforces RegEx sanitization, truncation layers, and IPC stripping (`<think>` blocks) to prevent "2-Bit Drunk" hallucination loops under high context pressure.
-* **Qwen 3.6 & Gemma 4 Dynamics:** Tuned optimal sampling loops (`presence_penalty`, `topK`) for heavily quantized MoE models to maintain structural JSON integrity while maximizing reasoning depth.
-
-## 🚀 The Future: Autonomous Epiphanies
-The next phase introduces the **Daydream Daemon v2**—a dual-pass, asynchronous pipeline that processes associative memory triggers while the GPUs are idle, allowing the Swarm to organically synthesize "Epiphanies" and generate its own architectural optimizations overnight.
-
-## 🙏 Acknowledgements & Credits
+## Acknowledgements & Credits
 Project Apollo stands on the shoulders of giants. This Sovereign OS is made possible by the relentless innovation of the open-source AI community:
 * **Garry Tan & GBrain:** For the architectural blueprint of the "Self-Wiring Memory Layer." Apollo's Daydream Regex Cascade (deterministic graph wiring) and Librarian Hybrid Search (Vector + BM25 + RRF) are direct implementations of the GBrain methodology, achieving zero-cost memory mapping without LLM overhead.
-* **[open-multi-agent](https://github.com/huggingface/open-multi-agent):** For the core TypeScript DAG orchestration and baseline agentic loops (MIT License).
+* **[open-multi-agent](https://github.com/open-multi-agent/open-multi-agent):** For the core TypeScript DAG orchestration and baseline agentic loops (MIT License).
 * **@TheTom & AtomicChat:** For the bleeding-edge `llama-cpp-turboquant` and `atomic` forks that achieve extreme KV Cache compression, preventing VRAM meltdowns on consumer hardware.
   * *Academic Citation:* Zandieh et al., "TurboQuant: Extreme KV Cache Quantization" (arXiv:2504.19874, ICLR 2026).
+* **spiritbuun & [buun-llama-cpp](https://github.com/spiritbuun/buun-llama-cpp):** For VBR (dynamic per-layer KV precision) and the build most of the receipts here run on.
 * **SeaWolf-AI & the Qwen Team:** For the localized intelligence of the Qwen series and the Darwin-36B-Opus models (Apache 2.0).
 * **Unsloth:** For their phenomenal imatrix and BF16 sources used in advanced model quantization.
 * **Anthropic:** For pioneering the open Model Context Protocol (MCP) standard that powers Project Starbuck.
-
----
-
-## ❓ Frequently Asked Questions (FAQ)
-
-**Q: I already run my own LLM server (vLLM, Ollama, TabbyAPI). Do I have to use your inference stack?**
-**A:** Absolutely not. Apollo is fundamentally an *orchestration layer*. While we include automated LLMOps tools (like "The Scientist") specifically tuned for `llama-server` and ROCm, the core TS engine (`apollo_coordinator.ts`) and the subagents communicate exclusively via standard OpenAI-compatible API schemas. As long as your existing inference engine exposes an OpenAI-compatible `/v1/chat/completions` endpoint and supports tool-calling (function calling), you can plug it directly into Apollo's `profiles.yaml`. 
-
-**Q: What models work best with this architecture?**
-**A:** Because Apollo heavily utilizes complex, multi-turn tool calling and schema enforcement, you need models with strong structural adherence. 
-*   **The Orchestrator:** We strongly recommend **Qwen 3.6 27B** (Dense) or the **Qwopus** variants. They exhibit exceptional tool-calling stability, rarely hallucinate syntax, and survive 15+ turn loops without degrading into "apology loops."
-*   **The Investigator:** For massive codebase exploration and topology mapping, we use the **FastContext-1.0-4B-RL** model. Utilizing Group Relative Policy Optimization (GRPO), it reliably executes parallel `Glob` and `Grep` searches, returning only strictly validated file/line citations without polluting the orchestrator's context window.
-*   **The Edge Workers:** For basic logging or simple regex extractions, smaller 8B or 14B models (like Llama 3 or DeepSeek-R1 14B) are perfectly viable for the remote worker nodes.
-*   *Note on Gemma 4:* While fantastic for creative/philosophical reasoning (ideal for the Daydream Daemon), we have found their strict JSON tool-calling capabilities to be currently unreliable for the main orchestration loop.
-
-**Q: How many agents or nodes can run at once?**
-**A:** The bottleneck is no longer the database lock. Because Apollo uses an SQLite Message Bus operating in **WAL (Write-Ahead Logging)** mode, you can theoretically have dozens of Worker Daemons polling the queue simultaneously. The true limit is your network latency (for A2A State-Sync file transfers) and your aggregate VRAM limits across the cluster. We currently run a stable dual-node setup (1x 9070 XT Coordinator, 1x Dual-P100 Worker).
-
-**Q: Something broke. Where are the logs?**
-**A:** Apollo keeps its logs decentralized based on the service:
-*   **Orchestration Logic:** Check the terminal stdout where you launched `apollo_coordinator.ts`.
-*   **Message Bus/Worker Issues:** The worker daemons output to stdout, but you can also directly inspect the queue by running `sqlite3 deploy/data/message_bus.db "SELECT * FROM task_queue;"`.
-*   **Librarian / Memory Errors:** Ingestion errors are logged to `librarian_ingest.log` in the root directory.
-*   **Daydream / Metacognition:** The actual architectural epiphanies are saved directly into `data/actionable_epiphanies.jsonl`.
 
 ---
 *Developed by Mark | AI Systems Architect | Indianapolis, IN*
