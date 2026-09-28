@@ -73,3 +73,9 @@ panel modes (einstein, spoon, ultra), so their grades are less certain than the 
   (high) and 31/48 (omni). That is expected divergence, not an effect. The effects claimed are distribution shifts.
 - **Mechanism.** Why a leading `\n\n` shortens system-prompt modes and not `off` is not tested.
 - **One model, one quant, one engine.**
+
+## Reported upstream
+
+2026-09-28: Mark posted both findings (the two-character template fix, and the default mode lowering abstention) to
+the model's community tab, with this receipt linked:
+https://huggingface.co/DavidAU/LFM2.5-2.6B-Qwen3.8-Turbo-Brilliance-Power-X12-NEO-MAX-GGUF/discussions/11
