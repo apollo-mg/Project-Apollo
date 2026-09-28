@@ -81,3 +81,8 @@ explicit parent stack, which is the second suggestion above. The whole-cache `cl
 no longer matters. The commit adds CPU-backed tests for deep invalidated graphs. It has not been verified on .73 yet:
 the incident was never reproduced on demand, so the real check is running the daily driver on it with the default
 8 MB stack.
+
+**Later on 2026-09-27: verified and deployed.** `test-backend-meta-split-state` passes on .73 with the default 8 MB
+stack, at depth 1024. The daily driver now runs `510cbbbfa` with the 512 MiB mitigation removed, and
+`/proc/<pid>/limits` shows 8 MB. Decode matches the old build (A/B in CHANGELOG). Whether the crash is gone in
+practice will show over weeks of daily use; the incident was never reproducible on demand.

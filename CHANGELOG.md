@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed -- .73 daily driver on buun `510cbbbfa`, 512 MiB stack workaround removed (2026-09-27, Claude)
+
+- `WP_START_CMD` now runs `/mnt/HDD/buun-510cb/build_sm60/bin/llama-server` (worktree of `~/buun-llama-cpp` at
+  `510cbbbfa`, built with the daily flags) and no longer begins with `ulimit -s 524288;`. The flags are otherwise
+  unchanged: VBR 262k, `-np 4`, tensor split, MTP.
+- **Why:** `510cbbbfa` resolves meta split states with an explicit stack instead of recursion (the 09-26 stack
+  overflow). Its `test-backend-meta-split-state` passes on .73 at depth 1024 under the default 8 MB stack. It also
+  carries `1c5e564b`: media in `--resume`, displaced-slot host restore, faster save.
+- **Verified live:** `/proc/<pid>/limits` shows an 8 MB stack. Decode A/B on the same three prompts: old
+  `0b2789f23` 22.0 / 21.6 / 20.7 tok/s, new 22.1 / 21.7 / 22.0, with identical outputs on the first two.
+- **Rollback:** `~/.config/systemd/user/apollo-wake-proxy.service.bak-0b2789f23-ulimit512`; `~/buun-resume` is
+  untouched.
+
 ### Changed -- .73 start command: 512 MiB stack + server-log rotation (2026-09-26, Claude)
 
 - `WP_START_CMD` in the wake-proxy unit now begins
