@@ -514,7 +514,9 @@ async def proxy(path: str, request: Request):
     body = await request.body()
     want_stream = b'"stream": true' in body or b'"stream":true' in body
     url_path = path
-    if request.method == "POST" and path == "chat/completions":
+    # Guest traffic (modules/guest_gateway.py marks what it forwards) must not replace the owner's warm-up head: on
+    # 2026-09-28 a guest's opencode request at 01:07 became the head every later wake prefilled, instead of Hermes's.
+    if request.method == "POST" and path == "chat/completions" and not request.headers.get("x-apollo-guest"):
         N.capture_head(body)
 
     if want_stream:

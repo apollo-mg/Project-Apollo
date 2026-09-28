@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed -- a guest's prompt can no longer become the daily driver's warm-up head (2026-09-28, Claude)
+
+- The wake proxy remembers the last agent-shaped request (a big system prompt plus tools) and prefills it after every
+  wake. The guest gateway's requests look the same. At 01:07 on 09-28 a guest's opencode request replaced Hermes's
+  head, and every later wake would have prefilled a stranger's prompt.
+- `guest_gateway.py` now sends `X-Apollo-Guest: <name>` upstream, and `wake_proxy.py` skips capture when it is present.
+- Tested live with a temporary key:
+  - an agent-shaped request through the gateway was served (200) and not captured;
+  - the same request sent directly was captured.
+- The guest-captured head was moved out of `run/`. Hermes's next request recaptures its own.
+
 ### Fixed -- wake proxy no longer suspends .73 under an interactive ssh login or a build (2026-09-28, Claude)
 
 - `busy()` counted `who` lines, and `who` is always empty on .73, whose utmp is empty. So it never held the node

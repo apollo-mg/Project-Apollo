@@ -15,6 +15,7 @@ gateway is the only thing a guest should be able to touch, and it:
     (admission control, not an unbounded queue);
   * on a sleeping node, starts the wake in the background and answers 503 + Retry-After at once. The wake takes
     55-77 s, and most client libraries time out before that if the connection is held;
+  * marks what it forwards (X-Apollo-Guest), so the wake proxy never adopts a guest's prompt as its warm-up head;
   * logs one line per request to run/guest_usage.jsonl: who, when, status and token counts. Never prompt or reply
     text.
 
@@ -161,7 +162,7 @@ def build_app():
         cl = httpx.AsyncClient(timeout=httpx.Timeout(900, connect=10))
         if not body.get("stream"):
             try:
-                r = await cl.post(f"{UPSTREAM}/v1/chat/completions", json=body)
+                r = await cl.post(f"{UPSTREAM}/v1/chat/completions", json=body, headers={"X-Apollo-Guest": name})
                 try:
                     j = r.json()
                 except ValueError:
@@ -176,7 +177,7 @@ def build_app():
                 await cl.aclose(); gate.release()
 
         body.setdefault("stream_options", {"include_usage": True})
-        req = cl.build_request("POST", f"{UPSTREAM}/v1/chat/completions", json=body)
+        req = cl.build_request("POST", f"{UPSTREAM}/v1/chat/completions", json=body, headers={"X-Apollo-Guest": name})
         try:
             r = await cl.send(req, stream=True)
         except httpx.HTTPError as e:                  # never leave the guest slot held by a failed connect
