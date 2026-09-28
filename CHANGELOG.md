@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (temporary) -- .73 serves Hemmingway-1-Heretic-MTP-V3-Final i1-Q6_K until 2026-09-29 04:00 (2026-09-28, Claude)
+
+- Mark's play session. `WP_START_CMD`'s `-m` now points at
+  `/mnt/models/AI_Models/Hemmingway/Hemmingway-1-Heretic-MTP-V3-Final.i1-Q6_K.gguf` (qwen35, 65 blocks, 1 MTP layer;
+  sha256 `6f3f86bc…47d8` matches mradermacher's i1 repo). Every other flag is unchanged.
+- Backup: `apollo-wake-proxy.service.bak-daily-qwen38-q6k`.
+- A transient timer `hemmingway-revert.timer` runs `/mnt/TG_2TB/experiments/hemmingway-swap/revert.sh` at 04:00,
+  before the 04:30 daydream. It restores the unit, restarts the proxy when idle, and stops the Hemmingway server on
+  .73. A desktop reboot before then drops the transient timer; run the script by hand in that case.
+
 ### Fixed -- a guest's prompt can no longer become the daily driver's warm-up head (2026-09-28, Claude)
 
 - The wake proxy remembers the last agent-shaped request (a big system prompt plus tools) and prefills it after every
