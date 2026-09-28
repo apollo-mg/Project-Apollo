@@ -76,6 +76,7 @@ someone find it, and the claim in a form that is checkable.
 | At Q6_K **a thinking cap is a clean win, the injected message changed nothing**, and there is a structural reason it cannot | `viability/RESULT_OVERTHINK_INJECTION_Q6K.md` | 09-12 |
 | Why `reasoning_budget_message` cannot interrupt a thought, and the ~10-line change that would let it | `viability/NOTE_MIDTHOUGHT_INJECTION_FEASIBILITY.md` | 09-12 |
 | **Two template engines disagree, and the Frogger template's reasoning modes are broken in both** | `davidau-templates/RESULT_TEMPLATE_MINJA_DIFF.md` | 09-13 |
+| **DavidAU's Turbo-Brilliance modes (LFM2.5-2.6B) buy no accuracy and cost calibration: the template's DEFAULT (`high`) refuses 7/24 invented CAL questions vs 20/24 with no system prompt (p=0.00018); low 6/24; only omni holds (17/24) at 4x tokens; einstein 12.6x tokens, 27/48 multi-answer rows.** And a stray `\n\n` after BOS (2 untrimmed comment tags) cuts output length 37-45 % in system-prompt modes (high p=0.005, omni p<0.001), not in `off` | `davidau-templates/RESULT_LFM25_MODES.md` | 09-28 |
 | DavidAU TURBO IQ2_M **runs away on anything non-trivial**; VBR and MTP exonerated | `viability/RESULT_TURBO_IQ2M_WALLED.md` | 09-09 |
 | DavidAU 40B merge: coherence smoke + measured power | `viability/RESULT_DAVIDAU_40B_SMOKE.md` | 09-08 |
 | SYS-02 `reasoning_effort` arm: **xhigh asks the right question and still fails to answer** | `sysadmin-corpus/RESULT_SYS02_EFFORT_ARM.md` | 08-30 |
