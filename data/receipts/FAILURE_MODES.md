@@ -1672,3 +1672,29 @@ receipts for the candidate commit hashes: a validated commit is a receipt alread
 **Caught by:** Mark asking whether the RDNA4 EXL3+MTP speedup also applied to Pascal. Answering needed the actual
 dispatch code, and the arch branch was on the line that decides it. The receipt, its INDEX row and the prereg were
 corrected the same day. The measurements stand; the attribution and the lesson do not.
+
+## AFM-50 — a health check answered by the previous server: three arms ran on one model
+
+**2026-09-28.** `quant-abstention/run_flashnext_arms.sh` stopped each server by a PID file written from `$!` in an
+ssh launch (`ssh host "ENV=.. nohup bin .. & echo \$! > pidfile"`). `$!` was a wrapper (84961); the llama-server
+was 84963. So "stop" killed nothing:
+- the feasibility Q2 server stayed on port 8190;
+- every new server failed to bind;
+- every `/health` check was answered by the old Q2 server.
+
+All three arms (Q2, IQ4, Q2 with a CPU spill) ran on that one Q2 model: 240/240 identical, P(UNKNOWN) to six
+decimals. The registered analysis would have passed the placement control at 1.00 and failed the Q2-vs-IQ4 knowledge
+prediction, both falsely.
+
+**Why it happened:** the readiness probe asked "is something healthy on this port", not "is MY server healthy".
+Same class as `readiness-probes-lie`. The CLAUDE.md rule "record the PID at launch" was followed, but `$!` across ssh
+and an env-prefixed nohup is not the server's PID.
+
+**The check:**
+- Stop by exact process name and fail if one survives.
+- Accept an arm's server only when its own fresh log says the model loaded, `/props` names the arm's file, and any
+  arm-specific setting (here, the `-ot` loader line) shows up in that log.
+- Distrust an arm that "loads" faster than its bytes can be read: a 57 GB model in 1 s.
+
+**Caught by:** the timestamps in the arm log (FNQ2 answering 3 s after launch, IQ4 "loaded" in 1 s), before the
+analysis was run. Deviation 1 in `PREREG_FLASHNEXT.md`; the invalid files are kept in `raw/invalid_20260928/`.

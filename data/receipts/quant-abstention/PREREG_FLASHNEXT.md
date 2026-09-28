@@ -69,3 +69,22 @@ Reported without a prediction:
 
 Any change to a flag, a file, a placement rule or the analysis after the first M1 row gets a numbered Deviation
 here, with its reason, before the affected arm runs.
+
+### Deviation 1 (2026-09-28 ~15:00, before any analysis was run): the first attempt ran all three arms on one stale server
+
+`run_flashnext_arms.sh` stopped servers by a PID file. In this ssh launch, `$!` recorded a wrapper process (84961),
+not the llama-server (84963). So stopping the feasibility Q2 server killed nothing, and every new server failed to
+bind port 8190. Each "healthy" check was then answered by the old Q2 server.
+- FNQ2, FNIQ4 and FNQ2X are **240/240 identical** (grade, answer, P_abs to six decimals): one Q2 model, three times.
+- Found from the timings (a 57 GB IQ4 "loaded" in 1 s) before `analyze_flashnext.py` was run on them. Unfixed, the
+  analysis would have passed P4 at 1.00 and failed P1, both falsely.
+- The three files are kept in `raw/invalid_20260928/`. They are not arms. The first file is used only as an
+  exploratory repeatability check (the same Q2 model on an older server) against the rerun's FNQ2.
+
+**Fix, before the rerun:**
+- Servers are stopped by exact name (`pkill -x llama-server`), and the run aborts if one survives.
+- An arm starts only when three things hold: its OWN log shows `model loaded`; `/props` `model_path` names the arm's
+  file; the loader line `tensor overrides to CPU` is present exactly when the arm spills (FNIQ4, FNQ2X) and absent
+  when it does not (FNQ2).
+
+Arms, flags, placement rule and analysis are otherwise unchanged. All three arms rerun from scratch.

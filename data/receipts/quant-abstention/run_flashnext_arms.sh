@@ -16,22 +16,32 @@ log() { echo "$(date '+%F %T') $*" | tee -a "$LOG"; }
 # routed experts of the last k of the 48 layers on the CPU (the residency run's EXPS_44_47 at k=4)
 exps() { local k=$1 l=""; for i in $(seq $((48 - k)) 47); do l="$l${l:+|}$i"; done; printf 'blk\\.(%s)\\.ffn_(up|down|gate)_exps=CPU' "$l"; }
 
-stop_server() {
-  ssh "$H" 'for f in ~/fn_server.pid ~/fn_feas.pid; do p=$(cat $f 2>/dev/null); [ -n "$p" ] || continue;
-            kill $p 2>/dev/null; while kill -0 $p 2>/dev/null; do sleep 1; done; rm -f $f; done'
+stop_server() {    # by exact NAME: a PID file recorded a wrapper, not the server, and stopped nothing (Deviation 1)
+  ssh "$H" 'pkill -x llama-server; for i in $(seq 1 60); do pgrep -x llama-server >/dev/null || exit 0; sleep 1; done; exit 1' \
+    || { log "a llama-server survived pkill -- aborting"; exit 1; }
 }
 
-start_server() {   # start_server ARM MODEL [OT]  -> 0 when healthy, 1 when the server died (e.g. OOM)
+start_server() {   # start_server ARM MODEL [OT] -> 0 our server is up; 1 it died (OOM); 2 the wrong server answered
   local arm=$1 model=$2 ot=${3:-}
   stop_server
   ssh "$H" "CUDA_VISIBLE_DEVICES=0,1,2,3 GGML_CUDA_ALLREDUCE=internal nohup $BIN -m $model $FLAGS ${ot:+-ot '$ot'} \
-            > ~/fn_$arm.log 2>&1 < /dev/null & echo \$! > ~/fn_server.pid"
+            > ~/fn_$arm.log 2>&1 < /dev/null &"
+  local up=0
   for i in $(seq 1 120); do
-    curl -sf -m 5 "$URL/health" >/dev/null && return 0
-    ssh "$H" 'kill -0 $(cat ~/fn_server.pid) 2>/dev/null' || { log "$arm: server died: $(ssh "$H" "tail -3 ~/fn_$arm.log")"; return 1; }
     sleep 5
+    ssh "$H" 'pgrep -x llama-server >/dev/null' || { log "$arm: server died: $(ssh "$H" "tail -3 ~/fn_$arm.log")"; return 1; }
+    ssh "$H" "grep -q 'model loaded' ~/fn_$arm.log" && curl -sf -m 5 "$URL/health" >/dev/null && { up=1; break; }
   done
-  log "$arm: not healthy after 600 s"; return 1
+  [ $up = 1 ] || { log "$arm: not healthy after 600 s"; return 1; }
+  # the server answering must be THIS arm's: its file, and -ot in effect exactly when the arm spills
+  local mp ov
+  mp=$(curl -s -m 5 "$URL/props" | $PY -c 'import json,sys; print(json.load(sys.stdin).get("model_path",""))')
+  [ "$(basename "$mp")" = "$(basename "$model")" ] || { log "$arm: WRONG SERVER answered: $mp"; return 2; }
+  ov=$(ssh "$H" "grep -c 'tensor overrides to CPU' ~/fn_$arm.log")
+  if [ -n "$ot" ] && [ "$ov" = 0 ]; then log "$arm: -ot NOT in effect"; return 2; fi
+  if [ -z "$ot" ] && [ "$ov" != 0 ]; then log "$arm: unexpected CPU override"; return 2; fi
+  log "$arm: verified -- serving $(basename "$mp"), override lines $ov, pid $(ssh "$H" 'pgrep -x llama-server')"
+  return 0
 }
 
 run_arm() {        # run_arm ARM MODEL [OT]  (server already healthy)
@@ -50,16 +60,22 @@ run_arm() {        # run_arm ARM MODEL [OT]  (server already healthy)
 }
 
 log "== flashnext arms start"
-start_server FNQ2 "$Q2" && run_arm FNQ2 "$Q2" || log "FNQ2 failed to start"
+start_server FNQ2 "$Q2"; rc=$?
+[ $rc = 2 ] && { log "abort: wrong server"; exit 1; }
+[ $rc = 0 ] && run_arm FNQ2 "$Q2" || log "FNQ2 failed to start"
 K=""
 for k in 4 6 8 10 12; do
   log "FNIQ4: trying k=$k"
-  if start_server FNIQ4 "$IQ4" "$(exps $k)"; then K=$k; break; fi
+  start_server FNIQ4 "$IQ4" "$(exps $k)"; rc=$?
+  [ $rc = 2 ] && { log "abort: wrong server"; exit 1; }
+  if [ $rc = 0 ]; then K=$k; break; fi
 done
 if [ -n "$K" ]; then
   echo "$K" > "$HERE/raw/logs/flashnext_iq4_k.txt"; log "FNIQ4: loads at k=$K"
   run_arm FNIQ4 "$IQ4" "$(exps $K)"
-  start_server FNQ2X "$Q2" "$(exps $K)" && run_arm FNQ2X "$Q2" "$(exps $K)" || log "FNQ2X failed to start"
+  start_server FNQ2X "$Q2" "$(exps $K)"; rc=$?
+  [ $rc = 2 ] && { log "abort: wrong server"; exit 1; }
+  [ $rc = 0 ] && run_arm FNQ2X "$Q2" "$(exps $K)" || log "FNQ2X failed to start"
 else
   log "FNIQ4: no k up to 12 loads -- Deviation needed"
 fi
