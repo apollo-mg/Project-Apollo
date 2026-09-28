@@ -92,6 +92,18 @@ the Step 1 measurement worth doing once per model rather than once per configura
 
 ## 4. ROCm's `hipMemGetInfo` does not report other processes' VRAM
 
+> **Update 2026-09-28: still present on ROCm 7.2** (HIP `7.2.53211`, PyTorch `2.13.0+rocm7.2`, RX 9070 XT, desktop
+> session resident). `torch.cuda.mem_get_info()` calls the same `hipMemGetInfo`. Read against sysfs at the same
+> instant:
+> - free VRAM: **16,182 MiB** reported vs **13,752 MiB** actual (2,552 MiB used by all processes), so free is
+>   over-reported by **2,430 MiB**;
+> - after the probe allocated 1,536 MiB, both fell by 1,536. HIP sees only the calling process's own allocations.
+>
+> This is not the VMM-mapping overcharge that buun worked around in `0b2789f23` (that one is
+> `vbr-artifact-store/RESULT_FIX_0B2789F23_ON_73.md`); it is a separate ROCm behaviour, and it is still live.
+> Anything that sizes itself from free memory on this card plans against ~2.4 GB that the desktop holds: fit, and
+> VBR's `--vbr-vram auto`.
+
 > **ATTRIBUTION CORRECTED.** This section originally said *"llama.cpp's fit logic does not
 > see the desktop's VRAM"*, implying a bug in `common_params_fit_impl`. **That is wrong.**
 > `fit.cpp` calls `ggml_backend_dev_memory` → `cudaMemGetInfo` (hipified to `hipMemGetInfo`),
