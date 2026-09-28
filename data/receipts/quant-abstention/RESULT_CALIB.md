@@ -202,5 +202,7 @@ where generation actually decides. Stage 2 as written above was not run.
 - **Slot readout only.** Stage 2 (live `logit_bias` on .194: R-slot must reproduce the offline prediction; R-gen is
   the practical test) needs Mark's go-ahead and has not run.
 - `b` is fitted against Q8_0's readout on these 240 items. A user needs the Q8_0 reference rows or labelled items to
-  calibrate a file.
+  calibrate a file. **Shipped 2026-09-28:** `calibrate.py` fits a user's own Qwen3.8-27B file against the reference
+  rows already in `raw/main_C.{A,B}.jsonl`, after one `run_main.py` pass. It reproduces this analysis's full-data b
+  exactly (AD2XS +1.32, AD3XXS -1.15, EXL35 +0.40, both lanes; C.B vs C.A 0.00). Forced-slot scope as above.
 - The fix only covers a prompt that offers an abstain token. One model, thinking off, one prompt.
