@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed -- .73 P100 clocks uncapped for speculative serving (150 W cap kept) (2026-09-28, Claude, Mark's plan)
+
+- `p100-efficiency.service` on .73: `-ac 715,1063` becomes `-ac 715,1328`; `-pl 150` is unchanged. Backup:
+  `/etc/systemd/system/p100-efficiency.service.bak-1063`.
+- **Evidence:**
+  - `qwen4exp/RESULT_FLASHNEXT_MTP_CLOCK.md`: the pin costs MTP 18 % of its speed against 10 % for plain decode;
+  - a direct A/B on .73 with MTP serving: +10.6 % decode at 1328.
+- .194 keeps 1063 by default; speculative sessions there set 1328 at launch.
+- Every receipt from .73 after this date runs at 1328 MHz; record it.
+
 ### Changed (temporary) -- .73 serves Hemmingway-1-Heretic-MTP-V3-Final i1-Q6_K until 2026-09-29 04:00 (2026-09-28, Claude)
 
 - Mark's play session. `WP_START_CMD`'s `-m` now points at

@@ -65,3 +65,17 @@ efficiency config was restored and read back after both runs.
   observed directly.
 - **Placement:** `-ts 1,1,1,0.6` (Deviation 1). Run 1 at the default split gave the same plain-decode E speed
   (21.07), so the placement change does not move the baseline.
+
+## Adopted 2026-09-28 (Mark's plan): keep the 150 W cap, uncap the clock when serving speculatively
+
+- **A quick A/B on .73 before adopting it.** The 27B-class Hemmingway, tensor split on 2 P100s, MTP on, through
+  the wake proxy; 3 prompts x 256 tokens at temp 0; clocks 1063 / 1328 / 1328 / 1063; one warm-up discarded.
+  - Median decode rose 23.34 -> 25.82 tok/s (**+10.6 %**); each prompt +9-11 %.
+  - Draft acceptance was identical at both clocks.
+  - About half of Flash-Next's +22 %, consistent with tensor split keeping both cards busy at once, so the 150 W
+    cap clips more. Not measured here.
+- **.73** (the daily driver always runs MTP): `p100-efficiency.service` now sets `-pl 150 -ac 715,1328`. The old unit
+  is kept as `p100-efficiency.service.bak-1063`. Settings survive S3 (the old values read back after 24 resumes in
+  one boot).
+- **.194** (the test box) keeps 150 W / 1063 as its default. A speculative serving session sets `-ac 715,1328` at
+  launch and records it. Receipt comparability with pre-09-28 runs depends on that default.
