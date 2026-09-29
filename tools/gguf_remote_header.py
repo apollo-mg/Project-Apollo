@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Read a GGUF header over HTTP range requests; print tensor name, type id, byte size.
-usage: gguf_remote_header.py URL [URL ...] > out.tsv   (sizes from offset gaps; last tensor from file size)"""
+usage: gguf_remote_header.py URL|PATH [URL|PATH ...] > out.tsv   (sizes from offset gaps; last tensor from file size)"""
 import os, struct, sys, urllib.request
 
 TOKEN = None
@@ -10,6 +10,9 @@ if os.path.exists(tp):
 
 
 def fetch(url, a, b):
+    if not url.startswith(("http://", "https://")):      # a local file: same interface
+        with open(url, "rb") as f:
+            f.seek(a); return f.read(b - a + 1), os.path.getsize(url)
     req = urllib.request.Request(url, headers={"Range": f"bytes={a}-{b}"})
     if TOKEN:
         req.add_header("Authorization", f"Bearer {TOKEN}")
