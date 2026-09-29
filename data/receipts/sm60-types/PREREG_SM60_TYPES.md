@@ -83,3 +83,14 @@ Q8_0, change nothing else, and measure decode.
 ## Deviations
 
 Any change after the first row gets a numbered Deviation here before the affected rows run.
+
+### Deviation 1 (2026-09-29 ~17:55, after perf block 0, before any verdict): analysis parser fix
+
+- **The fault:** `test-backend-ops` writes a stderr notice (`ggml_cuda_graph_set_enabled: disabling CUDA graphs ...`)
+  that the runner's `2>&1` interleaves into stdout **between a case name and its timing**. The registered line parser
+  missed every case whose timing landed on the next line: 190 of 289 parsed in block 0.
+- **The change:** `load_perf` strips those notices before parsing (289/289 parse). A verdict whose inputs are missing
+  now reads "pending" instead of "does not hold" (T1-T3 had treated None as a failure).
+- **Unchanged:** the raw files, the rules and the thresholds. The synthetic self-test still gives its planted verdicts.
+- **Disclosed:** the parse check printed block-0 (E) numbers before this Deviation was written, including the T1 and
+  T3 inputs.

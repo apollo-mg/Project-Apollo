@@ -25,7 +25,10 @@ def load_perf():
     T = defaultdict(lambda: defaultdict(list))            # T[cfg][(op, params)] -> [us per block]
     for f in sorted(RAW.glob("perf_*_b*.txt")):
         cfg = f.name.split("_")[1]
-        for l in open(f, errors="replace"):
+        # Deviation 1: stderr ("ggml_cuda_graph_set_enabled: ...") is interleaved into stdout mid-line, between a case
+        # name and its timing. Strip those lines, then re-join each case name with its timing.
+        text = re.sub(r"ggml_cuda_graph_set_enabled:[^\n]*\n", "", open(f, errors="replace").read())
+        for l in text.splitlines():
             m = LINE.match(l)
             if m:
                 T[cfg][(m.group(1), m.group(2))].append(float(m.group(4)))
@@ -88,18 +91,23 @@ def main():
     if E:
         q8 = gbs("q8_0", stock(E, "q8_0", 1))
         iq = {t: gbs(t, stock(E, t, 1)) for t in IQ5}
-        res["T1"] = all(v is not None and v < 0.7 * q8 for v in iq.values())
+        if None not in iq.values():                           # Deviation 1: missing inputs -> pending, not "fails"
+            res["T1"] = all(v < 0.7 * q8 for v in iq.values())
         print("T1 inputs: q8_0 %.1f GB/s; " % q8 + ", ".join(f"{t} {v:.1f} ({v / q8:.2f}x)" for t, v in iq.items()))
         hc = []
         for k, m in ((10240, 320), (320, 10240)):
             b, q = E.get(dense_key("BF16", k, m)), E.get(dense_key("Q8_0", k, m))
             hc.append((k, m, b, q, b / q if b and q else None))
             print(f"T3 input: hc k={k} m={m}: BF16 {b} us, Q8_0 {q} us, ratio {b / q if b and q else float('nan'):.2f}")
-        res["T3"] = all(r[4] is not None and r[4] >= 1.5 for r in hc)
+        if all(r[4] is not None for r in hc):
+            res["T3"] = all(r[4] >= 1.5 for r in hc)
     if E and Pc:
-        gain = lambda t: stock(E, t, 1) / stock(Pc, t, 1) - 1      # GB/s gain = time ratio - 1
+        def gain(t):                                           # GB/s gain = time ratio - 1
+            a, b = stock(E, t, 1), stock(Pc, t, 1)
+            return a / b - 1 if a and b else float("nan")
         g_iq = st.median(gain(t) for t in IQ5); g_q8 = gain("q8_0")
-        res["T2"] = g_iq >= 0.10 and g_q8 < 0.05
+        if g_iq == g_iq and g_q8 == g_q8:
+            res["T2"] = g_iq >= 0.10 and g_q8 < 0.05
         print(f"T2 inputs: median IQ gain {g_iq:+.3f}, q8_0 {g_q8:+.3f}, f16 {gain('f16'):+.3f}, bf16 {gain('bf16'):+.3f}")
     dec = defaultdict(list)
     dp = RAW / "decode.jsonl"
