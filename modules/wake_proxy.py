@@ -22,7 +22,7 @@ Design notes that matter:
     proxies and browsers do not drop the connection; non-streaming clients simply block.
 """
 from __future__ import annotations
-import asyncio, json, os, socket, subprocess, time
+import asyncio, json, os, shlex, socket, subprocess, time
 from dataclasses import dataclass, field
 import httpx
 from fastapi import FastAPI, Request
@@ -91,10 +91,29 @@ def magic_packet(mac: str, bcast: str) -> None:
 #   * every pts: a Konsole on .73's own desktop has held pts/1 since 09-19.
 # Matching is on the tty column and on comm (process NAME), never on command lines, so the probe
 # cannot match itself (CLAUDE.md, process control). Detached work after logout is caught by name.
-BUSY_PROBE = ("timeout 10 sh -c 'n=0; for s in $(ps -eo tty=,sid= | awk \"\\$1 ~ /^pts\\\\// {print \\$2}\" | sort -u); do "
-              "pp=$(ps -o ppid= -p \"$s\" | tr -d \" \"); [ -n \"$pp\" ] || continue; "
-              "case \"$(ps -o comm= -p \"$pp\")\" in sshd*) n=$((n+1));; esac; done; echo $n; "
-              "pgrep -c -x \"rsync|scp|cp|dd|tar|make|ninja|cmake|nvcc|cc1plus|cargo|rustc\"; true'")
+#
+# A login does NOT count when it is a forgotten prompt (2026-09-29): its leader is a shell, nothing else
+# runs in its session, and nobody has typed into its terminal for the idle window (the pts atime, which is
+# what `w` reports as IDLE). An `ssh .73` tab left open in Konsole held .73 awake for 19 h on 09-28/29.
+# A session running anything, or whose leader is not a shell (`ssh -t host job`), still counts.
+_BUSY_SH = r"""now=$(date +%s); n=0
+for s in $(ps -eo tty=,sid= | awk '$1 ~ /^pts\// {print $2}' | sort -u); do
+  pp=$(ps -o ppid= -p "$s" | tr -d ' '); [ -n "$pp" ] || continue
+  case "$(ps -o comm= -p "$pp")" in sshd*) ;; *) continue;; esac
+  t=$(ps -o tty= -p "$s" | tr -d ' ')
+  seen=$(stat -c %X "/dev/$t" 2>/dev/null || echo "$now")
+  procs=$(ps -o pid= -s "$s" | wc -l)
+  case "$(ps -o comm= -p "$s")" in bash|sh|dash|zsh|fish|ksh) sh1=1;; *) sh1=0;; esac
+  [ "$sh1" = 1 ] && [ "$procs" -le 1 ] && [ $((now - seen)) -ge IDLE_SECS ] && continue
+  n=$((n+1))
+done
+echo $n
+pgrep -c -x "rsync|scp|cp|dd|tar|make|ninja|cmake|nvcc|cc1plus|cargo|rustc"; true"""
+
+
+def busy_probe(idle_secs: int) -> str:
+    """Prints two numbers: ssh logins in use, and running transfer/build processes."""
+    return "timeout 10 sh -c " + shlex.quote(_BUSY_SH.replace("IDLE_SECS", str(int(idle_secs))))
 
 
 async def ssh(host: str, cmd: str, timeout: int = 30) -> tuple[int, str]:
@@ -274,8 +293,8 @@ class Node:
         # from under itself and corrupt the copy. Treat a login session or a live transfer as
         # busy; the cost of a false "busy" is a machine that stays awake, which is recoverable.
         #
-        # What counts as a login, and why, is at BUSY_PROBE (BACKLOG N8, 2026-09-28).
-        rc, out = await ssh(self.c.host, BUSY_PROBE, timeout=15)
+        # What counts as a login, and why, is at _BUSY_SH (BACKLOG N8, 2026-09-28; idle prompts 09-29).
+        rc, out = await ssh(self.c.host, busy_probe(self.c.idle_secs), timeout=15)
         if rc == 0:
             nums = [int(x) for x in out.split() if x.strip().isdigit()]
             if any(n > 0 for n in nums):

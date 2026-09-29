@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed -- wake proxy: an idle ssh prompt no longer keeps .73 awake (2026-09-29, Claude, Mark's OK)
+
+- `modules/wake_proxy.py` `_BUSY_SH` / `busy_probe(idle_secs)`: an ssh login still counts as busy unless its session
+  leader is a shell, nothing else runs in its session, AND its terminal has had no input for the proxy's idle window
+  (pts atime, what `w` shows as IDLE). A session running a job, or `ssh -t host job`, still counts.
+- **Why:** an `ssh mark@10.0.0.73` tab left open in Konsole (no input since 16:57) held .73 awake from 18:37 on 09-28
+  to 12:07 on 09-29, logged every 30 min as "node is busy".
+- Tested live on .73 with real ptys, 5/5 cases pass; proxy restarted 12:26.
+
 ### Changed -- .73 P100 clocks uncapped for speculative serving (150 W cap kept) (2026-09-28, Claude, Mark's plan)
 
 - `p100-efficiency.service` on .73: `-ac 715,1063` becomes `-ac 715,1328`; `-pl 150` is unchanged. Backup:
