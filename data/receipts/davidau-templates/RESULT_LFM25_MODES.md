@@ -1,5 +1,13 @@
 # Result -- DavidAU's Turbo-Brilliance modes buy no accuracy and cost calibration: the template's DEFAULT mode refuses 7/24 invented questions where no system prompt refuses 20/24. And one stray whitespace token cuts output length by 37-45 % in the modes that carry a system prompt.
 
+> **Correction, added 2026-09-28 (AFM-51): the answerable column undercounts.** The CAL grader rejects correct answers
+> carrying a unit symbol ("weber (Wb)" against gold "weber"); 15 of this run's rows are such false negatives.
+> Corrected answerable counts: ORIG off 24, low 24, high 20, ultra 24, einstein 22, spoon 23, omni 24; TRIM off 23,
+> high 22, omni 23.
+> - **The conclusions stand.** `off` is still 24/24 with no mode above it (P2), and every unanswerable/refusal number
+>   is unaffected (the false negatives are answerable-only).
+> - The HF community post (discussion #11) cited only "off 24/24, no mode beat it", which remains correct.
+
 **2026-09-28.** Pre-registration `PREREG_LFM25_MODES.md` (`a6d260f`); driver `lfm25_modes.py`, gate G1 passed before
 any row; analysis `analyze_lfm25_modes.py` (committed with the prereg, self-tested on synthetic rows). Raw
 `lfm25_modes/rows.jsonl`: 480 rows, 0 errors. Run log `lfm25_modes_run.log`.

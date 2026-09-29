@@ -1698,3 +1698,30 @@ and an env-prefixed nohup is not the server's PID.
 
 **Caught by:** the timestamps in the arm log (FNQ2 answering 3 s after launch, IQ4 "loaded" in 1 s), before the
 analysis was run. Deviation 1 in `PREREG_FLASHNEXT.md`; the invalid files are kept in `raw/invalid_20260928/`.
+
+## AFM-51 — the CAL grader rejects correct answers that carry a unit symbol ("weber (Wb)")
+
+**Found 2026-09-28** while scoring Flash-Next Stage B. `viability/run_fixture_structfix.py` `classify()` via
+`answer_matches()` normalises with `bare()`, which strips spaces but keeps parentheses. So `weber (Wb)` against gold
+`weber` becomes `weber(wb)` and is graded **ANSWERED-WRONG**. `Wb` alone and `the weber` are also rejected.
+
+**Audit of every stored CAL row:** 32 ANSWERED-WRONG rows whose answer contains the gold once parenthetical text and
+a leading article are removed, in 18 files.
+- 26 are the weber variants. 6 are "Regina" or "Sb" followed by meta-text on the answer line (a sloppier case, not
+  counted as a clean grader error).
+- Most older receipts have one affected row each: `overthink/` arms A/B/C, `marker-penalty/raw/out_bonsai1/`,
+  `out_iq3/`, `clause_*`, `cf_medium_*`, `effort_cal_medium`, `iq3_xhigh_rep3`.
+- **`davidau-templates/lfm25_modes/rows.jsonl` has 15.** Its answerable counts rise by up to 4/24 per mode (ultra
+  20 -> 24, spoon 19 -> 23). Its conclusions stand: `off` is still 24/24 with no mode above it, and the
+  unanswerable readout is unaffected. It is corrected in place.
+- Stage B's FNQ2 answerable is 22/24 as graded and 24/24 corrected.
+
+**Why it survived:** the grader was built and checked on answers that name the unit bare. A model that adds the SI
+symbol, the more precise answer, fails. Every answerable arm reads slightly low, and the error lands unevenly by
+model and prompt style: DavidAU's verbose modes add symbols more.
+
+**The check:** before a grader is trusted on a new model family, list its ANSWERED-WRONG rows next to the gold and
+read them. The audit above found this in seconds. **Fix:** a versioned `answer_matches` v2 that also accepts the
+gold as a whole word after removing parentheticals and a leading article. Applied only after runs grading with v1
+finish (the Swift-Bonsai run in flight re-imports the grader per rep), with corrected re-scores reported next to
+the originals, never silently replacing them.
