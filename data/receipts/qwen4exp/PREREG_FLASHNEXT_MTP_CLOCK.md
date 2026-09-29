@@ -63,3 +63,16 @@ works at a time; whole-box power per token is what is measured, not per-GPU effi
 ## Deviations
 
 Any change after the first row gets a numbered Deviation here before the affected rows run.
+
+### Deviation 1 (2026-09-28 ~20:40, before any MTP-on row): `-ts 1,1,1,0.6`, and the MTP-off half reruns
+
+Run 1 finished the MTP-off half (6 blocks, 42 rows). The MTP-on server then failed its warm-up with HTTP 500:
+`CUDA pool allocation failed (out of VRAM)` in the draft context's first decode.
+- Layer split had put the output layer and the MTP draft buffers on GPU 3, which was left with **57 MiB** free
+  ("unaccounted" 4,271 MiB). GPUs 0-2 had ~3.5 GB free each.
+- The run stopped the server and restored the efficiency config as designed (read back: 150 W, 1063 MHz on all 4).
+- **Change:** both MTP settings run with `--tensor-split 1,1,1,0.6`, which moves layers off GPU 3. The MTP-off half
+  reruns on the new placement so that off and on stay comparable.
+- Run 1's MTP-off rows are kept as `mtp_clock/rows_run1_no_ts.jsonl` (with its power log and run log) for a
+  placement check. The OOM server log is kept as `server_run1_mtp_on_oom.log`.
+- Everything else is unchanged.

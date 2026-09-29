@@ -23,7 +23,7 @@ URL = f"http://{H}:{PORT}"
 BIN = "~/buun-0b278/build_sm60/bin/llama-server"
 Q2 = "~/AI/Models/flashnext_q2/Qwen3.8-Flash-Next-UD-Q2_K_XL-00001-of-00003.gguf"
 MTP = "-md ~/AI/Models/flashnext_mtp/mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf --spec-type draft-mtp --spec-draft-n-max 3"
-FLAGS = f"-ngl 99 -sm layer -c 8192 -ctk f16 -ctv f16 -np 1 -fit off -lv 4 --host 0.0.0.0 --port {PORT}"
+FLAGS = f"-ngl 99 -sm layer -ts 1,1,1,0.6 -c 8192 -ctk f16 -ctv f16 -np 1 -fit off -lv 4 --host 0.0.0.0 --port {PORT}"
 CFG = {"E": "sudo nvidia-smi -pl 150 >/dev/null && sudo nvidia-smi -ac 715,1063 >/dev/null",
        "P": "sudo nvidia-smi -pl 150 >/dev/null && sudo nvidia-smi -ac 715,1328 >/dev/null",
        "B": "sudo nvidia-smi -pl 250 >/dev/null && sudo nvidia-smi -rac >/dev/null"}
