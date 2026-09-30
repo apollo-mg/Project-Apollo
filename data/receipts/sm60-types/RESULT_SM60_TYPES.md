@@ -99,9 +99,10 @@ the non-matmul ops.
 - **The clock matters for decode on this box:** +19-20 % for both files from 1063 -> 1328 MHz, twice what
   `qwen4exp/RESULT_FLASHNEXT_MTP_CLOCK.md` measured for plain UD-Q2 decode (~11 %). That run used `-c 8192` and a
   different request mix. The discrepancy is noted here, not resolved.
-- **A process note, not a result:** after each fresh server, the first ~6 requests ran 5-10 % slow and noisy
-  (UD-Q2 18.7-19.8 tok/s, then a flat 21.07-21.10). One discarded warm-up is not enough on this box. Medians still
-  show the effect, since two of the three blocks per file were settled.
+- **A process note, not a result:** after each fresh server, the first ~6 requests ran 5-10 % slow (UD-Q2 18.7-19.8
+  tok/s, then a flat 21.07-21.10). **`NOTE_WARMUP_DIAGNOSIS.md` shows this is page faults, not warm-up.** The
+  mmapped 28.8 GB `per_layer_token_embd` is read from SATA on each token's first use. Pre-reading it gives the cached
+  rate from the first request. The medians here are dominated by cached requests (2 of 3 blocks per file).
 
 ## Not established
 

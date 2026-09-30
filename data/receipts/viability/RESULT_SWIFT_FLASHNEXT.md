@@ -127,3 +127,23 @@ output `RESULT_swift_flashnext.json`.
   significant alone; stage 1's 10-vs-1 is the firm result.
 - Thinking-off M1 and CAL are factual Q&A. Swift's card targets coding and agent work, which this does not measure.
 - The speed probe is thinking-off prose; MTP acceptance inside long reasoning was not measured.
+
+## Correction (2026-09-29 evening): the speed medians mix page-faulted and cached requests
+
+`sm60-types/NOTE_WARMUP_DIAGNOSIS.md` found that the first use of any token id reads its row of the mmapped 28.8 GB
+`per_layer_token_embd` from SATA. That costs ~10 % decode until the row is cached. The speed probe's two passes
+over the same prompts were affected unequally:
+
+| arm | no MTP, pass 1 | no MTP, pass 2 | MTP, pass 1 | MTP, pass 2 |
+|---|---:|---:|---:|---:|
+| base | 18.04 | **18.76** | 24.38 | 26.23 |
+| Swift | 17.79 | 18.35 (last 3 prompts: **18.77-18.78**) | 24.42 | 26.82 |
+
+- **"Swift is 3 % slower without MTP ... F32 routers ... a likely cause" is withdrawn.** On requests with cached rows,
+  Swift and base decode identically without MTP (18.77-18.78 vs 18.73-18.77).
+- **MTP speedups on pass 2 are ~1.40x (base) and ~1.46x (Swift).** Swift's pass-2 no-MTP value is itself partly
+  faulted, so the Swift figure is an upper estimate. The 1.36x / 1.43x in the table above are medians over mixed
+  cache states.
+- **F5 is unaffected:** acceptance is a count ratio (0.730 vs 0.729), not a time.
+- The CAL wall-time comparison (152 vs 34 min) is dominated by tokens generated (100,487 vs 27,505) and stands.
+

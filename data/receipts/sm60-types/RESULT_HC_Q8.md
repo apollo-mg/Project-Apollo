@@ -1,4 +1,4 @@
-# Result -- converting GSQ-RCO's 192 BF16 hyper-connection matrices to Q8_0 recovers the whole decode gap to UD-Q2 (21.06 vs 21.08 tok/s once settled, +12 %), but it is not free: mean KLD 0.015, top-1 agreement 96.5 %. The slow part is the float mat-vec kernel at short rows (F16 and F32 are just as slow), so a kernel fix would give the speed without the fidelity cost.
+# Result -- converting GSQ-RCO's 192 BF16 hyper-connection matrices to Q8_0 speeds its decode 1.13x (registered, 20.38 vs 18.02 tok/s) and, with the embedding table cached, matches UD-Q2 exactly (21.06 vs 21.08). It is not free: mean KLD 0.015, top-1 96.5 %. The slow part is the float mat-vec kernel at short rows (F16 and F32 are just as slow), so a kernel fix would give the speed without the fidelity cost.
 
 **2026-09-29.** Pre-registration `PREREG_HC_Q8.md` (`513a721`), with Deviation 2 (below). Runner `run_hc_q8.sh`, build
 `hc_build.sh`, probe `hc_probe.py`, analysis `analyze_hc_q8.py`, output `RESULT_hc_q8.json`.
@@ -49,18 +49,20 @@ shared-memory reduction. Per-block overhead dominates. The quantized kernel hand
 | GSQB, bracketing run | 18.02 tok/s |
 | UD-Q2, kernel run (24 rows at 1063) | 21.08 tok/s |
 
-**Post-hoc: the settled rate after each fresh server's warm-up transient.** This is not a registered verdict.
+**Post-hoc: first vs second pass of the same prompts.** Not a registered verdict. `NOTE_WARMUP_DIAGNOSIS.md` shows the first pass is slow because of page faults on the mmapped embedding table, not warm-up. The second pass is the rate with those rows cached.
 
-| arm | first 6 requests | next 6 (settled) |
+| arm | first pass (rows faulting) | second pass (rows cached) |
 |---|---|---|
 | **HCQ8** | 18.6-19.7 | **21.04-21.08** |
 | UD-Q2 (kernel run, first block) | 18.7-19.8 | **21.05-21.08** |
 | GSQB (kernel run, first block) | 17.0-17.8 | **18.80-18.84** |
 | GSQB (bracketing run) | 17.4-18.8 | 17.8-18.7, never settled |
 
-- **Once settled, the converted file decodes at UD-Q2's speed, to 0.1 %**: 21.06 vs 21.08. That is 1.118x the original
-  GSQ-RCO's settled 18.83. The ~6 ms/token the kernel model assigned to the hyper-connections is all of the gap.
-- H2 fails as registered because the probe discards one warm-up. On this box a fresh server needs about six.
+- **With the table cached, the converted file decodes at UD-Q2's speed, to 0.1 %**: 21.06 vs 21.08. That is 1.118x
+  the original GSQ-RCO's cached 18.83, which comes from the kernel run's server and cache state, not this run's bracket.
+  The ~6 ms/token the kernel model assigned to the hyper-connections is all of the gap.
+- H2 fails as registered: HCQ8's first pass was faulting, UD-Q2's reference was mostly cached. The bracketing GSQB
+  never reached the cached rate because a different model generates different tokens after heavy page-cache churn.
 
 **Greedy outputs:** 2 of 12 identical between HCQ8 and GSQB. The rest first differ at characters 187-747. Each arm is
 deterministic: rep 1 and rep 2 match within an arm.
