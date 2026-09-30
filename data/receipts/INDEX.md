@@ -265,6 +265,7 @@ someone find it, and the claim in a form that is checkable.
 | Qwen3.8-27B vision works, and the **F16 projector sidesteps the Pascal problem** | `power-management/RESULT_QWEN38_VISION.md` | 08-29 |
 | Wake-on-demand: the wake worked, the LAUNCH silently didn't -- **systemd ate the JSON quotes** | `power-management/RESULT_WAKE_START_CMD_QUOTING.md` | 08-29 |
 | .73 survives S3 suspend and wakes on a magic packet with the P100s intact | `power-management/RESULT_S3_WOL_CYCLE.md` | 08-27 |
+| **.73's blowers hold 300 W of P100s at 51-55 C at ONE speed (time constants 30 s heating = 29 s cooling; no response to CPU temp); the BIOS step to full speed was never reached. The daily driver returns HTTP 500 to ALL slots on 3 concurrent requests (CUDA pool out of VRAM under `--vbr-vram auto`)** | `power-management/NOTE_FAN_CURVE_73.md` | 09-30 |
 | IQ2_S 27B on a 16 GB desktop card runs and stays coherent, and **llama.cpp's fit estimate lies by 2.4 GiB** | `desktop-16gb/RESULT_IQ2S_DESKTOP_PRELIM.md` | 08-28 |
 | **What gfx1201 actually launches** -- and why nobody has RDNA turbo prefill numbers | `rdna4-kernel-census/RESULT_LAUNCH_CENSUS.md` | 08-18 |
 | PR #295 on RDNA4: 57 of 98 spilling FA kernels fixed, none regressed -- but 128 and 256 not cleared | `rdna4-vgpr-spill/RESULT_PR295_GFX1201.md` | 08-17 |
