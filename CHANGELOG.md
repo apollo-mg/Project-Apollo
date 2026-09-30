@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed -- daydream brief: no self-contradicting adds, a one-line "likely closed" list, a close tool (2026-09-30, Claude, Mark's OK)
+
+- `tools/daydream_brief.py`:
+  - add candidates that share a source line with, or nearly duplicate, a closed or suggested thread are dropped
+    (the 09-30 brief proposed adding a line it also listed as possibly closed);
+  - commit-backed closure suggestions move to a one-line "Likely closed by a commit" section;
+  - verdicts are saved to `verdicts_<date>.json`, and `--render-only` re-renders without model calls.
+- `tools/daydream_close.py`: `--likely` closes that list after a skim; `--by "..." ID` closes an outcome that only
+  happened in chat.
+- `tools/daydream_nightly.sh`: the notification counts "likely closed" separately.
+- Tests: `tools/test_daydream_brief.py` (8 cases, pass); `tools/test_daydream_links.py` still passes.
+
 ### Added -- two GGUF tools (2026-09-29, Claude)
 
 - `tools/gguf_remote_header.py URL|PATH ...`: reads a GGUF tensor table (name, type, bytes, shape) over HTTP range

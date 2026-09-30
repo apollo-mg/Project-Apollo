@@ -108,10 +108,45 @@ def retro_recent(days=7):
     return rows
 
 
+def _norm(t):
+    return re.sub(r"[^a-z0-9 ]+", " ", t.lower())[:300].split()
+
+
+def near_dup(a, b, cut=0.6):
+    """Token-set overlap of the first ~300 chars. Catches a sentence edited in place (a new thread id, same claim)."""
+    x, y = set(_norm(a)), set(_norm(b))
+    return bool(x and y) and len(x & y) / min(len(x), len(y)) >= cut
+
+
+def drop_resolved_adds(adds, threads, resolved):
+    """An add candidate is dropped when a resolved thread (closed tonight, closed before, or suggested) shares a source
+    location with it or says nearly the same thing. 09-30: the older wording of RESULT_CALIB.md:204 was proposed for
+    BACKLOG while its edited-in-place successor was listed as possibly closed -- one brief contradicting itself."""
+    locs = {s for k in resolved for s in threads[k]["sources"]}
+    keep = []
+    for c in adds:
+        if c["thread"] in resolved or locs & set(c["sources"]):
+            continue
+        if any(near_dup(c["text"], threads[k]["text"]) for k in resolved):
+            continue
+        keep.append(c)
+    return keep
+
+
+def split_suggested(suggested, verdicts):
+    """Suggested closures whose evidence is a commit message go to a one-line 'likely closed' list: a commit message
+    is a deliberate record, and on 09-30 the commit-backed ones were right on inspection. The rest (diary lines,
+    same-day receipts) keep the longer 'check' format."""
+    likely = [k for k in suggested if verdicts[k].get("ev", {}).get("source", "").startswith("commit ")]
+    return likely, [k for k in suggested if k not in likely]
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--host", default="http://127.0.0.1:8099")
     ap.add_argument("--max-adjudicate", type=int, default=60)
+    ap.add_argument("--render-only", action="store_true",
+                    help="no model calls: re-render today's brief from verdicts_<date>.json (for tuning the brief)")
     a = ap.parse_args()
     today = datetime.date.today().isoformat()
     state_p = MORNING / "threads_state.json"
@@ -122,7 +157,15 @@ def main():
     # 1. adjudicate closure candidates (threads, then BACKLOG items)
     verdicts, bl_verdicts = {}, []
     todo = [(k, v) for k, v in links["threads"].items() if v["closure_candidates"]][: a.max_adjudicate]
+    vpath = MORNING / f"verdicts_{today}.json"
+    if a.render_only:
+        saved = json.load(open(vpath))
+        verdicts, bl_verdicts, picks = saved["verdicts"], saved["backlog"], saved["picks"]
+        status, notes, n_calls = saved["status"], saved["notes"] + ["re-rendered without model calls"], saved["calls"]
+        todo = todo[:saved.get("checked", len(todo))]
     try:
+        if a.render_only:
+            raise StopIteration
         for k, v in todo:
             src = v["sources"][0].split(":")[0]
             out = quick(a.host, ADJ.format(src=src, date=v["since"], text=v["text"][:900],
@@ -150,6 +193,8 @@ def main():
                 ev = it["evidence"][(j.get("evidence") or 1) - 1] if isinstance(j.get("evidence"), int) \
                     and 1 <= j["evidence"] <= len(it["evidence"]) else it["evidence"][0]
                 bl_verdicts.append({**it, "verdict": j, "ev": ev})
+    except StopIteration:
+        pass
     except Exception as e:                                  # noqa: BLE001
         status = "degraded"; notes.append(f"adjudication stopped after {n_calls} calls: {type(e).__name__}: {e}")
 
@@ -158,8 +203,9 @@ def main():
     open_ids = [k for k in links["threads"] if state["threads"][k]["status"] == "open"
                 and verdicts.get(k, {}).get("status") not in ("closed", "suggested")]
     ranked = sorted(open_ids, key=lambda k: (-state["threads"][k]["mentions"], state["threads"][k]["first_seen"]))[:25]
-    picks = []
-    if status == "ok" and ranked:
+    if not a.render_only:
+        picks = []
+    if status == "ok" and ranked and not a.render_only:
         blob = "\n\n".join(
             f"[{k}] (mentioned {state['threads'][k]['mentions']}x, first seen {state['threads'][k]['first_seen']}, "
             f"from {links['threads'][k]['sources'][0]})\n{links['threads'][k]['text'][:600]}\n"
@@ -185,8 +231,10 @@ def main():
     # 3. brief
     closed_now = [k for k, v in verdicts.items() if v.get("status") == "closed"]
     suggested = [k for k, v in verdicts.items() if v.get("status") == "suggested"]
-    adds = [c for c in links["backlog"]["add_candidates"] if state["threads"][c["thread"]]["status"] == "open"
-            and verdicts.get(c["thread"], {}).get("status") not in ("closed", "suggested")]
+    resolved = {k for k in links["threads"] if state["threads"][k]["status"] != "open"} | set(closed_now) | set(suggested)
+    adds = drop_resolved_adds(links["backlog"]["add_candidates"], links["threads"], resolved)
+    likely, check = split_suggested(suggested, verdicts)
+    picked = {p["id"] for p in picks}
     adds.sort(key=lambda c: (-state["threads"][c["thread"]]["mentions"], state["threads"][c["thread"]]["first_seen"]))
     per_file, capped = {}, []                         # one receipt's caveats must not fill the list (09-28: 6 of 8)
     for c in adds:
@@ -215,20 +263,27 @@ def main():
     L += [f"- **{b['id']}** (line {b['line']}, {b['verdict']['status']}): {b['text'][:140]}...  \n"
           f"  evidence: `{b['ev']['source']}` ({b['ev']['date']}) -- {b['verdict'].get('why', '')}" for b in bl_verdicts] or ["- none"]
     L += ["", "### Not in BACKLOG yet (open action threads with no close match)", ""]
-    L += [f"- {c['text'][:200]}  \n  from `{c['sources'][0]}` (nearest BACKLOG item {c['nearest']}, cos {c['cos']})" for c in adds[:8]] or ["- none"]
+    L += [f"- {c['text'][:200]}  \n  from `{c['sources'][0]}` (nearest BACKLOG item {c['nearest']}, cos {c['cos']})"
+          + (" -- also a pick above" if c["thread"] in picked else "") for c in adds[:8]] or ["- none"]
     L += ["", "## Threads closed tonight (marked in the state file)", ""]
     L += [f"- {state['threads'][k]['text'][:160]}  \n  by `{state['threads'][k]['closed_by']}`: {verdicts[k].get('why', '')}"
           for k in closed_now] or ["- none"]
-    L += ["", "## Possibly closed -- check (weaker evidence; left open)", ""]
+    L += ["", "## Likely closed by a commit -- skim and close (left open until a session or Mark confirms)", ""]
+    L += [f"- `{verdicts[k]['ev']['source'].split()[-1]}` ({verdicts[k]['ev']['date']}): "
+          f"{re.sub(r'[*`]', '', state['threads'][k]['text'])[:110].strip()}" for k in likely] or ["- none"]
+    L += ["", "## Possibly closed -- check (diary or same-day evidence; left open)", ""]
     L += [f"- {state['threads'][k]['text'][:160]}  \n  maybe by `{verdicts[k]['ev']['source']}` ({verdicts[k]['ev']['date']}): "
-          f"{verdicts[k].get('why', '')}" for k in suggested] or ["- none"]
+          f"{verdicts[k].get('why', '')}" for k in check] or ["- none"]
     L += ["", "## Recurring failure modes seen in the last 7 days (ledger_retro)", ""]
     L += retro_recent() or ["- none"]
     L += ["", "---", f"*Harvest `harvest_{today}.json`, links `links_{today}.json`, state `threads_state.json`.*"]
     MORNING.mkdir(parents=True, exist_ok=True)
     (MORNING / f"{today}.md").write_text("\n".join(L) + "\n")
     json.dump(state, open(state_p, "w"), indent=1, ensure_ascii=False)
-    print(json.dumps({"status": status, "picks": len(picks), "closed": len(closed_now), "suggested": len(suggested), "backlog_close": len(bl_verdicts),
+    if not a.render_only:
+        json.dump({"verdicts": verdicts, "backlog": bl_verdicts, "picks": picks, "status": status, "notes": notes,
+                   "calls": n_calls, "checked": len(todo)}, open(vpath, "w"), indent=1, ensure_ascii=False)
+    print(json.dumps({"status": status, "picks": len(picks), "closed": len(closed_now), "suggested": len(suggested), "likely": len(likely), "backlog_close": len(bl_verdicts),
                       "backlog_add": len(adds), "calls": n_calls, "notes": notes}))
 
 
