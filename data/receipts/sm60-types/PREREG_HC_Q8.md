@@ -60,3 +60,9 @@ sizes.
 ## Deviations
 
 Any change after the first row gets a numbered Deviation here before the affected rows run.
+
+### Deviation 2 (2026-09-29 ~20:20, AFTER all registered rows): a GSQB-vs-itself KLD control
+
+- H4 failed (0.0153). To know whether any of that is run-to-run noise, `llama-perplexity` scored GSQB against its own
+  saved logits, same flags (`raw_hc/kld_self_control.txt`): mean KLD 0.000000, same top 100 %.
+- Post-hoc and labelled as such. It does not change any verdict.

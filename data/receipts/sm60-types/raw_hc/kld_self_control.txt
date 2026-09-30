@@ -1,0 +1,70 @@
+0.10.449.311 W VBR dynamic: -np 4 without --kv-unified would disarm the degrade controller (per-seq KV streams) — forcing --kv-unified
+0.10.449.324 I VBR dynamic turbo runtime controller: KV budget auto (remaining VRAM, resolved by fit), entry tier f16, floor 4.125 bits/value, price-ordered decode-time degrades
+0.10.449.325 I cmn  common_param: VBR codec auto: selected turbo from model KV geometry
+0.10.655.349 W vbr_load_degrade_order: no measured VBR degrade order for this arch/n_layer — using the generic cross-model order (a measured per-model order is better; set VBR_DEGRADE_ORDER=<file> to supply one)
+VMEAN tap: no live V layers — add disabled
+0.10.793.489 I cmn          init: llama threadpool init, n_threads = 20
+TCQ decode: context-adaptive V alpha enabled
+0.11.956.143 I 
+0.11.956.282 I system_info: n_threads = 20 (n_threads_batch = 20) / 40 | CUDA : ARCHS = 600 | USE_GRAPHS = 1 | FA_QUANTS = q4_0-q4_0,q8_0-q8_0,f16-f16,bf16-bf16 | TURBO_FA = 1 | CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | AVX2 = 1 | F16C = 1 | FMA = 1 | BMI2 = 1 | LLAMAFILE = 1 | OPENMP = 1 | REPACK = 1 | 
+0.12.065.853 I kl_divergence: computing over 16 chunks, n_ctx=512, batch_size=2048, n_seq=4
+0.36.661.271 I kl_divergence: 24.60 seconds per pass - ETA 1.63 minutes
+
+chunk             PPL               ln(PPL(Q)/PPL(base))          KL Divergence              Δp RMS            Same top p
+   1       2.5318 ±    0.3294      -0.00000 ±    0.00000      -0.00000 ±    0.00000     0.000 ±  0.000 %    100.000 ±  0.000 %
+   2       3.8135 ±    0.4231       0.00000 ±    0.00000      -0.00000 ±    0.00000     0.000 ±  0.000 %    100.000 ±  0.000 %
+   3       2.9830 ±    0.2444       0.00000 ±    0.00001      -0.00000 ±    0.00000     0.000 ±  0.000 %    100.000 ±  0.000 %
+   4       2.4697 ±    0.1597       0.00000 ±    0.00000       0.00000 ±    0.00000     0.000 ±  0.000 %    100.000 ±  0.000 %
+   5       2.2425 ±    0.1216      -0.00000 ±    0.00000       0.00000 ±    0.00000     0.000 ±  0.000 %    100.000 ±  0.000 %
+   6       2.1345 ±    0.1012      -0.00000 ±    0.00000       0.00000 ±    0.00000     0.000 ±  0.000 %    100.000 ±  0.000 %
+   7       2.0458 ±    0.0886       0.00165 ±    0.00165       0.00000 ±    0.00000     0.000 ±  0.000 %    100.000 ±  0.000 %
+   8       2.0237 ±    0.0810       0.00144 ±    0.00144       0.00000 ±    0.00000     0.000 ±  0.000 %    100.000 ±  0.000 %
+   9       1.9908 ±    0.0738       0.00128 ±    0.00128      -0.00000 ±    0.00000     0.000 ±  0.000 %    100.000 ±  0.000 %
+  10       1.9444 ±    0.0668       0.00116 ±    0.00116      -0.00000 ±    0.00000     0.000 ±  0.000 %    100.000 ±  0.000 %
+  11       1.8778 ±    0.0602       0.00105 ±    0.00105      -0.00000 ±    0.00000     0.000 ±  0.000 %    100.000 ±  0.000 %
+  12       1.9433 ±    0.0603       0.00096 ±    0.00096      -0.00000 ±    0.00000     0.000 ±  0.000 %    100.000 ±  0.000 %
+  13       2.0668 ±    0.0629       0.00089 ±    0.00089      -0.00000 ±    0.00000     0.001 ±  0.000 %    100.000 ±  0.000 %
+  14       2.0951 ±    0.0612       0.00083 ±    0.00083       0.00000 ±    0.00000     0.001 ±  0.000 %    100.000 ±  0.000 %
+  15       2.2219 ±    0.0640       0.00077 ±    0.00077       0.00000 ±    0.00000     0.001 ±  0.000 %    100.000 ±  0.000 %
+  16       2.3639 ±    0.0682       0.00072 ±    0.00072      -0.00000 ±    0.00000     0.001 ±  0.000 %    100.000 ±  0.000 %
+
+====== Perplexity statistics ======
+Mean PPL(Q)                   :   2.363904 ±   0.068184
+Mean PPL(base)                :   2.362197 ±   0.067891
+Cor(ln(PPL(Q)), ln(PPL(base))):  99.97%
+Mean ln(PPL(Q)/PPL(base))     :   0.000722 ±   0.000722
+Mean PPL(Q)/PPL(base)         :   1.000723 ±   0.000723
+Mean PPL(Q)-PPL(base)         :   0.001707 ±   0.001715
+
+====== KL divergence statistics ======
+Mean    KLD:  -0.000000 ±   0.000000
+Maximum KLD:   0.000060
+99.9%   KLD:   0.000050
+99.0%   KLD:   0.000035
+95.0%   KLD:   0.000017
+90.0%   KLD:   0.000009
+Median  KLD:  -0.000000
+10.0%   KLD:  -0.000009
+ 5.0%   KLD:  -0.000017
+ 1.0%   KLD:  -0.000035
+ 0.1%   KLD:  -0.000049
+Minimum KLD:  -0.000062
+
+====== Token probability statistics ======
+Mean    Δp:  0.000 ± 0.000 %
+Maximum Δp:  0.005%
+99.9%   Δp:  0.004%
+99.0%   Δp:  0.002%
+95.0%   Δp:  0.000%
+90.0%   Δp:  0.000%
+75.0%   Δp:  0.000%
+Median  Δp:  0.000%
+25.0%   Δp:  0.000%
+10.0%   Δp: -0.000%
+ 5.0%   Δp: -0.000%
+ 1.0%   Δp: -0.002%
+ 0.1%   Δp: -0.005%
+Minimum Δp: -0.006%
+RMS Δp    :  0.001 ± 0.000 %
+Same top p: 100.000 ± 0.000 %
+
