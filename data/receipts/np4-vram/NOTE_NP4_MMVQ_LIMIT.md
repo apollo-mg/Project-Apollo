@@ -55,3 +55,25 @@ Draft 3 also costs ~690 MiB more per card at load than draft 1 (14,375 vs 13,689
 | C: unchanged | best | **3+ at once = HTTP 500 for everyone** | today's state |
 
 Either A or B, plus `-ts` to even the projector's imbalance, removes the failure.
+
+## Applied 2026-09-30 (Mark: option A; "let's just notate the other option exists")
+
+- **Unit:** `apollo-wake-proxy.service` `-np 4` -> **`-np 2`**, draft depth 3 unchanged, default split.
+  Backup: `apollo-wake-proxy.service.bak-np4-20260930`.
+- **Verified on the deployed server:** 3 concurrent requests all complete; the third queues.
+- **Option B** (draft 1, `-np 4`: 4 at once, 35 tok/s total, -10 % single-stream / -18 % code) remains available if
+  concurrency ever matters more than single-stream speed.
+
+**`-ts` was measured and left at the default.** The tensor split moves in coarse steps on this model:
+
+| `-ts` | GPU 0 used | GPU 1 used | smaller free | single stream, 3 prompts |
+|---|---:|---:|---:|---|
+| default (`-np 2`) | 13,753 MiB | 12,617 MiB | 2,631 MiB | 22.85 / 25.47 / 29.54 tok/s |
+| 49,51 | 12,951 | 13,291 | **3,093** | 22.42 / 24.91 / 28.47 (**-2.5 %**) |
+| 48,52 | 12,805 | 13,597 | 2,787 | -- |
+| 45,55 | 12,375 | 14,027 | 2,357 | -- |
+
+- `-np 2` alone matches the old `-np 4` single-stream speed exactly (22.77 / 25.42 / 29.55), and frees 622 MiB per card
+  of recurrent state.
+- **`-ts 49,51` buys 462 MiB on the tighter card for 2.5 % of decode.** Not worth it while VBR KV is not the constraint.
+  Revisit if long contexts start degrading early.

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed -- .73 daily driver `-np 4` -> `-np 2` (2026-09-30, Claude, Mark's pick: option A)
+
+- 3+ concurrent requests failed with HTTP 500 for every slot: streams x (1 + MTP draft 3) > 8 = `MMVQ_MAX_BATCH_SIZE`
+  (`data/receipts/np4-vram/NOTE_NP4_MMVQ_LIMIT.md`).
+- With `-np 2`, a third request queues instead of failing. Single-stream speed is unchanged, and 622 MiB/card of
+  recurrent state is freed.
+- Option B (draft 1, `-np 4`) is recorded there. `-ts 49,51` was measured (+462 MiB on the tighter card, -2.5 % decode)
+  and not applied.
+- Backup: `~/.config/systemd/user/apollo-wake-proxy.service.bak-np4-20260930`.
+
 ### Changed -- daydream brief: no self-contradicting adds, a one-line "likely closed" list, a close tool (2026-09-30, Claude, Mark's OK)
 
 - `tools/daydream_brief.py`:
