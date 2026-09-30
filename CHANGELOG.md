@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added -- two GGUF tools (2026-09-29, Claude)
+
+- `tools/gguf_remote_header.py URL|PATH ...`: reads a GGUF tensor table (name, type, bytes, shape) over HTTP range
+  requests or from a local file, without downloading the weights; `--kv KEY` prints one metadata value (e.g.
+  `tokenizer.chat_template`). Used to compare quant allocations before download (`viability/RESULT_SWIFT_FLASHNEXT.md`,
+  `sm60-types/`).
+- `tools/gguf_retype.py IN OUT REGEX [--verify]`: rewrites one GGUF (a shard is fine), converting only matching
+  BF16/F16/F32 tensors to Q8_0 with ggml's reference quantizer (bit-exact vs gguf-py). Everything else is copied byte
+  for byte; `--verify` hashes each copied tensor. Used in `sm60-types/RESULT_HC_Q8.md`.
+- On .194, `~/test-backend-ops-fn` and `~/test-backend-ops-hc` are patched copies of test-backend-ops with extra perf
+  cases (`sm60-types/fn_cases.inc`, `fn_hc_cases.inc`). The buun source tree and the fleet libraries are unchanged.
+  `~/AI/Models/fn_gsq_base_hcq8/` holds the converted GSQ-RCO shard, kept as the baseline for a kernel-fix comparison.
+
 ### Changed -- wake proxy: an idle ssh prompt no longer keeps .73 awake (2026-09-29, Claude, Mark's OK)
 
 - `modules/wake_proxy.py` `_BUSY_SH` / `busy_probe(idle_secs)`: an ssh login still counts as busy unless its session
