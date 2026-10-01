@@ -12,6 +12,9 @@ fabrication), output `RESULT_coder.json`.
   tensors), no Bonsai remap, thinking off (empty reasoning; 0/164 HumanEval+ samples reasoned). The Coder's shard 1
   matched the manifest sha256; shard 2 is byte-identical to the parent's.
 
+- **Shared with ISTA (2026-10-01):** posted by Mark as
+  https://huggingface.co/ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-Coder-GGUF/discussions/19
+
 ## Registered verdicts
 
 | # | claim | result |
