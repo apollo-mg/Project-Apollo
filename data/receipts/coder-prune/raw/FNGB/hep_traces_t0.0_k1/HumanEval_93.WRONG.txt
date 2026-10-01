@@ -1,0 +1,63 @@
+### HumanEval/93  pass_frac=0.00 (of K=1)  first-fail bucket=WRONG finish=stop gzip_ratio=1.000 code_src=content
+### PROMPT:
+
+def encode(message):
+    """
+    Write a function that takes a message, and encodes in such a 
+    way that it swaps case of all letters, replaces all vowels in 
+    the message with the letter that appears 2 places ahead of that 
+    vowel in the english alphabet. 
+    Assume only letters. 
+    
+    Examples:
+    >>> encode('test')
+    'TGST'
+    >>> encode('This is a message')
+    'tHKS KS C MGSSCGG'
+    """
+
+### CONTENT:
+```python
+def encode(message):
+    """
+    Write a function that takes a message, and encodes in such a 
+    way that it swaps case of all letters, replaces all vowels in 
+    the message with the letter that appears 2 places ahead of that 
+    vowel in the english alphabet. 
+    Assume only letters. 
+    
+    Examples:
+    >>> encode('test')
+    'TGST'
+    >>> encode('This is a message')
+    'tHKS KS C MGSSCGG'
+    """
+    vowels = 'aeiouAEIOU'
+    result = []
+    for char in message:
+        if char in vowels:
+            # Swap case first
+            swapped = char.swapcase()
+            # Find the vowel (lowercase) to determine the shift
+            lower_char = char.lower()
+            # Map vowel to shifted vowel (2 places ahead)
+            vowel_map = {
+                'a': 'c',
+                'e': 'g',
+                'i': 'k',
+                'o': 'q',
+                'u': 'w'
+            }
+            shifted = vowel_map[lower_char]
+            # Apply the swapped case to the shifted vowel
+            if char.isupper():
+                result.append(shifted.upper())
+            else:
+                result.append(shifted.lower())
+        else:
+            # Just swap case for non-vowel letters
+            result.append(char.swapcase())
+    return ''.join(result)
+```
+### REASONING_CONTENT:
+

@@ -1,0 +1,102 @@
+### HumanEval/132  pass_frac=0.00 (of K=1)  first-fail bucket=WRONG finish=stop gzip_ratio=1.000 code_src=content
+### PROMPT:
+
+def is_nested(string):
+    '''
+    Create a function that takes a string as input which contains only square brackets.
+    The function should return True if and only if there is a valid subsequence of brackets 
+    where at least one bracket in the subsequence is nested.
+
+    is_nested('[[]]') ➞ True
+    is_nested('[]]]]]]][[[[[]') ➞ False
+    is_nested('[][]') ➞ False
+    is_nested('[]') ➞ False
+    is_nested('[[][]]') ➞ True
+    is_nested('[[]][[') ➞ True
+    '''
+
+### CONTENT:
+```python
+def is_nested(string):
+    '''
+    Create a function that takes a string as input which contains only square brackets.
+    The function should return True if and only if there is a valid subsequence of brackets 
+    where at least one bracket in the subsequence is nested.
+
+    is_nested('[[]]') ➞ True
+    is_nested('[]]]]]]][[[[[]') ➞ False
+    is_nested('[][]') ➞ False
+    is_nested('[]') ➞ False
+    is_nested('[[][]]') ➞ True
+    is_nested('[[]][[') ➞ True
+    '''
+    # We need to find if there exists a valid subsequence that contains nested brackets.
+    # A nested bracket means we have something like "[...[...]]" where an inner pair is inside an outer pair.
+    # Essentially, we need to check if there's a valid bracket sequence (subsequence) that has depth >= 2.
+    
+    # Let's think about this differently. We need to find a subsequence that forms a valid bracket sequence
+    # with at least one nesting (i.e., depth >= 2 at some point).
+    
+    # A valid bracket sequence has balanced brackets. For nesting, we need at least one pair inside another.
+    # The simplest nested valid sequence is "[[]]" which has depth 2.
+    
+    # We can use a stack-based approach to find if there's a valid subsequence with nesting.
+    # Let's try to find the longest valid bracket subsequence and check if it has nesting.
+    
+    # Alternative approach: scan through the string, maintaining a stack.
+    # We want to find if there exists a valid bracket subsequence with depth >= 2.
+    
+    # Let's use a greedy approach: find valid bracket pairs and check if any pair is nested inside another.
+    
+    stack = []
+    max_depth = 0
+    current_depth = 0
+    
+    for char in string:
+        if char == '[':
+            stack.append(char)
+            current_depth += 1
+            if current_depth > max_depth:
+                max_depth = current_depth
+        elif char == ']':
+            if stack:
+                stack.pop()
+                current_depth -= 1
+    
+    # If max_depth >= 2, we have nesting in some valid subsequence
+    # But wait, this doesn't correctly handle subsequences. Let me reconsider.
+    
+    # Actually, the above approach finds the maximum depth of a valid prefix-like structure,
+    # but we need to find if there's ANY valid subsequence with nesting.
+    
+    # Let me think again. A valid bracket subsequence means we pick some brackets in order
+    # that form a valid bracket sequence. We need at least one such sequence with nesting.
+    
+    # The key insight: if we can find two matching pairs where one is "inside" the other
+    # in the subsequence, that's nesting.
+    
+    # Let's try a different approach: find all valid bracket pairs and see if any pair
+    # contains another pair.
+    
+    # Simpler approach: use a stack to track open brackets. When we close a bracket,
+    # if there was already an open bracket before it (i.e., depth > 1 when closing),
+    # then we have nesting.
+    
+    stack = []
+    found_nested = False
+    
+    for char in string:
+        if char == '[':
+            stack.append(len(stack))  # store position or just count
+        elif char == ']':
+            if stack:
+                stack.pop()
+                # If after popping, there's still something in the stack, 
+                # this closing bracket was nested inside another open bracket
+                if stack:
+                    found_nested = True
+    
+    return found_nested
+```
+### REASONING_CONTENT:
+

@@ -1,0 +1,51 @@
+### HumanEval/156  pass_frac=0.00 (of K=1)  first-fail bucket=WRONG finish=stop gzip_ratio=1.000 code_src=content
+### PROMPT:
+
+def int_to_mini_roman(number):
+    """
+    Given a positive integer, obtain its roman numeral equivalent as a string,
+    and return it in lowercase.
+    Restrictions: 1 <= num <= 1000
+
+    Examples:
+    >>> int_to_mini_roman(19) == 'xix'
+    >>> int_to_mini_roman(152) == 'clii'
+    >>> int_to_mini_roman(426) == 'cdxxvi'
+    """
+
+### CONTENT:
+```python
+def int_to_mini_roman(number):
+    """
+    Given a positive integer, obtain its roman numeral equivalent as a string,
+    and return it in lowercase.
+    Restrictions: 1 <= num <= 1000
+
+    Examples:
+    >>> int_to_mini_roman(19) == 'xix'
+    >>> int_to_mini_roman(152) == 'clii'
+    >>> int_to_mini_roman(426) == 'cdxxvi'
+    """
+    val = [
+        1000, 900, 500, 400,
+        100, 90, 50, 40,
+        10, 9, 5, 4,
+        1
+    ]
+    syms = [
+        "m", "cm", "dm", "mm",
+        "c", "xc", "l", "xl",
+        "x", "ix", "v", "iv",
+        "i"
+    ]
+    roman_numeral = ""
+    i = 0
+    while number > 0:
+        while number >= val[i]:
+            roman_numeral += syms[i]
+            number -= val[i]
+        i += 1
+    return roman_numeral
+```
+### REASONING_CONTENT:
+

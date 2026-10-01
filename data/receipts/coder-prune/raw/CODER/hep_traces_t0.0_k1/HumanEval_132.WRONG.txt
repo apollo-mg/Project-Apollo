@@ -1,0 +1,63 @@
+### HumanEval/132  pass_frac=0.00 (of K=1)  first-fail bucket=WRONG finish=stop gzip_ratio=1.000 code_src=content
+### PROMPT:
+
+def is_nested(string):
+    '''
+    Create a function that takes a string as input which contains only square brackets.
+    The function should return True if and only if there is a valid subsequence of brackets 
+    where at least one bracket in the subsequence is nested.
+
+    is_nested('[[]]') ➞ True
+    is_nested('[]]]]]]][[[[[]') ➞ False
+    is_nested('[][]') ➞ False
+    is_nested('[]') ➞ False
+    is_nested('[[][]]') ➞ True
+    is_nested('[[]][[') ➞ True
+    '''
+
+### CONTENT:
+```python
+def is_nested(string):
+    '''
+    Create a function that takes a string as input which contains only square brackets.
+    The function should return True if and only if there is a valid subsequence of brackets 
+    where at least one bracket in the subsequence is nested.
+
+    is_nested('[[]]') ➞ True
+    is_nested('[]]]]]]][[[[[]') ➞ False
+    is_nested('[][]') ➞ False
+    is_nested('[]') ➞ False
+    is_nested('[[][]]') ➞ True
+    is_nested('[[]][[') ➞ True
+    '''
+    # We need to find if there exists a valid subsequence that contains a nested bracket pair.
+    # A nested bracket means we have something like [ ... [ ... ] ... ] where the inner [] is inside the outer [].
+    # Essentially, we need to check if there's a pattern where we can find two consecutive opening brackets 
+    # followed by a closing bracket that matches the inner one, all within a valid subsequence.
+    
+    # Let's think about it differently: we need to find a valid subsequence that has at least one nested pair.
+    # A nested pair means we have [ [ ] ] as a subsequence (not necessarily contiguous).
+    # So we need to find indices i < j < k < l such that string[i]='[', string[j]='[', string[k]=']', string[l]=']'
+    # and the subsequence string[i], string[j], string[k], string[l] forms a valid bracket sequence with nesting.
+    
+    # Actually, let's use a simpler approach: track the depth of brackets as we scan.
+    # If at any point we have depth >= 2 and then we close back, we have nesting.
+    
+    # Let's iterate through the string, maintaining a stack-like counter for open brackets.
+    # We want to detect if there's a position where we have at least 2 open brackets and then close one.
+    
+    open_count = 0
+    for char in string:
+        if char == '[':
+            open_count += 1
+        elif char == ']':
+            if open_count > 0:
+                open_count -= 1
+                # If after closing, we still had at least one open bracket before this close,
+                # that means this close was inside another open bracket -> nesting exists
+                if open_count >= 1:
+                    return True
+    return False
+```
+### REASONING_CONTENT:
+
