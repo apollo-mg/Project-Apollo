@@ -28,6 +28,10 @@ leg() {  # leg NAME ENV BIN MODE...
       $bin "$@" > $OUT/$name.txt 2> $OUT/$name.err
     fi
     echo "$(date +%T) leg $name rc=$? env=${env:-unset}" >> $OUT/gates.log
+    # rc=0 is not proof (usage text exits 0): require the mode's own result marker
+    if ! grep -qE 'us/run|tests passed' $OUT/$name.txt; then
+      echo "$(date +%T) leg $name NO RESULT MARKER -- aborting run" >> $OUT/gates.log; exit 1
+    fi
     gate "post $name try$try" && return 0
     mv $OUT/$name.txt $OUT/$name.contaminated$try.txt
   done
@@ -36,23 +40,23 @@ leg() {  # leg NAME ENV BIN MODE...
 
 if [ "$PH" = A ]; then
   sha256sum $W/tbo-base $W/tbo-tune > $OUT/binaries.sha256
-  leg test_base "" $W/tbo-base -m test -b CUDA0 -o $TEST_OPS -p "$TEST_RE" -j 4
-  leg test_tune_R4 "4,4096" $W/tbo-tune -m test -b CUDA0 -o $TEST_OPS -p "$TEST_RE" -j 4
+  leg test_base "" $W/tbo-base test -b CUDA0 -o $TEST_OPS -p "$TEST_RE" -j 4
+  leg test_tune_R4 "4,4096" $W/tbo-tune test -b CUDA0 -o $TEST_OPS -p "$TEST_RE" -j 4
   for rep in 1 2 3; do
     for arm in base unset R1 R2 R4 R8; do
       case $arm in
-        base)  leg perf_${arm}_r$rep "" $W/tbo-base -m perf -b CUDA0 -o MUL_MAT -p "$PERF_RE" ;;
-        unset) leg perf_${arm}_r$rep "" $W/tbo-tune -m perf -b CUDA0 -o MUL_MAT -p "$PERF_RE" ;;
-        R*)    leg perf_${arm}_r$rep "${arm#R},4096" $W/tbo-tune -m perf -b CUDA0 -o MUL_MAT -p "$PERF_RE" ;;
+        base)  leg perf_${arm}_r$rep "" $W/tbo-base perf -b CUDA0 -o MUL_MAT -p "$PERF_RE" ;;
+        unset) leg perf_${arm}_r$rep "" $W/tbo-tune perf -b CUDA0 -o MUL_MAT -p "$PERF_RE" ;;
+        R*)    leg perf_${arm}_r$rep "${arm#R},4096" $W/tbo-tune perf -b CUDA0 -o MUL_MAT -p "$PERF_RE" ;;
       esac
     done
   done
 elif [ "$PH" = B ]; then
   sha256sum $W/tbo-base $W/tbo-final > $OUT/binaries.sha256
-  leg test_final "" $W/tbo-final -m test -b CUDA0 -o $TEST_OPS -p "$TEST_RE" -j 4
+  leg test_final "" $W/tbo-final test -b CUDA0 -o $TEST_OPS -p "$TEST_RE" -j 4
   for rep in 1 2 3; do
     for arm in base final; do
-      leg perf_${arm}_r$rep "" $W/tbo-$arm -m perf -b CUDA0 -o MUL_MAT -p "$PERF_RE"
+      leg perf_${arm}_r$rep "" $W/tbo-$arm perf -b CUDA0 -o MUL_MAT -p "$PERF_RE"
     done
   done
 fi

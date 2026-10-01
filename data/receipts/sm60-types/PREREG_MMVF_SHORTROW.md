@@ -129,3 +129,14 @@ this fix, and is expected unchanged.
 ## Deviations
 
 Any change after the first timed row gets a numbered Deviation here before the affected rows run.
+
+- **Deviation 1 (harness only, before any timed row; 10-01 19:05).** Two launch defects, neither touching the kernel
+  or the rule:
+  - **The mode is positional.** This `test-backend-ops` takes `test` / `perf`, not `-m perf`. The first launch printed
+    only usage text and exited 0 for every leg, so no rows exist from it. The runner now fails any leg whose output
+    lacks `us/run` or `tests passed`.
+  - **buun `ab22bc538`'s stock perf list aborts in its own constructor**, on a flash-attention case
+    (`GGML_ASSERT(!(v_is_view_of_k && v_is_k_view))`, `test-backend-ops.cpp:9671`), before any case runs. Perf mode
+    now returns right after `mmvf_perf_cases.inc` (`mmvf/mmvf_rebuild.sh`), so only the registered cases run (30
+    shapes, all parsed in a smoke run). Eval mode is unchanged.
+  - **Rebuilt binaries:** tbo-base `22ce0765…`, tbo-tune `1c8e7170…`.
