@@ -8,7 +8,7 @@ M='~/AI/Models/flashnext_q2/Qwen3.8-Flash-Next-UD-Q2_K_XL-00001-of-00003.gguf'
 PLE='~/AI/Models/flashnext_q2/Qwen3.8-Flash-Next-UD-Q2_K_XL-00002-of-00003.gguf'
 MTP='-md ~/AI/Models/flashnext_mtp/mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf --spec-type draft-mtp --spec-draft-n-max 3'
 BASE="-ngl 99 -c 16384 -np 4 -fa on -fit off -ctk f16 -ctv f16 -lv 4 --host 0.0.0.0 --port $PORT"
-declare -A EXTRA=([L0]="-sm layer -ts 1,1,1,0.6" [L3]="-sm layer -ts 1,1,1,0.6 $MTP" [T0]="-sm tensor" [T3]="-sm tensor $MTP")
+declare -A EXTRA=([L0]="-sm layer -ts 1,1,1,0.6" [L3]="-sm layer -ts 1,1,1,0.6 $MTP" [T0]="-sm tensor" [T3]="-sm tensor -ts 1,1,1,0.75 $MTP")
 OUT="$HERE/raw"; mkdir -p "$OUT"; LOG="$OUT/run.log"; ROWS="$OUT/rows.jsonl"
 log() { echo "$(date '+%F %T') $*" | tee -a "$LOG"; }
 R() { timeout "${2:-60}" ssh -n -o BatchMode=yes "$H" "$1"; }

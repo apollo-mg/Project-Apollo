@@ -52,3 +52,13 @@ decrease per slot?" Then: "let's go ahead and finish out those last tests."
 ## Deviations
 
 Any change after the first row gets a numbered Deviation here before the affected rows run.
+
+### Deviation 1 (2026-10-01 15:10, after L0/L3/T0 completed, before any T3 row): T3 runs with `-ts 1,1,1,0.75`
+
+- **The failure:** T3 (`-sm tensor` + MTP) did not start. buun logs "tensor-split target: draft model falls back to
+  layer split" and put the drafter's 2,644 MiB buffer on device 3. Tensor split had filled every card evenly
+  (13,569 MiB each), so `cudaMalloc failed: out of memory` (`raw/sc_T3_oom.log`). This is the known
+  [drafter gates the KV budget] effect.
+- **The change:** T3 only, `-ts 1,1,1,0.75`, so GPU 3 carries less of the target and has room for the drafter.
+- **Comparability:** T0 ran even and T3 does not. T3 is reported against L3 as an MTP-under-tensor-split data point,
+  with the split difference stated.
