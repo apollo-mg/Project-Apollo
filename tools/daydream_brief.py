@@ -118,19 +118,21 @@ def near_dup(a, b, cut=0.6):
     return bool(x and y) and len(x & y) / min(len(x), len(y)) >= cut
 
 
-def drop_resolved_adds(adds, threads, resolved):
-    """An add candidate is dropped when a resolved thread (closed tonight, closed before, or suggested) shares a source
-    location with it or says nearly the same thing. 09-30: the older wording of RESULT_CALIB.md:204 was proposed for
-    BACKLOG while its edited-in-place successor was listed as possibly closed -- one brief contradicting itself."""
+def shadowed(item, threads, resolved):
+    """True when a resolved thread (closed tonight, closed on an earlier night, or suggested) shares a source location
+    with item or says nearly the same thing. `threads` must cover EVERY thread in the state file, not only tonight's:
+    on 10-01 the open older wording of RESULT_CALIB.md:204 was picked because its closed sibling (closed 09-30) is no
+    longer in tonight's links, so a tonight-only resolved set could not see it."""
+    if item.get("thread") in resolved:
+        return True
     locs = {s for k in resolved for s in threads[k]["sources"]}
-    keep = []
-    for c in adds:
-        if c["thread"] in resolved or locs & set(c["sources"]):
-            continue
-        if any(near_dup(c["text"], threads[k]["text"]) for k in resolved):
-            continue
-        keep.append(c)
-    return keep
+    return bool(locs & set(item["sources"])) or any(near_dup(item["text"], threads[k]["text"]) for k in resolved)
+
+
+def drop_resolved_adds(adds, threads, resolved):
+    """Add candidates minus the shadowed ones. 09-30: the older wording of RESULT_CALIB.md:204 was proposed for BACKLOG
+    while its edited-in-place successor was listed as possibly closed -- one brief contradicting itself."""
+    return [c for c in adds if not shadowed(c, threads, resolved)]
 
 
 def split_suggested(suggested, verdicts):
@@ -200,8 +202,12 @@ def main():
 
     # 2. picks. A thread the adjudicator called closed on weaker evidence ("suggested") is listed for checking, not
     # picked: in the first unattended brief (09-28) four of five picks were already answered or shelved.
-    open_ids = [k for k in links["threads"] if state["threads"][k]["status"] == "open"
-                and verdicts.get(k, {}).get("status") not in ("closed", "suggested")]
+    every = {k: {"text": t["text"], "sources": t.get("sources", [])} for k, t in state["threads"].items()}
+    resolved = ({k for k, t in state["threads"].items() if t["status"] != "open"}
+                | {k for k, v in verdicts.items() if v.get("status") in ("closed", "suggested")})
+    open_ids = [k for k in links["threads"] if k not in resolved
+                and not shadowed({"thread": k, **links["threads"][k]}, every, resolved)]
+    n_shadowed = sum(1 for k in links["threads"] if k not in resolved and k not in open_ids)
     ranked = sorted(open_ids, key=lambda k: (-state["threads"][k]["mentions"], state["threads"][k]["first_seen"]))[:25]
     if not a.render_only:
         picks = []
@@ -230,9 +236,8 @@ def main():
 
     # 3. brief
     closed_now = [k for k, v in verdicts.items() if v.get("status") == "closed"]
-    suggested = [k for k, v in verdicts.items() if v.get("status") == "suggested"]
-    resolved = {k for k in links["threads"] if state["threads"][k]["status"] != "open"} | set(closed_now) | set(suggested)
-    adds = drop_resolved_adds(links["backlog"]["add_candidates"], links["threads"], resolved)
+    suggested = [k for k, v in verdicts.items() if v.get("status") == "suggested" and state["threads"][k]["status"] == "open"]
+    adds = drop_resolved_adds(links["backlog"]["add_candidates"], every, resolved)
     likely, check = split_suggested(suggested, verdicts)
     picked = {p["id"] for p in picks}
     adds.sort(key=lambda c: (-state["threads"][c["thread"]]["mentions"], state["threads"][c["thread"]]["first_seen"]))
@@ -245,7 +250,8 @@ def main():
     adds = capped
     L = [f"# Morning brief -- {today}", "",
          f"*Nightly daydream: {len(links['threads'])} open action threads from the last few days, "
-         f"{len(todo)} checked for closure, {n_calls} model calls on {a.host} (status: {status}).*", ""]
+         f"{len(todo)} checked for closure, {n_calls} model calls on {a.host} (status: {status}); "
+         f"{n_shadowed} open thread(s) skipped as siblings of closed ones.*", ""]
     if notes:
         L += ["> " + n for n in notes] + [""]
     L += ["## Worth picking up", ""]

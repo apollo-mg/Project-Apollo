@@ -45,6 +45,12 @@ check("near-duplicate rule leaves unrelated text alone", "oth" in kept2)
 check("nothing resolved -> nothing dropped", [c["thread"] for c in B.drop_resolved_adds(adds, threads, set())] == ["old", "oth"])
 check("near_dup is not fooled by one shared word", not B.near_dup("the store grew too large", "the server survived the store"))
 
+# 10-01: the resolved set must cover threads closed on EARLIER nights (absent from tonight's links)
+every = dict(threads); every["closed_0930"] = {"text": NEW, "sources": ["data/receipts/quant-abstention/RESULT_CALIB.md:204"]}
+check("an open sibling of a thread closed on an earlier night is shadowed (picks and adds)",
+      B.shadowed({"thread": "old", **threads["old"]}, every, {"closed_0930"}))
+check("an unrelated open thread is not shadowed", not B.shadowed({"thread": "oth", **threads["oth"]}, every, {"closed_0930"}))
+
 verdicts = {"a": {"ev": {"source": "commit 9ed9296", "date": "2026-09-29"}},
             "b": {"ev": {"source": "data/dev_diaries/2026-09-29_ledger.md", "date": "2026-09-29"}},
             "c": {"ev": {"source": "data/receipts/x/RESULT_Y.md", "date": "2026-09-29"}},
