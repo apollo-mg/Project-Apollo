@@ -17,7 +17,7 @@ output `RESULT_split_conc.json`.
 | streams | **L0** layer | **L3** layer + MTP | **T0** tensor | **T3** tensor + MTP (`-ts ..,0.75`) |
 |---:|---|---|---|---|
 | 1 | 21.1 / **19.3 total** | 25.5 / 22.5 | 14.3 / 13.4 | **27.4 / 24.9** |
-| 2 | 9.85 each / 18.7 | 12.5-13.3 / 23.3 | 14.5 each / **27.0** | 10.1-10.8 / 18.9 |
+| 2 | 9.85 each / 18.7 (pass 1: 16.8 / 30.3) | 12.5-13.3 / 23.3 | 14.5 each / **27.0** | 10.1-10.8 / 18.9 |
 | 4 | 9.84 each / 36.3 | 6.3-6.7 / 23.2 | 13.5 each / **48.8** | **all HTTP 500** ("Compute error") |
 
 MTP acceptance was 0.60-0.70 throughout.
@@ -41,9 +41,11 @@ work, because only 10 of 512 experts run per token. **Give each card more work p
 - with **more streams**, it keeps per-stream speed nearly flat (14.3 -> 13.5) and reaches **48.8 tok/s at 4 streams**.
 
 **Mark's question 2: "parallel sessions, or a proportionate decrease?"** Neither, and it depends on the split:
-- **Layer split has a step.** Two streams cost exactly half the per-stream speed (21.1 -> 9.85) for no gain in total.
-  From two to four is free (9.85 -> 9.84). That fits a fast single-sequence decode path that more than one sequence
-  loses, then a generic path that batches well. The kernel was not traced.
+- **Layer split at 2 streams is unstable, not a step.** **Correction (same day):** pass 1 measured **16.8 per stream /
+  30.3 total**, pass 2 **9.85 / 18.7**. The "step" first described here rested on pass 2 alone. Four streams were
+  stable across passes (35.1 / 36.3 total), and so was every tensor-split cell. Layer split at 2 streams sometimes
+  runs well and sometimes runs at half speed. The cause was not traced (slot assignment, or a prefill of one request
+  landing in the other's decode batch, are candidates).
 - **Tensor split batches almost for free** from the first extra stream.
 
 **MTP and concurrency do not mix.** MTP raises one stream's speed and lowers multi-stream totals on both splits. On
@@ -56,7 +58,7 @@ drafter), like .73's MMVQ limit on 09-30.
 |---|---|---|
 | one user | tensor split + MTP | 27.4 tok/s |
 | several users | tensor split, no MTP, `-np 4` | 48.8 tok/s total |
-| avoid | layer split at 2 streams | no gain over 1 |
+| avoid | layer split at 2 streams | unstable: 30.3 or 18.7 total across two passes |
 
 **Caveats on the recipe:**
 - Tensor split for qwen4exp is buun-only (upstream denies it).
@@ -65,6 +67,9 @@ drafter), like .73's MMVQ limit on 09-30.
 
 ## Not established
 
-- The layer-split n=1 -> n=2 step mechanism (no kernel trace).
+- Why layer split at 2 streams is bistable across passes (16.8 vs 9.85 per stream).
+- **Prefill was not captured.** Prompts were ~25 tokens and per-request prompt timings were not saved. The 09-28 MTP
+  clock study's 6k-token cold prefill (layer split): 123-128 tok/s at 1063 MHz. Tensor-split prefill, where each sync
+  carries a whole batch, was not measured.
 - 3 or 8 streams; long contexts (256-token outputs, short prompts); the clock (1063 MHz only; MTP gains more at 1328).
 - T3 used a different `-ts` from T0 (Deviation 1).
