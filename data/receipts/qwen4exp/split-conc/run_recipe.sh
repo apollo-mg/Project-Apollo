@@ -7,7 +7,8 @@ D='~/AI/Models/flashnext_q2'; M="$D/Qwen3.8-Flash-Next-UD-Q2_K_XL-00001-of-00003
 S23="$D/Qwen3.8-Flash-Next-UD-Q2_K_XL-00002-of-00003.gguf $D/Qwen3.8-Flash-Next-UD-Q2_K_XL-00003-of-00003.gguf"
 MTP='-md ~/AI/Models/flashnext_mtp/mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf --spec-type draft-mtp --spec-draft-n-max 3'
 COMMON="-ngl 99 -fa on -fit off -ctk f16 -ctv f16 -lv 4 -c 16384 -ub 4096 -b 4096 --kv-unified --host 0.0.0.0 --port $PORT"
-declare -A CFG=([R1]="-sm tensor -ts 1,1,1,0.75 $MTP -np 2" [R2]="-sm tensor -np 4")
+declare -A CFG=([R1]="-sm tensor -ts 1,1,1,0.75 $MTP -np 2" [R2]="-sm tensor -np 4" [R1b]="-sm tensor -ts 1,1,1,0.75 $MTP -np 2 -ub 2048 -b 2048" [R1c]="-sm tensor -ts 1,1,1,0.75 $MTP -np 2 -ub 1024 -b 1024")
+SERVERS=${SERVERS:-"R1 R2"}
 OUT="$HERE/raw_recipe"; mkdir -p "$OUT"; LOG="$OUT/run.log"; PROWS="$OUT/p_rows.jsonl"; NROWS="$OUT/n_rows.jsonl"
 TEXT="$HERE/raw_numa/wiki.test.raw"
 log() { echo "$(date '+%F %T') $*" | tee -a "$LOG"; }
@@ -20,7 +21,7 @@ if [ ! -s "$OUT/setup.done" ]; then
   t0=$(date +%s); R "numactl --interleave=all cat $S23 > /dev/null" 900
   log "setup: shards 2+3 interleaved in $(( $(date +%s) - t0 )) s; $(R "numastat -m | grep FilePages" | tr -s ' ')"; echo ok > "$OUT/setup.done"
 fi
-for s in R1 R2; do
+for s in $SERVERS; do
   grep -q "\"cell\": \"$s\"" "$PROWS" 2>/dev/null && { log "$s has rows -- skipped (move aside to rerun)"; continue; }
   stop_server
   R "CUDA_VISIBLE_DEVICES=0,1,2,3 GGML_CUDA_ALLREDUCE=internal setsid nohup numactl --cpunodebind=0 --preferred=0 $BIN -m $M $COMMON ${CFG[$s]} > ~/recipe_$s.log 2>&1 < /dev/null & echo started" 20 >/dev/null

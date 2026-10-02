@@ -41,3 +41,12 @@ once.
 ## Deviations
 
 Any change after the first row gets a numbered Deviation here before the affected rows run.
+- **Deviation 1 (exploratory, after R1 failed and R2 completed; 10-02 16:45).**
+  - **R1 did not load:** `cudaMalloc failed: out of memory` allocating 4,085 MiB on device 0, then
+    `GGML_ASSERT(bufs.back() != nullptr)` in `ggml-backend-meta.cpp`. That is its registered result: **Q1 fails.**
+  - **Exploratory R1b, run after the GLM thread sweep:** R1's config with `-ub 2048 -b 2048`. If that also OOMs at
+    load, `-ub 1024 -b 1024` (R1c).
+  - **Same probes. No verdict is attached:**
+    - R1b/c's 8k prefill and 1-stream decode are reported against Q1/Q2's thresholds;
+    - its 2-stream passes against Q4's rule, for information.
+
