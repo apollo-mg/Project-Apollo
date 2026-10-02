@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### wake proxy: busy locks (Claude, 2026-10-01)
+- `modules/wake_proxy.py` busy probe prints a third number: live busy locks. `/tmp/apollo-busy.NAME` holding a PID
+  counts while that PID is alive. Dead PIDs and junk content are ignored, so a crashed runner cannot hold the node awake.
+- Why: on 10-01 the proxy suspended .73 in the middle of a test-backend-ops run. A detached runner has no login, is not
+  on the transfer/build name list, and the GPU check misses it between legs. Tested on .73 (0 / 1 / 0, rc 0); proxy
+  restarted. Runners write the lock: `echo $$ > /tmp/apollo-busy.NAME; trap 'rm -f /tmp/apollo-busy.NAME' EXIT`.
+
+
 ### Changed -- .73 daily driver `-np 4` -> `-np 2` (2026-09-30, Claude, Mark's pick: option A)
 
 - 3+ concurrent requests failed with HTTP 500 for every slot: streams x (1 + MTP draft 3) > 8 = `MMVQ_MAX_BATCH_SIZE`

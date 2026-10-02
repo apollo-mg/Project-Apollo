@@ -81,7 +81,7 @@ def magic_packet(mac: str, bcast: str) -> None:
         s.sendto(pkt, (bcast, p))
     s.close()
 
-# Prints two numbers: interactive ssh logins, and running transfer/build processes.
+# Prints three numbers: interactive ssh logins, running transfer/build processes, and live busy locks.
 # An interactive login = a terminal (pts) whose session leader's PARENT is an sshd process. Why not the
 # obvious signals (all measured on .73, 2026-09-28):
 #   * `who`: utmp is empty on .73, so it was always 0 -- the node was suspended mid-build on 09-27;
@@ -96,6 +96,13 @@ def magic_packet(mac: str, bcast: str) -> None:
 # runs in its session, and nobody has typed into its terminal for the idle window (the pts atime, which is
 # what `w` reports as IDLE). An `ssh .73` tab left open in Konsole held .73 awake for 19 h on 09-28/29.
 # A session running anything, or whose leader is not a shell (`ssh -t host job`), still counts.
+#
+# A busy LOCK is the explicit signal (BACKLOG N18, 2026-10-01): /tmp/apollo-busy.<name> holding a PID counts
+# while that PID is alive. A detached benchmark has no login, its binary is not on the name list, and the GPU
+# check misses it whenever it is between legs: on 10-01 a test-backend-ops runner waiting out a gate retry was
+# suspended mid-run. Runners on the node write the lock at start and remove it on exit:
+#     echo $$ > /tmp/apollo-busy.NAME; trap 'rm -f /tmp/apollo-busy.NAME' EXIT
+# A lock whose PID has died is ignored, so a crashed runner cannot hold the node awake.
 _BUSY_SH = r"""now=$(date +%s); n=0
 for s in $(ps -eo tty=,sid= | awk '$1 ~ /^pts\// {print $2}' | sort -u); do
   pp=$(ps -o ppid= -p "$s" | tr -d ' '); [ -n "$pp" ] || continue
@@ -108,11 +115,18 @@ for s in $(ps -eo tty=,sid= | awk '$1 ~ /^pts\// {print $2}' | sort -u); do
   n=$((n+1))
 done
 echo $n
-pgrep -c -x "rsync|scp|cp|dd|tar|make|ninja|cmake|nvcc|cc1plus|cargo|rustc"; true"""
+pgrep -c -x "rsync|scp|cp|dd|tar|make|ninja|cmake|nvcc|cc1plus|cargo|rustc"
+l=0
+for f in /tmp/apollo-busy.*; do
+  [ -f "$f" ] || continue
+  p=$(head -c 16 "$f" | tr -dc 0-9)
+  [ -n "$p" ] && kill -0 "$p" 2>/dev/null && l=$((l+1))
+done
+echo $l; true"""
 
 
 def busy_probe(idle_secs: int) -> str:
-    """Prints two numbers: ssh logins in use, and running transfer/build processes."""
+    """Prints three numbers: ssh logins in use, running transfer/build processes, live busy locks."""
     return "timeout 10 sh -c " + shlex.quote(_BUSY_SH.replace("IDLE_SECS", str(int(idle_secs))))
 
 
@@ -298,7 +312,8 @@ class Node:
         if rc == 0:
             nums = [int(x) for x in out.split() if x.strip().isdigit()]
             if any(n > 0 for n in nums):
-                why = f"{nums[0] if nums else '?'} ssh session(s), {nums[1] if len(nums) > 1 else '?'} transfer/build process(es)"
+                why = (f"{nums[0] if nums else '?'} ssh session(s), {nums[1] if len(nums) > 1 else '?'} "
+                       f"transfer/build process(es), {nums[2] if len(nums) > 2 else '?'} busy lock(s)")
                 if why != self._busy_why:
                     log(f"busy: {why}")
                     self._busy_why = why

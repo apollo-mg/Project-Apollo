@@ -4,6 +4,8 @@
 # Per leg: gate (no llama-server, no compute apps) before and after; a contaminated leg is rerun (max 3 tries).
 set -uo pipefail
 W=~/mmvf; PH=$1; OUT=$W/raw_$PH; mkdir -p $OUT
+# keep the wake proxy from suspending the node mid-run (modules/wake_proxy.py busy locks, BACKLOG N18)
+echo $$ > /tmp/apollo-busy.mmvf; trap 'rm -f /tmp/apollo-busy.mmvf' EXIT
 # our perf cases only (mmvf_perf_cases.inc); stock cases that happen to match are harmless (analysis keys on shape)
 PERF_RE='m=(10240|32000|16384|4096|8192|2048|320),n=[0-9]+,k=(64|128|256|320|384|512|768|1024|1536|2048|192|96|448|640|4096|10240),bs=\[1,1\],nr=\[1,1\]'
 TEST_RE='type(_a)?=(f16|bf16|f32),'
