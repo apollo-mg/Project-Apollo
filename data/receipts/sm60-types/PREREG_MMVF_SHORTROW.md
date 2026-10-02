@@ -170,3 +170,27 @@ Any change after the first timed row gets a numbered Deviation here before the a
       Then the proxy suspended .73 at 19:39, because its busy probe does not count `test-backend-ops`.
     - `raw_A_collided/`: on wake, the suspended runner resumed alongside a new one. Both were killed by PID, and none
       of their rows are used.
+- **Deviation 3 (B6 method, and the B5/B6 run plan; 10-02 ~12:55, before any B5/B6 row).**
+  - **B6 as registered would pass vacuously.** `llama-perplexity` on "the RESULT_HC_Q8 wikitext setup" evaluates
+    512-token ubatches, which go to the batched matmul paths and never reach `mul_mat_vec_f`. Base and final would run
+    identical code. HC_Q8's KLD was valid only because it changed the weights.
+    - **B6 now runs with `-ub 1`:** wikitext-2 test, `-c 512 --chunks 16` (8,192 tokens), so every token goes through
+      the decode kernels (ncols_dst = 1).
+    - **Arms:** base logits (`--kl-divergence-base`), a base-vs-base self-control (noise floor), then final vs base.
+    - **Threshold unchanged:** mean KLD < 0.001.
+    - **Exercised gate:** final's `llama_perf` prompt-eval ms/token at `-ub 1` must be <= 0.98x base's. If not, B6 is
+      reported as inconclusive (kernel not shown to run), not as holding.
+  - **B5 run plan:**
+    - **Builds:** both static from a clean archive of `ab22bc538`, on .194 (`mmvf/b56_build.sh`): base, then
+      `mmvf_final.patch` incrementally.
+    - **Servers:** four fresh servers in ABBA order: base, final, final, base. Flags: `-ngl 99 -sm layer
+      -ts 1,1,1,0.6 -c 16384 -ctk f16 -ctv f16 -np 1 -fit off`, `GGML_CUDA_ALLREDUCE=internal`, .194 at
+      150 W / 1063 MHz read back.
+    - **Gates per server:** `/props` model path; 49/49 layers on GPU; the running binary (`/proc/PID/exe`) is that
+      arm's; the embedding shard pre-read (`cat`); G0 coherence; one warm-up request.
+    - **Probe:** `hc_probe.py` (6 fixed prompts x 2 passes, 384 tokens, temp 0, thinking off, no prompt cache).
+    - **B5 statistic:** median `predicted_per_second` over pass-2 rows, pooled per build (12 rows each);
+      final / base >= 1.07. Pass 1 and per-server medians are reported, not scored.
+    - **Greedy text agreement** between builds: reported, not scored. A summation-order change can flip near-tied
+      tokens.
+
