@@ -9,7 +9,7 @@ H=10.0.0.194; PORT=8190; URL="http://$H:$PORT"
 RHOME=$(ssh "$H" 'echo $HOME'); W="$RHOME/mmvf"; M="$RHOME/AI/Models/fn_gsq_base"
 S1="$M/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00001-of-00002.gguf"
 S2="$M/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00002-of-00002.gguf"
-FLAGS="-ngl 99 -sm layer -ts 1,1,1,0.6 -c 16384 -ctk f16 -ctv f16 -np 1 -fit off --host 0.0.0.0 --port $PORT"
+FLAGS="-ngl 99 -sm layer -ts 1,1,1,0.6 -c 16384 -ctk f16 -ctv f16 -np 1 -fit off -lv 4 --host 0.0.0.0 --port $PORT"
 ENVS="CUDA_VISIBLE_DEVICES=0,1,2,3 GGML_CUDA_ALLREDUCE=internal"
 OUT="$HERE/raw_b56"; mkdir -p "$OUT"; LOG="$OUT/run.log"; DEC="$OUT/decode.jsonl"
 log() { echo "$(date '+%F %T') $*" | tee -a "$LOG"; }
