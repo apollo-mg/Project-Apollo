@@ -25,7 +25,7 @@ whoami
 ls -la ~/.ssh/ ; tail -1 ~/.ssh/authorized_keys   # did the key arrive here?
 chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys   # sshd silently rejects keys if perms are loose
 sudo journalctl -u ssh -n 5             # will name the exact refusal reason
-chmod 755 /home/mark
+chmod 755 ~
 dir
 cd AI
 dir
