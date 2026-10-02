@@ -29,6 +29,8 @@
 ## Not established
 
 - Why decode is 4.4 tok/s (a CPU expert path? thread count or NUMA? RAM bandwidth?). The fit pass's exact placement
-  was not logged at this verbosity.
+  was not logged at this verbosity. **10-02 (`RESULT_GLM_NUMA.md`): not NUMA, not RAM bandwidth.** Placement of the
+  57 GB of CPU experts made no difference (100/0, 24/76, 50/50 all 4.36-4.40), thread pinning gave +6.7 %, and the CPU
+  side moves ~7 GB/s.
 - Anything about quality beyond one answer.
 - This is the reference the EXL3 3.05 bpw on buun has to beat once buun supports the architecture.
