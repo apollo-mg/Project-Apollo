@@ -69,6 +69,6 @@ truncation of AFM-29). See FAILURE_MODES.md AFM-34.
 
 ## Files
 
-- `/home/mark/projects/hermes-bench-tool-call/hermesbench/toolcalls.py` (the fix)
-- `/home/mark/projects/hermes-bench-tool-call/hermesbench/runner.py:416-420` (call site)
+- `~/projects/hermes-bench-tool-call/hermesbench/toolcalls.py` (the fix)
+- `~/projects/hermes-bench-tool-call/hermesbench/runner.py:416-420` (call site)
 - `hermesbench_fix/{toolcalls.py,runner.patch}` (copies in this repo)

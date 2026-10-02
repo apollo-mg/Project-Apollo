@@ -26,7 +26,7 @@ directly fix the finding that "spilling two layers to just barely fit is the wor
 > exists on `.194`… there is no same-build option, so every cross-stage comparison needs a bridge"*, and
 > selected `tq-pr324/build_sm60_c232` on that basis.
 >
-> **The Stage 4 build exists**: `/home/mark/buun-c7f114d34/build_sm60/bin/llama-server`, **build 12007,
+> **The Stage 4 build exists**: `~/buun-c7f114d34/build_sm60/bin/llama-server`, **build 12007,
 > commit `c7f114d34`** — the exact binary `flashnext_residency.py` names in `BIN`. I concluded it was
 > absent because I listed builds with `find … | head -8` and read absence-from-a-truncated-list as
 > absence. **There are 26 `llama-server` builds on `.194`; I looked at 8.** Identical in shape to the

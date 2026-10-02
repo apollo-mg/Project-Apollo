@@ -63,7 +63,7 @@ This session has already had to serialise its own runs for exactly this reason.
 
 ## Tool
 
-`/home/mark/bin/gpu-recover.sh` — verified end to end 2026-07-29: detected a live
+`~/bin/gpu-recover.sh` — verified end to end 2026-07-29: detected a live
 llama-server, SIGTERM freed 10.24 GiB → 2.06 GiB, no SIGKILL escalation needed, and correctly
 reports "none" when idle.
 

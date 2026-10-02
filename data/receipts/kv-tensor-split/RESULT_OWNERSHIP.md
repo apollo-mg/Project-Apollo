@@ -41,7 +41,7 @@ Two models, two split modes, both directions matched. Bug A does not exist in up
 ## Bug B is upstream
 
 ```
-/home/mark/llama_upstream/ggml/src/ggml-backend-meta.cpp:537:
+~/llama_upstream/ggml/src/ggml-backend-meta.cpp:537:
 GGML_ASSERT(ret.axis != GGML_BACKEND_SPLIT_AXIS_UNKNOWN) failed
 ```
 

@@ -217,7 +217,7 @@ exercises. Every number in the panel and in this arm is VBR's best case.
 
 ## Provenance
 
-- Retracted arm: `.73:/home/mark/kv-panel/vbr_headroom/` (script `vbr_headroom_arm.sh`)
-- Allocation probe: `.73:/home/mark/kv-panel/alloc_probe/` (script `measure_kv_alloc.sh`)
-- Arm 2: `.73:/home/mark/kv-panel/vbr_headroom_165/` (script `vbr_headroom_arm2.sh`)
-- Panel: `.73:/home/mark/kv-panel/run/logs/`, results in `kv_kld_results.tsv`
+- Retracted arm: `.73:~/kv-panel/vbr_headroom/` (script `vbr_headroom_arm.sh`)
+- Allocation probe: `.73:~/kv-panel/alloc_probe/` (script `measure_kv_alloc.sh`)
+- Arm 2: `.73:~/kv-panel/vbr_headroom_165/` (script `vbr_headroom_arm2.sh`)
+- Panel: `.73:~/kv-panel/run/logs/`, results in `kv_kld_results.tsv`

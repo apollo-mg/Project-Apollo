@@ -106,7 +106,7 @@ exact build and model:
 
 ```
 $ ~/moe-cache-test/src/build-hip/bin/llama-server \
-    -m /home/mark/Downloads/Qwen3.8-27B-AD-IQ2_S.gguf -ngl 0 -c 2048 -ctk turbo3 -ctv turbo3
+    -m ~/Downloads/Qwen3.8-27B-AD-IQ2_S.gguf -ngl 0 -c 2048 -ctk turbo3 -ctv turbo3
 W llama_kv_cache: auto-asymmetric: GQA ratio 6:1 (n_head=24, n_head_kv=4)
   — upgrading K from turbo3 to q8_0 to prevent quality degradation.
 ```

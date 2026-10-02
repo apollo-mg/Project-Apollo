@@ -6,7 +6,7 @@ which was **deleted from the repo** on or before 2026-08-04 (`git fetch --prune`
 `- [deleted] (none) -> thetom/sync/upstream-master`). They were never ported to the default branch —
 `grep -c k_v=1600` on `feature/turboquant-kv-cache` @ `0967f4997` returns **0**.
 
-The only remaining accessible copy is pinned by the `/home/mark/tom_sync` worktree on `.73`, which
+The only remaining accessible copy is pinned by the `~/tom_sync` worktree on `.73`, which
 holds `6aa97d810` checked out. Removing that worktree and running `git gc` would destroy it.
 Copied here verbatim so the coverage survives independent of that machine.
 

@@ -51,14 +51,14 @@
 
  -- Quantized: model.embed_tokens                                       bpw: 16.00  rfn: 0.000000  cos: 0.000000  sqnr: 0.000000  [8.01 s]  rss: 1.38 GB
  -- Loading unquantized module: model.layers.0
-In file included from /home/mark/.local/share/uv/python/cpython-3.13.15-linux-x86_64-gnu/include/python3.13/Python.h:14,
+In file included from ~/.local/share/uv/python/cpython-3.13.15-linux-x86_64-gnu/include/python3.13/Python.h:14,
                  from /tmp/tmpkn2xd6_d/main.c:5:
-/home/mark/.local/share/uv/python/cpython-3.13.15-linux-x86_64-gnu/include/python3.13/pyconfig.h:1988:9: warning: ‘_POSIX_C_SOURCE’ redefined
+~/.local/share/uv/python/cpython-3.13.15-linux-x86_64-gnu/include/python3.13/pyconfig.h:1988:9: warning: ‘_POSIX_C_SOURCE’ redefined
  1988 | #define _POSIX_C_SOURCE 200809L
       |         ^~~~~~~~~~~~~~~
 In file included from /usr/include/x86_64-linux-gnu/bits/libc-header-start.h:33,
                  from /usr/include/stdlib.h:26,
-                 from /home/mark/exl3quant/lib/python3.13/site-packages/triton/backends/nvidia/include/cuda.h:56,
+                 from ~/exl3quant/lib/python3.13/site-packages/triton/backends/nvidia/include/cuda.h:56,
                  from /tmp/tmpkn2xd6_d/main.c:1:
 /usr/include/features.h:319:10: note: this is the location of the previous definition
   319 | # define _POSIX_C_SOURCE        202405L
@@ -67,35 +67,35 @@ In file included from /usr/include/x86_64-linux-gnu/bits/libc-header-start.h:33,
 Traceback (most recent call last):
   File "<frozen runpy>", line 203, in _run_module_as_main
   File "<frozen runpy>", line 88, in _run_code
-  File "/home/mark/exl3quant/lib/python3.13/site-packages/exllamav3/conversion/convert_model.py", line 1520, in <module>
+  File "~/exl3quant/lib/python3.13/site-packages/exllamav3/conversion/convert_model.py", line 1520, in <module>
     main(_in_args, _job_state)
     ~~~~^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/mark/exl3quant/lib/python3.13/site-packages/torch/utils/_contextlib.py", line 116, in decorate_context
+  File "~/exl3quant/lib/python3.13/site-packages/torch/utils/_contextlib.py", line 116, in decorate_context
     return func(*args, **kwargs)
-  File "/home/mark/exl3quant/lib/python3.13/site-packages/exllamav3/conversion/convert_model.py", line 1233, in main
+  File "~/exl3quant/lib/python3.13/site-packages/exllamav3/conversion/convert_model.py", line 1233, in main
     rs = module.forward(rs, params)
-  File "/home/mark/exl3quant/lib/python3.13/site-packages/exllamav3/modules/transformer.py", line 159, in forward
+  File "~/exl3quant/lib/python3.13/site-packages/exllamav3/modules/transformer.py", line 159, in forward
     y = self.attn.forward(y, params)
-  File "/home/mark/exl3quant/lib/python3.13/site-packages/exllamav3/modules/attn.py", line 612, in forward
+  File "~/exl3quant/lib/python3.13/site-packages/exllamav3/modules/attn.py", line 612, in forward
     x = self.decode_flash_attn_nc(x, bsz, seqlen, params)
-  File "/home/mark/exl3quant/lib/python3.13/site-packages/exllamav3/modules/attn.py", line 907, in decode_flash_attn_nc
+  File "~/exl3quant/lib/python3.13/site-packages/exllamav3/modules/attn.py", line 907, in decode_flash_attn_nc
     o = attn_dispatch(
         q = q,
     ...<9 lines>...
         dispatch_cache = self.dispatch_cache,
     )
-  File "/home/mark/exl3quant/lib/python3.13/site-packages/exllamav3/modules/attention_fn/dispatch.py", line 170, in attn_dispatch
+  File "~/exl3quant/lib/python3.13/site-packages/exllamav3/modules/attention_fn/dispatch.py", line 170, in attn_dispatch
     o = fn(args)
-  File "/home/mark/exl3quant/lib/python3.13/site-packages/exllamav3/modules/attention_fn/triton_paged.py", line 1948, in fn_triton_attn_nocache
+  File "~/exl3quant/lib/python3.13/site-packages/exllamav3/modules/attention_fn/triton_paged.py", line 1948, in fn_triton_attn_nocache
     return paged_attn_triton_prefill(
         args.q, None, None, None, None, None, None,
     ...<6 lines>...
         v_new = args.v,
     )
-  File "/home/mark/exl3quant/lib/python3.13/site-packages/exllamav3/modules/attention_fn/triton_paged.py", line 1924, in paged_attn_triton_prefill
+  File "~/exl3quant/lib/python3.13/site-packages/exllamav3/modules/attention_fn/triton_paged.py", line 1924, in paged_attn_triton_prefill
     launch(num_stages)
     ~~~~~~^^^^^^^^^^^^
-  File "/home/mark/exl3quant/lib/python3.13/site-packages/exllamav3/modules/attention_fn/triton_paged.py", line 1897, in launch
+  File "~/exl3quant/lib/python3.13/site-packages/exllamav3/modules/attention_fn/triton_paged.py", line 1897, in launch
     _paged_attn_prefill_kernel[grid](
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
         q, k_cache, v_cache, block_table, cache_seqlens, out,
@@ -105,18 +105,18 @@ Traceback (most recent call last):
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     )
     ^
-  File "/home/mark/exl3quant/lib/python3.13/site-packages/triton/runtime/jit.py", line 330, in <lambda>
+  File "~/exl3quant/lib/python3.13/site-packages/triton/runtime/jit.py", line 330, in <lambda>
     return lambda *args, **kwargs: self.run(grid=grid, warmup=False, *args, **kwargs)
                                    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/mark/exl3quant/lib/python3.13/site-packages/triton/runtime/jit.py", line 623, in run
+  File "~/exl3quant/lib/python3.13/site-packages/triton/runtime/jit.py", line 623, in run
     kernel = self.compile(
         src,
         target=target,
         options=options.__dict__,
     )
-  File "/home/mark/exl3quant/lib/python3.13/site-packages/triton/compiler/compiler.py", line 273, in compile
+  File "~/exl3quant/lib/python3.13/site-packages/triton/compiler/compiler.py", line 273, in compile
     module = src.make_ir(options, codegen_fns, module_map, context)
-  File "/home/mark/exl3quant/lib/python3.13/site-packages/triton/compiler/compiler.py", line 100, in make_ir
+  File "~/exl3quant/lib/python3.13/site-packages/triton/compiler/compiler.py", line 100, in make_ir
     return ast_to_ttir(self.fn, self, context=context, options=options, codegen_fns=codegen_fns,
                        module_map=module_map)
 triton.compiler.errors.UnsupportedLanguageConstruct: at 130:11:

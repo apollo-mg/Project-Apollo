@@ -27,7 +27,7 @@ tail -20 pd2_driver.log                      # arm transitions
 for t in pd2_novbrcache pd2_control; do
   echo "== $t"; python3 - "$t" <<'PY'
 import json,glob,os,sys,collections
-t=sys.argv[1]; rd=f"/home/mark/projects/hermes-bench-tool-call/results/{t}"
+t=sys.argv[1]; rd=f"~/projects/hermes-bench-tool-call/results/{t}"
 c=collections.Counter(json.load(open(f)).get('status')
     for f in glob.glob(rd+'/*.json') if os.path.basename(f)!='summary.json')
 print('  ', dict(c))

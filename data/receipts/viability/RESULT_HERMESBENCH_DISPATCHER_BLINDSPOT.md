@@ -9,7 +9,7 @@
 > See `RESULT_HERMESBENCH_VERSION_SKEW.md`.
 
 **Date:** 2026-09-07 23:40 · Found by root-causing `RESULT_SPARK4B_HERMES.md`'s failures
-**Traces:** `/home/mark/projects/hermes-bench-tool-call/traces/{spark4b_det01,v5_det03}/`
+**Traces:** `~/projects/hermes-bench-tool-call/traces/{spark4b_det01,v5_det03}/`
 
 ## The defect
 

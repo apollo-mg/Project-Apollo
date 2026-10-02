@@ -1,6 +1,6 @@
 # P100 lab harvest — small result files rescued from `.194` before base-file cleanup
 
-Harvested 2026-07-29 from `10.0.0.194:/home/mark/`. **289 files, 18 MB.**
+Harvested 2026-07-29 from `10.0.0.194:~/`. **289 files, 18 MB.**
 
 ## Why
 

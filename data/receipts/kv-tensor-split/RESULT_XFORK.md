@@ -80,7 +80,7 @@ type" — `q8_0` K + `q4_0` V is untested and is `kv_xfork2.sh` U4/U5.
 T7 aborts with the same assert in the same shared file:
 
 ```
-/home/mark/llama-cpp-turboquant/ggml/src/ggml-backend-meta.cpp:535:
+~/llama-cpp-turboquant/ggml/src/ggml-backend-meta.cpp:535:
 GGML_ASSERT(ret.axis != GGML_BACKEND_SPLIT_AXIS_UNKNOWN) failed
 ```
 

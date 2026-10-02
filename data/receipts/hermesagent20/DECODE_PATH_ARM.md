@@ -296,7 +296,7 @@ the same VRAM.
 
 ## Provenance
 
-- `.73:/home/mark/decode-path/` — `decode_probe.py`, `run_decode_path.sh`, `compare_decode.py`
+- `.73:~/decode-path/` — `decode_probe.py`, `run_decode_path.sh`, `compare_decode.py`
 - Pass 1: `decode-path/{f16,vbr}_runs.json`, `logs/server_{f16,vbr}.log`
 - Pass 2: `decode-path/isolate/`
 - Pass 3: `decode-path/deep/` (in flight)

@@ -261,15 +261,15 @@ write-up. Recording it here.
 
 ## Clone provenance (the question that was asked)
 
-Both build trees are **`git worktree`s of a single clone**, `/home/mark/oscar-turboquant` on `.73`:
+Both build trees are **`git worktree`s of a single clone**, `~/oscar-turboquant` on `.73`:
 
 ```
 origin    https://github.com/giveen/llama-cpp-turboquant     <- clone origin (fork of the fork)
 thetom    https://github.com/TheTom/llama-cpp-turboquant.git <- added as a second remote
 turbotan  https://github.com/turbo-tan/llama.cpp-tq3.git
 
-/home/mark/tom_rebase   d0e2a8b64 (detached)   OLD / coherent
-/home/mark/tom_sync     6aa97d810 (detached)   NEW / garbage
+~/tom_rebase   d0e2a8b64 (detached)   OLD / coherent
+~/tom_sync     6aa97d810 (detached)   NEW / garbage
 ```
 
 The clone origin is **giveen's fork**, but that is not where either tested commit came from — both
@@ -368,7 +368,7 @@ Both questions close with one default-branch build. Status: **running, see below
 
 # RESULTS — default branch `0967f4997` on sm_60, 2026-08-04
 
-Built in a third worktree (`/home/mark/tom_default`, detached at `0967f4997`) so the known-good
+Built in a third worktree (`~/tom_default`, detached at `0967f4997`) so the known-good
 control build at `d0e2a8b64` stays untouched. `0967f4997` chosen deliberately over current head
 `0463c8ef8` — it is **exactly** the commit TheTom tested on GB10, making this a same-commit /
 different-architecture control rather than a new variable. Provenance asserted before building:
@@ -483,7 +483,7 @@ Artifacts on `.73`: `~/default_branch_check.sh`, `~/nan_backport.sh`, `~/default
 `~/nan_backport.log`, `~/tbo_default.txt`, `~/tbo_nan.txt`, `~/cli_default.txt`, `~/cli_native.txt`.
 
 ✅ **Preservation done.** `6aa97d810` and its tree survive on `.73` **only** because
-`/home/mark/tom_sync` pins them; removing that worktree and running `git gc` would destroy the only
+`~/tom_sync` pins them; removing that worktree and running `git gc` would destroy the only
 accessible copy. The at-risk material has been copied into this repo:
 `preserved/test-backend-ops.cpp.6aa97d810` (the full 453,542-byte file) and
 `preserved/tq_coverage_delta.txt` (the 29 TQ-relevant lines the default branch lacks). Note this

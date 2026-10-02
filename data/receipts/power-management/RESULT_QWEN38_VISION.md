@@ -224,7 +224,7 @@ today. Small now (112 KB), but unbounded on a phone-heavy workflow.
 ## Original framing of the third finding
 
 The reload produced **two** messages, and the second **lost the image attachment** — the first
-carries `@image:/home/mark/.hermes/images/upload_20260829_115318_1.jpg`, the second is bare text.
+carries `@image:~/.hermes/images/upload_20260829_115318_1.jpg`, the second is bare text.
 So a resend after reconnect does not re-attach the image. Note this is about the **attachment
 reference being dropped**, not about the model fabricating — see the correction above. Joins the
 dedup and stale-metadata findings.
