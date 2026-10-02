@@ -843,6 +843,14 @@ all-reduce.
 - **Check the historical receipts before contradicting them.** `bench_2v4.log` contained the
   refuting numbers and predates this by a week.
 
+**Scope note (2026-10-02).** Not every .194 bistability is NUMA. Two cases were tested:
+- **The 10-01 layer-split 2-stream flip was slot adjacency** (`qwen4exp/split-conc/RESULT_NUMA_PREFILL.md`). Binding
+  to either socket, or none, changed nothing.
+- **GLM-5.3's CPU-expert decode was insensitive to memory placement** (`glm53-flash/RESULT_GLM_NUMA.md`).
+
+The binding rule above still holds for multi-GPU benchmarks, because it is cheap. When a run is bimodal, also log
+slot ids and compute bytes/s before concluding it is NUMA.
+
 Related: [[agent-benchmark-determinism]] (bistable 35/100/100/35 on `.73`), AFM-26 (server uptime
 as a hidden variable), AFM-27 (probes that answer from the wrong layer).
 
