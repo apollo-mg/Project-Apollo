@@ -44,6 +44,9 @@ class Cfg:
     # where start_cmd redirects llama-server output on the node; read back on failure so a
     # bad launch reports its own reason instead of timing out silently.
     server_log: str = os.getenv("WP_SERVER_LOG", "/home/mark/wake_proxy_server.log")
+    # --resume store on the node (10-02). Watched, never pruned here: see check_resume_store().
+    resume_store: str = os.getenv("WP_RESUME_STORE", "")
+    resume_warn_gb: float = float(os.getenv("WP_RESUME_WARN_GB", "20"))
 
 C = Cfg()
 LOG = os.getenv("WP_LOG", "/mnt/TG_2TB/Projects/Apollo/run/wake_proxy.log")
@@ -328,6 +331,27 @@ class Node:
             pass
         return False
 
+    async def check_resume_store(self) -> None:
+        """Log the --resume store size after each save; notify past WP_RESUME_WARN_GB. WARN ONLY (2026-10-02):
+        buun's own retention bounds the store by COUNT (n_parallel entries of this key, max(8, 4*n_parallel)
+        overall), not bytes, and an entry can point into another entry's artifact (a placement), so deleting the
+        oldest directory could make a newer conversation unrestorable. A byte cap needs a manifest-aware pruner."""
+        if not self.c.resume_store:
+            return
+        rc, out = await ssh(self.c.host, f"du -sb {shlex.quote(self.c.resume_store)} 2>/dev/null | cut -f1", timeout=30)
+        if rc != 0 or not out.strip().isdigit():
+            log(f"resume store: size unreadable ({out[:80]!r})")
+            return
+        gb = int(out.strip()) / 1e9
+        log(f"resume store: {gb:.2f} GB")
+        if gb > self.c.resume_warn_gb:
+            msg = f".73 --resume store is {gb:.1f} GB (> {self.c.resume_warn_gb:g} GB warn level); nothing was deleted"
+            log(f"resume store WARNING: {msg}")
+            try:
+                subprocess.run(["notify-send", "-u", "normal", "Apollo wake proxy", msg], timeout=5, check=False)
+            except Exception as e:                    # a notification must never break a suspend
+                log(f"resume store: notify-send failed: {type(e).__name__}")
+
     async def sleep_node(self) -> None:
         if not self.c.enable_suspend:
             return
@@ -340,6 +364,7 @@ class Node:
                           "done; pkill -9 -x llama-server; exit 1", timeout=330)
         if rc != 0:
             log("suspend: llama-server did not exit within 300 s -- SIGKILLed (a --resume save may be lost)")
+        await self.check_resume_store()
         await asyncio.sleep(2)
         # LAST-MOMENT RE-CHECK. The 8 s unload window is long enough for a request to arrive and
         # for ensure_ready() to begin a load. Suspending on top of that is what broke .73 on

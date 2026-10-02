@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### .73 daily driver: `--resume` enabled (Claude, 2026-10-02)
+- **Unit:** the start command adds `--resume --resume-path ~/vbr-store` (NVMe) and creates the store
+  directory. Backup: `.bak-20261002-preresume`.
+- **`modules/wake_proxy.py`:** `check_resume_store()` logs the store size after each suspend's save and notifies past
+  `WP_RESUME_WARN_GB` (20). It is warn-only, because buun retention is count-based and entries can reference each
+  other.
+- **Verified through a real `/suspend` + wake:** turn 2 reused 8,374 of 8,401 tokens. The restore adds ~28 s per 8.4k
+  saved tokens to each wake (`vbr-artifact-store/resume-daily/NOTE_RESUME_DAILY_73.md`).
+
+
 ### wake proxy: busy locks (Claude, 2026-10-01)
 - `modules/wake_proxy.py` busy probe prints a third number: live busy locks. `/tmp/apollo-busy.NAME` holding a PID
   counts while that PID is alive. Dead PIDs and junk content are ignored, so a crashed runner cannot hold the node awake.
