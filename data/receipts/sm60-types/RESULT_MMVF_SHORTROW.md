@@ -74,6 +74,14 @@ only). Analysis `mmvf/analyze_mmvf.py` (self-tested).
   - **Positive control:** the same probe sees 118 changed lines in the tuning binary.
   - The final R2 timings match phase A's tuned R2 within 0.005 on every grid cell.
 
+## Submitted upstream to buun (10-02)
+
+- **PR:** https://github.com/spiritbuun/buun-llama-cpp/pull/145, opened with Mark's OK.
+- **The commit:** `1e79ce8ff` on master `082b72c5e`, gated to pre-Volta NVIDIA. It adds 69 eval cases and 7 perf
+  cases to `test-backend-ops`.
+- **As-submitted check:** 1130/1130 (`mmvf/raw_prcheck/`). buun was asked to measure on his 3090 before widening the
+  gate.
+
 ## End to end on .194 (B5/B6, 10-02; Deviations 3-4)
 
 **Setup:**
