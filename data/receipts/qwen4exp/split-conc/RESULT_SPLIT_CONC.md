@@ -46,6 +46,9 @@ work, because only 10 of 512 experts run per token. **Give each card more work p
   stable across passes (35.1 / 36.3 total), and so was every tensor-split cell. Layer split at 2 streams sometimes
   runs well and sometimes runs at half speed. The cause was not traced (slot assignment, or a prefill of one request
   landing in the other's decode batch, are candidates).
+  **Cause found 10-02 (`RESULT_NUMA_PREFILL.md`): slot adjacency.** Pass 1 used slots {0,1}, pass 2 used {3,1}. With
+  `kv_unified = false`, non-adjacent sequences cannot share a micro-batch, so each step runs two passes. `--kv-unified`
+  removes the penalty. It is not NUMA (also tested).
 - **Tensor split batches almost for free** from the first extra stream.
 
 **MTP and concurrency do not mix.** MTP raises one stream's speed and lowers multi-stream totals on both splits. On

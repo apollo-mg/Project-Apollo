@@ -109,6 +109,9 @@ only). Analysis `mmvf/analyze_mmvf.py` (self-tested).
     give a floor that does not depend on how small the original difference was.
 - **Consequence for HC_Q8 (09-29):** its "conversion costs KLD 0.015" may be largely this floor, not Q8_0 precision.
   That run had no path-noise control, so it cannot be separated after the fact. A forward note is added there.
+- **The B5 servers were not `numactl`-bound** (FAILURE_MODES AFM-28). Two things make that harmless here: the four
+  servers agreed to 0.01 tok/s, and the same day's NUMA test (`qwen4exp/split-conc/RESULT_NUMA_PREFILL.md`) found
+  the socket irrelevant for layer-split decode.
 - All three `llama-perplexity` runs through the runner exited 1 despite complete output; C2, run directly, exited 0.
   The gates read content, not exit codes.
 
