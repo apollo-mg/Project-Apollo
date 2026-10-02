@@ -1,4 +1,4 @@
-# Result -- one warp per row makes short float mat-vec 2.4-3.3x faster on P100 (hc_up BF16 66.7 -> 22.3 us), with the default path's SASS unchanged and every correctness case passing. The registered selection rule returned null on a floor cell; the cutoff was then chosen post-hoc (Deviation 2) and confirmed on held-out shapes.
+# Result -- one warp per row makes short float mat-vec faster on P100: hc_up 3.0x (BF16 66.7 -> 22.3 us) and 2.4x (F32), held-out shapes 1.8-3.3x, with the default path's SASS unchanged and every correctness case passing. The registered selection rule returned null on a floor cell; the cutoff was then chosen post-hoc (Deviation 2) and confirmed on held-out shapes.
 
 **2026-10-01.** Pre-registration `PREREG_MMVF_SHORTROW.md` (`074d0e1`), with Deviation 1 (harness only) and
 Deviation 2 (post-hoc cutoff, restructured patch), both committed before the rows they affect. The patch is
@@ -68,8 +68,9 @@ only). Analysis `mmvf/analyze_mmvf.py` (self-tested).
 - **The tuning patch's runtime row index cost the old path 3-4 %.** It was confirmed real by an alternating-order
   check: +3.2-4.3 % at m=10240 / k=1536-2048, 0 % at m=4096 / k=4096, identical register counts.
   - The final patch makes rows per block a template parameter.
-  - All 8 default-path instantiations checked (F16, half and float accumulators, blocks 160/256, n=1/4) have
-    **identical SASS** in tbo-base and tbo-final, with names and addresses stripped.
+  - **All 22 default-path instantiations checked have identical SASS** in tbo-base and tbo-final, with names and
+    addresses stripped: F16 (half and float accumulators), BF16 and F32 at blocks 160/256 and n=1/4, plus F16 and
+    BF16 fusion and BF16 multi-token-ID.
   - **Positive control:** the same probe sees 118 changed lines in the tuning binary.
   - The final R2 timings match phase A's tuned R2 within 0.005 on every grid cell.
 
@@ -88,6 +89,8 @@ only). Analysis `mmvf/analyze_mmvf.py` (self-tested).
 
 ## Not established
 
+- **A HIP build.** The R=2 instantiation is compiled for every target, including warp-64 AMD, where it is never
+  launched. The patch has not been built under HIP.
 - **Other GPUs.** The rule is enabled for NVIDIA with warp size 32, but only sm_60 was measured. Volta and later
   (different occupancy limits, CUDA graphs on) are untested; the 1660 Ti (sm_75) is the nearest test. AMD keeps the
   old launch.

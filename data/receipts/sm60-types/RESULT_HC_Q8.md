@@ -93,7 +93,7 @@ deterministic: rep 1 and rep 2 match within an arm.
 - **The better fix is the kernel.** F16/F32/BF16 mat-vec at short rows is 3.6x slower than it needs to be. Putting
   multiple rows per block (a warp per row, with a warp-only reduction) when rows are short would keep the BF16 bits and
   should recover most of the speed. That would help any model with short-row float matmuls. It is the next step and
-  a candidate upstream contribution.
+  a candidate upstream contribution. **Done 10-01:** `RESULT_MMVF_SHORTROW.md` (hc_up BF16 3.0x faster, no conversion).
 
 ## Deviations
 

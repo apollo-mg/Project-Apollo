@@ -1,0 +1,444 @@
+ MOV R1, c[0x0][0x20] ; 
+ { IADD RZ.CC, -RZ, c[0x0][0x150] ; 
+ S2R R0, SR_CTAID.Y }
+ { ISETP.NE.X.AND P0, PT, RZ, c[0x0][0x154], PT ; 
+ S2R R2, SR_TID.X }
+ S2R R24, SR_CTAID.Z ; 
+ @!P0 BRA 0x130 ; 
+ IADD RZ.CC, -RZ, c[0x0][0x150] ; 
+ ISET.NE.X.AND R3, RZ, c[0x0][0x154], PT ; 
+ LOP.AND R3, R24, R3 ; 
+ XMAD R4, R3, c[0x0] [0x1e4], R0 ; 
+ XMAD.MRG R5, R3, c[0x0] [0x1e4].H1, RZ ; 
+ XMAD.PSL.CBCC R3, R3.H1, R5.H1, R4 ; 
+ SHR.U32 R5, R3.reuse, 0x1e ; 
+ ISCADD R4.CC, R3, c[0x0][0x150], 0x2 ; 
+ IADD.X R5, R5, c[0x0][0x154] ; 
+ LDG.E.CI R4, [R4] ; 
+ XMAD R3, R0, c[0x0] [0x19c], RZ ; 
+ XMAD R6, R0, c[0x0] [0x19c].H1, RZ ; 
+ XMAD R7, R0.H1, c[0x0] [0x19c].H1, R0 ; 
+ XMAD.CHI R8, R0.H1, c[0x0] [0x19c], R3 ; 
+ IADD3.RS R3, R8, R6, R7 ; 
+ SHR.U32 R3, R3, c[0x0][0x1a0] ; 
+ IADD R3, -R3, RZ ; 
+ XMAD R6, R3, c[0x0] [0x1a4], R0 ; 
+ XMAD.MRG R8, R3, c[0x0] [0x1a4].H1, RZ ; 
+ { XMAD.PSL.CBCC R6, R3.H1, R8.H1, R6 ; 
+ BRA 0x178 }
+ XMAD R3, R0, c[0x0] [0x1b4], RZ ; 
+ XMAD R4, R0, c[0x0] [0x1b4].H1, RZ ; 
+ XMAD R5, R0.H1, c[0x0] [0x1b4].H1, R0 ; 
+ XMAD.CHI R3, R0.H1, c[0x0] [0x1b4], R3 ; 
+ IADD3.RS R4, R3, R4, R5 ; 
+ MOV R6, R0 ; 
+ SHR.U32 R4, R4, c[0x0][0x1b8] ; 
+ { IADD RZ.CC, -RZ, c[0x0][0x150] ; 
+ S2R R3, SR_CTAID.X }
+ { ISET.EQ.X.AND R5, RZ, c[0x0][0x154], PT ; 
+ SSY 0xf38 }
+ ISETP.GT.AND P1, PT, R2, 0x1f, PT ; 
+ LOP.AND R24, R24, R5 ; 
+ XMAD R14, R4, c[0x0] [0x1c0], RZ ; 
+ XMAD.MRG R9, R4, c[0x0] [0x1c0].H1, RZ ; 
+ ISETP.GE.AND P0, PT, R2, c[0x0][0x198], PT ; 
+ XMAD R5, R24, c[0x0] [0x1cc], RZ ; 
+ XMAD R7, R24, c[0x0] [0x1cc].H1, RZ ; 
+ XMAD R8, R24.H1, c[0x0] [0x1cc].H1, R24 ; 
+ XMAD.PSL.CBCC R14, R4.H1, R9.H1, R14 ; 
+ XMAD R13, R6, c[0x0] [0x1c4], RZ ; 
+ XMAD.MRG R11, R6, c[0x0] [0x1c4].H1, RZ ; 
+ XMAD.CHI R5, R24.H1, c[0x0] [0x1cc], R5 ; 
+ XMAD R12, R3, c[0x0] [0x1a8], RZ ; 
+ XMAD.MRG R10, R3, c[0x0] [0x1a8].H1, RZ ; 
+ SHL R4, R2, 0x2 ; 
+ { MOV R25, RZ ; 
+ @!P1 STS [R4], RZ }
+ IADD3.RS R7, R5, R7, R8 ; 
+ XMAD.PSL.CBCC R13, R6.H1, R11.H1, R13 ; 
+ XMAD.PSL.CBCC R12, R3.H1, R10.H1, R12 ; 
+ SHR R5, R24, 0x1f ; 
+ BAR.SYNC 0x0 ; 
+ MEMBAR.CTA ; 
+ @P0 SYNC ; 
+ { LOP.PASS_B R6, RZ, ~R2 ; 
+ SSY 0x610 }
+ IADD R8, R6, c[0x0][0x198] ; 
+ LEA.HI R27, R8, c[0x2][0x0], RZ, 0x18 ; 
+ LOP32I.AND R27, R27, 0x3 ; 
+ ISETP.NE.AND P2, PT, R27, RZ, PT ; 
+ MOV R19, c[0x0][0x1d8] ; 
+ ISETP.GE.U32.AND P0, PT, R8, 0x300, PT ; 
+ MOV R18, c[0x0][0x1dc] ; 
+ SHR.U32 R6, R7, c[0x0][0x1d0] ; 
+ MOV R25, RZ ; 
+ SHR R15, R14, 0x1f ; 
+ MOV R7, R2 ; 
+ SHR R16, R12, 0x1f ; 
+ SHR R17, R13, 0x1f ; 
+ SHR R19, R19, 0x1f ; 
+ SHR R18, R18, 0x1f ; 
+ { SHR R20, R6, 0x1f ; 
+ @!P2 SYNC }
+ XMAD R7, R24.reuse, c[0x0] [0x1dc], RZ ; 
+ XMAD R10, R24.reuse, c[0x0] [0x1dc].H1, RZ ; 
+ XMAD R9, R24.H1, c[0x0] [0x1dc].H1, RZ ; 
+ XMAD R8, R5.reuse, c[0x0] [0x1dc], RZ ; 
+ XMAD.MRG R11, R5, c[0x0] [0x1dc].H1, RZ ; 
+ XMAD R21, R6, c[0x0] [0x1d8], RZ ; 
+ XMAD.CHI R7, R24.H1, c[0x0] [0x1dc], R7 ; 
+ XMAD R22, R6.reuse, c[0x0] [0x1d8].H1, RZ ; 
+ XMAD R23, R6.H1.reuse, c[0x0] [0x1d8].H1, RZ ; 
+ XMAD R28, R6.reuse, R19, RZ ; 
+ XMAD.PSL.CBCC R8, R5.H1, R11.H1, R8 ; 
+ XMAD.CHI R25, R6.H1, c[0x0] [0x1d8], R21 ; 
+ IADD3.RS R10, R7, R10, R9 ; 
+ XMAD R9, R24.reuse, R18.reuse, RZ ; 
+ XMAD.MRG R7, R24.reuse, R18.H1, RZ ; 
+ XMAD R11, R24.reuse, c[0x0] [0x1dc], RZ ; 
+ XMAD.MRG R21, R24, c[0x0] [0x1dc].H1, RZ ; 
+ XMAD.MRG R29, R6, R19.H1, RZ ; 
+ XMAD.PSL.CBCC R9, R24.H1.reuse, R7.H1, R9 ; 
+ IADD3.RS R7, R25, R22, R23 ; 
+ XMAD.PSL.CBCC R11, R24.H1, R21.H1, R11 ; 
+ XMAD R21, R20.reuse, c[0x0] [0x1d8], RZ ; 
+ XMAD.MRG R22, R20, c[0x0] [0x1d8].H1, RZ ; 
+ XMAD R23, R6, c[0x0] [0x1d8], RZ ; 
+ IADD3 R10, R9, R10, R8 ; 
+ IADD R9, R2, R2 ; 
+ XMAD.MRG R25, R6.reuse, c[0x0] [0x1d8].H1, RZ ; 
+ XMAD.PSL.CBCC R26, R6.H1, R29.H1, R28 ; 
+ XMAD.PSL.CBCC R21, R20.H1, R22.H1, R21 ; 
+ IADD R8.CC, R9, R11 ; 
+ SHR R11, R2, 0x1f ; 
+ XMAD.PSL.CBCC R23, R6.H1, R25.H1, R23 ; 
+ MOV R25, RZ ; 
+ IADD.X R22, R11, R10 ; 
+ IADD R9.CC, R9, R23 ; 
+ IADD3 R10, R26, R7, R21 ; 
+ IADD.X R10, R11, R10 ; 
+ IADD3 R26.CC, R12, R9, R14 ; 
+ IADD3.X R7, R16, R10, R15 ; 
+ IADD R8.CC, R13, R8 ; 
+ IADD.X R22, R17, R22 ; 
+ LEA R21.CC, R8, c[0x0][0x148], 0x2 ; 
+ LEA.HI.X R22, R8, c[0x0][0x14c], R22, 0x2 ; 
+ LEA R23.CC, R26.reuse, c[0x0][0x140], 0x2 ; 
+ LEA.HI.X R26, R26, c[0x0][0x144], R7, 0x2 ; 
+ MOV R7, R2 ; 
+ MOV R10, R23 ; 
+ MOV R11, R26 ; 
+ { MOV R8, R21 ; 
+ LDG.E.CI.64 R10, [R10] }
+ MOV R9, R22 ; 
+ LDG.E.CI.64 R8, [R8] ; 
+ IADD32I R27, R27, -0x1 ; 
+ IADD32I R21.CC, R21, 0x800 ; 
+ ISETP.NE.AND P2, PT, R27, RZ, PT ; 
+ IADD.X R22, RZ, R22 ; 
+ IADD32I R23.CC, R23, 0x800 ; 
+ IADD32I R7, R7, 0x100 ; 
+ IADD.X R26, RZ, R26 ; 
+ FFMA.FTZ R28, R10, R8, R25 ; 
+ { FFMA.FTZ R25, R11, R9, R28 ; 
+ @P2 BRA 0x558 }
+ SYNC ; 
+ @!P0 SYNC ; 
+ { IADD R12.CC, R14, R12 ; 
+ SSY 0xc38 }
+ XMAD R11, R6.reuse, c[0x0] [0x1d8], RZ ; 
+ XMAD R14, R20.reuse, c[0x0] [0x1d8], RZ ; 
+ XMAD.MRG R23, R20, c[0x0] [0x1d8].H1, RZ ; 
+ XMAD R27, R6.reuse, R19.reuse, RZ ; 
+ XMAD.MRG R28, R6, R19.H1, RZ ; 
+ XMAD R9, R6.reuse, c[0x0] [0x1d8], RZ ; 
+ XMAD.MRG R8, R6.reuse, c[0x0] [0x1d8].H1, RZ ; 
+ XMAD R10, R6.reuse, c[0x0] [0x1d8].H1, RZ ; 
+ XMAD R19, R6.H1.reuse, c[0x0] [0x1d8].H1, RZ ; 
+ XMAD.CHI R21, R6.H1, c[0x0] [0x1d8], R11 ; 
+ XMAD.PSL.CBCC R20, R20.H1, R23.H1, R14 ; 
+ XMAD R14, R24, c[0x0] [0x1dc], RZ ; 
+ XMAD.PSL.CBCC R9, R6.H1.reuse, R8.H1, R9 ; 
+ XMAD.PSL.CBCC R6, R6.H1, R28.H1, R27 ; 
+ XMAD R8, R5.reuse, c[0x0] [0x1dc], RZ ; 
+ IADD3.RS R11, R21, R10, R19 ; 
+ XMAD.MRG R22, R5, c[0x0] [0x1dc].H1, RZ ; 
+ XMAD R26, R24.reuse, R18.reuse, RZ ; 
+ XMAD.MRG R27, R24.reuse, R18.H1, RZ ; 
+ XMAD R10, R24.reuse, c[0x0] [0x1dc], RZ ; 
+ XMAD.MRG R19, R24.reuse, c[0x0] [0x1dc].H1, RZ ; 
+ XMAD R18, R24.reuse, c[0x0] [0x1dc].H1, RZ ; 
+ XMAD R21, R24.H1, c[0x0] [0x1dc].H1, RZ ; 
+ XMAD.CHI R23, R24.H1.reuse, c[0x0] [0x1dc], R14 ; 
+ IADD.X R15, R15, R16 ; 
+ XMAD.PSL.CBCC R14, R5.H1, R22.H1, R8 ; 
+ IADD R9.CC, R12, R9 ; 
+ IADD3 R6, R6, R11, R20 ; 
+ XMAD.PSL.CBCC R8, R24.H1, R19.H1, R10 ; 
+ XMAD.PSL.CBCC R16, R24.H1, R27.H1, R26 ; 
+ IADD3.RS R11, R23, R18, R21 ; 
+ PSETP.AND.AND P0, PT, PT, PT, PT ; 
+ IADD.X R10, R15, R6 ; 
+ IADD R6.CC, R13, R8 ; 
+ SHR R13, R7, 0x1f ; 
+ IADD3 R8, R16, R11, R14 ; 
+ IADD R11, R7, R7 ; 
+ IADD.X R8, R17, R8 ; 
+ IADD R9.CC, R9, R11 ; 
+ IADD.X R10, R10, R13 ; 
+ LEA R28.CC, R9, c[0x0][0x140], 0x2 ; 
+ LEA.HI.X R9, R9, c[0x0][0x144], R10, 0x2 ; 
+ IADD R6.CC, R6, R11 ; 
+ IADD.X R8, R8, R13 ; 
+ LEA R26.CC, R6.reuse, c[0x0][0x148], 0x2 ; 
+ LEA.HI.X R6, R6, c[0x0][0x14c], R8, 0x2 ; 
+ IADD R8, -R7, c[0x0][0x198] ; 
+ IADD32I R28.CC, R28, 0x1000 ; 
+ ISETP.GT.AND P2, PT, R8, 0xc00, PT ; 
+ IADD.X R29, RZ, R9 ; 
+ IADD32I R26.CC, R26, 0x1000 ; 
+ { IADD.X R27, RZ, R6 ; 
+ @!P2 SYNC }
+ PSETP.AND.AND P0, PT, !PT, PT, PT ; 
+ MOV R6, c[0x0][0x198] ; 
+ IADD32I R6, R6, -0xc00 ; 
+ { IADD32I R7, R7, 0x1000 ; 
+ LDG.E.CI.64 R8, [R28+-0x1000] }
+ { ISETP.GE.AND P2, PT, R7, R6, PT ; 
+ LDG.E.CI.64 R10, [R26+-0x1000] }
+ LDG.E.CI.64 R20, [R28+-0x800] ; 
+ LDG.E.CI.64 R22, [R26+-0x800] ; 
+ LDG.E.CI.64 R12, [R28] ; 
+ LDG.E.CI.64 R14, [R26] ; 
+ LDG.E.CI.64 R16, [R28+0x800] ; 
+ LDG.E.CI.64 R18, [R26+0x800] ; 
+ DEPBAR.LE SB5, 0x3 ; 
+ FFMA.FTZ R8, R8, R10, R25 ; 
+ { FFMA.FTZ R9, R9, R11, R8 ; 
+ DEPBAR.LE SB5, 0x2 }
+ LDG.E.CI.64 R10, [R26+0x1000] ; 
+ { FFMA.FTZ R20, R20, R22, R9 ; 
+ LDG.E.CI.64 R8, [R28+0x1000] }
+ { FFMA.FTZ R21, R21, R23, R20 ; 
+ DEPBAR.LE SB5, 0x2 }
+ LDG.E.CI.64 R22, [R26+0x1800] ; 
+ { FFMA.FTZ R12, R12, R14, R21 ; 
+ LDG.E.CI.64 R20, [R28+0x1800] }
+ { FFMA.FTZ R13, R13, R15, R12 ; 
+ DEPBAR.LE SB5, 0x2 }
+ LDG.E.CI.64 R14, [R26+0x2000] ; 
+ { FFMA.FTZ R16, R16, R18, R13 ; 
+ LDG.E.CI.64 R12, [R28+0x2000] }
+ { FFMA.FTZ R17, R17, R19, R16 ; 
+ LDG.E.CI.64 R18, [R26+0x2800] }
+ DEPBAR.LE SB5, 0x2 ; 
+ { FFMA.FTZ R8, R8, R10, R17 ; 
+ LDG.E.CI.64 R16, [R28+0x2800] }
+ { FFMA.FTZ R9, R9, R11, R8 ; 
+ DEPBAR.LE SB5, 0x2 }
+ LDG.E.CI.64 R10, [R26+0x3000] ; 
+ { FFMA.FTZ R20, R20, R22, R9 ; 
+ LDG.E.CI.64 R8, [R28+0x3000] }
+ { FFMA.FTZ R21, R21, R23, R20 ; 
+ DEPBAR.LE SB5, 0x2 }
+ LDG.E.CI.64 R22, [R28+0x3800] ; 
+ { FFMA.FTZ R12, R12, R14, R21 ; 
+ LDG.E.CI.64 R20, [R26+0x3800] }
+ { FFMA.FTZ R13, R13, R15, R12 ; 
+ LDG.E.CI.64 R14, [R28+0x4000] }
+ DEPBAR.LE SB5, 0x2 ; 
+ { FFMA.FTZ R16, R16, R18, R13 ; 
+ LDG.E.CI.64 R12, [R26+0x4000] }
+ { FFMA.FTZ R17, R17, R19, R16 ; 
+ DEPBAR.LE SB5, 0x2 }
+ LDG.E.CI.64 R18, [R26+0x4800] ; 
+ { FFMA.FTZ R8, R8, R10, R17 ; 
+ LDG.E.CI.64 R16, [R28+0x4800] }
+ { FFMA.FTZ R9, R9, R11, R8 ; 
+ DEPBAR.LE SB5, 0x2 }
+ LDG.E.CI.64 R10, [R26+0x5000] ; 
+ { FFMA.FTZ R20, R22, R20, R9 ; 
+ LDG.E.CI.64 R8, [R28+0x5000] }
+ { FFMA.FTZ R21, R23, R21, R20 ; 
+ LDG.E.CI.64 R22, [R26+0x5800] }
+ DEPBAR.LE SB5, 0x2 ; 
+ { FFMA.FTZ R12, R14, R12, R21 ; 
+ LDG.E.CI.64 R20, [R28+0x5800] }
+ FFMA.FTZ R13, R15, R13, R12 ; 
+ DEPBAR.LE SB5, 0x2 ; 
+ LDG.E.CI.64 R14, [R28+0x6000] ; 
+ { FFMA.FTZ R16, R16, R18, R13 ; 
+ LDG.E.CI.64 R12, [R26+0x6000] }
+ { FFMA.FTZ R17, R17, R19, R16 ; 
+ DEPBAR.LE SB5, 0x2 }
+ LDG.E.CI.64 R18, [R26+0x6800] ; 
+ { FFMA.FTZ R8, R8, R10, R17 ; 
+ LDG.E.CI.64 R16, [R28+0x6800] }
+ FFMA.FTZ R9, R9, R11, R8 ; 
+ IADD32I R8.CC, R28, 0x8000 ; 
+ MOV R28, R8 ; 
+ DEPBAR.LE SB5, 0x2 ; 
+ FFMA.FTZ R20, R20, R22, R9 ; 
+ FFMA.FTZ R21, R21, R23, R20 ; 
+ DEPBAR.LE SB5, 0x1 ; 
+ FFMA.FTZ R12, R14, R12, R21 ; 
+ IADD.X R9, RZ, R29 ; 
+ FFMA.FTZ R13, R15, R13, R12 ; 
+ IADD32I R26.CC, R26, 0x8000 ; 
+ FFMA.FTZ R16, R16, R18, R13 ; 
+ IADD.X R27, RZ, R27 ; 
+ MOV R29, R9 ; 
+ { FFMA.FTZ R25, R17, R19, R16 ; 
+ @!P2 BRA 0x880 }
+ SYNC ; 
+ { IADD R6, -R7, c[0x0][0x198] ; 
+ SSY 0xe50 }
+ ISETP.GT.AND P2, PT, R6, 0x400, PT ; 
+ @!P2 SYNC ; 
+ { PSETP.AND.AND P0, PT, !PT, PT, PT ; 
+ LDG.E.CI.64 R16, [R28+-0x1000] }
+ { IADD32I R7, R7, 0x800 ; 
+ LDG.E.CI.64 R18, [R26+-0x1000] }
+ LDG.E.CI.64 R20, [R28+-0x800] ; 
+ LDG.E.CI.64 R22, [R26+-0x800] ; 
+ LDG.E.CI.64 R8, [R28] ; 
+ LDG.E.CI.64 R10, [R26] ; 
+ LDG.E.CI.64 R12, [R28+0x800] ; 
+ LDG.E.CI.64 R14, [R26+0x800] ; 
+ DEPBAR.LE SB5, 0x3 ; 
+ FFMA.FTZ R16, R16, R18, R25 ; 
+ { FFMA.FTZ R25, R17, R19, R16 ; 
+ DEPBAR.LE SB5, 0x2 }
+ LDG.E.CI.64 R16, [R28+0x1000] ; 
+ { FFMA.FTZ R20, R20, R22, R25 ; 
+ LDG.E.CI.64 R18, [R26+0x1000] }
+ { FFMA.FTZ R25, R21, R23, R20 ; 
+ DEPBAR.LE SB5, 0x2 }
+ LDG.E.CI.64 R20, [R28+0x1800] ; 
+ { FFMA.FTZ R8, R8, R10, R25 ; 
+ LDG.E.CI.64 R22, [R26+0x1800] }
+ { FFMA.FTZ R25, R9, R11, R8 ; 
+ DEPBAR.LE SB5, 0x2 }
+ LDG.E.CI.64 R8, [R28+0x2000] ; 
+ { FFMA.FTZ R12, R12, R14, R25 ; 
+ LDG.E.CI.64 R10, [R26+0x2000] }
+ { FFMA.FTZ R25, R13, R15, R12 ; 
+ LDG.E.CI.64 R12, [R28+0x2800] }
+ LDG.E.CI.64 R14, [R26+0x2800] ; 
+ IADD32I R28.CC, R28, 0x4000 ; 
+ IADD.X R29, RZ, R29 ; 
+ IADD32I R26.CC, R26, 0x4000 ; 
+ IADD.X R27, RZ, R27 ; 
+ DEPBAR.LE SB5, 0x3 ; 
+ FFMA.FTZ R16, R16, R18, R25 ; 
+ { FFMA.FTZ R17, R17, R19, R16 ; 
+ DEPBAR.LE SB5, 0x2 }
+ FFMA.FTZ R20, R20, R22, R17 ; 
+ { FFMA.FTZ R21, R21, R23, R20 ; 
+ DEPBAR.LE SB5, 0x1 }
+ FFMA.FTZ R8, R8, R10, R21 ; 
+ FFMA.FTZ R9, R9, R11, R8 ; 
+ FFMA.FTZ R12, R12, R14, R9 ; 
+ { FFMA.FTZ R25, R13, R15, R12 ; 
+ SYNC }
+ ISETP.LT.OR P0, PT, R7, c[0x0][0x198], P0 ; 
+ @!P0 SYNC ; 
+ LDG.E.CI.64 R16, [R28+-0x1000] ; 
+ LDG.E.CI.64 R6, [R26+-0x1000] ; 
+ LDG.E.CI.64 R12, [R28+-0x800] ; 
+ LDG.E.CI.64 R14, [R26+-0x800] ; 
+ LDG.E.CI.64 R8, [R28] ; 
+ LDG.E.CI.64 R10, [R26] ; 
+ LDG.E.CI.64 R18, [R28+0x800] ; 
+ LDG.E.CI.64 R20, [R26+0x800] ; 
+ DEPBAR.LE SB5, 0x3 ; 
+ FFMA.FTZ R6, R16, R6, R25 ; 
+ { FFMA.FTZ R7, R17, R7, R6 ; 
+ DEPBAR.LE SB5, 0x2 }
+ FFMA.FTZ R12, R12, R14, R7 ; 
+ { FFMA.FTZ R13, R13, R15, R12 ; 
+ DEPBAR.LE SB5, 0x1 }
+ FFMA.FTZ R8, R8, R10, R13 ; 
+ FFMA.FTZ R9, R9, R11, R8 ; 
+ FFMA.FTZ R18, R18, R20, R9 ; 
+ { FFMA.FTZ R25, R19, R21, R18 ; 
+ SYNC }
+ { SHR R11, R2, 0x1f ; 
+ SHFL.BFLY PT, R6, R25, 0x10, 0x1f }
+ { FADD.FTZ R6, R6, R25 ; 
+ SSY 0x1090 }
+ { LEA.HI R11, R11, R2, RZ, 0x5 ; 
+ SHFL.BFLY PT, R7, R6, 0x8, 0x1f }
+ FADD.FTZ R7, R6, R7 ; 
+ SHFL.BFLY PT, R8, R7, 0x4, 0x1f ; 
+ FADD.FTZ R8, R7, R8 ; 
+ SHFL.BFLY PT, R9, R8, 0x2, 0x1f ; 
+ SHR R11, R11, 0x5 ; 
+ FADD.FTZ R9, R8, R9 ; 
+ SHFL.BFLY PT, R10, R9, 0x1, 0x1f ; 
+ ISETP.GT.AND P0, PT, R2, RZ, PT ; 
+ SHL R11, R11, 0x2 ; 
+ FADD.FTZ R6, R9, R10 ; 
+ STS [R11], R6 ; 
+ BAR.SYNC 0x0 ; 
+ MEMBAR.CTA ; 
+ @P1 SYNC ; 
+ LDS.U.32 R4, [R4] ; 
+ SHFL.BFLY PT, R6, R4, 0x10, 0x1f ; 
+ FADD.FTZ R7, R4, R6 ; 
+ SHFL.BFLY PT, R6, R7, 0x8, 0x1f ; 
+ FADD.FTZ R8, R7, R6 ; 
+ SHFL.BFLY PT, R6, R8, 0x4, 0x1f ; 
+ FADD.FTZ R9, R8, R6 ; 
+ SHFL.BFLY PT, R6, R9, 0x2, 0x1f ; 
+ FADD.FTZ R10, R9, R6 ; 
+ SHFL.BFLY PT, R11, R10, 0x1, 0x1f ; 
+ { FADD.FTZ R6, R10, R11 ; 
+ SYNC }
+ NOP ; 
+ NOP ; 
+ NOP ; 
+ BAR.SYNC 0x0 ; 
+ MEMBAR.CTA ; 
+ NOP ; 
+ NOP ; 
+ NOP ; 
+ NOP ; 
+ @P0 EXIT ; 
+ XMAD R7, R0.reuse, c[0x0] [0x1c8], RZ ; 
+ XMAD.MRG R9, R0, c[0x0] [0x1c8].H1, RZ ; 
+ XMAD R3, R2.reuse, c[0x0] [0x1b0], R3 ; 
+ XMAD.MRG R4, R2, c[0x0] [0x1b0].H1, RZ ; 
+ XMAD R10, R5.reuse, c[0x0] [0x1e0], RZ ; 
+ XMAD.MRG R11, R5, c[0x0] [0x1e0].H1, RZ ; 
+ MOV R8, c[0x0][0x1e0] ; 
+ XMAD.PSL.CBCC R0, R0.H1, R9.H1, R7 ; 
+ XMAD.MRG R7, R24.reuse, c[0x0] [0x1e0].H1, RZ ; 
+ XMAD.PSL.CBCC R2, R2.H1, R4.H1, R3 ; 
+ XMAD.PSL.CBCC R9, R5.H1, R11.H1, R10 ; 
+ XMAD R10, R24, c[0x0] [0x1e0], RZ ; 
+ SHR R3, R8, 0x1f ; 
+ XMAD R5, R24.reuse, c[0x0] [0x1e0], RZ ; 
+ XMAD R8, R24.reuse, c[0x0] [0x1e0].H1, RZ ; 
+ XMAD R11, R24.H1.reuse, c[0x0] [0x1e0].H1, RZ ; 
+ SHR R4, R0, 0x1f ; 
+ XMAD.CHI R10, R24.H1, c[0x0] [0x1e0], R10 ; 
+ XMAD R13, R24.reuse, R3.reuse, RZ ; 
+ XMAD.MRG R14, R24.reuse, R3.H1, RZ ; 
+ SHR R3, R2.reuse, 0x1f ; 
+ XMAD.PSL.CBCC R5, R24.H1, R7.H1, R5 ; 
+ IADD R0.CC, R2, R0 ; 
+ IADD3.RS R7, R10, R8, R11 ; 
+ XMAD.PSL.CBCC R24, R24.H1, R14.H1, R13 ; 
+ IADD.X R2, R3, R4 ; 
+ IADD R0.CC, R0, R5 ; 
+ IADD3 R3, R9, R7, R24 ; 
+ IADD.X R2, R2, R3 ; 
+ LEA R4.CC, R0, c[0x0][0x190], 0x2 ; 
+ LEA.HI.X R5, R0, c[0x0][0x194], R2, 0x2 ; 
+ STG.E [R4], R6 ; 
+ EXIT ; 
+ BRA 0x1258 ; 
+ NOP; 
+ NOP; 
+ NOP; 
