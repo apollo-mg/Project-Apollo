@@ -2,7 +2,7 @@
 """PREREG_MMVF_SHORTROW.md analysis. Phase A applies the registered selection rule; phase B scores B1-B4.
 
   analyze_mmvf.py A RAW_A_DIR            -> selection (R*, KMAX*), mechanism table, correctness of tbo-base/tbo-tune
-  analyze_mmvf.py B RAW_B_DIR RAW_A_DIR  -> B1-B4 verdicts (needs KMAX* from phase A)
+  analyze_mmvf.py B RAW_B_DIR RAW_A_DIR KMAX -> B1-B4 verdicts at the KMAX the final binary was built with
   analyze_mmvf.py --self-test            -> synthetic checks of the parser, the rule and the verdicts
 """
 import json, re, statistics, sys, tempfile
@@ -16,13 +16,14 @@ HELD_OUT = [("bf16", 10240, 1, 320), ("f32", 10240, 1, 320), ("f16", 32000, 2, 1
 CONTROLS = [("f16", 4096, 1, 4096), ("bf16", 320, 1, 10240), ("f16", 320, 1, 10240)]
 PERF = re.compile(r"MUL_MAT\(type_a=(\w+),type_b=f32,m=(\d+),n=(\d+),k=(\d+),bs=\[1,1\],nr=\[1,1\][^)]*\):"
                   r"\s+(\d+) runs -\s+([\d.]+) us/run")
+ANSI = re.compile(r"\x1b\[[0-9;]*m")
 TEST = re.compile(r"^\s+((?:MUL_MAT|MUL_MAT_ID|MUL_MAT_VEC_FUSION)\(.*\)):\s+(OK|FAIL)\b", re.M)
 
 
 def parse_perf(path):
     """{(type, m, n, k): mean us/run within this file} (duplicate shapes, if any, are averaged)."""
     acc = {}
-    for t, m, n, k, _runs, us in PERF.findall(Path(path).read_text(errors="replace")):
+    for t, m, n, k, _runs, us in PERF.findall(ANSI.sub("", Path(path).read_text(errors="replace"))):
         acc.setdefault((t, int(m), int(n), int(k)), []).append(float(us))
     return {key: sum(v) / len(v) for key, v in acc.items()}
 
@@ -35,7 +36,7 @@ def medians(raw, arm):
 
 
 def parse_test(path):
-    txt = Path(path).read_text(errors="replace")
+    txt = ANSI.sub("", Path(path).read_text(errors="replace"))   # results are colour-coded: ESC[1;32mOK ESC[0m
     res = {}
     for case, st in TEST.findall(txt):
         res[case] = "FAIL" if res.get(case) == "FAIL" else st
@@ -59,11 +60,28 @@ def select(t):
     return rstar, kmax, sums
 
 
+def select_revised(t, rstar, cap=1792):
+    """Deviation 2 (post-hoc, after phase A): the registered rule demanded a >= 3 % gain in every cell from k=64, and
+    k=64/n=4 sits at the ~20 us harness floor for every arm. Revised: KMAX = the largest grid k <= cap (the prereg's
+    FP16 half2-chain note: k/64 <= 28) such that no cell k' <= k regresses (t(R*) <= 1.03 t(base), both n) and k
+    itself gains (t(R*) <= 0.97 t(base), both n). R* stays the registered argmin."""
+    def r(k, n):
+        return t[f"R{rstar}"][("f16", 10240, n, k)] / t["base"][("f16", 10240, n, k)]
+    kmax = None
+    for k in GRID_K:
+        if k > cap or any(r(k, n) > 1.03 for n in GRID_N):
+            break
+        if all(r(k, n) <= 0.97 for n in GRID_N):
+            kmax = k
+    return kmax
+
+
 def phase_a(raw):
     t, nrep = {}, {}
     for arm in ["base", "unset"] + [f"R{r}" for r in RS]:
         t[arm], nrep[arm] = medians(raw, arm)
     rstar, kmax, sums = select(t)
+    kmax_rev = select_revised(t, rstar)
     mech = []
     for n in GRID_N:
         for k in GRID_K:
@@ -74,7 +92,8 @@ def phase_a(raw):
     tb, sb = parse_test(Path(raw) / "test_base.txt")
     tt, st = parse_test(Path(raw) / "test_tune_R4.txt")
     new_fail = sorted(c for c, s in tt.items() if s == "FAIL" and tb.get(c) == "OK")
-    return {"reps": nrep, "R_star": rstar, "KMAX_star": kmax, "sum_k_le_512_us": sums, "grid": mech,
+    return {"reps": nrep, "R_star": rstar, "KMAX_star": kmax, "KMAX_dev2_posthoc": kmax_rev,
+            "sum_k_le_512_us": sums, "grid": mech,
             "test_base": {"summary": sb, "cases": len(tb), "fail": sum(s == "FAIL" for s in tb.values())},
             "test_tune_R4": {"summary": st, "cases": len(tt), "fail": sum(s == "FAIL" for s in tt.values()),
                              "fail_where_base_ok": new_fail[:20], "n_fail_where_base_ok": len(new_fail),
@@ -151,6 +170,24 @@ def self_test():
         t = {arm: {s: arm_us(arm, s) for s in shapes} for arm in ["base", "R1", "R2", "R4", "R8"]}
         t["R2"] = {s: t["R4"][s] * 1.005 for s in shapes}
         check("tie within 1 % goes to the smaller R", select(t)[0] == 2)
+        # real line format from .73 (10-01): colour-coded result, m_v/pad params
+        (A / "ansi.txt").write_text("  MUL_MAT(type_a=f16,type_b=f32,m=7,n=1,k=64,bs=[1,1],nr=[1,1],per=[0,1,2,3],k_v=0,"
+                                    "o=1,src_overlap=0,m_v=0,pad=0): \x1b[1;32mOK\x1b[0m\n"
+                                    "  MUL_MAT_ID(type_a=bf16,type_b=f32,n_mats=16,n_used=4,b=0,m=1001,n=4,k=320,o=1): "
+                                    "\x1b[1;31mFAIL\x1b[0m\n  1/2 tests passed\n")
+        r, summ = parse_test(A / "ansi.txt")
+        check("colour-coded OK/FAIL lines parse", sorted(r.values()) == ["FAIL", "OK"] and summ == "1/2 tests passed")
+        # Deviation 2 selector: a floor cell (ratio ~1.0) at k=64 no longer blocks; the cap and regressions do
+        t3 = {arm: {s: arm_us(arm, s) for s in shapes} for arm in ["base", "R1", "R2", "R4", "R8"]}
+        for n in GRID_N:   # the floor hits every arm, as on .73
+            for arm in ["R1", "R2", "R4", "R8"]:
+                t3[arm][("f16", 10240, n, 64)] = t3["base"][("f16", 10240, n, 64)] * 1.005
+        check("registered rule is null on a floor cell at k=64", select(t3)[1] is None)
+        check("revised rule skips the floor cell and stops at the regression-free gain edge (1024)",
+              select_revised(t3, 4) == 1024)
+        check("revised rule respects the FP16 cap", select_revised(t3, 4, cap=512) == 512)
+        t3["R4"][("f16", 10240, 4, 384)] = t3["base"][("f16", 10240, 4, 384)] * 1.05
+        check("a >3 % regression ends the revised range below it", select_revised(t3, 4) == 320)
         # null: k=64 fails
         t2 = {arm: {s: base_us(s) for s in shapes} for arm in ["base", "R1", "R2", "R4", "R8"]}
         check("no gain at k=64 -> KMAX* is None", select(t2)[1] is None)
@@ -187,5 +224,5 @@ if __name__ == "__main__":
     if sys.argv[1] == "A":
         out = phase_a(sys.argv[2])
     else:
-        out = phase_b(sys.argv[2], phase_a(sys.argv[3])["KMAX_star"])
+        out = phase_b(sys.argv[2], int(sys.argv[4]))   # KMAX passed explicitly (Deviation 2: registered rule null)
     print(json.dumps(out, indent=1, default=str))

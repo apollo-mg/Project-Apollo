@@ -140,3 +140,33 @@ Any change after the first timed row gets a numbered Deviation here before the a
     now returns right after `mmvf_perf_cases.inc` (`mmvf/mmvf_rebuild.sh`), so only the registered cases run (30
     shapes, all parsed in a smoke run). Eval mode is unchanged.
   - **Rebuilt binaries:** tbo-base `22ce0765…`, tbo-tune `1c8e7170…`.
+
+- **Deviation 2 (after phase A, before any phase B row; 10-01 20:05).** Written down before phase B runs.
+  - **The registered selection rule returned null.** That is phase A's registered outcome. R\* = 2 came from the
+    registered argmin (sum 318.0 us vs R4 319.2, R8 322.8, R1 331.5). But no KMAX\* exists, because one cell failed
+    the ">= 3 % gain in every cell from k=64" test: **k=64 at n=4, where every arm sits at the ~20 us harness floor**
+    (R2 = 1.005x base). The rule confused "no gain possible" with "regression". From k=128 to k=2048, R2 runs at
+    0.25-0.76x base at both n.
+  - **Revised KMAX rule (post-hoc, chosen after seeing phase A):** the largest grid k <= 1792 (this prereg's own FP16
+    note: a half2 chain of k/64 <= 28 products) such that no cell k' <= k regresses (R2 <= 1.03x base, both n) and k
+    itself gains (<= 0.97x, both n). `analyze_mmvf.py:select_revised` applies it mechanically: **KMAX = 1536.** The
+    registered `select()` is unchanged. **Phase B's held-out shapes, never used for selection, are the confirmation.**
+  - **The patch is restructured; the tuning patch's runtime row index is not shipped.** With the env var unset, the
+    tuning binary ran the old path 2-6 % slower than base in every rep. An alternating-order check (tune-first and
+    base-first, 3 rounds each) reproduced it: +3.2-4.3 % at m=10240 / k=1536-2048, +1 % at hc_down, 0 % at
+    m=4096 / k=4096. So it is real, not order bias. Register counts are identical (31-32), so it is instruction cost
+    ahead of each block's first load. That cost alone would fail B3.
+    - In `mmvf/mmvf_final.patch`, `rows_per_block` is a template parameter (default 1). The multi-row instantiation
+      exists only beside `block_size == 32`, and the bounds check sits under `if constexpr (rows_per_block > 1)`.
+    - **Gate before phase B timing:** the default-path SASS (F16, half and float accumulators, block sizes 160 and 256)
+      must be identical between `tbo-base` and `tbo-final`, with function names stripped.
+    - The final R2 grid timings are also compared with phase A's env-R2 medians, to confirm the shipped code is the
+      code that was tuned.
+  - **Phase B runs as registered otherwise** (same order, shapes, B1-B4 thresholds). KMAX is passed to the analysis
+    explicitly: `analyze_mmvf.py B raw_B raw_A 1536`.
+  - **Phase A raw:**
+    - `raw_A/` is the clean run, 20/20 gates clean, with the proxy stopped.
+    - `raw_A_aborted/`: the proxy started the 27B at 19:05:55 after a request, and the gate blocked every later leg.
+      Then the proxy suspended .73 at 19:39, because its busy probe does not count `test-backend-ops`.
+    - `raw_A_collided/`: on wake, the suspended runner resumed alongside a new one. Both were killed by PID, and none
+      of their rows are used.
