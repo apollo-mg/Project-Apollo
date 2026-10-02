@@ -39,7 +39,7 @@ leg() {  # leg NAME ENV BIN MODE...
 }
 
 if [ "$PH" = A ]; then
-  sha256sum $W/tbo-base $W/tbo-tune > $OUT/binaries.sha256
+  (cd $W && sha256sum tbo-base tbo-tune) > $OUT/binaries.sha256
   leg test_base "" $W/tbo-base test -b CUDA0 -o $TEST_OPS -p "$TEST_RE" -j 4
   leg test_tune_R4 "4,4096" $W/tbo-tune test -b CUDA0 -o $TEST_OPS -p "$TEST_RE" -j 4
   for rep in 1 2 3; do
@@ -52,7 +52,7 @@ if [ "$PH" = A ]; then
     done
   done
 elif [ "$PH" = B ]; then
-  sha256sum $W/tbo-base $W/tbo-final > $OUT/binaries.sha256
+  (cd $W && sha256sum tbo-base tbo-final) > $OUT/binaries.sha256
   leg test_final "" $W/tbo-final test -b CUDA0 -o $TEST_OPS -p "$TEST_RE" -j 4
   for rep in 1 2 3; do
     for arm in base final; do
