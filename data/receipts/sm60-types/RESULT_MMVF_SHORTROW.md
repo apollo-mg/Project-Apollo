@@ -1,4 +1,4 @@
-# Result -- one warp per row makes short float mat-vec faster on P100: hc_up 3.0x (BF16 66.7 -> 22.3 us) and 2.4x (F32), held-out shapes 1.8-3.3x, with the default path's SASS unchanged and every correctness case passing. The registered selection rule returned null on a floor cell; the cutoff was then chosen post-hoc (Deviation 2) and confirmed on held-out shapes.
+# Result -- one warp per row makes short float mat-vec faster on P100: hc_up 3.0x (BF16 66.7 -> 22.3 us) and 2.4x (F32), held-out shapes 1.8-3.3x, with the default path's SASS unchanged and every correctness case passing. The registered selection rule returned null on a floor cell; the cutoff was then chosen post-hoc (Deviation 2) and confirmed on held-out shapes. **On .194 (10-02) it speeds GSQ-RCO Flash-Next decode 1.113x (B5 holds). B6 (KLD < 0.001) fails at 0.0139, but the unpatched build's own prefill-vs-decode paths diverge by 0.0144: this model amplifies any numeric change to that floor.**
 
 **2026-10-01.** Pre-registration `PREREG_MMVF_SHORTROW.md` (`074d0e1`), with Deviation 1 (harness only) and
 Deviation 2 (post-hoc cutoff, restructured patch), both committed before the rows they affect. The patch is
@@ -74,12 +74,53 @@ only). Analysis `mmvf/analyze_mmvf.py` (self-tested).
   - **Positive control:** the same probe sees 118 changed lines in the tuning binary.
   - The final R2 timings match phase A's tuned R2 within 0.005 on every grid cell.
 
+## End to end on .194 (B5/B6, 10-02; Deviations 3-4)
+
+**Setup:**
+- Builds: base and final, both static from `ab22bc538`.
+- Model: GSQ-RCO IQ3_XXS Flash-Next, 4x P100 at 150 W / 1063 MHz (read back).
+- Raw: `mmvf/raw_b56/` (`RESULT_b56.json`, `decode.jsonl`, `kld_*.txt`, server logs, `run.log`).
+
+| # | claim | result |
+|---|---|---|
+| B5 | decode >= 1.07x (pass 2, pooled per build, 4 fresh servers ABBA) | **holds. 1.113x**: 18.78 -> 20.90 tok/s (12 rows each). Per server, pass 2: base 18.78 / 18.78, final 20.90 / 20.90 |
+| B6 | mean KLD(final vs base) < 0.001 at `-ub 1` | **does not hold. 0.0139 +/- 0.0006**, same top token 96.4 %. Exercised gate passed (final 42.4 vs base 47.2 ms/token, 0.90x); self-control 0.000000 |
+
+- **The speedup is what the kernel timings predicted:** ~1.11x from 96 hc_up calls x the measured kernel ratio.
+  - It equals the Q8_0 conversion's cached speed (1.118x), and leaves the BF16 weights unchanged.
+  - Pass 1 is as fast as pass 2 (20.87 vs 20.90), because the embedding shard is pre-read.
+- **Greedy text:** 3/6 prompts identical between builds. The others first differ at characters 20, 360 and 476, and
+  read coherently on both sides. Each build is deterministic (6/6 identical across its two servers).
+- **B6 failed as registered.** The 0.001 threshold was set without measuring this model's sensitivity.
+  - **The post-hoc control C2 (Deviation 4, reading rule committed before it ran)** scored the **unpatched** build's
+    own `-ub 512` (prefill kernels) against its `-ub 1` (decode kernels) logits: **mean KLD 0.0144**, median 0.0014,
+    same top 96.4 %.
+  - That is the same divergence as the patch (0.0139, median 0.0014, 96.4 %). By the fixed rule, the patch
+    diverges no more than two legitimate code paths of the same build do.
+
+    | comparison | mean KLD | median | p99 | same top | mean ln(PPL ratio) |
+    |---|---:|---:|---:|---:|---:|
+    | final vs base, both `-ub 1` (the patch) | 0.0139 | 0.0014 | 0.175 | 96.4 % | +0.0021 +/- 0.0031 |
+    | base `-ub 512` vs base `-ub 1` (C2, no patch) | 0.0144 | 0.0014 | 0.194 | 96.4 % | +0.0049 +/- 0.0034 |
+    | HCQ8 vs base, both `-ub 512` (09-29, weights converted) | 0.0153 | 0.0017 | 0.197 | 96.5 % | -0.0075 +/- 0.0034 |
+
+  - **Hypothesis, not shown:** MMVQ quantises activations to q8_1 before each quantised matmul. So a ~1e-7 float
+    difference can flip a rounding step, and that compounds through 48 layers and the recurrent state. That would
+    give a floor that does not depend on how small the original difference was.
+- **Consequence for HC_Q8 (09-29):** its "conversion costs KLD 0.015" may be largely this floor, not Q8_0 precision.
+  That run had no path-noise control, so it cannot be separated after the fact. A forward note is added there.
+- All three `llama-perplexity` runs through the runner exited 1 despite complete output; C2, run directly, exited 0.
+  The gates read content, not exit codes.
+
 ## What it means
 
 - **GSQ-RCO's BF16 hyper-connections no longer need converting.**
   - On .73's clock, the 96 hc_up calls per token drop from 66.7 to 22.3 us, about 4.3 ms per token.
   - At .194's 1063 MHz, the same ratio predicts ~5.3 ms of the 53.1 ms cached token, about 1.11x. That is the HCQ8
-    speed (1.118x) at zero conversion cost. B5/B6 test this on .194.
+    speed (1.118x) at zero conversion cost. **Measured on .194: 1.113x** (B5).
+- **A KLD threshold needs a path-noise control.** On this model any numeric change, even the same build switching from
+  prefill to decode kernels, costs ~0.014 mean KLD. A fidelity claim below that floor cannot be measured here; one
+  above it means something.
 - **It applies to any short float matmul at decode**, F16, BF16 and F32 alike. Examples: thin projections, gates,
   hyper-connections, and the routing that upstream #29633 widens.
 - **Candidate upstream change:**
@@ -92,11 +133,12 @@ only). Analysis `mmvf/analyze_mmvf.py` (self-tested).
 - **A HIP build.** The R=2 instantiation is compiled for every target, including warp-64 AMD, where it is never
   launched. The patch has not been built under HIP.
 - **Other GPUs.** The rule is enabled for NVIDIA with warp size 32, but only sm_60 was measured. Volta and later
-  (different occupancy limits, CUDA graphs on) are untested; the 1660 Ti (sm_75) is the nearest test. AMD keeps the
-  old launch.
+  (different occupancy limits, CUDA graphs on) are untested, and no newer NVIDIA card is available (the 1660 Ti was
+  sold 08-18). AMD keeps the old launch.
 - **F16 at model level.** F16 accumulates in half2. At k=320 each thread now sums 5 products where it summed 1 (32
   at the k=2048 edge this cap excluded). test-backend-ops' tolerance passed, but no model-level KLD was run on an
   F16-heavy file. B6 covers BF16, which accumulates in float.
-- **End-to-end decode** (B5) and fidelity (B6) on .194, both registered and pending.
+- **The amplification mechanism** behind the ~0.014 floor; and whether a smaller-than-floor fidelity difference
+  exists between the builds (it would need a much larger corpus or a less sensitive model).
 - **hc_down** (few rows, long k) is a different problem, split-k, and was unchanged as expected.
 - **k between 1536 and ~3000:** still faster in the grid, excluded by the FP16 cap.

@@ -78,6 +78,9 @@ deterministic: rep 1 and rep 2 match within an arm.
 | PPL ratio | 0.9925 +/- 0.0034 | -- |
 
 - **The noise floor is zero,** so the 0.0153 is the conversion's.
+  **Forward note (10-02, `RESULT_MMVF_SHORTROW.md`):** the zero is only the same-path floor. Two legitimate code paths
+  of one unmodified build (`-ub 512` vs `-ub 1`) diverge by 0.0144 on this model, and a summation-order kernel change
+  by 0.0139. So much of this 0.0153 may be amplification, not Q8_0 precision. It cannot be separated after the fact.
 - For scale: GSQ-RCO IQ3_XXS itself sits at ~0.115 KLD from its BF16 original on English prose (ISTA's number, a
   different corpus). The conversion adds roughly a tenth of that. Perplexity moved slightly *down*, which is why
   PPL is the wrong instrument here.
