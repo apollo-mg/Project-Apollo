@@ -199,4 +199,20 @@ Any change after the first timed row gets a numbered Deviation here before the a
     - `-lv 4` is passed, because the `llama_perf` prompt-eval line that the exercised gate reads is printed only at
       that verbosity.
     - **Smoke check:** a 2-chunk base-vs-base KLD came out at exactly 0, with 100 % same top token.
+- **Deviation 4 (exploratory, after B5/B6; 10-02 ~13:45; does not change any verdict).**
+  - **B6 failed as registered:** mean KLD(final vs base) 0.0139 against a 0.001 threshold. The threshold was set
+    without measuring this model's sensitivity, so it is a mis-calibrated prediction. It stays failed.
+  - **Why look further:** the patch's KLD distribution nearly matches HC_Q8's Q8_0 conversion (median 0.0014 vs
+    0.0017, p99 0.175 vs 0.197, same top 96.4 vs 96.5 %). That suggests this model amplifies any perturbation to a
+    common floor.
+  - **Control C2:** the unpatched base build at the default `-ub 512` (prefill kernels), scored with `--kl-divergence`
+    against the `-ub 1` base logits. Same flags otherwise. These are two legitimate code paths of one unmodified
+    build.
+  - **Reading rule, fixed before C2 runs:**
+
+    | C2 mean KLD | reading |
+    |---|---|
+    | >= 0.0139 | the patch diverges no more than the model's own prefill vs decode paths do |
+    | <= 0.007 | the patch adds divergence that path noise cannot explain: a possible bug; next, op-level error vs CPU on the hc_up shape, before any PR |
+    | in between | the number is reported, with no conclusion |
 
