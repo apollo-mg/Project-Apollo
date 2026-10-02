@@ -55,13 +55,14 @@ stop_server
 scp -q "$H:mmvf/srv_*.log" "$OUT/" 2>/dev/null
 
 # ---- B6 fidelity at -ub 1
-PF="-ngl 99 -sm layer -ts 1,1,1,0.6 -fit off -c 512 -b 512 -ub 1 --chunks 16 -f $RHOME/wikitext-2-raw/wiki.test.raw"
+PF="-ngl 99 -sm layer -ts 1,1,1,0.6 -fit off -c 512 -b 512 -ub 1 -ctk f16 -ctv f16 -lv 4 --chunks 16 -f $RHOME/wikitext-2-raw/wiki.test.raw"
 ppl() {  # name build extra-args
   local name=$1 build=$2; shift 2
   [ -s "$OUT/$name.txt" ] && grep -q 'prompt eval time' "$OUT/$name.txt" && { log "$name done, skipped"; return 0; }
   ssh "$H" "cat $S2 > /dev/null"
   local t0=$(date +%s)
   ssh "$H" "$ENVS $W/$build/llama-perplexity -m $S1 $PF $*" > "$OUT/$name.txt" 2>&1
+  grep -q 'VBR dynamic' "$OUT/$name.txt" && { log "$name: VBR KV active -- aborting"; exit 1; }
   log "$name: exit $? in $(( $(date +%s) - t0 )) s; $(grep -E 'Mean +KLD|Final estimate' "$OUT/$name.txt" | head -1); $(grep -o 'prompt eval time = .*' "$OUT/$name.txt" | head -1)"
 }
 ppl kld_base base --kl-divergence-base $W/kld_base.bin

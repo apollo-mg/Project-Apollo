@@ -170,7 +170,7 @@ Any change after the first timed row gets a numbered Deviation here before the a
       Then the proxy suspended .73 at 19:39, because its busy probe does not count `test-backend-ops`.
     - `raw_A_collided/`: on wake, the suspended runner resumed alongside a new one. Both were killed by PID, and none
       of their rows are used.
-- **Deviation 3 (B6 method, and the B5/B6 run plan; 10-02 ~12:55, before any B5/B6 row).**
+- **Deviation 3 (B6 method, and the B5/B6 run plan; 10-02 ~12:40, before any B5/B6 row).**
   - **B6 as registered would pass vacuously.** `llama-perplexity` on "the RESULT_HC_Q8 wikitext setup" evaluates
     512-token ubatches, which go to the batched matmul paths and never reach `mul_mat_vec_f`. Base and final would run
     identical code. HC_Q8's KLD was valid only because it changed the weights.
@@ -193,4 +193,10 @@ Any change after the first timed row gets a numbered Deviation here before the a
       final / base >= 1.07. Pass 1 and per-server medians are reported, not scored.
     - **Greedy text agreement** between builds: reported, not scored. A summation-order change can flip near-tied
       tokens.
+  - **Addendum (smoke runs, before any row):**
+    - `-ctk f16 -ctv f16` is passed explicitly. Without it, buun's default VBR KV was active in the first smoke run
+      ("VBR dynamic turbo runtime controller ... entry tier f16"). The runner now aborts on that line.
+    - `-lv 4` is passed, because the `llama_perf` prompt-eval line that the exercised gate reads is printed only at
+      that verbosity.
+    - **Smoke check:** a 2-chunk base-vs-base KLD came out at exactly 0, with 100 % same top token.
 
