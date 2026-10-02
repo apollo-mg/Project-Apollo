@@ -91,3 +91,19 @@ receipts found:
 ## Deviations
 
 Any change after the first row gets a numbered Deviation here before the affected rows run.
+- **Deviation 1 (exploratory, after Parts N and P; 10-02 ~15:00; no verdict changes).**
+  - **Parts N and P are scored as registered** (N1-N3 fail: the slow mode appeared in one *bound* start, C1b, and
+    in no unbound start).
+  - **Server logs tie the slow mode to slot assignment.** `kv_unified = 'false'`, so each slot has its own stream.
+    - Fast 2-stream passes used adjacent slots ({0,1}, {2,3}).
+    - Slow ones used non-adjacent slots ({0,3} in C1b; {3,1} in 10-01's L0).
+    - Each slow stream ran at 9.85-10.3 tok/s, the 4-stream rate.
+  - **Forced-slot test (C0 binding, the L0 config):** two parallel 256-token `/completion` requests with `id_slot`
+    set, for every pair {0,1} {1,2} {2,3} {0,2} {1,3} {0,3}, 2 reps each. Run once as is and once with
+    `--kv-unified`.
+  - **Reading rule, fixed before it runs:**
+    - **The adjacency hypothesis is confirmed** if, without `--kv-unified`, every adjacent pair runs >= 15 tok/s
+      per stream and every non-adjacent pair <= 12 tok/s (both reps).
+    - **For `--kv-unified`:** report whether the non-adjacent penalty is gone (all pairs >= 15) and its adjacent
+      rate against the non-unified one.
+
