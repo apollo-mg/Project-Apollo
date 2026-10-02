@@ -6,7 +6,7 @@ H=10.0.0.194; PORT=8190; URL="http://$H:$PORT"; BIN='~/llama.cpp-upstream/build_
 M='~/AI/Models/glm53_gguf_iq3xxs/GLM-5.3-Flash-UD-IQ3_XXS-00001-of-00004.gguf'
 COMMON="-c 16384 -np 1 -ctk f16 -ctv f16 -lv 4 --host 0.0.0.0 --port $PORT"
 declare -A PRE=([M]="" [B1]="" [D]="" [I]="numactl --interleave=all" [B2]="")
-declare -A EXTRA=([M]="" [B1]="--no-mmap" [D]="--no-mmap --numa distribute" [I]="--no-mmap --numa numactl" [B2]="--no-mmap")
+declare -A EXTRA=([M]="" [B1]="-lm none" [D]="-lm none --numa distribute" [I]="-lm none --numa numactl" [B2]="-lm none")
 OUT="$HERE/raw_numa"; mkdir -p "$OUT"; LOG="$OUT/run.log"; ROWS="$OUT/rows.jsonl"
 log() { echo "$(date '+%F %T') $*" | tee -a "$LOG"; }
 R() { timeout "${2:-60}" ssh -n -o BatchMode=yes "$H" "$1"; }

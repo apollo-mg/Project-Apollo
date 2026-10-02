@@ -63,3 +63,9 @@ Mainline `~/llama.cpp-upstream/build_sm60` (`81ff93e`), the 09-30 model files, a
 ## Deviations
 
 Any change after the first row gets a numbered Deviation here before the affected rows run.
+- **Deviation 1 (before any row of B1, D, I, B2; 10-02 15:18).**
+  - Mainline `81ff93e` rejects `--no-mmap` ("invalid argument"). Its replacement is `-lm none` ("no special loading
+    mode", i.e. read into memory rather than mmap).
+  - B1, D, I and B2 use `-lm none` in its place. Nothing else changes. Arm M's 6 rows (mmap) were already complete
+    and are unaffected.
+
