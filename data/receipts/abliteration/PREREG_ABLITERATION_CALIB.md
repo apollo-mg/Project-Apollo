@@ -112,4 +112,11 @@ Any change after the first row gets a numbered Deviation here before the affecte
   - **Per-arm gates add:** `/tokenize` of " UNKNOWN" / " Unknown" / " unknown" must return [59322] [21024] [9496]
     (M1's variant ids); a mismatch stops the arm.
   - **Runner** `run_abl.sh`. Analysis `analyze_abliteration.py`, self-test passed.
+- **Deviation 1 (instrument fix, before any KLD row; 10-03 14:00).**
+  - **The failure:** `llama-perplexity` without `-b` used n_batch 2048 = 4 sequences of 512 (`n_seq_max = 4`).
+    On this hybrid recurrent model it evaluated nothing ("2048 tokens in 1.79 ms"), printed no PPL/KLD and exited
+    0. That happened for both wave-1 KLD runs.
+  - **The fix:** `-b 512`, one sequence per batch, as in the working mmvf B6 runs.
+  - The empty outputs are kept as `raw/kld_*_nseq4_empty.txt`. Wave 1's IKP and M1 rows are unaffected (complete
+    and gated).
 

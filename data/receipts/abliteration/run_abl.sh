@@ -12,7 +12,7 @@ declare -A GPU=([A]=0,1 [B]=2,3) NODE=([A]=0 [B]=1) PORT=([A]=8191 [B]=8192)
 FLAGS="-ngl 99 -sm layer -fit off -fa on -c 8192 -np 1 --no-cache-prompt --jinja -ctk f16 -ctv f16 -lv 4 --host 0.0.0.0"
 KW='{"reasoning_effort":"medium","enable_thinking":false}'
 VAR='{" UNKNOWN": 59322, " Unknown": 21024, " unknown": 9496}'
-PF="-ngl 99 -sm layer -fit off -fa on -c 512 --chunks 16 -ctk f16 -ctv f16 -lv 4"
+PF="-ngl 99 -sm layer -fit off -fa on -c 512 -b 512 --chunks 16 -ctk f16 -ctv f16 -lv 4"
 OUT="$HERE/raw"; mkdir -p "$OUT"; LOG="$OUT/run.log"
 log() { echo "$(date '+%F %T') $*" | tee -a "$LOG"; }
 R() { timeout "${2:-60}" ssh -n -o BatchMode=yes "$H" "$1"; }
@@ -73,6 +73,7 @@ case "${1:-}" in
      kld U6 A base; kld S6 A ;;
   2) log "== wave 2"; run_arm U4s A & PA=$!; run_arm U4x B & PB=$!; wait $PA; wait $PB
      kld U4s A & KA=$!; kld U4x B & KB=$!; wait $KA; wait $KB ;;
-  *) echo "usage: $0 1|2"; exit 2 ;;
+  1k) log "== wave 1 KLD rerun (Deviation 1)"; kld U6 A base; kld S6 A ;;
+  *) echo "usage: $0 1|2|1k"; exit 2 ;;
 esac
 log "== wave ${1} done"
