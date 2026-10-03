@@ -47,3 +47,35 @@ restore), then the request. A cold continuation would have taken ~95 s (load 35 
   entry here.
 - Restores of 2 entries, and of long (50k+) conversations.
 - Whether a lazy (on-demand) install exists or would help.
+
+## 10-03 update: the host prompt cache was being persisted too; fixed with `--resume-no-host-cache`
+
+- **What happened overnight:**
+  - By default `--resume` also saves every conversation in buun's host prompt cache, up to the 8-entry overall
+    retention. The nightly daydream filled it.
+  - A shutdown with both slots empty still logged `capture_done slots=0 hosted=8`, 79 s, 1.1 GB of it the
+    daydream's 14k-token chat.
+  - Every wake then restored all 8 (`installed_host`, ~8 s each): healthy at 125-134 s instead of 35 s.
+- **Erasing the slots after the daydream (`tools/daydream_nightly.sh`) was not enough on its own,** since the
+  erased conversations live on in the host cache.
+- **The flag `--resume-no-host-cache`** ("--resume for the slots only") arrived in buun `f08683ffa` (09-28), one
+  day after the daily build.
+  - The unmodified daily binary rejected it ("invalid argument"; the daily driver was down ~2.5 min during that
+    try, unit restored from backup).
+  - **Fix:** the 21-line commit was cherry-picked onto the exact daily commit (`510cbbbfa` + `f08683ffa` =
+    `ccb273321`, local branch) and built with the daily CMake options at `/mnt/HDD/buun-510cb-nohost`
+    (`llama-server` sha256 `02c391b8...`). The unit points there; the old build is untouched.
+  - Unit backup: `.bak-20261003-hostcache`.
+- **The flag changes buun's resume key,** so the 8 old host entries now read as another key: never restored, and
+  trimmed by the overall bound as new entries arrive (~3 GB on disk meanwhile).
+
+| | before (host cache saved) | after (`--resume-no-host-cache`) |
+|---|---|---|
+| save at suspend | `slots=0 hosted=8`, 79 s | `slots=1 hosted=0`, 14 s |
+| restore at wake | 8 host entries | `installed_full` 1 entry (8,374 tokens), `host=0` |
+| health after wake, store empty for this key | 125-134 s | **35 s** |
+| health after wake, one 8.4k conversation | n/a | 65 s (restore 28.6 s) |
+| turn 2 | | prompt 27 tokens, cache 8,374, answer correct |
+
+**With the nightly slot erase:** the daydream's own conversations are no longer saved. Mark's saved entries survive
+it: retention never deletes an entry just because its conversation is not in a slot at save time.

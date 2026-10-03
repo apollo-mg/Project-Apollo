@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### .73 daily driver: `--resume-no-host-cache`; daydream erases its slots (Claude, 2026-10-03)
+- **Why:** `--resume` was also persisting buun's host prompt cache (8 entries, mostly the nightly daydream), and every
+  wake restored them all: 125-134 s to healthy instead of 35 s.
+- **Daily binary:** now `/mnt/HDD/buun-510cb-nohost` = `510cbbbfa` + cherry-picked `f08683ffa`
+  (`--resume-no-host-cache`; the daily build predates the flag by a day), with the same CMake options. The unit adds
+  the flag. Backup: `.bak-20261003-hostcache`.
+- **`tools/daydream_nightly.sh`:** erases the node's idle slots after the brief (direct `POST /slots/<id>?action=erase`;
+  the proxy forwards only GET `/slots`), so the daydream's own chat is never saved.
+- **Verified:** save `slots=1 hosted=0`; restore 1 entry, `host=0`; 35 s to healthy with nothing to restore
+  (`vbr-artifact-store/resume-daily/NOTE_RESUME_DAILY_73.md`).
+
+
 ### .73 daily driver: `--resume` enabled (Claude, 2026-10-02)
 - **Unit:** the start command adds `--resume --resume-path ~/vbr-store` (NVMe) and creates the store
   directory. Backup: `.bak-20261002-preresume`.
