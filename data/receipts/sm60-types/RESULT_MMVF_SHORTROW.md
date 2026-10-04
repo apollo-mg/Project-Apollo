@@ -143,9 +143,10 @@ only). Analysis `mmvf/analyze_mmvf.py` (self-tested).
 
 - **A HIP build.** The R=2 instantiation is compiled for every target, including warp-64 AMD, where it is never
   launched. The patch has not been built under HIP.
-- **Other GPUs.** The rule is enabled for NVIDIA with warp size 32, but only sm_60 was measured. Volta and later
-  (different occupancy limits, CUDA graphs on) are untested, and no newer NVIDIA card is available (the 1660 Ti was
-  sold 08-18). AMD keeps the old launch.
+- **Other GPUs.** Only sm_60 was measured, so PR #145 (`1e79ce8ff`) gates the rule to pre-Volta NVIDIA. Volta and
+  later (different occupancy limits, CUDA graphs on) keep the old launch, and whether they would gain is untested; no
+  newer NVIDIA card is available (the 1660 Ti was sold 08-18). AMD keeps the old launch. (Corrected 10-04: this line
+  predated the gate and still read "enabled for NVIDIA with warp size 32".)
 - **F16 at model level.** F16 accumulates in half2. At k=320 each thread now sums 5 products where it summed 1 (32
   at the k=2048 edge this cap excluded). test-backend-ops' tolerance passed, but no model-level KLD was run on an
   F16-heavy file. B6 covers BF16, which accumulates in float.
