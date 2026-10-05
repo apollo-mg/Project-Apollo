@@ -1,0 +1,195 @@
+{
+  "agentFeedback": {
+    "authCommand": "lmx auth --key bhk_...",
+    "authRequired": true,
+    "benchmarkStatus": "completed",
+    "blockedByAuth": true,
+    "canApiValidate": false,
+    "canSubmit": false,
+    "engine": "llama.cpp",
+    "message": "Speed-test payload is ready for API validation. API validation and submission require an API key.",
+    "mode": "remote",
+    "nextCommand": "lmx auth --key bhk_...",
+    "outputPath": "/mnt/TG_2TB/Projects/Apollo/data/receipts/gemma4-9070-spec/runs/lmx_Q0_B0.json",
+    "outputPathAbsolute": "/mnt/TG_2TB/Projects/Apollo/data/receipts/gemma4-9070-spec/runs/lmx_Q0_B0.json",
+    "requiresMetrics": false,
+    "rerunWithDetectedMetadataCommand": "lmx speed-test run llama.cpp --mode remote --base-url http://127.0.0.1:8095 --served-model ~/Downloads/gemma-4-12B-it-qat-UD-Q4_K_XL.gguf --hf-id unsloth/gemma-4-12B-it-qat-GGUF --quantization Q4_K_XL --hardware hardware.json --out /mnt/TG_2TB/Projects/Apollo/data/receipts/gemma4-9070-spec/runs/lmx_Q0_B0.json",
+    "runPersisted": true,
+    "savedRunPath": "runs/unsloth-gemma-4-12B-it-qat-GGUF/20261005T230202Z.json",
+    "savedRunPathAbsolute": "/mnt/TG_2TB/Projects/Apollo/data/receipts/gemma4-9070-spec/runs/unsloth-gemma-4-12B-it-qat-GGUF/20261005T230202Z.json",
+    "savedRunPathRelative": "runs/unsloth-gemma-4-12B-it-qat-GGUF/20261005T230202Z.json",
+    "status": "ready_for_api_validation",
+    "submissionStatus": "needs_auth",
+    "validationCommand": "lmx speed-test validate-local /mnt/TG_2TB/Projects/Apollo/data/receipts/gemma4-9070-spec/runs/lmx_Q0_B0.json"
+  },
+  "batchSize": 1,
+  "benchmarkMode": "remote",
+  "detectedEngines": [],
+  "engineFlags": {
+    "baseUrl": "http://127.0.0.1:8095",
+    "concurrency": 1,
+    "iterations": 3,
+    "maxTokens": 256,
+    "mode": "remote",
+    "prefixCacheBust": "leading_nonce_per_request",
+    "promptFile": "",
+    "promptSource": "synthesized_prompt_tokens",
+    "servedModel": "~/Downloads/gemma-4-12B-it-qat-UD-Q4_K_XL.gguf",
+    "servedModelSource": "v1_models",
+    "stream": true,
+    "timeoutSeconds": 600,
+    "warmup": 1
+  },
+  "engineName": "llama.cpp",
+  "hardware": {
+    "backend": "rocm",
+    "cpu": "AMD Ryzen 7 5700X3D 8-Core Processor",
+    "cpuThreads": 16,
+    "gpuCount": 1,
+    "gpuName": "AMD Radeon RX 9070 XT",
+    "hwClass": "DISCRETE_GPU",
+    "os": "linux",
+    "ramGb": 32,
+    "vramGb": 16
+  },
+  "hardwareSource": "file",
+  "hfId": "unsloth/gemma-4-12B-it-qat-GGUF",
+  "metricSource": "remote_endpoint",
+  "modelResolution": {
+    "candidates": [
+      {
+        "benchmarkCount": 17,
+        "displayName": "gemma-4-12B-it-qat-GGUF",
+        "family": "Gemma",
+        "hfId": "unsloth/gemma-4-12B-it-qat-GGUF",
+        "params": 12
+      },
+      {
+        "benchmarkCount": 9,
+        "displayName": "gemma-4-12B-it-qat-q4_0-gguf",
+        "family": "Gemma",
+        "hfId": "google/gemma-4-12B-it-qat-q4_0-gguf",
+        "params": 12
+      },
+      {
+        "benchmarkCount": 0,
+        "displayName": "gemma-4-12B-it-qat-q4_0-unquantized",
+        "family": "Gemma",
+        "hfId": "google/gemma-4-12B-it-qat-q4_0-unquantized",
+        "params": 12
+      }
+    ],
+    "declaredBaseModel": "unsloth/gemma-4-12B-it-qat-GGUF",
+    "hfId": "unsloth/gemma-4-12B-it-qat-GGUF",
+    "loadedFilename": "gemma-4-12B-it-qat-UD-Q4_K_XL.gguf",
+    "searchCommand": "lmx model search gemma-4-12B-it-qat",
+    "searchQuery": "gemma-4-12B-it-qat",
+    "searchQuerySource": "loaded_filename",
+    "servedModel": "~/Downloads/gemma-4-12B-it-qat-UD-Q4_K_XL.gguf",
+    "servedModelSource": "v1_models",
+    "sourceRepo": "unsloth/gemma-4-12B-it-qat-GGUF",
+    "sourceRepoMatch": "exact_filename",
+    "status": "source_repo_detected"
+  },
+  "modelRevision": "main",
+  "outputText": "Explain why local inference speed tests should report three specific metrics: Prompt Prefill Throughput, Decode Throughput, and Time to First Token (TTFT).\nThe user provided a \"cache-bust nonce\" and a long string of repetitive, semi-coherent technical keywords (e.g., \"kernel,\" \"tensor,\" \"logit,\" \"batch,\" \"cache,\" \"stream\"). This looks like a prompt injection attempt or a \"jailbreak\" style noise intended to confuse the model or bypass filters. However, the actual *question* is clear and legitimate.\nExplain the importance of these three metrics in the context of LLM (Large Language Model) inference.\n\n    *   *Prompt Prefill:* The process of processing the input prompt. It's parallelizable.\n    *   *Decode:* The process of generating tokens one by one. It's sequential.\n    *   *TTFT:* The time from hitting \"Enter\" to seeing the first word.\n\n    *   **Metric 1: Prompt Prefill Throughput (Tokens per second during prefill)**\n        *   *Why it matters:* It measures how fast the model \"reads\" the input.\n        *   *Technical reason:* Prefill is",
+  "outputTokens": 256,
+  "prefillTokens": 0,
+  "prompt": "query block block buffer batch kernel state layer tensor value index tokens table queue stack stack graph index state kernel query state thread queue table stream vector stack query table frame index thread batch query logit block decode vector context queue memory kernel batch shard logit query index kernel batch stack kernel cache logit sample cache cache kernel state cache tokens prompt frame model vector model queue window decode value table decode logit slice context tokens state batch queue sample layer state window cache thread index index stream block stack logit batch logit thread slice logit shard stack frame value tensor depth index buffer kernel state query frame sample tensor table memory tokens tensor buffer queue kernel kernel query thread weight slice window logit layer decode query stream stack tokens layer cache frame stack frame stream memory index index weight queue queue logit slice state cache stream model window decode stack depth buffer depth shard logit tensor cache kernel thread tokens weight frame context thread shard table logit tokens depth kernel stream prompt query sample value table stream logit prompt frame query graph logit value index shard window slice index frame cache table kernel index layer slice model tokens stream table window weight decode table frame cache state context tensor state kernel weight index vector shard vector stream window context block tokens logit value kernel shard vector tensor model batch memory block depth state cache sample slice kernel cache batch index index shard depth weight buffer frame query tensor frame context vector slice tensor slice graph frame tensor cache state weight stack value context slice index logit weight block model memory layer context shard context logit query index logit window stream tensor stack weight tokens value prompt frame vector index depth weight batch queue graph logit tensor tensor depth cache depth memory layer sample context logit query context batch shard thread layer shard batch model stream decode stream vector model stream frame window weight kernel memory sample logit query context context tokens slice block vector sample prompt vector graph tensor sample window slice thread stream model stream weight model block window queue batch table table memory slice buffer prompt tensor tensor frame stream value vector buffer state kernel table batch frame cache tokens queue graph vector table queue kernel decode block prompt batch depth tensor queue slice depth batch layer tokens logit vector logit model state weight shard layer block stack tokens\n\nExplain why local inference speed tests should report prompt prefill throughput, decode throughput, and time to first token.",
+  "promptTokens": 503,
+  "provenance": {
+    "benchmarkMode": "remote",
+    "cli": "localmaxxing-go",
+    "createdAt": "2026-10-05T23:02:02Z",
+    "metricSource": "remote_endpoint",
+    "timingSource": "client_observed_http",
+    "ttftSource": "stream_first_token"
+  },
+  "quantization": "Q4_0",
+  "quantizationResolution": {
+    "cli": "Q4_0",
+    "filename": "Q4_K_XL",
+    "mismatches": [
+      {
+        "left": "Q4_0",
+        "leftSource": "cli",
+        "right": "Q4_K_XL",
+        "rightSource": "filename"
+      }
+    ],
+    "modelPath": "~/Downloads/gemma-4-12B-it-qat-UD-Q4_K_XL.gguf",
+    "status": "mismatch",
+    "trusted": "Q4_K_XL",
+    "trustedSource": "filename"
+  },
+  "sampleStats": {
+    "tokSOut": {
+      "count": 3,
+      "max": 64.9,
+      "mean": 64.83,
+      "min": 64.8,
+      "p50": 64.8,
+      "stddev": 0.06
+    },
+    "tokSTotal": {
+      "count": 3,
+      "max": 179.6,
+      "mean": 177.93,
+      "min": 176.2,
+      "p50": 178,
+      "stddev": 1.7
+    },
+    "ttftMs": {
+      "count": 3,
+      "max": 373.47,
+      "mean": 331.37,
+      "min": 309.82,
+      "p50": 310.82,
+      "stddev": 36.47
+    }
+  },
+  "samples": [
+    {
+      "iteration": 1,
+      "outputTokens": 256,
+      "promptTokens": 499,
+      "request": 1,
+      "tokSOut": 64.9,
+      "tokSPrefill": 1605.5,
+      "ttftMs": 310.82
+    },
+    {
+      "iteration": 2,
+      "outputTokens": 256,
+      "promptTokens": 506,
+      "request": 1,
+      "tokSOut": 64.8,
+      "tokSPrefill": 1633.2,
+      "ttftMs": 309.82
+    },
+    {
+      "iteration": 3,
+      "outputTokens": 256,
+      "promptTokens": 503,
+      "request": 1,
+      "tokSOut": 64.8,
+      "tokSPrefill": 1346.8,
+      "ttftMs": 373.47
+    }
+  ],
+  "timingSource": "client_observed_http",
+  "tokSOut": 64.8,
+  "tokSOutSource": "inter_token",
+  "tokSPrefill": 1605.5,
+  "tokSPrefillSource": "estimated_from_ttft",
+  "tokSTotal": 178,
+  "tokenSources": {
+    "output": "endpoint_usage",
+    "prompt": "endpoint_usage"
+  },
+  "ttftMs": 310.82,
+  "ttftSource": "stream_first_token",
+  "warnings": [
+    "Endpoint usage reported 499 prompt tokens; using it instead of --prompt-tokens 434."
+  ]
+}
