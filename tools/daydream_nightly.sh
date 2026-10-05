@@ -19,21 +19,14 @@ beat() {   # beat STATUS DETAIL
 }
 # -t 0: the brief lands at 04:30, so a normal toast would expire unseen (the first test run's did). Stay until dismissed.
 notify() { command -v notify-send >/dev/null 2>&1 && notify-send -a "Apollo daydream" -t 0 "$1" "$2" 2>/dev/null; true; }
-# --resume hygiene (2026-10-03). The .73 daily driver saves its slots at the next suspend, so without this the
-# daydream's own last conversation becomes the newest store entry: restored before Mark's first request each morning
-# (+30-45 s) and able to push one of his conversations out of the 2-entry retention. Erasing drops only the in-VRAM
-# slot copies; store entries from earlier saves are untouched. Idle slots only. Direct to the node: the wake proxy
-# forwards GET /slots but not the POST action.
-NODE_LLAMA=${NODE_LLAMA:-http://10.0.0.73:8080}
-erase_slots() {
-  local ids
-  ids=$(curl -s -m 10 "$NODE_LLAMA/slots" | "$PY" -c 'import json,sys; print(" ".join(str(s["id"]) for s in json.load(sys.stdin) if not s.get("is_processing")))' 2>/dev/null) || { echo "slots: node unreachable, nothing erased" >> "$LOG"; return 0; }
-  for id in $ids; do
-    echo "erase slot $id: $(curl -s -m 30 -X POST "$NODE_LLAMA/slots/$id?action=erase")" >> "$LOG"
-  done
-  echo "slots erased: ${ids:-none}" >> "$LOG"
-}
+# --resume hygiene (2026-10-03; 10-05 erases only the slots this run used). The .73 daily driver saves its slots at the
+# next suspend and restores them at every wake (~3.8 ms/token, blocking /health), so the daydream's own chats must not
+# be left in a slot. tools/slot_erase.py snapshots each slot's task id now and, on ANY exit (a failed stage included),
+# erases the idle slots whose task changed: a restored conversation of Mark's that this run never touched is kept.
+# Store entries from earlier saves are untouched either way.
 cd "$ROOT"
+SLOTSNAP=$(mktemp); "$PY" "$ROOT/tools/slot_erase.py" snapshot "$SLOTSNAP" >> "$LOG" 2>&1
+trap '"$PY" "$ROOT/tools/slot_erase.py" erase-changed "$SLOTSNAP" >> "$LOG" 2>&1; rm -f "$SLOTSNAP"' EXIT
 echo "== $(date '+%F %T') nightly daydream" >> "$LOG"
 "$PY" tools/daydream_harvest.py >> "$LOG" 2>&1 || { beat error "harvest failed"; notify "Daydream FAILED" "harvest stage; see $LOG"; exit 1; }
 "$PY" tools/daydream_links.py >> "$LOG" 2>&1 || { beat error "links failed"; notify "Daydream FAILED" "links stage; see $LOG"; exit 1; }
@@ -41,7 +34,6 @@ OUT=$("$PY" tools/daydream_brief.py 2>> "$LOG" | tail -1)
 ST=$(printf '%s' "$OUT" | "$PY" -c 'import json,sys; print(json.loads(sys.stdin.read()).get("status","error"))' 2>/dev/null || echo error)
 if [ ! -s "$M/$D.md" ]; then beat error "no brief written: $OUT"; notify "Daydream FAILED" "no brief; see $LOG"; exit 1; fi
 beat "$ST" "$OUT"
-erase_slots
 SUM=$(printf '%s' "$OUT" | "$PY" -c 'import json,sys; d=json.loads(sys.stdin.read()); print("%d picks, %d closed, %d likely closed, %d to check, %d BACKLOG edits" % (d.get("picks", 0), d.get("closed", 0), d.get("likely", 0), d.get("suggested", 0) - d.get("likely", 0), d.get("backlog_close", 0)))' 2>/dev/null || echo "see brief")
 echo "Morning brief ($ST): $SUM -> data/dev_diaries/morning/$D.md" > "$ROOT/data/dev_diaries/.daydream_motd"
 notify "Morning brief ready ($ST)" "$SUM\ndata/dev_diaries/morning/$D.md"

@@ -44,9 +44,10 @@ class Cfg:
     # where start_cmd redirects llama-server output on the node; read back on failure so a
     # bad launch reports its own reason instead of timing out silently.
     server_log: str = os.getenv("WP_SERVER_LOG", "/home/mark/wake_proxy_server.log")
-    # --resume store on the node (10-02). Watched, never pruned here: see check_resume_store().
+    # --resume store on the node (10-02). Watched; reset when everything in it is stale: see check_resume_store().
     resume_store: str = os.getenv("WP_RESUME_STORE", "")
     resume_warn_gb: float = float(os.getenv("WP_RESUME_WARN_GB", "20"))
+    resume_max_age_h: float = float(os.getenv("WP_RESUME_MAX_AGE_H", "12"))   # 0 = never reset
 
 C = Cfg()
 LOG = os.getenv("WP_LOG", "/mnt/TG_2TB/Projects/Apollo/run/wake_proxy.log")
@@ -332,12 +333,34 @@ class Node:
         return False
 
     async def check_resume_store(self) -> None:
-        """Log the --resume store size after each save; notify past WP_RESUME_WARN_GB. WARN ONLY (2026-10-02):
-        buun's own retention bounds the store by COUNT (n_parallel entries of this key, max(8, 4*n_parallel)
-        overall), not bytes, and an entry can point into another entry's artifact (a placement), so deleting the
-        oldest directory could make a newer conversation unrestorable. A byte cap needs a manifest-aware pruner."""
-        if not self.c.resume_store:
+        """Log the --resume store size after each save; notify past WP_RESUME_WARN_GB. Runs after the server exited.
+        Size is WARN ONLY (2026-10-02): buun's own retention bounds the store by COUNT (n_parallel entries of this key,
+        max(8, 4*n_parallel) overall), not bytes, and an entry can point into another entry's artifact (a placement),
+        so deleting the oldest directory could make a newer conversation unrestorable.
+        AGE resets the WHOLE store (2026-10-05, Mark's OK): every saved conversation is restored at every wake
+        (~3.8 ms/token, blocking /health), so a stale one costs ~45 s per wake for nothing. When the NEWEST file in
+        the store is older than WP_RESUME_MAX_AGE_H, the store holds nothing worth that, and removing all of it
+        cannot strand a placement. It also clears entries the count bound never reaches (six pre-flag host
+        entries, 10-03). The next start recreates the store, as on its first start (10-02)."""
+        if not self.c.resume_store or not self.c.resume_store.startswith("/home/"):
             return
+        if self.c.resume_max_age_h > 0:
+            st = shlex.quote(self.c.resume_store)
+            cmd = (f"pgrep -x llama-server >/dev/null && {{ echo running; exit 0; }}; "
+                   f"[ -d {st}/resume ] || {{ echo empty; exit 0; }}; "
+                   f"n=$(find {st}/resume -mindepth 3 -maxdepth 3 -path '*/entries/*' -type d | wc -l); "
+                   f"t=$(find {st}/resume -type f -path '*/entries/*' -printf '%T@\\n' | sort -n | tail -1); "
+                   f"[ -n \"$t\" ] || {{ echo empty; exit 0; }}; "
+                   f"age=$(( $(date +%s) - ${{t%.*}} )); "
+                   f"if [ $age -gt {int(self.c.resume_max_age_h * 3600)} ]; then rm -rf -- {st}/resume && echo \"reset $n $age\"; "
+                   f"else echo \"kept $n $age\"; fi")
+            rc, out = await ssh(self.c.host, cmd, timeout=60)
+            w = out.split()
+            if w[:1] == ["reset"] and len(w) == 3:
+                log(f"resume store: RESET -- {w[1]} entries, newest {int(w[2]) / 3600:.1f} h old "
+                    f"(> {self.c.resume_max_age_h:g} h max age)")
+            elif w[:1] not in (["kept"], ["empty"]):
+                log(f"resume store: age check skipped ({rc}, {out[:80]!r})")
         rc, out = await ssh(self.c.host, f"du -sb {shlex.quote(self.c.resume_store)} 2>/dev/null | cut -f1", timeout=30)
         if rc != 0 or not out.strip().isdigit():
             log(f"resume store: size unreadable ({out[:80]!r})")

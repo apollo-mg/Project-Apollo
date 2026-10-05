@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### .73 `--resume` hygiene: the ledger erases its slots; the proxy resets a stale store (Claude, 2026-10-05)
+- **Why:** a wake took 83-131 s again (35 s right after 10-03). About 45-50 s of that was restoring the LEDGER's own
+  summarisation chats, which `--resume` saved at suspend and then restored, blocking /health, on every later wake.
+  Breakdown in `vbr-artifact-store/resume-daily/NOTE_RESUME_DAILY_73.md` (10-05).
+- **`tools/slot_erase.py` (new):** snapshots each slot's `id_task` before a job, then erases the idle slots whose task
+  changed. A restored conversation the job never touched is kept. Self-test: 5 cases.
+- **`tools/ledger_run.sh`:** uses it around `ledger_build.py` when the endpoint is the wake proxy.
+- **`tools/daydream_nightly.sh`:** uses it in place of the 10-03 erase-every-idle-slot. It now runs from an EXIT
+  trap, so a failed stage also erases.
+- **`modules/wake_proxy.py`:** after each suspend save, if the newest file in the store is older than
+  `WP_RESUME_MAX_AGE_H` (12, set in the unit), the whole store is removed. Approved by Mark; this replaces
+  "never deletes". Whole-store removal cannot strand a placement, and it also clears the six pre-flag entries
+  that the count bound never trims. Tested on a fake store (young kept, stale reset, empty skipped, non-/home path
+  refused). Unit backup: `.bak-20261005-maxage`.
+
 ### .73 daily driver: `--resume-no-host-cache`; daydream erases its slots (Claude, 2026-10-03)
 - **Why:** `--resume` was also persisting buun's host prompt cache (8 entries, mostly the nightly daydream), and every
   wake restored them all: 125-134 s to healthy instead of 35 s.

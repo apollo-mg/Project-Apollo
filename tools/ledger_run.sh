@@ -83,9 +83,17 @@ if [ "$N" -lt 25 ]; then beat idle "$N" "only $N new events since line $SINCE"; 
 # first reachable endpoint wins; a busy fleet degrades to skeleton rather than failing
 for H in $HOSTS; do
   if [ "$(curl -s -o /dev/null -w %{http_code} -m 5 "$H/health")" = "200" ]; then
+    # .73 runs --resume: whatever is left in a slot is saved at suspend and restored (~45 s for the ledger's
+    # ~11.7k tokens, blocking /health) on EVERY later wake. On 10-04/05 every wake restored the ledger's own chats.
+    # So erase the slots this build used, and only those (tools/slot_erase.py). Erasing is always safe here:
+    # the ledger never continues a conversation.
+    PROXY=0; case "$H" in *:8099) PROXY=1; $PY $ROOT/tools/slot_erase.py snapshot "$TMP/slots.json" >/dev/null 2>&1;; esac
     # exit 2 = endpoint answered but its entry was malformed; exit 1 = the call itself failed.
     # Either way keep going down the list rather than giving up on the cycle.
-    if $PY $ROOT/tools/ledger_build.py "$TMP/ev.txt" --host "$H" --max-chars 120000 --out "$DIARY" >"$TMP/out" 2>&1; then
+    $PY $ROOT/tools/ledger_build.py "$TMP/ev.txt" --host "$H" --max-chars 120000 --out "$DIARY" >"$TMP/out" 2>&1; RC=$?
+    [ $PROXY = 1 ] && $PY $ROOT/tools/slot_erase.py erase-changed "$TMP/slots.json" \
+      | sed "s/^/$(date '+%F %T') ledger /" >>"$ROOT/data/dev_diaries/.ledger_cron.log" 2>&1
+    if [ $RC -eq 0 ]; then
       # Index into Apollo's existing vector store so the diary is SEARCHABLE. An unsearchable
       # diary is one you stop reading, which is how dev_diaries died the first time.
       # Non-fatal: a ledger written but unindexed is still a ledger.
