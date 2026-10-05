@@ -6,7 +6,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 RUNS = HERE / "runs"
-ORDER = ["B0", "D8", "D4", "D8n1", "D8n2", "D8n4", "K8", "UB256", "UB1024", "BEST_r2", "BEST_r3", "Q0", "Q0_B0", "CR0"]
+ORDER = ["B0", "D8", "D4", "D8n1", "D8n2", "D8n4", "K8", "UB256", "UB1024", "BEST_r2", "BEST_r3", "Q0", "Q0_B0", "CR0", "SUB1", "C_B0", "C_D8n2_r1", "C_D8n2_r2", "C_D8n2_r3", "C_D8n3", "C_D8n2_noproxy", "R_B0", "R_D8n2_r1", "R_D8n2_r2", "R_D8n2_r3", "R_D8n3"]
 ACC = re.compile(r"draft acceptance = ([\d.]+) \(\s*(\d+) accepted /\s*(\d+) generated\), mean len =\s*([\d.]+)")
 
 

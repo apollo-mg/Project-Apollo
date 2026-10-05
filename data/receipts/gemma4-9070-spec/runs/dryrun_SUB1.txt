@@ -1,0 +1,56 @@
+{
+  "parsed": {
+    "batchSize": 1,
+    "contextLength": 2048,
+    "engineBuild": "HIP gfx1201, ROCm 7.2",
+    "engineCommit": "50569eb87",
+    "engineFlags": {
+      "commandSnippet": "llama-server -m gemma-4-12b-it-Q4_K_M.gguf -md mtp-gemma-4-12b-it-Q8_0.gguf --spec-type draft-mtp --spec-draft-n-max 2 -ngl 99 -fit off -fa on -np 1 -c 262144 -ctk f16 -ctv f16",
+      "concurrency": 1,
+      "mtpEnabled": true,
+      "specDecoding": true,
+      "specDraftModel": "unsloth/gemma-4-12b-it-GGUF:MTP-Q8_0",
+      "specMethod": "MTP",
+      "specNumTokens": 2
+    },
+    "engineName": "llama.cpp",
+    "engineRepository": "https://github.com/ggml-org/llama.cpp",
+    "engineVersion": "b-50569eb87",
+    "hardware": {
+      "cpu": "AMD Ryzen 7 5700X3D 8-Core Processor",
+      "gpuCount": 1,
+      "gpuName": "AMD Radeon RX 9070 XT",
+      "hwClass": "DISCRETE_GPU",
+      "os": "linux",
+      "ramGb": 32,
+      "vramGb": 16
+    },
+    "hfId": "unsloth/gemma-4-12b-it-GGUF",
+    "modelRevision": "main",
+    "notes": "Upstream llama.cpp 50569eb87 (HIP gfx1201, ROCm 7.2), gemma4-assistant MTP drafter (unsloth MTP Q8_0), --spec-draft-n-max 2, f16 KV, -c 262144, -np 1. lmx remote: 1 warmup + 3 timed, median. Measured with my agent, Claude; I reviewed it before posting.",
+    "outputTokens": 256,
+    "prefillTokens": 0,
+    "promptTokens": 504,
+    "quantization": "Q4_K_M",
+    "tokSOut": 102.1,
+    "tokSPrefill": 868.1,
+    "tokSTotal": 244.7,
+    "ttftMs": 575.96
+  },
+  "valid": true,
+  "verification": {
+    "canonicalPrompt": null,
+    "issues": [
+      "promptSha256 missing: the client did not report the prompt hash.",
+      "outputSample missing: the client did not capture generated text.",
+      "engineTimingsRaw missing: the engine usage/timings blob was not captured.",
+      "Speculative/MTP runs must report engineFlags.specDraftTokens and specAcceptedTokens (a bare specMeanAcceptedLength is not sufficient for verification)."
+    ],
+    "verified": false
+  }
+}
+[localmaxxing] speed_test_dry_run_valid
+  status: valid
+  endpoint: /api/speed-tests/dry-run
+Dry-run passed. Submit with:
+  lmx speed-test submit <payload.json>

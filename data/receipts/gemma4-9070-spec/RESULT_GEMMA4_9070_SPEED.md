@@ -1,9 +1,54 @@
-# Result -- upstream llama.cpp on an RX 9070 XT decodes Tom's Gemma-4-12B Q4_K_M at 98.1 tok/s with the gemma4-assistant drafter (LocalMaxxing's own CLI and prompt), against vbutter's 85.3; vbutter keeps a ~1.8x lead on time to first token (prefill)
+# Result -- like for like with TheTom's verified row (same Gemma-4-12B Q4_K_M, same Q8 gemma4-assistant drafter, draft 2, canonical reasoning-v1 prompt, thinking off), upstream llama.cpp on an RX 9070 XT decodes at 110.7 tok/s against vbutter's 85.3; vbutter keeps the TTFT lead (213 vs ~318 ms)
 
 **2026-10-05.** Pre-registration `PREREG_GEMMA4_9070_SPEED.md` (`df89601e`, before any timed row).
 - **Runner:** `run_g4.sh`.
 - **Analysis:** `analyze_g4.py`, output `RESULT_g4.json`.
 - **Raw:** `runs/` (each arm's LMX JSON and stdout, server log, `run.log`).
+
+
+## Head-to-head, like for like (Deviations 2 and 3)
+
+The registered arms below matched Tom's prompt LENGTH with LMX's filler prompt, and llama.cpp's Gemma-4 template ran
+them in thinking mode (`reasoning_content`).
+
+**Tom's row, read from the public API:**
+- prompt: the canonical **reasoning-v1** (sha256 `9000edaa…`);
+- the same Q8 drafter file (`145db909…`), gamma 2;
+- 158/194 accepted (0.814), mean accepted length 2.63;
+- a direct answer, so thinking off;
+- `verifiedRun: true`.
+
+**The like-for-like arms** use `--prompt-file canonical_reasoning-v1.txt` and `--reasoning off`, with the evidence
+captured by `g4_proxy.py` (lmx still times):
+
+| arm | tok/s out (median) | samples | acceptance (timed) | mean len | TTFT ms | prompt |
+|---|---:|---|---|---|---:|---:|
+| R_B0, no drafter | 60.6 | 61, 60.5, 60.6 | - | - | 298 | 305 |
+| **R_D8n2 start 1** | 110.6 | 110.6, 111.4, 109.7 | 0.85, 0.86, 0.85 | 2.68, 2.71, 2.68 | 320 | 306 |
+| **R_D8n2 start 2** | **110.7** | 110.7, 110.7, 109.2 | 0.86, 0.84, 0.84 | 2.71, 2.68, 2.67 | 317 | 305 |
+| **R_D8n2 start 3** | 112.1 | 112.1, 112.1, 113.3 | 0.87, 0.87, 0.89 | 2.73, 2.73, 2.77 | 320 | 304 |
+| R_D8n3 (draft 3) | 119.1 | 119.1, 121.2, 117.6 | 0.82, 0.83, 0.80 | 3.45, 3.49, 3.40 | 317 | 303 |
+
+- **At Tom's settings: 110.7 tok/s,** the median of three fresh-start medians, against 85.3. That is 1.30x, and 1.83x
+  over no drafter.
+- **Acceptance is slightly higher than his** (0.84-0.89 vs 0.814), and the per-pass yield is similar (2.67-2.77 vs
+  2.63).
+- **Draft 3 is faster still (119.1),** but it is not his setting.
+- **The output matches his:** both begin "## 1. Budget and Battery Calculation / Step-by-Step Reasoning".
+- **The same prompt text is 305 tokens on llama.cpp's template and 505 on vbutter's.** The prompt hash matches, so
+  the extra tokens come from vbutter's template.
+- **TTFT 317-320 ms vs 213:** vbutter keeps that lead. LMX's prefill estimate (956 vs 2,373 tok/s) also divides
+  different prompt lengths.
+- **Thinking-mode canonical arms (Deviation 2, C_*):**
+  - C_B0 60.7;
+  - C_D8n2 109.0 / 113.9 / 111.0;
+  - C_D8n3 114.7;
+  - the no-proxy check 111.1, inside the proxied range, so the proxy does not perturb timing.
+  - Decode is essentially unchanged by thinking mode on this prompt. TTFT was higher (376-458 ms).
+- **Verified dry run:** `runs/sub_R_D8n2_r2.json`, the middle start under the fixed submission rule, passes
+  LocalMaxxing's dry run with `verified: true` and no issues. **Not submitted:** that is Mark's call.
+- **`lmx` v0.1.48 does not capture the evidence fields** (prompt hash, output, engine timings, draft counts). The
+  proxy plus `build_submission.py` supply them from the median timed request.
 
 ## Setup
 
@@ -26,7 +71,7 @@
 - **Gates (all passed):** the drafter was loaded and accepted tokens on every request; 256 completion tokens; prompt
   within 5 of the tuned count. The q8_0 override in K8 was confirmed in a verbose start ("K (q8_0)").
 
-## Results
+## Registered arms (LMX filler prompt, thinking mode)
 
 | arm | tok/s out (median) | samples | acceptance (timed) | mean len | TTFT ms |
 |---|---:|---|---|---|---:|
@@ -62,7 +107,7 @@
 |---|---|---|
 | P1 | B0 at 55-62 tok/s | **holds** (61.3) |
 | P2 | the drafter at least 1.25x | **holds** (1.63x at max 2) |
-| P3 | best confirmed configuration at least 85.3 | **holds** (98.1; all three medians at 97.0 or more) |
+| P3 | best confirmed configuration at least 85.3 | **holds** (98.1; all three medians at 97.0 or more). On Tom's prompt and mode it is 110.7 (Deviations 2-3) |
 | P4 | Q0 (all-Q4_0) faster than the best Q4_K_M | **holds** (110.7 vs 98.1) |
 
 ## Where vbutter is still ahead: time to first token
@@ -84,7 +129,7 @@
 
 ## Not established
 
-- **Any prompt but LocalMaxxing's.** Acceptance depends heavily on content (INDEX L503), so this is "on LocalMaxxing's
+- **Any prompt but LocalMaxxing's filler and its canonical reasoning-v1.** Acceptance depends heavily on content (INDEX L503), so this is "on LocalMaxxing's
   prompt", not a general speed claim.
 - **Output quality.**
 - **Depth beyond ~505 tokens.**
@@ -93,3 +138,5 @@
 - **The DFlash arm (F)** has not run yet. Upstream supports `draft-dflash`, and z-lab's Gemma-4-12B DFlash drafter has
   a Qwen3 backbone, which upstream supports. It needs converting with `--target-model-dir`.
 - **Nothing was submitted to LocalMaxxing.** That is Mark's decision.
+
+- **Submission run SUB1 (filler prompt, thinking mode, official lmx):** 102.1. It was superseded as the submission candidate by the like-for-like R_D8n2 start 2.
