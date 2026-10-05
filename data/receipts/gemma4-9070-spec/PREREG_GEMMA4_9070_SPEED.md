@@ -97,3 +97,23 @@ Any change after the first timed row gets a numbered Deviation here before the a
     - **CR0:** the best configuration plus `--cache-ram 0`.
     - **CR0X:** CR0 plus `-ctxcp 0` (no SWA context checkpoints), only if CR0 leaves a growing gap.
   - **Correction (not a deviation):** "clocks and power recorded once per arm" -- only clocks were recorded.
+- **Deviation 2 (before its rows; 10-05 ~19:50). The registered head-to-head matched Tom's prompt LENGTH, not his
+  prompt.**
+  - **Tom's row, read from the public API** (`GET /api/speed-tests?hfId=unsloth/gemma-4-12b-it-GGUF`):
+    - prompt: the canonical prompt **reasoning-v1** (sha256 `9000edaa…`), 505 tokens on vbutter;
+    - gamma 2, with the **same Q8 drafter file as our D8** (sha256 `145db909…`);
+    - draft 194, accepted 158 (0.814), mean accepted length 2.63, `verifiedRun: true`.
+  - Our registered arms used LMX's synthesized filler prompt (`--prompt-tokens 434`), where acceptance at draft max 2
+    is about 0.66-0.70.
+  - **Added arms, on the canonical prompt** (`lmx ... --prompt-file canonical_reasoning-v1.txt`; otherwise the
+    registered instrument, and every other flag as in the arms):
+    - **C_B0:** no drafter.
+    - **C_D8n2:** Q8_0 drafter, draft max 2 (Tom's gamma), x3 fresh starts. **This is the new head-to-head.**
+    - **C_D8n3:** draft max 3, x1.
+  - **Evidence capture:** a localhost pass-through proxy (`g4_proxy.py`) between `lmx` and `llama-server` records
+    each request's body, the streamed text and llama.cpp's final `timings`/`usage`.
+    - `lmx` still does all the timing.
+    - **Proxy check:** one C_D8n2 start without the proxy. Its median must fall within the three proxied medians'
+      range +-3 tok/s, or the proxy is reported as perturbing.
+  - **Submission rule (fixed now):** the C_D8n2 start whose median is the median of the three is the one offered to
+    Mark. Its evidence fields come from that start's median timed request. The filler-prompt rows stay reported.
