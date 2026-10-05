@@ -88,3 +88,12 @@
 ## Deviations
 
 Any change after the first timed row gets a numbered Deviation here before the affected rows run.
+- **Deviation 1 (after the registered arms; before the rows it adds; 10-05 ~19:10).**
+  - **Why:** TTFT (311-572 ms vs Tom's 213) was traced in the existing server logs. Prefill is only 250-290 ms.
+    The rest is a gap between `selected slot` and `processing task` that grows request by request (0 -> 52 ->
+    127 ms in BEST_r2). That is where this build saves the previous slot state to its host prompt cache
+    (`--cache-ram`, default 8192 MiB).
+  - **Added arms, reported beside the registered ones; the head-to-head decode figure is unchanged:**
+    - **CR0:** the best configuration plus `--cache-ram 0`.
+    - **CR0X:** CR0 plus `-ctxcp 0` (no SWA context checkpoints), only if CR0 leaves a growing gap.
+  - **Correction (not a deviation):** "clocks and power recorded once per arm" -- only clocks were recorded.
