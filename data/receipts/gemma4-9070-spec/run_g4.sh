@@ -18,8 +18,15 @@ up=0; for i in $(seq 1 240); do kill -0 $SP 2>/dev/null || break; curl -sf -m 2 
 vram=$(rocm-smi --showmeminfo vram 2>/dev/null | awk -F': ' '/Total Used/{printf "%.2f", $NF/1e9}')
 clk=$(rocm-smi --showclocks 2>/dev/null | grep -E 'sclk|mclk' | sed 's/.*: //' | tr '\n' ' ')
 log "$ARM: up; flags [$EXTRA]; ctx $CTX; VRAM used $vram GB; clocks $clk"
-"$LMX" speed-test run llama.cpp --mode remote --base-url http://127.0.0.1:$PORT --hf-id "$HFID" --quantization "$QUANT" \
-  --hardware "$HERE/hw_9070xt.json" --max-tokens 256 --prompt-tokens "$N" --out "$OUT/lmx_$ARM.json" --quiet "$@" > "$OUT/lmx_$ARM.stdout" 2>&1
+# Deviation 2: PFILE=<canonical prompt file> replaces --prompt-tokens; PROXY=1 routes lmx through g4_proxy.py (capture only).
+LPORT=$PORT; PSRC=(--prompt-tokens "$N"); [ -n "${PFILE:-}" ] && PSRC=(--prompt-file "$PFILE")
+if [ "${PROXY:-0}" = 1 ]; then
+  /mnt/TG_2TB/Projects/Apollo/venv_cachyos/bin/python3 "$HERE/g4_proxy.py" 8097 $PORT "$OUT/capture_$ARM.jsonl" & PP=$!
+  trap 'kill $PP 2>/dev/null; kill $SP 2>/dev/null; for i in $(seq 1 30); do kill -0 $SP 2>/dev/null || break; sleep 1; done' EXIT
+  for i in $(seq 1 20); do curl -sf -m 2 http://127.0.0.1:8097/health >/dev/null && break; sleep 0.5; done; LPORT=8097
+fi
+"$LMX" speed-test run llama.cpp --mode remote --base-url http://127.0.0.1:$LPORT --hf-id "$HFID" --quantization "$QUANT" \
+  --hardware "$HERE/hw_9070xt.json" --max-tokens 256 "${PSRC[@]}" --out "$OUT/lmx_$ARM.json" --quiet "$@" > "$OUT/lmx_$ARM.stdout" 2>&1
 rc=$?
 summ=$(/mnt/TG_2TB/Projects/Apollo/venv_cachyos/bin/python3 - "$OUT/lmx_$ARM.json" <<'PY'
 import json,sys

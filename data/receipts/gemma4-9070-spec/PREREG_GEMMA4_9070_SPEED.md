@@ -117,3 +117,18 @@ Any change after the first timed row gets a numbered Deviation here before the a
       range +-3 tok/s, or the proxy is reported as perturbing.
   - **Submission rule (fixed now):** the C_D8n2 start whose median is the median of the three is the one offered to
     Mark. Its evidence fields come from that start's median timed request. The filler-prompt rows stay reported.
+- **Deviation 3 (before its rows; 10-05 ~20:00). Every arm so far ran in THINKING mode.**
+  - **What happened:** llama.cpp's Gemma-4 template defaults to reasoning `auto`, which enables it. The output was
+    streamed as `reasoning_content`, the model's thinking, not an answer. Found because the capture proxy saw empty
+    `content`.
+  - **Why it matters:** Tom's evidence `outputSample` is a direct answer ("## 1. Budget and Battery Calculation ..."),
+    so his row is thinking-off. Drafter acceptance on thinking text and on answer text can differ, so no row so far
+    is like-for-like.
+  - **The decode rate itself is valid:** `lmx` timed the streamed tokens and took the count from `usage`.
+  - **Added arms, the canonical prompt with `--reasoning off`, otherwise as in Deviation 2 (proxy on):**
+    - **R_B0:** no drafter.
+    - **R_D8n2:** x3 fresh starts. **This becomes the head-to-head.**
+    - **R_D8n3:** x1.
+  - **Gate per arm:** captured `content` is non-empty and `reasoning_content` is empty.
+  - **Submission rule** as in Deviation 2, applied to R_D8n2.
+  - The thinking-mode rows stay in the result, labeled as thinking mode.
