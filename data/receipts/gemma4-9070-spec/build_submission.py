@@ -3,7 +3,8 @@
 The evidence (prompt, output, llama.cpp timings, draft counts) comes from the lmx run's median timed request
 (captures[0] is lmx's untimed warmup; ties take the first). Writes runs/sub_<ARM>.json (lmx run + patch) via
 `lmx speed-test runs edit`; never submits.
-usage: build_submission.py ARM CANONICAL_PROMPT_FILE SPEC_N "<commandSnippet>" "<notes>" [ENGINE_COMMIT]"""
+usage: build_submission.py ARM CANONICAL_PROMPT_FILE SPEC_N "<commandSnippet>" "<notes>" [ENGINE_COMMIT] [ENGINE_VERSION]
+ENGINE_VERSION is the build tag the server reports in system_fingerprint (e.g. b11433), never invented."""
 import hashlib, json, shutil, statistics, subprocess, sys
 from pathlib import Path
 
@@ -11,7 +12,7 @@ HERE = Path(__file__).resolve().parent
 RUNS = HERE / "runs"
 
 
-def main(arm, canon_file, spec_n, command, notes, commit="50569eb87"):
+def main(arm, canon_file, spec_n, command, notes, commit="50569eb87", version="b11433"):
     spec_n = int(spec_n)
     lm = json.loads((RUNS / f"lmx_{arm}.json").read_text())
     caps = [json.loads(l) for l in open(RUNS / f"capture_{arm}.jsonl")]
@@ -30,7 +31,7 @@ def main(arm, canon_file, spec_n, command, notes, commit="50569eb87"):
         sys.exit("empty content (thinking mode?)")
     patch = {"contextLength": 262144, "notes": notes,
              "engineRepository": "https://github.com/ggml-org/llama.cpp", "engineCommit": commit,
-             "engineVersion": f"b-{commit}", "engineBuild": "HIP gfx1201, ROCm 7.2",
+             "engineVersion": version, "engineBuild": "HIP gfx1201, ROCm 7.2",
              "promptSha256": hashlib.sha256(canon.encode()).hexdigest(), "promptSample": req[:2000],
              "outputSha256": hashlib.sha256(text.encode()).hexdigest(),
              "outputSample": text if len(text) <= 4000 else text[:3000] + " … " + text[-1000:],
