@@ -79,3 +79,35 @@ restore), then the request. A cold continuation would have taken ~95 s (load 35 
 
 **With the nightly slot erase:** the daydream's own conversations are no longer saved. Mark's saved entries survive
 it: retention never deletes an entry just because its conversation is not in a slot at save time.
+
+## 2026-10-05: where a wake's time goes (65-131 s since 10-03, after the 35 s fix)
+
+**A wake is now: about 10 s for the node, 30-40 s to load the weights, then about 45-50 s to restore whatever
+conversations the store holds.** Two Sunday-evening conversations (6,734 and 4,932 tokens; a proxy wake at 10-04
+18:05) were saved at that suspend. The nightly daydream erases its own slots, so nothing has replaced them, and every
+wake since has restored the same two.
+
+| start | weight load | restore (`install_done t_ms`) | proxy `/health OK` | note |
+|---|---:|---:|---:|---|
+| 10-05 04:31 (daydream) | 69.7 s | 46.9 s | 131 s | weekly `fstrim` (267 GiB trimmed on this NVMe) and daily `plocate-updatedb` ran 04:31:46-04:32:53, catch-up timers on resume, overlapping the load |
+| 10-05 13:32 | 32.7 s | 49.8 s | 87 s | |
+| 10-05 13:40 (proxy restart) | 30.0 s | 47.7 s | 83 s | |
+| A/B `-lm dio` (x2) | 38.5 / 38.2 s | (resume off) | 41.0 / 40.1 s | `wake_ab.sh`, port 8081, daily flags otherwise |
+| A/B `-lm mmap`, 7.06 GB of the model cached | 29.9 s | (resume off) | 34.2 s | |
+
+- **The restore is not I/O-bound.** The pool entry is 1.70 GB and reads back in 1.38 s with `O_DIRECT`, yet its
+  install took 44.4 s, about 3.8 ms per restored token. That matches the 3.4 ms/token of the 10-02 single-entry
+  restore. The cost scales with tokens, not bytes, and it blocks `/health`.
+- **The weight load is not disk-bound either.** The drive is an Intel H10 at PCIe 3.0 x2 and reads 1.4 GB/s direct
+  (~16 s for the 22.9 GB file). `-lm dio` loads in a steady ~38 s, so something else caps the loader near
+  600 MB/s. mmap is faster when part of the file is cached (30 s with 7 GB cached) and slower under I/O contention.
+  **Conclusion: `-lm dio` is not a fix; the daily unit stays on mmap.** (`--mmap-prefetch auto` does not prefetch
+  here: the model does not fit the 16 GB of RAM.)
+- **The 131 s outlier** was the timer catch-up. It falls on the first wake after midnight, which is normally the
+  04:30 daydream, so nobody waits on it.
+- **Correction to the 10-03 section above:** the six pre-flag host entries (10-03 10:45-10:46, 2.8 GB) are still on
+  disk. Each wake lists them and skips them (`no_free_slot`). With 2 entries per key and 8 overall, the count bound
+  cannot reach them, so they are not "trimmed as new entries arrive". They cost disk, not wake time.
+
+**Not established:** what the 44 s install spends its time on (CPU encode, uploads or recompute; a profile of one
+restore would say), and what the loader's ~600 MB/s ceiling is.
