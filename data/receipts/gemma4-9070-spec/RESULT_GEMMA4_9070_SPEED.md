@@ -1,4 +1,4 @@
-# Result -- upstream llama.cpp on an RX 9070 XT decodes Tom's Gemma-4-12B Q4_K_M at 98.1 tok/s with the gemma4-assistant drafter (LocalMaxxing's own CLI and prompt), against vbutter's 85.3; vbutter keeps a 2x lead on time to first token
+# Result -- upstream llama.cpp on an RX 9070 XT decodes Tom's Gemma-4-12B Q4_K_M at 98.1 tok/s with the gemma4-assistant drafter (LocalMaxxing's own CLI and prompt), against vbutter's 85.3; vbutter keeps a ~1.8x lead on time to first token (prefill)
 
 **2026-10-05.** Pre-registration `PREREG_GEMMA4_9070_SPEED.md` (`df89601e`, before any timed row).
 - **Runner:** `run_g4.sh`.
@@ -43,11 +43,16 @@
 | max 2, confirmation 3 | 97.0 | 97, 96.6, 102.2 | 0.66, 0.65, 0.71 | 2.32, 2.30, 2.43 | 454 |
 | *Q0: QAT `UD-Q4_K_XL` (all Q4_0, 6.72 GB) + its Q4_0 drafter, max 2* | *110.7* | 109.6, 114.9, 110.7 | 0.69, 0.74, 0.71 | 2.37, 2.48, 2.42 | 392 |
 | *Q0 without a drafter (added context row, not registered)* | *64.8* | 64.9, 64.8, 64.8 | - | - | 311 |
+| CR0: max 2 + `--cache-ram 0` (Deviation 1) | 96.1 | 103.3, 91.9, 96.1 | 0.73, 0.67, 0.69 | 2.45, 2.33, 2.38 | 381 |
 
 - **The best configuration:** Q8_0 drafter, `--spec-draft-n-max 2`. Its three fresh-start medians are 99.8, 98.1 and
   97.0, so **98.1 tok/s** (median of medians). That is 15 % above Tom's 85.3 and 1.60x the no-drafter baseline.
-- **Draft max 2 and 3 tie,** at 99.8 and 99.0. At max 3 the drafter averages 2.8 tokens per pass, exactly the "2.8
-  tok/pass" on Tom's row. So the gap is per-pass speed (about 35 vs 30 passes/s), not acceptance.
+- **Draft max 2 and 3 tie,** at 99.8 and 99.0. At max 3 our drafter averages 2.8 tokens per pass, the same "2.8 tok/pass"
+  as Tom's row. **The acceptance figures are not comparable.**
+  - In llama.cpp's numbers, mean length = 1 + acceptance x draft max (1.81 at max 1, 2.80 at max 3).
+  - Under that definition, vbutter's "81 %" cannot produce 2.8 tokens per pass, so vbutter counts differently or
+    adapts its draft length.
+  - No mechanism for the decode gap is claimed.
 - **The cache-bust nonce changes the answer on every request,** so acceptance moves (0.56-0.74 at the same settings)
   and single requests spread by up to 10 tok/s. The three-run median absorbs most of that.
 
@@ -62,12 +67,20 @@
 
 ## Where vbutter is still ahead: time to first token
 
-- **TTFT:** Tom's row reports 213 ms, from which LMX estimates prefill at 2,373 tok/s. Ours runs 311-572 ms (LMX
-  estimates 1,210 tok/s for the best configuration).
-- **It is not the drafter:** B0 shows the same 490 ms.
-- **The R9700 row (plain llama.cpp, same chip) reports 2,350 and 216 ms,** so it is probably this machine rather than
-  llama.cpp. GPU clock ramp from desktop idle is the first suspect (the sclk read 778-2656 MHz at server start). Not
-  tested.
+- **TTFT:** Tom's row reports 213 ms, from which LMX estimates prefill at 2,373 tok/s. Ours ran 311-572 ms.
+- **Traced in the server logs (Deviation 1):**
+  - Prefill itself takes 250-290 ms for ~500 tokens (1,750-2,000 tok/s; the Q0 file ~200 ms).
+  - Each request also waits between `selected slot` and `processing task`, and the wait grows per request (0 -> 52
+    -> 127 ms in a confirmation run). That is this build saving the previous conversation to its host prompt cache
+    (`--cache-ram`, 8 GiB by default).
+- **CR0, `--cache-ram 0`:** the wait is gone (~0.03 ms) and TTFT holds at 381-406 ms instead of climbing. Decode is
+  unchanged within noise (96.1; samples 103.3, 91.9, 96.1). Prefill measured slower in that run (322-348 ms), cause
+  not established.
+- **What is left is prefill speed:** this llama.cpp build does ~1,500-2,000 tok/s on a 505-token prompt here,
+  against vbutter's implied 2,373. The R9700's plain llama.cpp row (same chip) reports 2,350 and 216 ms; its build
+  and flags are unknown. The TTFT lead stays with vbutter.
+- `-ub 256` / `1024` did not change TTFT. KV q8_0 lowered it (352 ms) but cost decode.
+- **Correction:** the prereg said clocks and power would be recorded per arm. Only clocks were.
 
 ## Not established
 
@@ -76,7 +89,7 @@
 - **Output quality.**
 - **Depth beyond ~505 tokens.**
 - **vbutter on this card.** Tom's 85.3 is from his card.
-- **Whether the TTFT gap is power management.**
+- **Why prefill measured slower with `--cache-ram 0`,** and what the R9700 row's build does differently.
 - **The DFlash arm (F)** has not run yet. Upstream supports `draft-dflash`, and z-lab's Gemma-4-12B DFlash drafter has
   a Qwen3 backbone, which upstream supports. It needs converting with `--target-model-dir`.
 - **Nothing was submitted to LocalMaxxing.** That is Mark's decision.
