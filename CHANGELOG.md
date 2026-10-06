@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### .194 system update (2026-10-06, Claude)
+- Ubuntu 26.04 `dist-upgrade` with the GPU stack held (NVIDIA 580.173.02 server driver + DKMS, CUDA 12.4.131 toolkit and runtime: 21 held packages, unchanged).
+- Kernel 7.0.0-34 -> 7.0.0-38; DKMS built nvidia-srv 580.173.02 for -38 before the reboot. 63 packages set up.
+- After the reboot: 4x P100 on 580.173.02, SM application clocks at their 1,063 MHz default, P0.
+- Re-run of the Kolibri `K_speed_r` arm: 39.7 tok/s, TTFT 2,159 ms, the same as before the update (39.7 / 2,158).
+- `systemd-networkd-wait-online` fails at every boot, before the update as well (an unused NIC). It is harmless.
+- unattended-upgrades was already on and had carried the box through kernels -22, -31 and -34. Log: `~/sysupdate/update.log` on .194.
+
 ### Wake proxy: the store's age check ignores `commit` files (Claude, 2026-10-06)
 - **What happened:** the first night with the 12 h age-out did not reset the store.
   - Each shutdown rewrites a restored entry's small `commit` file even when nobody used the conversation (22:40 after
