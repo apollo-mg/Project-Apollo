@@ -10,10 +10,10 @@ Measured on 2026-10-06 by apollo-mg. This is the experimental CUDA 12 engine on 
 - **GPUs:** 4x Tesla P100-PCIE-16GB (compute capability 6.0), 150 W power limit.
   - SM clock during every run was 1063 MHz, from per-second nvidia-smi samples.
 - **CPU and RAM:** 2x Intel Xeon E5-2650 v3 (AVX2, no AVX-512); 128 GB DDR4-2133 ECC (121 GB visible).
-- **Storage:** SATA SSD, about 76 MB/s on large sequential reads during this session. That only affects the first
+- **Storage:** Samsung SSD 860 (SATA), about 76 MB/s on large sequential reads during this session. That only affects the first
   load.
 - **PCIe:** not measured.
-- **OS and driver:** Ubuntu (kernel 6.x), NVIDIA driver 580.173.02.
+- **OS and driver:** Ubuntu 26.04 LTS (kernel 7.0.0-34-generic), NVIDIA driver 580.173.02.
 - **CUDA:** 12.4 (`/usr/bin/nvcc`, V12.4.131), with gcc-13 as the CUDA host compiler. The system default is gcc 15,
   which CUDA 12.4 does not support.
 - **Strata:** v0.1.39 (tag at `a1641e9`), source build by setup.
