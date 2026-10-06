@@ -97,3 +97,18 @@ hits were keyword noise.
 ## Deviations
 
 Any change after the first GPU row gets a numbered Deviation here before the affected rows run.
+- **Deviation 1 (before any GPU row; 10-06 ~15:40): raw prompts, because `spite run` applies no chat template.**
+  - **What the source shows:** `spite run` encodes the prompt as raw text (`tokenizer.encode(prompt, add_bos)`) and
+    has no template or special-token option. ChatML markers would be tokenized as literal text.
+  - **T3's three prompts** are therefore completion-style raw text:
+    - `Question: What is 17 multiplied by 23?\nAnswer:`
+    - `Question: What is the capital of France?\nAnswer:`
+    - `Question: Define photosynthesis in one sentence.\nAnswer:`
+    - Each gets 128 greedy tokens. **Gate:** two stage lines, and the continuation contains a correct answer (391,
+      Paris, a sensible definition) in coherent English.
+  - **T5 takes its "otherwise" branch.** `spite-perplexity`'s source has no CUDA or hybrid path, so the PPL
+    comparison is unavailable.
+    - The agreement test uses these three prompts plus the PR's own example `The old man walked to the harbor and`.
+    - The same strings go to llama.cpp `/completion` (`temperature 0`, `n_predict 128`, `cache_prompt false`).
+    - The first 64 tokens are compared. The common prefix is measured in llama.cpp tokens (via `/tokenize`), and the
+      prompt token counts are compared too.
