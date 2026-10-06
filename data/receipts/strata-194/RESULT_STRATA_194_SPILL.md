@@ -1,4 +1,4 @@
-# Result -- when the experts do not all fit (Unsloth UD-IQ4_XS on 4x P100), Strata decodes 1.86x faster than tuned buun + MTP on the same weights (37.2 vs 20.0 tok/s): its adaptive cache serves 98-99 % of expert lookups with 71 % of the experts in VRAM, while the best static placement keeps at most ~79 % of the expert weight on the GPUs and loses most of MTP's gain (1.19x vs 2.23x when resident)
+# Result -- when the experts do not all fit (Unsloth UD-IQ4_XS on 4x P100), Strata decodes 1.86x faster than buun `0b2789f23` + MTP on the same weights and drafts (37.2 vs 20.0 tok/s): its adaptive cache serves 98-99 % of expert lookups with 71 % of the experts in VRAM, while llama.cpp's automatic fit keeps at most ~79 % of the expert weight on the GPUs, and buun's MTP gain falls to 1.19x (2.23x when resident)
 
 **2026-10-06.** Pre-registration `PREREG_STRATA_194_SPILL.md` (`1b7cf797`), with Deviations 1 and 2 (`f4956f0f`,
 `69180242`), both registered before any buun row.
@@ -43,8 +43,10 @@
 - **Failed attempts, kept as findings (Deviations 1-2):**
   - Layer split + `-ncmoe` 4-24 with the drafter: CUDA3 cannot hold the drafter, which lands on the last card while
     `-ncmoe` offloads the first N layers.
-  - With `-ts 1,1,1,0.6`: CUDA1 needs a 17 GB buffer at every `-ncmoe` up to 24. A first-N static split cannot place
-    this model sensibly across four 16 GB cards.
+  - With `-ts 1,1,1,0.6`: CUDA1 needs a 17 GB buffer at every `-ncmoe` up to 24.
+  - So no first-N `-ncmoe` load succeeded up to N=24 at either `-ts` (N >= 26, other `-ts` values and `-ot` were not
+    tried). From the CUDA1 buffer, a working N would be about 26 or more, which leaves under about half of the expert
+    work on the GPUs.
 
 ## Registered verdicts
 
@@ -58,21 +60,25 @@
 
 - **This is the regime the adaptive cache is for, and it pays: 1.86x on the same weights and drafts.**
   - ~71 % of the experts, chosen by use, catch ~98-99 % of lookups.
-  - A static placement holding the same order of weight covers only its share of the work, and every miss is
+  - llama.cpp's automatic fit, holding a similar order of weight, covers only its share of the work, and every miss is
     computed on the CPU, where a multi-token MTP verify is expensive. That is why buun's MTP gain collapses to 1.19x
     under offload (cf. INDEX L438) while Strata's survives (~3.3 tokens per pass at full speed).
 - **The three runs together:**
 
-  | condition | Strata vs llama.cpp | why |
-  |---|---:|---|
-  | everything fits (IQ3_XXS) | 1.0x (tie) | nothing for the cache to do |
-  | partial spill (UD-IQ4_XS) | 1.86x | the cache keeps hot experts on the GPU |
-  | heavy spill (desktop, 16 GB) | 2.6x | the same, plus static offload's verify penalty |
+  | condition | comparison | Strata vs baseline |
+  |---|---|---:|
+  | everything fits (IQ3_XXS, .194) | vs buun `0b2789f23` + MTP, same weights and drafter, speculation matched | 1.0x (tie) |
+  | partial spill (UD-IQ4_XS, .194) | vs buun `0b2789f23` + MTP, auto-fit, speculation matched | 1.86x |
+  | heavy spill (desktop, 16 GB) | vs upstream llama.cpp b11433 with NO drafter (no llama.cpp-usable MTP head for the Coder): **not speculation-matched** | 2.6x |
 
-- **Strata is faster on the bigger pack than on IQ3_XXS** (37.2 vs 33.8): its MTP is accepted more often on the better
-  quant (~0.84 vs 0.74), and the cache absorbs the spill.
-- **llama.cpp's static options are themselves a finding.** First-N `-ncmoe` cannot place a 4-GPU layer split under
-  pressure. Only the automatic fit works, and it leaves 1-2 GB per card unused (also seen in `glm53-flash/`).
+  The matched rows are the first two. The desktop figure includes MTP's own gain, so it is not a point on the same
+  trend.
+
+- **Strata is faster on the bigger pack than on IQ3_XXS** (37.2 vs 33.8). Its MTP is accepted more often on this pack
+  (~0.84 vs 0.74). The cause is not isolated: different files, KV settings and context size.
+- **llama.cpp's static options are a finding in themselves.** First-N `-ncmoe` did not load at any N up to 24 on this
+  4-GPU layer split. The automatic fit worked, but it is not proven to be the best static placement: a hand-tuned
+  `-ot` was not tried.
 - **For BACKLOG N20:** this measured skew on Flash-Next (71 % of experts -> 98-99 % of lookups) is the number to
   compare other MoEs' routing traces against.
 
