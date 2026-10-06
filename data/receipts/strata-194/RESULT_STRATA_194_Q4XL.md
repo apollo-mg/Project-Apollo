@@ -70,3 +70,49 @@ was 52.5-56.0 %.
 - Long prompts.
 - Quality.
 - Whether a larger Strata slot budget (`--vram-reserve`) changes the hit rate.
+
+## Addendum C: UD-IQ4_XS on one card (separating card count from bpw)
+
+Registered as Addendum C in the prereg (`be3315ab`), before any C row.
+- **Strata:** the one-card config with only the model paths swapped, budget 55 GiB
+  (`runs/strata_config_iq4_1card.json`). Its log: "expert cache 3742 slots, 8.42 GiB of VRAM", i.e. **15.2 % of the
+  experts**.
+- **buun:** one card, auto-fit (surplus with only dense weights 2,911 MiB) + the MTP head at draft 3.
+- **Kit:** `kit/c_chain.sh`, same boot as every Q row.
+
+| arm | tok/s (median) | samples | TTFT ms | warm hit rate |
+|---|---:|---|---:|---|
+| **Strata, one card, start 1** | 23.4 | 24.4, 22.9, 23.4 | 5,436 | 70.9-73.6 % |
+| **Strata, one card, start 2** | 22.6 | 22.8, 22.6, 22.5 | 5,233 | 71.9-74.2 % |
+| **buun + MTP, one card, start 1** | 9.7 | 9.6, 10.2, 9.7 | 13,131 | - |
+| **buun + MTP, one card, start 2** | 9.8 | 9.8, 9.8, 10.2 | 11,218 | - |
+
+**Verdicts:**
+
+| # | claim | result |
+|---|---|---|
+| C1 | Strata's warm hit rate between 66 % and 80 % | **holds:** 70.9-74.2 % |
+| C2 | Strata's one-card IQ4_XS decode below 28.3 tok/s (card count is most of the halving) | **holds:** 23.0 |
+
+**Decomposition of 37.2 -> 19.3 (Strata, reasoning-v1):**
+
+| step | tok/s | factor |
+|---|---:|---:|
+| UD-IQ4_XS, four cards (`RESULT_STRATA_194_SPILL.md`) | 37.2 | |
+| UD-IQ4_XS, one card | 23.0 | 0.62x |
+| UD-Q4_K_XL, one card | 19.3 | 0.84x |
+
+- **Four cards -> one is about three quarters of the drop** (in log terms, 0.48 of 0.66). The bigger experts are the
+  remaining quarter.
+- **Hit rate against the fraction of experts in VRAM, Flash-Next on .194:** 71 % -> 98-99 %; 15.2 % -> 71-74 %;
+  11.5 % -> 66 %.
+
+**Two surprises:**
+- **buun runs UD-IQ4_XS SLOWER than UD-Q4_K_XL on one card (9.75 vs 13.5 tok/s)**, although its experts are 23 %
+  smaller. With nearly every expert computed on the CPU, IQ3_S gate/up and IQ4_NL down cost more per token than Q4_K /
+  Q5_1, despite fewer bytes. A plausible cause, not isolated: the per-type CPU kernel cost is not measured here.
+- **So on one card, Strata's ratio is 2.36x on IQ4_XS** (23.0 / 9.75), against 1.43x on Q4_K_XL. Strata computes
+  misses on the CPU too, but on a third fewer of them and with its own kernels. Its lead over llama.cpp depends on
+  the quant format as much as on the spill.
+
+**Not established:** per-type CPU expert cost (an isolated microbenchmark), and one-card buun without MTP on IQ4_XS.
