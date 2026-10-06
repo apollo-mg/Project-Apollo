@@ -77,3 +77,11 @@ Any change after the first timed row gets a numbered Deviation here before the a
   - S_reason ran cleanly afterwards: 65.5 tok/s, TTFT 1,874 ms, content gate passed.
   - The S_code arms are to be rerun only with RAM headroom: with Mark away, or under a declared RAM budget. A budget
     becomes a numbered Deviation before its rows.
+- **Clarification (not a deviation):** the L_code wording "the most expert layers on the CPU that fit" was meant as
+  the FEWEST CPU expert layers (the most GPU) that fit. The chain stepped `-ncmoe` up from 26: 26 failed to create a
+  context, and 28 fit (16.75 GB VRAM).
+- **Deviation 1 (before its row; 10-05 ~21:45). S_nomtp as registered cannot run:** the engine refuses it ("a native
+  (IQ) pack ... needs ... --spec T (T >= 2)").
+  - **Replacement S_nomtp2:** `--spec 2`, no `--mtp`, `--suffix-draft 0`, so nothing drafts and every pass yields one
+    token. Otherwise the installer config, on code-v1.
+  - It still pays for a two-wide verify, so S_code / S_nomtp2 slightly OVERSTATES what MTP buys.
