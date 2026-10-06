@@ -115,3 +115,6 @@ Registered as Addendum R (`73663bdb`), before any R row.
 - the per-occurrence penalty at temperature > 0;
 - stopping only at `<|im_end|>`;
 - prefill at decode speed.
+
+**Reported:** the follow-up was posted with Mark's OK at
+https://github.com/giveen/spite/pull/23#issuecomment-6025811147.
