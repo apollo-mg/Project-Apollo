@@ -1,0 +1,81 @@
+# Result -- Spite PR #23 runs Qwen3.8-27B Q6_K on two PCIe P100s: the layer split and cross-device switching work, the sm_60 kernels pass verify.py, and the greedy output matches llama.cpp up to a near tie; decode is 6.69 tok/s (0.75x llama.cpp `-sm layer`). Two defects found: MTP crashes on the split (illegal memory access), and `spite run` hard-codes a compounding repetition penalty
+
+**2026-10-06.** Pre-registration `PREREG_SPITE_PR23_73.md` (`c9fd9a7e`), with Deviations 1-3, each registered
+before its rows.
+- **Runner:** `kit/run_tests.sh`.
+- **Raw:** `raw/`, including run outputs, verify logs, bench JSON, llama.cpp JSON and the desktop `cargo test` log.
+
+## Setup
+
+- **Spite:** `giveen/spite` PR #23 head `ab8177a` (main `453e98f`).
+  - Kernels `SPITE_MODELS=qwen/qwen3_5`, `SPITE_GPU_ARCHS=TESLA_P100`, CUDA 12.4.131 with gcc-13.4 as host, Release.
+  - Rust 1.97.1 on .73.
+- **Host:** .73, 2x Tesla P100-PCIE-16GB, PHB, no NVLink.
+  - Driver 580.178.04.
+  - SM clock locked at 1,328 MHz (`gpu_state_*.csv`), 150 W cap.
+  - i7-8600K, 16 GB RAM.
+- **Model:** unsloth Qwen3.8-27B Q6_K, 22,884,408,288 B, sha256 `562fbf76…486727`. `qwen35`, 64 blocks + 1 NextN.
+- **llama.cpp reference:** buun `510cb-nohost`, `-sm layer -fa on -ctk f16 -ctv f16 -c 8192 -np 1`, no drafter.
+- **Node state:** the daily driver and the wake proxy were down for the runs (15:29-15:49 and ~15:57-16:00) and were
+  restored after each window.
+
+## Results
+
+| test | result |
+|---|---|
+| **T1, build** | **holds.** The vendor kernel `libkernel_qwen_qwen3_5_nvidia.so` has 3 sm_60 cubins; the card `.so` has 1. `cargo build --release` OK. |
+| **T2, `cargo test --workspace`** | **holds** on the desktop (Deviation 2): 126 passed, 0 failed. On .73 it cannot build `openssl-sys`, because there are no OpenSSL headers. |
+| **T3, load and split** | **The split works; one of the three answers is missing.** Every one of the 12 runs printed two stages: GPU 0 layers 0..33 (10.14 GiB), GPU 1 layers 33..64 (10.87 GiB). The total is weights 20.33 GiB + KV 0.53 GiB + recurrent state 0.15 GiB; load takes 21.5 s. Answers: " Paris.", and a correct one-sentence definition of photosynthesis. **"17 x 23" produced no tokens at all:** the first pick was `<|im_end|>`. T5b shows this is the sampler (below). |
+| **T4, cross-device** | **holds.** With the stage order reversed (`--gpus 1,0`, so GPU 1 runs layers 0..33), and on a repeat, the generated text is byte-identical on all 4 prompts. The only differences are the GPU numbers in the stage lines. (The runner's whole-file `cmp` flagged those lines as DIFF; the generated text was checked separately.) Timing changes by under 1 %. |
+| **T5, agreement (PR binary)** | **does not hold, and it is confounded.** Against llama.cpp greedy: p1 diverges at token 1 (`<|im_end|>` vs " 391"), p3 at "water," vs "water.", p4 at "water," vs "water and". p2 matches. Each divergence is a token that already occurs in the prompt. |
+| **T5b, agreement with the penalty at 1.0** (Deviation 3) | **p1-p3 identical to llama.cpp up to llama.cpp's end-of-generation token:** " 391", "\n\nParis.", and the whole 23-token photosynthesis sentence. **p4 is identical for 15 tokens**, then " the" (Spite) vs " his" (llama.cpp). That misses the registered 16 by one. On the daily-driver server that position is a near tie: " his" logprob -0.9709 (p 0.379) against " the" -0.9818 (p 0.375). |
+| **T6, verify.py** | **passes on sm_60.** Vendor kernel: 93 OK, 12 SKIP (ops the kernel does not provide: plain `attention`, some `linear_attn` geometries), 0 FAIL. That includes matmul across 28 types x 2 shapes (56 OK), and `attention_ex` with Q4_K/Q5_K/Q6_K weights (max abs diff 2.2e-6). The card `.so` passes too; it exports only NVLink helpers, so everything SKIPs. |
+| **T7, speed** | **Spite `spite-bench`** (defaults: 8-token prompt "Benchmark prompt for throughput measurement.", 512 tokens, 5 runs): **decode 6.69 tok/s**, prefill 6.86 tok/s, TTFT 1,021 ms, peak 20,969 MiB. **llama.cpp, same prompt, 512 tokens (`ignore_eos`), 3 timed: 8.90 tok/s** (8.91, 8.90, 8.90). **Ratio 0.75.** `spite run` reports 6.7-6.9 tok/s, with prompt and generated tokens counted together. |
+| **T8, MTP** | **`spite-bench --mtp` crashes on the split:** `cudaMemcpy H2D: an illegal memory access was encountered (700)`, right after placing the stages (GPU 0 10,255 MiB, GPU 1 10,987 MiB). `spite run --mtp` prints "features : mtp" but gives the same text at the same speed (6.71 tok/s), so speculation does not appear to engage there. |
+
+## Registered verdicts
+
+| # | claim | result |
+|---|---|---|
+| P1 | T1 and T2 hold | **holds** (T2 on the desktop, Deviation 2) |
+| P2 | T3 passes on two GPUs | **does not hold as registered:** 2 of 3 answers. The missing one is the sampler, not the GPU path (T5b). |
+| P3 | T4 holds | **holds** |
+| P4 | T5 holds | **does not hold.** T5 is confounded by the sampler; T5b misses by one token on p4, at a measured near tie. |
+| P5 | T6 passes on sm_60 | **holds** |
+| P6 | Spite decode at least 50 % of llama.cpp `-sm layer` | **holds:** 0.75x |
+
+## What it means
+
+- **The PR does what it claims on real P100s.**
+  - The hybrid decoder splits across two physical GPUs over plain PCIe.
+  - Cross-device switching works in both stage orders, with identical output.
+  - The qwen3_5 CUDA kernel compiled for sm_60 passes Spite's own verify tool.
+  - With the sampler neutralised, its greedy output is llama.cpp's, up to a near tie.
+  - That covers the "real cross-device switching" item the PR lists as untested.
+- **Defects to fix before merge,** in order of severity:
+  1. **MTP on a split crashes** (`spite-bench --mtp`, illegal memory access). The MTP block sits on the last GPU per
+     the PR, so a device or pointer mix-up in the NextN path is the likely place. Not localised here.
+  2. **`spite run` is not greedy at temperature 0.** `Executor::generate` hard-codes `repetition_penalty: 1.1`, and
+     `apply_repetition_penalty` applies it **once per occurrence** in the whole context, prompt included: a token seen
+     k times is divided by 1.1^k. That deleted the answer to "17 x 23" (the leading space token is in the prompt), and
+     it will push long generations off common tokens. Standard practice applies it once per distinct token, with no
+     penalty at temperature 0.
+  3. **Generation stops only at `<|im_end|>`.** Raw completions run past `<|endoftext|>` into an invented next turn,
+     and the special tokens are printed.
+- **Observations, not defects:**
+  - Prefill runs at decode speed (6.86 tok/s).
+  - The dispatch table routes `prefill`, `attention`, `layer` and `spec_verify` to the generic kernel. Long prompts
+    will be slow: about 10 minutes for 4k tokens at this rate.
+- **Speed:** 0.75x llama.cpp's pipeline split on the same cards, from kernels that have not been tuned for Pascal (the
+  `.bench` is still a placeholder). The daily driver (tensor split + MTP) is faster still; that was not measured
+  here.
+
+## Not established
+
+- The PR's 6-GPU target (two GPUs here).
+- Q5_K_S (not on hand).
+- Tensor parallelism (not wired).
+- Contexts beyond the short prompts used here.
+- The cause of the MTP crash.
+- Whether `spite run --mtp` speculates at all.
+- Agreement measured as KLD or PPL (`spite-perplexity` has no CUDA hybrid path).

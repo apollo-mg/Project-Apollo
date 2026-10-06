@@ -1,0 +1,309 @@
+
+Reference : ~/spite/build/kernels/generic/generic/libkernel_generic.so
+Under test: kernels/qwen/qwen3_5/nvidia/sm_60/tesla_p100/libkernel_qwen_qwen3_5_nvidia_sm_60_tesla_p100.so
+
+── ABI check ──────────────────────────────────────────────────────
+  reference: arch=generic gpu=generic abi=7 author=spite project
+  under-test: arch=qwen3_5 gpu=cuda abi=7 author=spite project (qwen3.5 tesla p100: NVLink TP helpers; ops resolve from nvidia/)
+
+── Op correctness ─────────────────────────────────────────────────
+
+  [rms_norm] dim=64
+    SKIP: test kernel has no rms_norm
+
+  [rms_norm] dim=4096
+    SKIP: test kernel has no rms_norm
+
+  [mtp_stem] dim=64 tokens=1
+    SKIP: test kernel has no mtp_stem
+
+  [mtp_stem] dim=4096 tokens=3
+    SKIP: test kernel has no mtp_stem
+
+  [matmul] shape=[128, 64]
+    SKIP: test kernel has no matmul
+
+  [matmul] shape=[4096, 4096]
+    SKIP: test kernel has no matmul
+
+  [matmul] q8_0 shapes: SKIP - under-test kernel does not declare Q8_0
+
+  [matmul] type=F32 shape=[256, 1024]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=F32 shape=[37, 768]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=F16 shape=[256, 1024]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=F16 shape=[37, 768]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=BF16 shape=[256, 1024]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=BF16 shape=[37, 768]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=Q4_0 shape=[256, 1024]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=Q4_0 shape=[37, 768]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=Q4_1 shape=[256, 1024]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=Q4_1 shape=[37, 768]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=Q5_0 shape=[256, 1024]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=Q5_0 shape=[37, 768]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=Q5_1 shape=[256, 1024]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=Q5_1 shape=[37, 768]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=Q8_0 shape=[256, 1024]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=Q8_0 shape=[37, 768]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=Q1_0 shape=[256, 1024]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=Q1_0 shape=[37, 768]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=Q2_0 shape=[256, 1024]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=Q2_0 shape=[37, 768]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=Q2_K shape=[256, 1024]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=Q2_K shape=[37, 768]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=Q3_K shape=[256, 1024]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=Q3_K shape=[37, 768]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=Q4_K shape=[256, 1024]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=Q4_K shape=[37, 768]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=Q5_K shape=[256, 1024]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=Q5_K shape=[37, 768]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=Q6_K shape=[256, 1024]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=Q6_K shape=[37, 768]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=IQ2_XXS shape=[256, 1024]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=IQ2_XXS shape=[37, 768]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=IQ2_XS shape=[256, 1024]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=IQ2_XS shape=[37, 768]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=IQ2_S shape=[256, 1024]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=IQ2_S shape=[37, 768]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=IQ3_XXS shape=[256, 1024]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=IQ3_XXS shape=[37, 768]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=IQ3_S shape=[256, 1024]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=IQ3_S shape=[37, 768]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=IQ1_S shape=[256, 1024]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=IQ1_S shape=[37, 768]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=IQ1_M shape=[256, 1024]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=IQ1_M shape=[37, 768]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=IQ4_NL shape=[256, 1024]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=IQ4_NL shape=[37, 768]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=IQ4_XS shape=[256, 1024]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=IQ4_XS shape=[37, 768]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=TQ1_0 shape=[256, 1024]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=TQ1_0 shape=[37, 768]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=TQ2_0 shape=[256, 1024]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=TQ2_0 shape=[37, 768]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=MXFP4 shape=[256, 1024]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=MXFP4 shape=[37, 768]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=NVFP4 shape=[256, 1024]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] type=NVFP4 shape=[37, 768]
+    SKIP: reference or test kernel has no matmul
+
+  [matmul] per-type summary over 28 types x 2 shapes: 0 OK, 56 SKIP, 0 FAIL
+
+  [ffn] hidden=64 ffn_dim=128
+    SKIP: test kernel has no ffn
+
+  [ffn] hidden=2048 ffn_dim=4096
+    SKIP: test kernel has no ffn
+
+  [moe_ffn] hidden=64 intermediate=128 n_expert=256 n_used=8 shared=True
+    SKIP: test kernel has no moe_ffn
+
+  [moe_ffn] hidden=64 intermediate=128 n_expert=256 n_used=8 shared=False
+    SKIP: test kernel has no moe_ffn
+
+  [attention] d_model=64 heads=4 kv_heads=2 head_dim=16 ctx=8 pos=3 kv=F32
+    SKIP: test kernel has no attention
+
+  [attention] d_model=64 heads=4 kv_heads=2 head_dim=16 ctx=8 pos=3 kv=F32 (no QK norm)
+    SKIP: test kernel has no attention
+
+  [attention] d_model=64 heads=4 kv_heads=2 head_dim=80 ctx=160 pos=20 kv=F32
+    SKIP: test kernel has no attention
+
+  [attention] d_model=64 heads=4 kv_heads=2 head_dim=64 ctx=96 pos=7 kv=F32
+    SKIP: test kernel has no attention
+
+  [attention] d_model=64 heads=4 kv_heads=2 head_dim=96 ctx=160 pos=20 kv=F32
+    SKIP: test kernel has no attention
+
+  [attention] d_model=64 heads=4 kv_heads=2 head_dim=64 ctx=320 pos=140 kv=F32
+    SKIP: test kernel has no attention
+
+  [attention] VBR tiers f16/q8_0/q5_1/q4_0 (block decoders): SKIP — the reference
+              kernel declares F32-only KV; pass a tier-capable .so as --ref to check them
+
+  [reference contract] linear_attn / attention_ex validation and scratch handling
+    OK: 11 GDN + 17 attention_ex malformed calls rejected cleanly, provided-scratch path bit-identical to malloc
+
+  [linear_attn] n_kh=2 n_vh=4 S=64 K=4 d_model=256 weights=F32 steps=3
+    SKIP: test kernel has no linear_attn
+
+  [linear_attn] n_kh=2 n_vh=4 S=64 K=4 d_model=256 weights=Q8_0 steps=3
+    SKIP: test kernel has no linear_attn
+
+  [linear_attn] n_kh=2 n_vh=4 S=64 K=4 d_model=256 weights=Q4_K/Q5_K/Q6_K steps=3
+    SKIP: test kernel has no linear_attn
+
+  [linear_attn] n_kh=4 n_vh=8 S=128 K=4 d_model=512 weights=F32 steps=3
+    SKIP: test kernel has no linear_attn
+
+  [linear_attn] n_kh=4 n_vh=8 S=128 K=4 d_model=512 weights=Q8_0 steps=3
+    SKIP: test kernel has no linear_attn
+
+  [linear_attn] n_kh=4 n_vh=8 S=128 K=4 d_model=512 weights=Q4_K/Q5_K/Q6_K steps=3
+    SKIP: test kernel has no linear_attn
+
+  [linear_attn] n_kh=16 n_vh=48 S=128 K=4 d_model=5120 weights=Q8_0 steps=3
+    SKIP: test kernel has no linear_attn
+
+  [linear_attn] n_kh=1 n_vh=2 S=16 K=1 d_model=32 weights=F32 steps=3
+    SKIP: test kernel has no linear_attn
+
+  [linear_attn] n_kh=2 n_vh=2 S=16 K=2 d_model=64 weights=F32 steps=3
+    SKIP: test kernel has no linear_attn
+
+  [linear_attn] n_kh=2 n_vh=6 S=16 K=3 d_model=64 weights=F32 steps=3
+    SKIP: test kernel has no linear_attn
+
+  [attention_ex] d_model=256 heads=4 kv_heads=2 head_dim=64 rope_dim=32 gated=1 ctx=48 pos=17+3 weights=F32 kv=F32
+    SKIP: test kernel has no attention_ex
+
+  [attention_ex] d_model=512 heads=8 kv_heads=2 head_dim=256 rope_dim=64 gated=1 ctx=96 pos=40+3 weights=F32 kv=F32
+    SKIP: test kernel has no attention_ex
+
+  [attention_ex] d_model=256 heads=4 kv_heads=2 head_dim=64 rope_dim=32 gated=1 ctx=48 pos=17+3 weights=Q8_0 kv=F32
+    SKIP: test kernel has no attention_ex
+
+  [attention_ex] d_model=512 heads=8 kv_heads=2 head_dim=256 rope_dim=64 gated=1 ctx=96 pos=40+3 weights=Q8_0 kv=F32
+    SKIP: test kernel has no attention_ex
+
+  [attention_ex] d_model=256 heads=4 kv_heads=2 head_dim=64 rope_dim=32 gated=1 ctx=48 pos=17+3 weights=Q4_K/Q5_K/Q6_K kv=F32
+    SKIP: test kernel has no attention_ex
+
+  [attention_ex] d_model=512 heads=8 kv_heads=2 head_dim=256 rope_dim=64 gated=1 ctx=96 pos=40+3 weights=Q4_K/Q5_K/Q6_K kv=F32
+    SKIP: test kernel has no attention_ex
+
+  [attention_ex] d_model=256 heads=4 kv_heads=2 head_dim=64 rope_dim=64 gated=1 ctx=48 pos=17+3 weights=F32 kv=F32
+    SKIP: test kernel has no attention_ex
+
+  [attention_ex] d_model=256 heads=4 kv_heads=2 head_dim=64 rope_dim=16 gated=0 ctx=48 pos=17+3 weights=F32 kv=F32
+    SKIP: test kernel has no attention_ex
+
+  [attention_ex] d_model=256 heads=4 kv_heads=2 head_dim=64 rope_dim=64 gated=0 ctx=48 pos=17+3 weights=F32 kv=F32
+    SKIP: test kernel has no attention_ex
+
+  [attention_ex] d_model=256 heads=4 kv_heads=2 head_dim=64 rope_dim=64 gated=0 ctx=48 pos=17+3 weights=Q8_0 kv=F32
+    SKIP: test kernel has no attention_ex
+
+  [attention_ex] d_model=256 heads=4 kv_heads=2 head_dim=64 rope_dim=64 gated=0 ctx=48 pos=17+3 weights=Q4_K/Q5_K/Q6_K kv=F32
+    SKIP: test kernel has no attention_ex
+
+  [attention_ex] d_model=256 heads=4 kv_heads=2 head_dim=64 rope_dim=64 gated=0 ctx=48 pos=17+3 weights=F32 kv=F32 (no QK norm)
+    SKIP: test kernel has no attention_ex
+
+  [attention_ex] d_model=256 heads=8 kv_heads=2 head_dim=128 rope_dim=128 gated=0 ctx=160 pos=140+3 weights=F32 kv=F32
+    SKIP: test kernel has no attention_ex
+
+  [attention_ex] VBR tiers f16/q8_0/q5_1/q4_0: SKIP - the reference kernel declares F32-only KV; pass a tier-capable .so as --ref to check them
+
+── Result ─────────────────────────────────────────────────────────
+PASSED — all checks OK
