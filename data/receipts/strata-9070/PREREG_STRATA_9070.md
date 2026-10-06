@@ -70,3 +70,10 @@ streaming"` -> receipts found:
 ## Deviations
 
 Any change after the first timed row gets a numbered Deviation here before the affected rows run.
+- **Incident (10-05 21:33, not a deviation):** a global kernel OOM during S_code_r1's run.
+  - Strata had ~24 GB resident with 7 GB available, while Mark was using the desktop.
+  - The OOM killed the Claude CLI (Konsole) and Spectacle. S_code_r1 lost its measurement (no LMX output) and S_code_r2
+    failed at start.
+  - S_reason ran cleanly afterwards: 65.5 tok/s, TTFT 1,874 ms, content gate passed.
+  - The S_code arms are to be rerun only with RAM headroom: with Mark away, or under a declared RAM budget. A budget
+    becomes a numbered Deviation before its rows.
