@@ -48,9 +48,9 @@
 
 ## Not established
 
-- Agreement between the two ports.
+- Hob-forge's conversion (the two ports agree; see K4, but they read the same converted file).
 - Quality against Aleph Alpha's reference or their published numbers.
-- Long contexts (the sliding-window path beyond 513 was only exercised by the ~300-token prompts' KV, i.e. barely).
+- Contexts beyond 2,048 (K4b exercised the 513-token sliding window up to 2,048).
 - Thinking mode.
 - MTP or speculation (none shipped for llama.cpp).
 
