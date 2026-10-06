@@ -10,7 +10,7 @@ if [ "$ENGINE" = strata ]; then
   CFG=${STRATA_CFG:?}; PORT=8080
   echo '{"reasoning_effort": "none"}' > "${CFG%.json}.shared-settings.json"
   (cd ~/strata && exec ~/strata/.venv/bin/python serve/server.py --engine strata --config "$CFG" --port $PORT) > "$OUT/server_$ARM.log" 2>&1 &
-  HFID=ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF; ENAME=custom
+  HFID=${HFID:-ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF}; ENAME=custom
 else
   PORT=8095; M=${LLAMA_MODEL:-$HOME/AI/Models/fn_gsq_base/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00001-of-00002.gguf}
   GGML_CUDA_ALLREDUCE=internal ${LLAMA_BIN:-$HOME/buun-0b278/build_sm60/bin/llama-server} -m $M -c 8192 -np 1 -ctk f16 -ctv f16 --reasoning off --jinja \
