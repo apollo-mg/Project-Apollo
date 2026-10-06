@@ -94,3 +94,11 @@ Any change after the first timed row gets a numbered Deviation here before the a
     `--spec-draft-n-max 3`), `-ncmoe` 28 (stepped up if it does not fit), otherwise as L_code.
     - **Why:** Strata's ~52.6 tok/s at ~2.7 tokens per pass is ~19 passes/s, against llama.cpp's 20.5 single-token
       passes/s. The adaptive cache can only be judged against static offload once both use speculation.
+- **Deviation 3 (before its rows; 10-05 ~22:05; after review flagged the passes-per-second argument as unproven).**
+  - **Added check 1 (from existing logs, no new run):** Strata's per-request "decode expert cache hit rate" against
+    the fixed GPU share of llama.cpp's `-ncmoe 28` (20 of 48 layers, i.e. 41.7 % of routed expert work).
+  - **Added check 2, L_verify:** `llama-bench` (b11433) on shard 1 with `-ngl 99 -fa 1 -ncmoe 28`, x5 repetitions.
+    - **Cost of a 4-token batch:** `-p 4 -ub 4 -b 4 -n 0`.
+    - **Single-token decode:** `-p 0 -n 32`.
+    - The ratio estimates llama.cpp+MTP's ceiling: tokens per pass / time per 4-token pass. It decides whether
+      "llama.cpp with MTP would match" holds.
