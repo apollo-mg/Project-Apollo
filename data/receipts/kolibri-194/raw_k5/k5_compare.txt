@@ -1,0 +1,58 @@
+== K5a metadata
+   kolibri1.attention.head_count: A=48 B=48
+   kolibri1.attention.head_count_kv: A=4 B=4
+   kolibri1.attention.key_length: A=128 B=128
+   kolibri1.attention.layer_norm_rms_epsilon: A=9.999999974752427e-07 B=9.999999974752427e-07
+   kolibri1.attention.sliding_window: A=513 B=513
+   kolibri1.attention.sliding_window_pattern: {'len': 50, 'sha256': '206c3313ca0ca015'}
+   kolibri1.attention.value_length: A=128 B=128
+   kolibri1.block_count: A=50 B=50
+   kolibri1.context_length: A=262144 B=262144
+   kolibri1.embedding_length: A=2560 B=2560
+   kolibri1.expert_count: A=384 B=384
+   kolibri1.expert_feed_forward_length: A=512 B=512
+XX kolibri1.expert_gating_func: A=5 B=2
+   kolibri1.expert_shared_count: A=1 B=1
+   kolibri1.expert_shared_feed_forward_length: A=512 B=512
+   kolibri1.expert_used_count: A=6 B=6
+   kolibri1.expert_weights_norm: A=False B=False
+XX kolibri1.feed_forward_length: A=<absent> B=512
+XX kolibri1.rope.dimension_count: A=<absent> B=128
+   kolibri1.rope.freq_base: A=10000.0 B=10000.0
+XX kolibri1.rope.scaling.type: A=<absent> B=none
+XX kolibri1.vocab_size: A=<absent> B=128000
+   tokenizer.chat_template: {'len': 6236, 'sha256': 'b853d30e5b6e0741'}
+   tokenizer.ggml.add_bos_token: A=False B=False
+   tokenizer.ggml.add_eos_token: A=False B=False
+XX tokenizer.ggml.add_space_prefix: A=<absent> B=False
+   tokenizer.ggml.eos_token_id: A=127906 B=127906
+XX tokenizer.ggml.eot_token_id: A=<absent> B=127906
+   tokenizer.ggml.merges: {'len': 127644, 'sha256': 'f0c4cf77df4d3f28'}
+   tokenizer.ggml.model: A=gpt2 B=gpt2
+   tokenizer.ggml.padding_token_id: A=127901 B=127901
+XX tokenizer.ggml.token_type: A={'len': 128000, 'sha256': '1b57b7b11916f8bc'} B={'len': 128000, 'sha256': 'a540d6f005caa893'}
+XX tokenizer.ggml.tokens: A={'len': 128000, 'sha256': '585d1d4f97b92449'} B={'len': 128000, 'sha256': '433d63a6a7f113ea'}
+K5a: 9 differing keys of 33
+   (excluded) tokenizer.ggml.pre A=kolibri1 B=qwen2
+== K5b tensor list
+A 903 tensors, B 903; only in A: []; only in B: []; shape differs: []
+type pairs (A, B): {'F32/F32': 401, 'Q4_K/Q3_K': 426, 'Q6_K/Q3_K': 75, 'Q6_K/Q6_K': 1}
+K5b: holds
+== K5c tensors stored as float in both
+   attn_k_norm.weight: 50 tensors, 50 bit-identical, elements beyond BF16 rounding 0, max |a-b|/max|a| 0
+   attn_norm.weight: 50 tensors, 50 bit-identical, elements beyond BF16 rounding 0, max |a-b|/max|a| 0
+   attn_q_norm.weight: 50 tensors, 50 bit-identical, elements beyond BF16 rounding 0, max |a-b|/max|a| 0
+   exp_probs_b.bias: 50 tensors, 50 bit-identical, elements beyond BF16 rounding 0, max |a-b|/max|a| 0
+   ffn_gate_inp.weight: 50 tensors, 50 bit-identical, elements beyond BF16 rounding 0, max |a-b|/max|a| 0
+   ffn_norm.weight: 50 tensors, 50 bit-identical, elements beyond BF16 rounding 0, max |a-b|/max|a| 0
+   output_norm.weight: 1 tensors, 1 bit-identical, elements beyond BF16 rounding 0, max |a-b|/max|a| 0
+   post_attention_norm.weight: 50 tensors, 50 bit-identical, elements beyond BF16 rounding 0, max |a-b|/max|a| 0
+   post_ffw_norm.weight: 50 tensors, 50 bit-identical, elements beyond BF16 rounding 0, max |a-b|/max|a| 0
+K5c: 401 tensors compared, 401 bit-identical, 0 with elements beyond BF16 rounding; worst normwise rel diff 0; holds
+== K5d dequantized weights
+   blk.0.attn_q.weight: types Q4_K/Q3_K, shape (6144, 2560), Pearson r 0.98129, rel RMS diff 0.1941
+   blk.0.ffn_gate_exps.weight expert 0: types Q4_K/Q3_K, shape (512, 2560), Pearson r 0.98020, rel RMS diff 0.2000
+   blk.0.ffn_down_exps.weight expert 0: types Q6_K/Q3_K, shape (2560, 512), Pearson r 0.99024, rel RMS diff 0.1403
+   blk.1.ffn_gate_exps.weight expert 0: types Q4_K/Q3_K, shape (512, 2560), Pearson r 0.98154, rel RMS diff 0.1927
+   blk.1.ffn_down_exps.weight expert 0: types Q6_K/Q3_K, shape (2560, 512), Pearson r 0.99148, rel RMS diff 0.1310
+K5d: min r 0.98020 -> holds
