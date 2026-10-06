@@ -1,0 +1,753 @@
+0.00.068.754 I cmn  common_param: common_params_print_info: build 10667 (bccbacdb8) with GNU 15.2.0 for Linux x86_64
+0.00.068.760 I cmn  common_param: common_params_print_info: verbosity = 4 (adjust with the `-lv N` CLI arg)
+0.00.068.761 I cmn  common_param: device_info:
+0.00.286.042 I cmn  common_param:   - CUDA0   : Tesla P100-PCIE-16GB (16269 MiB, 16011 MiB free)
+0.00.516.397 I cmn  common_param:   - CUDA1   : Tesla P100-PCIE-16GB (16269 MiB, 16011 MiB free)
+0.00.725.953 I cmn  common_param:   - CUDA2   : Tesla P100-PCIE-16GB (16269 MiB, 16011 MiB free)
+0.00.940.996 I cmn  common_param:   - CUDA3   : Tesla P100-PCIE-16GB (16269 MiB, 16011 MiB free)
+0.00.941.016 I cmn  common_param:   - CPU     : Intel(R) Xeon(R) CPU E5-2650 v3 @ 2.30GHz (124433 MiB, 124433 MiB free)
+0.00.941.161 I cmn  common_param: system_info: n_threads = 20 (n_threads_batch = 20) / 40 | CUDA : ARCHS = 600 | USE_GRAPHS = 1 | CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | AVX2 = 1 | F16C = 1 | FMA = 1 | BMI2 = 1 | LLAMAFILE = 1 | OPENMP = 1 | REPACK = 1 | 
+0.00.941.230 I srv          init: running without SSL
+0.00.941.340 I srv          init: using 39 threads for HTTP server
+0.00.941.986 W srv  llama_server: -----------------
+0.00.941.989 W srv  llama_server: CORS is set to allow all origins ('*') and no API key is set
+0.00.941.990 W srv  llama_server: this can be a security risk (cross-origin attacks)
+0.00.941.990 W srv  llama_server: more info: https://github.com/ggml-org/llama.cpp/pull/25655
+0.00.941.991 W srv  llama_server: -----------------
+0.00.942.025 I srv         start: binding port with default address family
+0.00.943.524 I srv    load_model: loading model '~/strata-data/models/unsloth-UD-IQ4_XS/Qwen3.8-Flash-Next-UD-IQ4_XS-00001-of-00003.gguf'
+0.00.943.528 I srv    load_model: local path '~/strata-data/models/unsloth-UD-IQ4_XS/Qwen3.8-Flash-Next-UD-IQ4_XS-00001-of-00003.gguf'
+0.00.943.547 I cmn  common_init_: fitting params to device memory ...
+0.00.943.548 I cmn  common_init_: (for bugs during this step try to reproduce them with -fit off, or provide --verbose logs if the bug only occurs with -fit on)
+0.00.943.619 I common_params_fit_impl: getting device memory data for initial parameters:
+0.01.829.244 I common_memory_breakdown_print: | memory breakdown [MiB]     | total    free     self   model   context   compute    unaccounted |
+0.01.829.251 I common_memory_breakdown_print: |   - CUDA0 (P100-PCIE-16GB) | 16269 = 15979 + (17185 = 16847 +      97 +     240) +      -16895 |
+0.01.829.252 I common_memory_breakdown_print: |   - CUDA1 (P100-PCIE-16GB) | 16269 = 15981 + (15097 = 14630 +      94 +     372) +      -14808 |
+0.01.829.253 I common_memory_breakdown_print: |   - CUDA2 (P100-PCIE-16GB) | 16269 = 15981 + (15497 = 15030 +      94 +     372) +      -15208 |
+0.01.829.254 I common_memory_breakdown_print: |   - CUDA3 (P100-PCIE-16GB) | 16269 = 15985 + (15177 = 14713 +      90 +     372) +      -14893 |
+0.01.829.254 I common_memory_breakdown_print: |   - Host                   |                  28168 = 28110 +       0 +      58                |
+0.01.898.536 I common_params_fit_impl: projected memory use with initial parameters [MiB]:
+0.01.898.548 I common_params_fit_impl:   - CUDA0 (Tesla P100-PCIE-16GB):  16269 total,  17185 used,  -1206 free vs. target of   3072
+0.01.898.558 I common_params_fit_impl:   - CUDA1 (Tesla P100-PCIE-16GB):  16269 total,  15097 used,    884 free vs. target of   3072
+0.01.898.559 I common_params_fit_impl:   - CUDA2 (Tesla P100-PCIE-16GB):  16269 total,  15497 used,    484 free vs. target of   3072
+0.01.898.560 I common_params_fit_impl:   - CUDA3 (Tesla P100-PCIE-16GB):  16269 total,  15177 used,    807 free vs. target of   3072
+0.01.898.561 I common_params_fit_impl: projected to use 62956 MiB of device memory vs. 63926 MiB of free device memory
+0.01.898.562 I common_params_fit_impl: cannot meet free memory targets on all devices, need to use 11318 MiB less in total
+0.01.898.565 I common_params_fit_impl: context size set by user to 8192 -> no change
+0.01.898.576 I common_params_fit_impl: getting device memory data with all MoE tensors moved to system memory:
+0.02.735.647 I common_memory_breakdown_print: | memory breakdown [MiB]     | total    free     self   model   context   compute    unaccounted |
+0.02.735.653 I common_memory_breakdown_print: |   - CUDA0 (P100-PCIE-16GB) | 16269 = 15979 + ( 2394 =  1097 +      97 +    1199) +       -2104 |
+0.02.735.654 I common_memory_breakdown_print: |   - CUDA1 (P100-PCIE-16GB) | 16269 = 15981 + ( 1230 =   980 +      94 +     156) +        -942 |
+0.02.735.654 I common_memory_breakdown_print: |   - CUDA2 (P100-PCIE-16GB) | 16269 = 15981 + ( 1230 =   980 +      94 +     156) +        -942 |
+0.02.735.655 I common_memory_breakdown_print: |   - CUDA3 (P100-PCIE-16GB) | 16269 = 15985 + ( 1648 =  1401 +      90 +     156) +       -1364 |
+0.02.735.656 I common_memory_breakdown_print: |   - Host                   |                  84894 = 84872 +       0 +      22                |
+0.02.820.606 I common_params_fit_impl: with only dense weights in device memory there is a total surplus of 45134 MiB
+0.02.820.615 I common_params_fit_impl: id=0, target=12907 MiB
+0.02.820.616 I common_params_fit_impl: id=1, target=12909 MiB
+0.02.820.617 I common_params_fit_impl: id=2, target=12909 MiB
+0.02.820.617 I common_params_fit_impl: id=3, target=12913 MiB
+0.03.698.060 I common_memory_breakdown_print: | memory breakdown [MiB]     | total    free     self   model   context   compute    unaccounted |
+0.03.698.068 I common_memory_breakdown_print: |   - CUDA0 (P100-PCIE-16GB) | 16269 = 16011 + ( 1053 =     0 +       0 +    1053) +        -795 |
+0.03.698.074 I common_memory_breakdown_print: |   - CUDA1 (P100-PCIE-16GB) | 16269 = 16011 + (    0 =     0 +       0 +       0) +         258 |
+0.03.698.075 I common_memory_breakdown_print: |   - CUDA2 (P100-PCIE-16GB) | 16269 = 16011 + (    0 =     0 +       0 +       0) +         258 |
+0.03.698.076 I common_memory_breakdown_print: |   - CUDA3 (P100-PCIE-16GB) | 16269 = 16011 + (    0 =     0 +       0 +       0) +         258 |
+0.03.698.077 I common_memory_breakdown_print: |   - Host                   |                  89731 = 89332 +     376 +      22                |
+0.03.772.485 I common_params_fit_impl: memory for test allocation by device:
+0.03.772.498 I common_params_fit_impl: id=0, n_layer= 0, n_part= 0, overflow_type=4, mem=  1053 MiB
+0.03.772.499 I common_params_fit_impl: id=1, n_layer= 0, n_part= 0, overflow_type=4, mem=     0 MiB
+0.03.772.500 I common_params_fit_impl: id=2, n_layer= 0, n_part= 0, overflow_type=4, mem=     0 MiB
+0.03.772.501 I common_params_fit_impl: id=3, n_layer= 0, n_part= 0, overflow_type=4, mem=     0 MiB
+0.03.772.502 I common_params_fit_impl: filling dense-only layers back-to-front:
+0.04.874.492 I common_memory_breakdown_print: | memory breakdown [MiB]     | total    free     self   model   context   compute    unaccounted |
+0.04.874.500 I common_memory_breakdown_print: |   - CUDA0 (P100-PCIE-16GB) | 16269 = 16011 + ( 1280 =     0 +       0 +    1280) +       -1022 |
+0.04.874.500 I common_memory_breakdown_print: |   - CUDA1 (P100-PCIE-16GB) | 16269 = 16011 + (    0 =     0 +       0 +       0) +         258 |
+0.04.874.501 I common_memory_breakdown_print: |   - CUDA2 (P100-PCIE-16GB) | 16269 = 16011 + (    0 =     0 +       0 +       0) +         258 |
+0.04.874.502 I common_memory_breakdown_print: |   - CUDA3 (P100-PCIE-16GB) | 16269 = 15897 + ( 6161 =  5597 +     376 +     188) +       -5789 |
+0.04.874.507 I common_memory_breakdown_print: |   - Host                   |                  83757 = 83735 +       0 +      22                |
+0.04.941.353 I common_params_fit_impl: memory for test allocation by device:
+0.04.941.365 I common_params_fit_impl: id=0, n_layer= 0, n_part= 0, overflow_type=4, mem=  1280 MiB
+0.04.941.366 I common_params_fit_impl: id=1, n_layer= 0, n_part= 0, overflow_type=4, mem=     0 MiB
+0.04.941.367 I common_params_fit_impl: id=2, n_layer= 0, n_part= 0, overflow_type=4, mem=     0 MiB
+0.04.941.368 I common_params_fit_impl: id=3, n_layer=49, n_part=48, overflow_type=4, mem=  6161 MiB
+0.04.941.376 I common_params_fit_impl: set ngl_per_device[3].n_layer=49
+0.04.941.377 I common_params_fit_impl:   - CUDA3 (Tesla P100-PCIE-16GB): 49 layers,   6161 MiB used,   9823 MiB free
+0.04.941.379 I common_params_fit_impl:   - CUDA2 (Tesla P100-PCIE-16GB):  0 layers,      0 MiB used,  15981 MiB free
+0.04.941.380 I common_params_fit_impl:   - CUDA1 (Tesla P100-PCIE-16GB):  0 layers,      0 MiB used,  15981 MiB free
+0.04.941.381 I common_params_fit_impl:   - CUDA0 (Tesla P100-PCIE-16GB):  0 layers,   1280 MiB used,  14698 MiB free
+0.04.941.381 I common_params_fit_impl: converting dense-only layers to full layers and filling them front-to-back with overflow to next device/system memory:
+0.05.764.520 I common_memory_breakdown_print: | memory breakdown [MiB]     | total    free     self   model   context   compute    unaccounted |
+0.05.764.528 I common_memory_breakdown_print: |   - CUDA0 (P100-PCIE-16GB) | 16269 = 15897 + (61371 = 60718 +     376 +     276) +      -60999 |
+0.05.764.529 I common_memory_breakdown_print: |   - CUDA1 (P100-PCIE-16GB) | 16269 = 16011 + (    0 =     0 +       0 +       0) +         258 |
+0.05.764.534 I common_memory_breakdown_print: |   - CUDA2 (P100-PCIE-16GB) | 16269 = 16011 + (    0 =     0 +       0 +       0) +         258 |
+0.05.764.535 I common_memory_breakdown_print: |   - CUDA3 (P100-PCIE-16GB) | 16269 = 16011 + (  505 =   503 +       0 +       1) +        -247 |
+0.05.764.536 I common_memory_breakdown_print: |   - Host                   |                  28168 = 28110 +       0 +      58                |
+0.05.832.020 I common_params_fit_impl: memory for test allocation by device:
+0.05.832.032 I common_params_fit_impl: id=0, n_layer=48, n_part= 0, overflow_type=4, mem= 61371 MiB
+0.05.832.033 I common_params_fit_impl: id=1, n_layer= 0, n_part= 0, overflow_type=4, mem=     0 MiB
+0.05.832.034 I common_params_fit_impl: id=2, n_layer= 0, n_part= 0, overflow_type=4, mem=     0 MiB
+0.05.832.035 I common_params_fit_impl: id=3, n_layer= 1, n_part= 0, overflow_type=4, mem=   505 MiB
+0.06.925.892 I common_memory_breakdown_print: | memory breakdown [MiB]     | total    free     self   model   context   compute    unaccounted |
+0.06.925.901 I common_memory_breakdown_print: |   - CUDA0 (P100-PCIE-16GB) | 16269 = 15987 + (13236 = 11970 +      66 +    1199) +      -12954 |
+0.06.925.902 I common_memory_breakdown_print: |   - CUDA1 (P100-PCIE-16GB) | 16269 = 16011 + (    0 =     0 +       0 +       0) +         258 |
+0.06.925.903 I common_memory_breakdown_print: |   - CUDA2 (P100-PCIE-16GB) | 16269 = 16011 + (    0 =     0 +       0 +       0) +         258 |
+0.06.925.903 I common_memory_breakdown_print: |   - CUDA3 (P100-PCIE-16GB) | 16269 = 15919 + ( 5321 =  4826 +     310 +     184) +       -4971 |
+0.06.925.904 I common_memory_breakdown_print: |   - Host                   |                  72557 = 72535 +       0 +      22                |
+0.06.993.526 I common_params_fit_impl: memory for test allocation by device:
+0.06.993.546 I common_params_fit_impl: id=0, n_layer= 9, n_part= 0, overflow_type=4, mem= 13236 MiB
+0.06.993.547 I common_params_fit_impl: id=1, n_layer= 0, n_part= 0, overflow_type=4, mem=     0 MiB
+0.06.993.548 I common_params_fit_impl: id=2, n_layer= 0, n_part= 0, overflow_type=4, mem=     0 MiB
+0.06.993.549 I common_params_fit_impl: id=3, n_layer=40, n_part=39, overflow_type=4, mem=  5321 MiB
+0.06.993.551 I common_params_fit_impl: set ngl_per_device_high[0].(n_layer, n_part)=(9, 0), id_dense_start_high=3
+0.08.070.052 I common_memory_breakdown_print: | memory breakdown [MiB]     | total    free     self   model   context   compute    unaccounted |
+0.08.070.058 I common_memory_breakdown_print: |   - CUDA0 (P100-PCIE-16GB) | 16269 = 15991 + (12012 = 10749 +      63 +    1199) +      -11734 |
+0.08.070.059 I common_memory_breakdown_print: |   - CUDA1 (P100-PCIE-16GB) | 16269 = 16011 + (    0 =     0 +       0 +       0) +         258 |
+0.08.070.059 I common_memory_breakdown_print: |   - CUDA2 (P100-PCIE-16GB) | 16269 = 16011 + (    0 =     0 +       0 +       0) +         258 |
+0.08.070.060 I common_memory_breakdown_print: |   - CUDA3 (P100-PCIE-16GB) | 16269 = 15917 + ( 5407 =  4909 +     313 +     184) +       -5055 |
+0.08.070.061 I common_memory_breakdown_print: |   - Host                   |                  73694 = 73672 +       0 +      22                |
+0.08.138.309 I common_params_fit_impl: memory for test allocation by device:
+0.08.138.324 I common_params_fit_impl: id=0, n_layer= 8, n_part= 0, overflow_type=4, mem= 12012 MiB
+0.08.138.326 I common_params_fit_impl: id=1, n_layer= 0, n_part= 0, overflow_type=4, mem=     0 MiB
+0.08.138.327 I common_params_fit_impl: id=2, n_layer= 0, n_part= 0, overflow_type=4, mem=     0 MiB
+0.08.138.335 I common_params_fit_impl: id=3, n_layer=41, n_part=40, overflow_type=4, mem=  5407 MiB
+0.08.138.341 I common_params_fit_impl: set ngl_per_device[0].(n_layer, n_part)=(8, 0), id_dense_start=3
+0.08.138.354 I common_params_fit_impl: trying to fit one extra layer with overflow_type=LAYER_FRACTION_UP
+0.09.214.430 I common_memory_breakdown_print: | memory breakdown [MiB]     | total    free     self   model   context   compute    unaccounted |
+0.09.214.437 I common_memory_breakdown_print: |   - CUDA0 (P100-PCIE-16GB) | 16269 = 15987 + (12434 = 11168 +      66 +    1199) +      -12152 |
+0.09.214.438 I common_memory_breakdown_print: |   - CUDA1 (P100-PCIE-16GB) | 16269 = 16011 + (  876 =   802 +       0 +      74) +        -618 |
+0.09.214.446 I common_memory_breakdown_print: |   - CUDA2 (P100-PCIE-16GB) | 16269 = 16011 + (    0 =     0 +       0 +       0) +         258 |
+0.09.214.447 I common_memory_breakdown_print: |   - CUDA3 (P100-PCIE-16GB) | 16269 = 15919 + ( 5321 =  4826 +     310 +     184) +       -4971 |
+0.09.214.448 I common_memory_breakdown_print: |   - Host                   |                  72557 = 72535 +       0 +      22                |
+0.09.292.445 I common_params_fit_impl: memory for test allocation by device:
+0.09.292.455 I common_params_fit_impl: id=0, n_layer= 9, n_part= 1, overflow_type=2, mem= 12434 MiB
+0.09.292.456 I common_params_fit_impl: id=1, n_layer= 0, n_part= 0, overflow_type=4, mem=   876 MiB
+0.09.292.458 I common_params_fit_impl: id=2, n_layer= 0, n_part= 0, overflow_type=4, mem=     0 MiB
+0.09.292.459 I common_params_fit_impl: id=3, n_layer=40, n_part=39, overflow_type=4, mem=  5321 MiB
+0.09.292.463 I common_params_fit_impl: set ngl_per_device[0].(n_layer, n_part, overflow_type)=(9, 1, UP), id_dense_start=3
+0.09.292.472 I common_params_fit_impl: trying to fit one extra layer with overflow_type=LAYER_FRACTION_GATE
+0.10.338.069 I common_memory_breakdown_print: | memory breakdown [MiB]     | total    free     self   model   context   compute    unaccounted |
+0.10.338.076 I common_memory_breakdown_print: |   - CUDA0 (P100-PCIE-16GB) | 16269 = 15987 + (12784 = 11518 +      66 +    1199) +      -12502 |
+0.10.338.077 I common_memory_breakdown_print: |   - CUDA1 (P100-PCIE-16GB) | 16269 = 16011 + (  515 =   451 +       0 +      63) +        -257 |
+0.10.338.078 I common_memory_breakdown_print: |   - CUDA2 (P100-PCIE-16GB) | 16269 = 16011 + (    0 =     0 +       0 +       0) +         258 |
+0.10.338.079 I common_memory_breakdown_print: |   - CUDA3 (P100-PCIE-16GB) | 16269 = 15919 + ( 5321 =  4826 +     310 +     184) +       -4971 |
+0.10.338.080 I common_memory_breakdown_print: |   - Host                   |                  72557 = 72535 +       0 +      22                |
+0.10.409.024 I common_params_fit_impl: memory for test allocation by device:
+0.10.409.033 I common_params_fit_impl: id=0, n_layer= 9, n_part= 1, overflow_type=3, mem= 12784 MiB
+0.10.409.034 I common_params_fit_impl: id=1, n_layer= 0, n_part= 0, overflow_type=4, mem=   515 MiB
+0.10.409.036 I common_params_fit_impl: id=2, n_layer= 0, n_part= 0, overflow_type=4, mem=     0 MiB
+0.10.409.037 I common_params_fit_impl: id=3, n_layer=40, n_part=39, overflow_type=4, mem=  5321 MiB
+0.10.409.041 I common_params_fit_impl: set ngl_per_device[0].(n_layer, n_part, overflow_type)=(9, 1, GATE), id_dense_start=3
+0.10.409.044 I common_params_fit_impl:   - CUDA0 (Tesla P100-PCIE-16GB):  9 layers ( 1 overflowing),  12784 MiB used,   3194 MiB free
+0.11.180.686 I common_memory_breakdown_print: | memory breakdown [MiB]     | total    free     self   model   context   compute    unaccounted |
+0.11.180.697 I common_memory_breakdown_print: |   - CUDA0 (P100-PCIE-16GB) | 16269 = 15987 + (11748 = 11518 +      66 +     163) +      -11466 |
+0.11.180.699 I common_memory_breakdown_print: |   - CUDA1 (P100-PCIE-16GB) | 16269 = 15919 + (49702 = 49199 +     310 +     192) +      -49351 |
+0.11.180.700 I common_memory_breakdown_print: |   - CUDA2 (P100-PCIE-16GB) | 16269 = 16011 + (    0 =     0 +       0 +       0) +         258 |
+0.11.180.701 I common_memory_breakdown_print: |   - CUDA3 (P100-PCIE-16GB) | 16269 = 16011 + (  504 =   503 +       0 +       0) +        -246 |
+0.11.180.702 I common_memory_breakdown_print: |   - Host                   |                  28132 = 28110 +       0 +      22                |
+0.11.251.934 I common_params_fit_impl: memory for test allocation by device:
+0.11.251.943 I common_params_fit_impl: id=0, n_layer= 9, n_part= 1, overflow_type=3, mem= 11748 MiB
+0.11.251.944 I common_params_fit_impl: id=1, n_layer=39, n_part= 0, overflow_type=4, mem= 49702 MiB
+0.11.251.946 I common_params_fit_impl: id=2, n_layer= 0, n_part= 0, overflow_type=4, mem=     0 MiB
+0.11.251.947 I common_params_fit_impl: id=3, n_layer= 1, n_part= 0, overflow_type=4, mem=   504 MiB
+0.12.243.370 I common_memory_breakdown_print: | memory breakdown [MiB]     | total    free     self   model   context   compute    unaccounted |
+0.12.243.378 I common_memory_breakdown_print: |   - CUDA0 (P100-PCIE-16GB) | 16269 = 15987 + (12784 = 11518 +      66 +    1199) +      -12502 |
+0.12.243.379 I common_memory_breakdown_print: |   - CUDA1 (P100-PCIE-16GB) | 16269 = 15989 + (11651 = 11426 +      65 +     160) +      -11371 |
+0.12.243.380 I common_memory_breakdown_print: |   - CUDA2 (P100-PCIE-16GB) | 16269 = 16011 + (    0 =     0 +       0 +       0) +         258 |
+0.12.243.381 I common_memory_breakdown_print: |   - CUDA3 (P100-PCIE-16GB) | 16269 = 15941 + ( 4513 =  4089 +     244 +     179) +       -4185 |
+0.12.243.390 I common_memory_breakdown_print: |   - Host                   |                  62319 = 62297 +       0 +      22                |
+0.12.319.862 I common_params_fit_impl: memory for test allocation by device:
+0.12.319.873 I common_params_fit_impl: id=0, n_layer= 9, n_part= 1, overflow_type=3, mem= 12784 MiB
+0.12.319.874 I common_params_fit_impl: id=1, n_layer= 9, n_part= 0, overflow_type=4, mem= 11651 MiB
+0.12.319.876 I common_params_fit_impl: id=2, n_layer= 0, n_part= 0, overflow_type=4, mem=     0 MiB
+0.12.319.877 I common_params_fit_impl: id=3, n_layer=31, n_part=30, overflow_type=4, mem=  4513 MiB
+0.12.319.880 I common_params_fit_impl: set ngl_per_device[1].(n_layer, n_part)=(9, 0), id_dense_start=3
+0.13.335.906 I common_memory_breakdown_print: | memory breakdown [MiB]     | total    free     self   model   context   compute    unaccounted |
+0.13.335.912 I common_memory_breakdown_print: |   - CUDA0 (P100-PCIE-16GB) | 16269 = 15987 + (12784 = 11518 +      66 +    1199) +      -12502 |
+0.13.335.914 I common_memory_breakdown_print: |   - CUDA1 (P100-PCIE-16GB) | 16269 = 15985 + (12875 = 12646 +      68 +     160) +      -12591 |
+0.13.335.915 I common_memory_breakdown_print: |   - CUDA2 (P100-PCIE-16GB) | 16269 = 16011 + (    0 =     0 +       0 +       0) +         258 |
+0.13.335.916 I common_memory_breakdown_print: |   - CUDA3 (P100-PCIE-16GB) | 16269 = 15945 + ( 4432 =  4006 +     241 +     184) +       -4108 |
+0.13.335.916 I common_memory_breakdown_print: |   - Host                   |                  61182 = 61160 +       0 +      22                |
+0.13.406.201 I common_params_fit_impl: memory for test allocation by device:
+0.13.406.211 I common_params_fit_impl: id=0, n_layer= 9, n_part= 1, overflow_type=3, mem= 12784 MiB
+0.13.406.222 I common_params_fit_impl: id=1, n_layer=10, n_part= 0, overflow_type=4, mem= 12875 MiB
+0.13.406.223 I common_params_fit_impl: id=2, n_layer= 0, n_part= 0, overflow_type=4, mem=     0 MiB
+0.13.406.225 I common_params_fit_impl: id=3, n_layer=30, n_part=29, overflow_type=4, mem=  4432 MiB
+0.13.406.228 I common_params_fit_impl: set ngl_per_device[1].(n_layer, n_part)=(10, 0), id_dense_start=3
+0.14.387.806 I common_memory_breakdown_print: | memory breakdown [MiB]     | total    free     self   model   context   compute    unaccounted |
+0.14.387.812 I common_memory_breakdown_print: |   - CUDA0 (P100-PCIE-16GB) | 16269 = 15987 + (12784 = 11518 +      66 +    1199) +      -12502 |
+0.14.387.813 I common_memory_breakdown_print: |   - CUDA1 (P100-PCIE-16GB) | 16269 = 15985 + (14116 = 13861 +      90 +     164) +      -13832 |
+0.14.387.814 I common_memory_breakdown_print: |   - CUDA2 (P100-PCIE-16GB) | 16269 = 16011 + (    0 =     0 +       0 +       0) +         258 |
+0.14.387.816 I common_memory_breakdown_print: |   - CUDA3 (P100-PCIE-16GB) | 16269 = 15945 + ( 4320 =  3929 +     219 +     172) +       -3996 |
+0.14.387.829 I common_memory_breakdown_print: |   - Host                   |                  60044 = 60022 +       0 +      22                |
+0.14.455.890 I common_params_fit_impl: memory for test allocation by device:
+0.14.455.903 I common_params_fit_impl: id=0, n_layer= 9, n_part= 1, overflow_type=3, mem= 12784 MiB
+0.14.455.903 I common_params_fit_impl: id=1, n_layer=11, n_part= 0, overflow_type=4, mem= 14116 MiB
+0.14.455.905 I common_params_fit_impl: id=2, n_layer= 0, n_part= 0, overflow_type=4, mem=     0 MiB
+0.14.455.905 I common_params_fit_impl: id=3, n_layer=29, n_part=28, overflow_type=4, mem=  4320 MiB
+0.14.455.921 I common_params_fit_impl: set ngl_per_device_high[1].(n_layer, n_part)=(11, 0), id_dense_start_high=3
+0.14.455.926 I common_params_fit_impl: trying to fit one extra layer with overflow_type=LAYER_FRACTION_UP
+0.15.440.220 I common_memory_breakdown_print: | memory breakdown [MiB]     | total    free     self   model   context   compute    unaccounted |
+0.15.440.227 I common_memory_breakdown_print: |   - CUDA0 (P100-PCIE-16GB) | 16269 = 15987 + (12784 = 11518 +      66 +    1199) +      -12502 |
+0.15.440.228 I common_memory_breakdown_print: |   - CUDA1 (P100-PCIE-16GB) | 16269 = 15985 + (13314 = 13059 +      90 +     164) +      -13030 |
+0.15.440.229 I common_memory_breakdown_print: |   - CUDA2 (P100-PCIE-16GB) | 16269 = 16011 + (  876 =   802 +       0 +      74) +        -618 |
+0.15.440.229 I common_memory_breakdown_print: |   - CUDA3 (P100-PCIE-16GB) | 16269 = 15945 + ( 4320 =  3929 +     219 +     172) +       -3996 |
+0.15.440.230 I common_memory_breakdown_print: |   - Host                   |                  60044 = 60022 +       0 +      22                |
+0.15.507.516 I common_params_fit_impl: memory for test allocation by device:
+0.15.507.528 I common_params_fit_impl: id=0, n_layer= 9, n_part= 1, overflow_type=3, mem= 12784 MiB
+0.15.507.529 I common_params_fit_impl: id=1, n_layer=11, n_part= 1, overflow_type=2, mem= 13314 MiB
+0.15.507.530 I common_params_fit_impl: id=2, n_layer= 0, n_part= 0, overflow_type=4, mem=   876 MiB
+0.15.507.530 I common_params_fit_impl: id=3, n_layer=29, n_part=28, overflow_type=4, mem=  4320 MiB
+0.15.507.533 I common_params_fit_impl: trying to fit one extra layer with overflow_type=LAYER_FRACTION_ATTN
+0.16.497.454 I common_memory_breakdown_print: | memory breakdown [MiB]     | total    free     self   model   context   compute    unaccounted |
+0.16.497.467 I common_memory_breakdown_print: |   - CUDA0 (P100-PCIE-16GB) | 16269 = 15987 + (12784 = 11518 +      66 +    1199) +      -12502 |
+0.16.497.469 I common_memory_breakdown_print: |   - CUDA1 (P100-PCIE-16GB) | 16269 = 15985 + (12969 = 12714 +      90 +     164) +      -12684 |
+0.16.497.470 I common_memory_breakdown_print: |   - CUDA2 (P100-PCIE-16GB) | 16269 = 16011 + ( 1246 =  1147 +       0 +      99) +        -988 |
+0.16.497.471 I common_memory_breakdown_print: |   - CUDA3 (P100-PCIE-16GB) | 16269 = 15945 + ( 4320 =  3929 +     219 +     172) +       -3996 |
+0.16.497.472 I common_memory_breakdown_print: |   - Host                   |                  60044 = 60022 +       0 +      22                |
+0.16.568.487 I common_params_fit_impl: memory for test allocation by device:
+0.16.568.498 I common_params_fit_impl: id=0, n_layer= 9, n_part= 1, overflow_type=3, mem= 12784 MiB
+0.16.568.499 I common_params_fit_impl: id=1, n_layer=11, n_part= 1, overflow_type=1, mem= 12969 MiB
+0.16.568.500 I common_params_fit_impl: id=2, n_layer= 0, n_part= 0, overflow_type=4, mem=  1246 MiB
+0.16.568.500 I common_params_fit_impl: id=3, n_layer=29, n_part=28, overflow_type=4, mem=  4320 MiB
+0.16.568.504 I common_params_fit_impl:   - CUDA1 (Tesla P100-PCIE-16GB): 10 layers ( 0 overflowing),  12875 MiB used,   3105 MiB free
+0.17.356.286 I common_memory_breakdown_print: | memory breakdown [MiB]     | total    free     self   model   context   compute    unaccounted |
+0.17.356.294 I common_memory_breakdown_print: |   - CUDA0 (P100-PCIE-16GB) | 16269 = 15987 + (11748 = 11518 +      66 +     163) +      -11466 |
+0.17.356.295 I common_memory_breakdown_print: |   - CUDA1 (P100-PCIE-16GB) | 16269 = 15985 + (12875 = 12646 +      68 +     160) +      -12591 |
+0.17.356.295 I common_memory_breakdown_print: |   - CUDA2 (P100-PCIE-16GB) | 16269 = 15945 + (36978 = 36552 +     241 +     184) +      -36654 |
+0.17.356.301 I common_memory_breakdown_print: |   - CUDA3 (P100-PCIE-16GB) | 16269 = 16011 + (  504 =   503 +       0 +       0) +        -246 |
+0.17.356.302 I common_memory_breakdown_print: |   - Host                   |                  28132 = 28110 +       0 +      22                |
+0.17.424.483 I common_params_fit_impl: memory for test allocation by device:
+0.17.424.494 I common_params_fit_impl: id=0, n_layer= 9, n_part= 1, overflow_type=3, mem= 11748 MiB
+0.17.424.495 I common_params_fit_impl: id=1, n_layer=10, n_part= 0, overflow_type=4, mem= 12875 MiB
+0.17.424.496 I common_params_fit_impl: id=2, n_layer=29, n_part= 0, overflow_type=4, mem= 36978 MiB
+0.17.424.497 I common_params_fit_impl: id=3, n_layer= 1, n_part= 0, overflow_type=4, mem=   504 MiB
+0.18.341.484 I common_memory_breakdown_print: | memory breakdown [MiB]     | total    free     self   model   context   compute    unaccounted |
+0.18.341.490 I common_memory_breakdown_print: |   - CUDA0 (P100-PCIE-16GB) | 16269 = 15987 + (12784 = 11518 +      66 +    1199) +      -12502 |
+0.18.341.491 I common_memory_breakdown_print: |   - CUDA1 (P100-PCIE-16GB) | 16269 = 15985 + (12875 = 12646 +      68 +     160) +      -12591 |
+0.18.341.492 I common_memory_breakdown_print: |   - CUDA2 (P100-PCIE-16GB) | 16269 = 15989 + (12441 = 12189 +      87 +     164) +      -12160 |
+0.18.341.493 I common_memory_breakdown_print: |   - CUDA3 (P100-PCIE-16GB) | 16269 = 15967 + ( 3510 =  3192 +     153 +     164) +       -3208 |
+0.18.341.494 I common_memory_breakdown_print: |   - Host                   |                  49807 = 49785 +       0 +      22                |
+0.18.409.519 I common_params_fit_impl: memory for test allocation by device:
+0.18.409.531 I common_params_fit_impl: id=0, n_layer= 9, n_part= 1, overflow_type=3, mem= 12784 MiB
+0.18.409.531 I common_params_fit_impl: id=1, n_layer=10, n_part= 0, overflow_type=4, mem= 12875 MiB
+0.18.409.546 I common_params_fit_impl: id=2, n_layer=10, n_part= 0, overflow_type=4, mem= 12441 MiB
+0.18.409.546 I common_params_fit_impl: id=3, n_layer=20, n_part=19, overflow_type=4, mem=  3510 MiB
+0.18.409.549 I common_params_fit_impl: set ngl_per_device[2].(n_layer, n_part)=(10, 0), id_dense_start=3
+0.19.327.902 I common_memory_breakdown_print: | memory breakdown [MiB]     | total    free     self   model   context   compute    unaccounted |
+0.19.327.911 I common_memory_breakdown_print: |   - CUDA0 (P100-PCIE-16GB) | 16269 = 15987 + (12784 = 11518 +      66 +    1199) +      -12502 |
+0.19.327.912 I common_memory_breakdown_print: |   - CUDA1 (P100-PCIE-16GB) | 16269 = 15985 + (12875 = 12646 +      68 +     160) +      -12591 |
+0.19.327.913 I common_memory_breakdown_print: |   - CUDA2 (P100-PCIE-16GB) | 16269 = 15985 + (13664 = 13409 +      90 +     164) +      -13380 |
+0.19.327.914 I common_memory_breakdown_print: |   - CUDA3 (P100-PCIE-16GB) | 16269 = 15969 + ( 3826 =  3509 +     150 +     167) +       -3526 |
+0.19.327.914 I common_memory_breakdown_print: |   - Host                   |                  48269 = 48247 +       0 +      22                |
+0.19.398.006 I common_params_fit_impl: memory for test allocation by device:
+0.19.398.014 I common_params_fit_impl: id=0, n_layer= 9, n_part= 1, overflow_type=3, mem= 12784 MiB
+0.19.398.015 I common_params_fit_impl: id=1, n_layer=10, n_part= 0, overflow_type=4, mem= 12875 MiB
+0.19.398.015 I common_params_fit_impl: id=2, n_layer=11, n_part= 0, overflow_type=4, mem= 13664 MiB
+0.19.398.016 I common_params_fit_impl: id=3, n_layer=19, n_part=18, overflow_type=4, mem=  3826 MiB
+0.19.398.019 I common_params_fit_impl: set ngl_per_device_high[2].(n_layer, n_part)=(11, 0), id_dense_start_high=3
+0.19.398.030 I common_params_fit_impl: trying to fit one extra layer with overflow_type=LAYER_FRACTION_UP
+0.20.315.897 I common_memory_breakdown_print: | memory breakdown [MiB]     | total    free     self   model   context   compute    unaccounted |
+0.20.315.906 I common_memory_breakdown_print: |   - CUDA0 (P100-PCIE-16GB) | 16269 = 15987 + (12784 = 11518 +      66 +    1199) +      -12502 |
+0.20.315.907 I common_memory_breakdown_print: |   - CUDA1 (P100-PCIE-16GB) | 16269 = 15985 + (12875 = 12646 +      68 +     160) +      -12591 |
+0.20.315.907 I common_memory_breakdown_print: |   - CUDA2 (P100-PCIE-16GB) | 16269 = 15985 + (12862 = 12607 +      90 +     164) +      -12578 |
+0.20.315.908 I common_memory_breakdown_print: |   - CUDA3 (P100-PCIE-16GB) | 16269 = 15969 + ( 4629 =  4311 +     150 +     167) +       -4328 |
+0.20.315.909 I common_memory_breakdown_print: |   - Host                   |                  48269 = 48247 +       0 +      22                |
+0.20.384.353 I common_params_fit_impl: memory for test allocation by device:
+0.20.384.363 I common_params_fit_impl: id=0, n_layer= 9, n_part= 1, overflow_type=3, mem= 12784 MiB
+0.20.384.364 I common_params_fit_impl: id=1, n_layer=10, n_part= 0, overflow_type=4, mem= 12875 MiB
+0.20.384.366 I common_params_fit_impl: id=2, n_layer=11, n_part= 1, overflow_type=2, mem= 12862 MiB
+0.20.384.366 I common_params_fit_impl: id=3, n_layer=19, n_part=18, overflow_type=4, mem=  4629 MiB
+0.20.384.369 I common_params_fit_impl: set ngl_per_device[2].(n_layer, n_part, overflow_type)=(11, 1, UP), id_dense_start=3
+0.20.384.370 I common_params_fit_impl: trying to fit one extra layer with overflow_type=LAYER_FRACTION_GATE
+0.21.294.711 I common_memory_breakdown_print: | memory breakdown [MiB]     | total    free     self   model   context   compute    unaccounted |
+0.21.294.724 I common_memory_breakdown_print: |   - CUDA0 (P100-PCIE-16GB) | 16269 = 15987 + (12784 = 11518 +      66 +    1199) +      -12502 |
+0.21.294.724 I common_memory_breakdown_print: |   - CUDA1 (P100-PCIE-16GB) | 16269 = 15985 + (12875 = 12646 +      68 +     160) +      -12591 |
+0.21.294.725 I common_memory_breakdown_print: |   - CUDA2 (P100-PCIE-16GB) | 16269 = 15985 + (13213 = 12958 +      90 +     164) +      -12929 |
+0.21.294.726 I common_memory_breakdown_print: |   - CUDA3 (P100-PCIE-16GB) | 16269 = 15969 + ( 4278 =  3960 +     150 +     167) +       -3978 |
+0.21.294.727 I common_memory_breakdown_print: |   - Host                   |                  48269 = 48247 +       0 +      22                |
+0.21.370.127 I common_params_fit_impl: memory for test allocation by device:
+0.21.370.135 I common_params_fit_impl: id=0, n_layer= 9, n_part= 1, overflow_type=3, mem= 12784 MiB
+0.21.370.136 I common_params_fit_impl: id=1, n_layer=10, n_part= 0, overflow_type=4, mem= 12875 MiB
+0.21.370.137 I common_params_fit_impl: id=2, n_layer=11, n_part= 1, overflow_type=3, mem= 13213 MiB
+0.21.370.138 I common_params_fit_impl: id=3, n_layer=19, n_part=18, overflow_type=4, mem=  4278 MiB
+0.21.370.142 I common_params_fit_impl:   - CUDA2 (Tesla P100-PCIE-16GB): 11 layers ( 1 overflowing),  12862 MiB used,   3118 MiB free
+0.22.163.141 I common_memory_breakdown_print: | memory breakdown [MiB]     | total    free     self   model   context   compute    unaccounted |
+0.22.163.150 I common_memory_breakdown_print: |   - CUDA0 (P100-PCIE-16GB) | 16269 = 15987 + (11748 = 11518 +      66 +     163) +      -11466 |
+0.22.163.151 I common_memory_breakdown_print: |   - CUDA1 (P100-PCIE-16GB) | 16269 = 15985 + (12875 = 12646 +      68 +     160) +      -12591 |
+0.22.163.152 I common_memory_breakdown_print: |   - CUDA2 (P100-PCIE-16GB) | 16269 = 15985 + (12862 = 12607 +      90 +     164) +      -12578 |
+0.22.163.157 I common_memory_breakdown_print: |   - CUDA3 (P100-PCIE-16GB) | 16269 = 15969 + (24771 = 24448 +     150 +     172) +      -24471 |
+0.22.163.158 I common_memory_breakdown_print: |   - Host                   |                  28132 = 28110 +       0 +      22                |
+0.22.232.675 I common_params_fit_impl: memory for test allocation by device:
+0.22.232.686 I common_params_fit_impl: id=0, n_layer= 9, n_part= 1, overflow_type=3, mem= 11748 MiB
+0.22.232.687 I common_params_fit_impl: id=1, n_layer=10, n_part= 0, overflow_type=4, mem= 12875 MiB
+0.22.232.688 I common_params_fit_impl: id=2, n_layer=11, n_part= 1, overflow_type=2, mem= 12862 MiB
+0.22.232.689 I common_params_fit_impl: id=3, n_layer=19, n_part= 0, overflow_type=4, mem= 24771 MiB
+0.23.094.652 I common_memory_breakdown_print: | memory breakdown [MiB]     | total    free     self   model   context   compute    unaccounted |
+0.23.094.658 I common_memory_breakdown_print: |   - CUDA0 (P100-PCIE-16GB) | 16269 = 15987 + (12784 = 11518 +      66 +    1199) +      -12502 |
+0.23.094.659 I common_memory_breakdown_print: |   - CUDA1 (P100-PCIE-16GB) | 16269 = 15985 + (12875 = 12646 +      68 +     160) +      -12591 |
+0.23.094.665 I common_memory_breakdown_print: |   - CUDA2 (P100-PCIE-16GB) | 16269 = 15985 + (12862 = 12607 +      90 +     164) +      -12578 |
+0.23.094.666 I common_memory_breakdown_print: |   - CUDA3 (P100-PCIE-16GB) | 16269 = 15969 + (12596 = 12273 +     150 +     172) +      -12296 |
+0.23.094.667 I common_memory_breakdown_print: |   - Host                   |                  40307 = 40285 +       0 +      22                |
+0.23.166.811 I common_params_fit_impl: memory for test allocation by device:
+0.23.166.829 I common_params_fit_impl: id=0, n_layer= 9, n_part= 1, overflow_type=3, mem= 12784 MiB
+0.23.166.839 I common_params_fit_impl: id=1, n_layer=10, n_part= 0, overflow_type=4, mem= 12875 MiB
+0.23.166.840 I common_params_fit_impl: id=2, n_layer=11, n_part= 1, overflow_type=2, mem= 12862 MiB
+0.23.166.841 I common_params_fit_impl: id=3, n_layer=19, n_part=11, overflow_type=4, mem= 12596 MiB
+0.23.166.843 I common_params_fit_impl: set ngl_per_device[3].(n_layer, n_part)=(19, 11), id_dense_start=3
+0.24.029.933 I common_memory_breakdown_print: | memory breakdown [MiB]     | total    free     self   model   context   compute    unaccounted |
+0.24.029.939 I common_memory_breakdown_print: |   - CUDA0 (P100-PCIE-16GB) | 16269 = 15987 + (12784 = 11518 +      66 +    1199) +      -12502 |
+0.24.029.940 I common_memory_breakdown_print: |   - CUDA1 (P100-PCIE-16GB) | 16269 = 15985 + (12875 = 12646 +      68 +     160) +      -12591 |
+0.24.029.941 I common_memory_breakdown_print: |   - CUDA2 (P100-PCIE-16GB) | 16269 = 15985 + (12862 = 12607 +      90 +     164) +      -12578 |
+0.24.029.941 I common_memory_breakdown_print: |   - CUDA3 (P100-PCIE-16GB) | 16269 = 15969 + (13734 = 13411 +     150 +     172) +      -13433 |
+0.24.029.942 I common_memory_breakdown_print: |   - Host                   |                  39169 = 39147 +       0 +      22                |
+0.24.097.877 I common_params_fit_impl: memory for test allocation by device:
+0.24.097.888 I common_params_fit_impl: id=0, n_layer= 9, n_part= 1, overflow_type=3, mem= 12784 MiB
+0.24.097.889 I common_params_fit_impl: id=1, n_layer=10, n_part= 0, overflow_type=4, mem= 12875 MiB
+0.24.097.890 I common_params_fit_impl: id=2, n_layer=11, n_part= 1, overflow_type=2, mem= 12862 MiB
+0.24.097.891 I common_params_fit_impl: id=3, n_layer=19, n_part=10, overflow_type=4, mem= 13734 MiB
+0.24.097.903 I common_params_fit_impl: set ngl_per_device_high[3].(n_layer, n_part)=(19, 10), id_dense_start_high=3
+0.24.097.905 I common_params_fit_impl: trying to fit one extra layer with overflow_type=LAYER_FRACTION_UP
+0.24.966.806 I common_memory_breakdown_print: | memory breakdown [MiB]     | total    free     self   model   context   compute    unaccounted |
+0.24.966.812 I common_memory_breakdown_print: |   - CUDA0 (P100-PCIE-16GB) | 16269 = 15987 + (12784 = 11518 +      66 +    1199) +      -12502 |
+0.24.966.813 I common_memory_breakdown_print: |   - CUDA1 (P100-PCIE-16GB) | 16269 = 15985 + (12875 = 12646 +      68 +     160) +      -12591 |
+0.24.966.814 I common_memory_breakdown_print: |   - CUDA2 (P100-PCIE-16GB) | 16269 = 15985 + (12862 = 12607 +      90 +     164) +      -12578 |
+0.24.966.815 I common_memory_breakdown_print: |   - CUDA3 (P100-PCIE-16GB) | 16269 = 15969 + (12932 = 12609 +     150 +     172) +      -12631 |
+0.24.966.815 I common_memory_breakdown_print: |   - Host                   |                  39971 = 39949 +       0 +      22                |
+0.25.034.205 I common_params_fit_impl: memory for test allocation by device:
+0.25.034.218 I common_params_fit_impl: id=0, n_layer= 9, n_part= 1, overflow_type=3, mem= 12784 MiB
+0.25.034.219 I common_params_fit_impl: id=1, n_layer=10, n_part= 0, overflow_type=4, mem= 12875 MiB
+0.25.034.220 I common_params_fit_impl: id=2, n_layer=11, n_part= 1, overflow_type=2, mem= 12862 MiB
+0.25.034.220 I common_params_fit_impl: id=3, n_layer=19, n_part=11, overflow_type=2, mem= 12932 MiB
+0.25.034.222 I common_params_fit_impl: trying to fit one extra layer with overflow_type=LAYER_FRACTION_ATTN
+0.25.929.058 I common_memory_breakdown_print: | memory breakdown [MiB]     | total    free     self   model   context   compute    unaccounted |
+0.25.929.066 I common_memory_breakdown_print: |   - CUDA0 (P100-PCIE-16GB) | 16269 = 15987 + (12784 = 11518 +      66 +    1199) +      -12502 |
+0.25.929.067 I common_memory_breakdown_print: |   - CUDA1 (P100-PCIE-16GB) | 16269 = 15985 + (12875 = 12646 +      68 +     160) +      -12591 |
+0.25.929.068 I common_memory_breakdown_print: |   - CUDA2 (P100-PCIE-16GB) | 16269 = 15985 + (12862 = 12607 +      90 +     164) +      -12578 |
+0.25.929.069 I common_memory_breakdown_print: |   - CUDA3 (P100-PCIE-16GB) | 16269 = 15969 + (12586 = 12263 +     150 +     172) +      -12286 |
+0.25.929.069 I common_memory_breakdown_print: |   - Host                   |                  40317 = 40295 +       0 +      22                |
+0.26.005.561 I common_params_fit_impl: memory for test allocation by device:
+0.26.005.575 I common_params_fit_impl: id=0, n_layer= 9, n_part= 1, overflow_type=3, mem= 12784 MiB
+0.26.005.576 I common_params_fit_impl: id=1, n_layer=10, n_part= 0, overflow_type=4, mem= 12875 MiB
+0.26.005.577 I common_params_fit_impl: id=2, n_layer=11, n_part= 1, overflow_type=2, mem= 12862 MiB
+0.26.005.578 I common_params_fit_impl: id=3, n_layer=19, n_part=11, overflow_type=1, mem= 12586 MiB
+0.26.005.581 I common_params_fit_impl: set ngl_per_device[3].(n_layer, n_part, overflow_type)=(19, 11, ATTN), id_dense_start=3
+0.26.005.583 I common_params_fit_impl:   - CUDA3 (Tesla P100-PCIE-16GB): 19 layers (11 overflowing),  12586 MiB used,   3398 MiB free
+0.26.005.610 I common_fit_params: successfully fit params to free device memory
+0.26.005.617 I common_fit_params: fitting params to free memory took 25.06 seconds
+0.26.111.649 I llama_model_loader: additional 2 GGUFs metadata loaded.
+0.26.111.668 I llama_model_loader: loaded meta data with 67 key-value pairs and 1224 tensors from ~/strata-data/models/unsloth-UD-IQ4_XS/Qwen3.8-Flash-Next-UD-IQ4_XS-00001-of-00003.gguf (version GGUF V3 (latest))
+0.26.111.735 I llama_model_loader: Dumping metadata keys/values. Note: KV overrides do not apply in this output.
+0.26.111.740 I llama_model_loader: - kv   0:                       general.architecture str              = qwen4exp
+0.26.111.741 I llama_model_loader: - kv   1:                               general.type str              = model
+0.26.111.743 I llama_model_loader: - kv   2:                     general.sampling.top_k i32              = 20
+0.26.111.749 I llama_model_loader: - kv   3:                     general.sampling.top_p f32              = 0.950000
+0.26.111.750 I llama_model_loader: - kv   4:                      general.sampling.temp f32              = 1.000000
+0.26.111.751 I llama_model_loader: - kv   5:                               general.name str              = Qwen3.8 Flash Next
+0.26.111.753 I llama_model_loader: - kv   6:                        general.description str              = A Preview of the Qwen4 Architecture
+0.26.111.754 I llama_model_loader: - kv   7:                         general.size_label str              = 512x56B
+0.26.111.755 I llama_model_loader: - kv   8:                       qwen4exp.block_count u32              = 48
+0.26.111.756 I llama_model_loader: - kv   9:                    qwen4exp.context_length u32              = 262144
+0.26.111.757 I llama_model_loader: - kv  10:                  qwen4exp.embedding_length u32              = 2560
+0.26.111.757 I llama_model_loader: - kv  11:              qwen4exp.attention.head_count u32              = 24
+0.26.111.758 I llama_model_loader: - kv  12:           qwen4exp.attention.head_count_kv u32              = 2
+0.26.111.771 I llama_model_loader: - kv  13:           qwen4exp.rope.dimension_sections arr[i32,4]       = [11, 11, 10, 0]
+0.26.111.774 I llama_model_loader: - kv  14:                    qwen4exp.rope.freq_base f32              = 10000000.000000
+0.26.111.776 I llama_model_loader: - kv  15:  qwen4exp.attention.layer_norm_rms_epsilon f32              = 0.000001
+0.26.111.777 I llama_model_loader: - kv  16:                      qwen4exp.expert_count u32              = 512
+0.26.111.778 I llama_model_loader: - kv  17:                 qwen4exp.expert_used_count u32              = 10
+0.26.111.778 I llama_model_loader: - kv  18:              qwen4exp.attention.key_length u32              = 256
+0.26.111.779 I llama_model_loader: - kv  19:            qwen4exp.attention.value_length u32              = 256
+0.26.111.780 I llama_model_loader: - kv  20:        qwen4exp.expert_feed_forward_length u32              = 640
+0.26.111.780 I llama_model_loader: - kv  21: qwen4exp.expert_shared_feed_forward_length u32              = 640
+0.26.111.781 I llama_model_loader: - kv  22:                   qwen4exp.ssm.conv_kernel u32              = 4
+0.26.111.782 I llama_model_loader: - kv  23:                    qwen4exp.ssm.state_size u32              = 128
+0.26.111.783 I llama_model_loader: - kv  24:                   qwen4exp.ssm.group_count u32              = 16
+0.26.111.783 I llama_model_loader: - kv  25:                qwen4exp.ssm.time_step_rank u32              = 48
+0.26.111.784 I llama_model_loader: - kv  26:                    qwen4exp.ssm.inner_size u32              = 6144
+0.26.111.785 I llama_model_loader: - kv  27:           qwen4exp.full_attention_interval u32              = 4
+0.26.111.788 I llama_model_loader: - kv  28:              qwen4exp.rope.dimension_count u32              = 64
+0.26.111.788 I llama_model_loader: - kv  29:            qwen4exp.hyper_connection.count u32              = 4
+0.26.111.789 I llama_model_loader: - kv  30:         qwen4exp.hyper_connection.low_rank u32              = 320
+0.26.111.790 I llama_model_loader: - kv  31:      qwen4exp.attention.indexer.head_count u32              = 4
+0.26.111.791 I llama_model_loader: - kv  32:      qwen4exp.attention.indexer.key_length u32              = 128
+0.26.111.791 I llama_model_loader: - kv  33:           qwen4exp.attention.indexer.top_k u32              = 2048
+0.26.111.802 I llama_model_loader: - kv  34:         qwen4exp.attention.compress_ratios arr[i32,48]      = [0, 0, 0, 4, 0, 0, 0, 4, 0, 0, 0, 4, ...
+0.26.111.804 I llama_model_loader: - kv  35:                        qwen4exp.ple.layers arr[i32,1]       = [1]
+0.26.111.805 I llama_model_loader: - kv  36:                    qwen4exp.ple.ngram_size u32              = 3
+0.26.111.805 I llama_model_loader: - kv  37:               qwen4exp.ple.heads_per_ngram u32              = 8
+0.26.111.806 I llama_model_loader: - kv  38:                   qwen4exp.ple.conv_kernel u32              = 4
+0.26.111.807 I llama_model_loader: - kv  39:                  qwen4exp.ple.eos_token_id u32              = 248044
+0.26.111.808 I llama_model_loader: - kv  40:  qwen4exp.embedding_length_per_layer_input u32              = 160
+0.26.111.811 I llama_model_loader: - kv  41:             qwen4exp.ple.layer_multipliers arr[u64,3]       = [23703573157769, 20109073645365, 8052...
+0.26.111.815 I llama_model_loader: - kv  42:                  qwen4exp.ple.head_offsets arr[u64,16]      = [0, 20000003, 40000026, 60000059, 800...
+0.26.111.826 I llama_model_loader: - kv  43:              qwen4exp.ple.head_vocab_sizes arr[u64,16]      = [20000003, 20000023, 20000033, 200000...
+0.26.111.827 I llama_model_loader: - kv  44:                       tokenizer.ggml.model str              = gpt2
+0.26.111.828 I llama_model_loader: - kv  45:                         tokenizer.ggml.pre str              = qwen35
+0.26.156.416 I llama_model_loader: - kv  46:                      tokenizer.ggml.tokens arr[str,248320]  = ["!", "\"", "#", "$", "%", "&", "'", ...
+0.26.168.349 I llama_model_loader: - kv  47:                  tokenizer.ggml.token_type arr[i32,248320]  = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ...
+0.26.211.646 I llama_model_loader: - kv  48:                      tokenizer.ggml.merges arr[str,247587]  = ["Ġ Ġ", "ĠĠ ĠĠ", "i n", "Ġ t",...
+0.26.211.653 I llama_model_loader: - kv  49:                tokenizer.ggml.eos_token_id u32              = 248046
+0.26.211.654 I llama_model_loader: - kv  50:            tokenizer.ggml.padding_token_id u32              = 248044
+0.26.211.655 I llama_model_loader: - kv  51:                tokenizer.ggml.bos_token_id u32              = 248044
+0.26.211.656 I llama_model_loader: - kv  52:               tokenizer.ggml.add_bos_token bool             = false
+0.26.211.663 I llama_model_loader: - kv  53:                    tokenizer.chat_template str              = {%- set image_count = namespace(value...
+0.26.211.663 I llama_model_loader: - kv  54:                qwen4exp.ple.image_token_id u32              = 248056
+0.26.211.664 I llama_model_loader: - kv  55:                       general.quantized_by str              = Unsloth
+0.26.211.665 I llama_model_loader: - kv  56:                           general.repo_url str              = https://huggingface.co/unsloth
+0.26.211.668 I llama_model_loader: - kv  57:                               general.tags arr[str,1]       = ["unsloth"]
+0.26.211.676 I llama_model_loader: - kv  58:               general.quantization_version u32              = 2
+0.26.211.677 I llama_model_loader: - kv  59:                          general.file_type u32              = 30
+0.26.211.679 I llama_model_loader: - kv  60:                      quantize.imatrix.file str              = Qwen3.8-Flash-Next-GGUF/imatrix_unslo...
+0.26.211.681 I llama_model_loader: - kv  61:                   quantize.imatrix.dataset str              = unsloth_calibration_Qwen3.8-Flash-Nex...
+0.26.211.682 I llama_model_loader: - kv  62:             quantize.imatrix.entries_count u32              = 926
+0.26.211.683 I llama_model_loader: - kv  63:              quantize.imatrix.chunks_count u32              = 45
+0.26.211.684 I llama_model_loader: - kv  64:                                   split.no u16              = 0
+0.26.211.686 I llama_model_loader: - kv  65:                        split.tensors.count i32              = 1224
+0.26.211.688 I llama_model_loader: - kv  66:                                split.count u16              = 3
+0.26.211.690 I llama_model_loader: - type  f32:  557 tensors
+0.26.211.691 I llama_model_loader: - type q8_0:  502 tensors
+0.26.211.692 I llama_model_loader: - type q6_K:    1 tensors
+0.26.211.693 I llama_model_loader: - type iq4_nl:   44 tensors
+0.26.211.693 I llama_model_loader: - type iq3_s:   94 tensors
+0.26.211.694 I llama_model_loader: - type iq4_xs:    2 tensors
+0.26.211.696 I llama_model_loader: - type bf16:   24 tensors
+0.26.211.698 I print_info: file format = GGUF V3 (latest)
+0.26.211.699 I print_info: file type   = IQ4_XS - 4.25 bpw
+0.26.211.704 I print_info: file size   = 87.24 GiB (4.24 BPW) 
+0.26.215.606 I llama_prepare_model_devices: using device CUDA0 (Tesla P100-PCIE-16GB) (0000:02:00.0) - 16011 MiB free
+0.26.215.908 I llama_prepare_model_devices: using device CUDA1 (Tesla P100-PCIE-16GB) (0000:03:00.0) - 16011 MiB free
+0.26.216.197 I llama_prepare_model_devices: using device CUDA2 (Tesla P100-PCIE-16GB) (0000:82:00.0) - 16011 MiB free
+0.26.216.484 I llama_prepare_model_devices: using device CUDA3 (Tesla P100-PCIE-16GB) (0000:83:00.0) - 16011 MiB free
+0.26.454.945 I load: 0 unused tokens
+0.26.523.578 I load: printing all EOG tokens:
+0.26.523.585 I load:   - 248044 ('<|endoftext|>')
+0.26.523.586 I load:   - 248046 ('<|im_end|>')
+0.26.523.587 I load:   - 248063 ('<|fim_pad|>')
+0.26.523.588 I load:   - 248064 ('<|repo_name|>')
+0.26.523.588 I load:   - 248065 ('<|file_sep|>')
+0.26.524.637 I load: special tokens cache size = 33
+0.26.688.054 I load: token to piece cache size = 1.7581 MB
+0.26.688.077 I print_info: arch                  = qwen4exp
+0.26.688.078 I print_info: vocab_only            = 0
+0.26.688.078 I print_info: no_alloc              = 0
+0.26.688.079 I print_info: n_ctx_train           = 262144
+0.26.688.080 I print_info: n_embd_inp            = 2560
+0.26.688.080 I print_info: n_embd                = 2560
+0.26.688.081 I print_info: n_embd_out            = 10240
+0.26.688.082 I print_info: n_layer               = 48
+0.26.688.082 I print_info: n_layer_all           = 48
+0.26.688.092 I print_info: n_head                = 24
+0.26.688.094 I print_info: n_head_kv             = 2
+0.26.688.096 I print_info: n_rot                 = 64
+0.26.688.098 I print_info: n_swa                 = 0
+0.26.688.099 I print_info: is_swa_any            = 0
+0.26.688.101 I print_info: n_embd_head_k         = 256
+0.26.688.102 I print_info: n_embd_head_v         = 256
+0.26.688.104 I print_info: n_gqa                 = 12
+0.26.688.107 I print_info: n_embd_k_gqa          = 512
+0.26.688.109 I print_info: n_embd_v_gqa          = 512
+0.26.688.110 I print_info: f_norm_eps            = 0.0e+00
+0.26.688.113 I print_info: f_norm_rms_eps        = 1.0e-06
+0.26.688.114 I print_info: f_clamp_kqv           = 0.0e+00
+0.26.688.114 I print_info: f_max_alibi_bias      = 0.0e+00
+0.26.688.115 I print_info: f_logit_scale         = 0.0e+00
+0.26.688.115 I print_info: f_attn_scale          = 0.0e+00
+0.26.688.116 I print_info: f_attn_value_scale    = 0.0000
+0.26.688.117 I print_info: n_ff                  = 0
+0.26.688.118 I print_info: n_expert              = 512
+0.26.688.118 I print_info: n_expert_used         = 10
+0.26.688.122 I print_info: n_expert_groups       = 0
+0.26.688.122 I print_info: n_group_used          = 0
+0.26.688.123 I print_info: causal attn           = 1
+0.26.688.124 I print_info: pooling type          = -1
+0.26.688.124 I print_info: rope type             = 40
+0.26.688.124 I print_info: rope scaling          = linear
+0.26.688.126 I print_info: freq_base_train       = 10000000.0
+0.26.688.127 I print_info: freq_scale_train      = 1
+0.26.688.128 I print_info: n_ctx_orig_yarn       = 262144
+0.26.688.128 I print_info: rope_yarn_log_mul     = 0.0000
+0.26.688.129 I print_info: rope_finetuned        = unknown
+0.26.688.130 I print_info: mrope sections        = [11, 11, 10, 0]
+0.26.688.131 I print_info: model type            = A3B
+0.26.688.132 I print_info: model params          = 176.94 B
+0.26.688.133 I print_info: general.name          = Qwen3.8 Flash Next
+0.26.688.136 I print_info: vocab type            = BPE
+0.26.688.137 I print_info: n_vocab               = 248320
+0.26.688.137 I print_info: n_merges              = 247587
+0.26.688.138 I print_info: BOS token             = 248044 '<|endoftext|>'
+0.26.688.139 I print_info: EOS token             = 248046 '<|im_end|>'
+0.26.688.139 I print_info: EOT token             = 248046 '<|im_end|>'
+0.26.688.140 I print_info: PAD token             = 248044 '<|endoftext|>'
+0.26.688.141 I print_info: LF token              = 198 'Ċ'
+0.26.688.141 I print_info: FIM PRE token         = 248060 '<|fim_prefix|>'
+0.26.688.141 I print_info: FIM SUF token         = 248062 '<|fim_suffix|>'
+0.26.688.142 I print_info: FIM MID token         = 248061 '<|fim_middle|>'
+0.26.688.142 I print_info: FIM PAD token         = 248063 '<|fim_pad|>'
+0.26.688.143 I print_info: FIM REP token         = 248064 '<|repo_name|>'
+0.26.688.143 I print_info: FIM SEP token         = 248065 '<|file_sep|>'
+0.26.688.144 I print_info: EOG token             = 248044 '<|endoftext|>'
+0.26.688.146 I print_info: EOG token             = 248046 '<|im_end|>'
+0.26.688.146 I print_info: EOG token             = 248063 '<|fim_pad|>'
+0.26.688.147 I print_info: EOG token             = 248064 '<|repo_name|>'
+0.26.688.147 I print_info: EOG token             = 248065 '<|file_sep|>'
+0.26.688.148 I print_info: max token length      = 256
+0.26.689.464 I load_tensors: loading model tensors, this can take a while... (load_mode = mmap)
+0.26.692.705 I create_tensor: tensor per_layer_token_embd.weight (size = 27465 MiB) lazy read enabled
+0.26.769.798 W llama_model_loader: tensor overrides to CPU are used with mmap enabled - consider using --load-mode none for better performance
+0.27.647.572 I load_tensors: offloading output layer to GPU
+0.27.647.580 I load_tensors: offloading 47 repeating layers to GPU
+0.27.647.580 I load_tensors: offloaded 49/49 layers to GPU
+0.27.647.587 I load_tensors:   CPU_Mapped model buffer size = 28110.09 MiB
+0.27.647.589 I load_tensors:   CPU_Mapped model buffer size = 12928.18 MiB
+0.27.647.590 I load_tensors:        CUDA0 model buffer size = 11518.71 MiB
+0.27.647.592 I load_tensors:        CUDA1 model buffer size = 12646.75 MiB
+0.27.647.593 I load_tensors:        CUDA2 model buffer size = 12607.76 MiB
+0.27.647.594 I load_tensors:        CUDA3 model buffer size = 12263.92 MiB
+0.36.046.299 I cmn  common_init_: added <|endoftext|> logit bias = -inf
+0.36.046.305 I cmn  common_init_: added <|im_end|> logit bias = -inf
+0.36.046.306 I cmn  common_init_: added <|fim_pad|> logit bias = -inf
+0.36.046.307 I cmn  common_init_: added <|repo_name|> logit bias = -inf
+0.36.046.307 I cmn  common_init_: added <|file_sep|> logit bias = -inf
+0.36.046.423 I llama_context: constructing llama_context
+0.36.046.430 I llama_context: n_seq_max             = 1
+0.36.046.430 I llama_context: n_ctx                 = 8192
+0.36.046.431 I llama_context: n_ctx_seq             = 8192
+0.36.046.431 I llama_context: n_batch               = 2048
+0.36.046.432 I llama_context: n_ubatch              = 512
+0.36.046.432 I llama_context: causal_attn           = 1
+0.36.046.433 I llama_context: flash_attn            = enabled
+0.36.046.435 I llama_context: kv_unified            = false
+0.36.046.440 I llama_context: freq_base             = 10000000.0
+0.36.046.441 I llama_context: freq_scale            = 1
+0.36.046.442 I llama_context: n_rs_seq              = 0
+0.36.046.442 I llama_context: n_outputs_max         = 1
+0.36.046.443 I llama_context: n_outputs_max_per_seq = 1
+0.36.046.443 I llama_context: n_ctx_seq (8192) < n_ctx_train (262144) -- the full capacity of the model will not be utilized
+0.36.051.404 I llama_context:  CUDA_Host  output buffer size =     0.95 MiB
+0.36.051.952 I llama_kv_cache:      CUDA0 KV buffer size =    32.00 MiB
+0.36.052.334 I llama_kv_cache:      CUDA1 KV buffer size =    32.00 MiB
+0.36.052.718 I llama_kv_cache:      CUDA2 KV buffer size =    48.00 MiB
+0.36.053.128 I llama_kv_cache:      CUDA3 KV buffer size =    80.00 MiB
+0.36.053.337 I llama_kv_cache: size =  192.00 MiB (  8192 cells,  12 layers,  1/1 seqs), K (f16):   96.00 MiB, V (f16):   96.00 MiB
+0.36.053.341 I llama_kv_cache: attn_rot_k = 0, n_embd_head_k_all = 256
+0.36.053.341 I llama_kv_cache: attn_rot_v = 0, n_embd_head_k_all = 256
+0.36.053.662 I llama_memory_recurrent:      CUDA0 RS buffer size =    22.17 MiB
+0.36.053.951 I llama_memory_recurrent:      CUDA1 RS buffer size =    24.94 MiB
+0.36.054.232 I llama_memory_recurrent:      CUDA2 RS buffer size =    24.94 MiB
+0.36.054.576 I llama_memory_recurrent:      CUDA3 RS buffer size =    40.52 MiB
+0.36.054.589 I llama_memory_recurrent: size =  112.57 MiB (     1 cells,  48 layers,  1 seqs  0 rs_seq), R (f32):    4.22 MiB, S (f32):  108.00 MiB, P (f32):    0.35 MiB
+0.36.054.617 I operator(): creating indexer KV cache, size = 8192 cells
+0.36.055.034 I llama_kv_cache:      CUDA0 KV buffer size =    12.00 MiB
+0.36.055.282 I llama_kv_cache:      CUDA1 KV buffer size =    12.00 MiB
+0.36.055.536 I llama_kv_cache:      CUDA2 KV buffer size =    18.00 MiB
+0.36.055.848 I llama_kv_cache:      CUDA3 KV buffer size =    30.00 MiB
+0.36.055.941 I llama_kv_cache: size =   72.00 MiB (  8192 cells,  12 layers,  1/1 seqs), K (f16):   24.00 MiB, V (f16):   48.00 MiB
+0.36.055.945 I llama_kv_cache: attn_rot_k = 0, n_embd_head_k_all = 128
+0.36.055.946 I llama_kv_cache: attn_rot_v = 0, n_embd_head_k_all = 256
+0.36.056.573 I sched_reserve: reserving ...
+0.36.085.092 I resolve_fused_ops: resolving fused Gated Delta Net support:
+0.36.091.647 I resolve_fused_ops: fused Gated Delta Net (autoregressive) enabled
+0.36.096.493 I resolve_fused_ops: fused Gated Delta Net (chunked) enabled
+0.36.096.498 I resolve_fused_ops: resolving fused Lightning Indexer support:
+0.36.101.335 I resolve_fused_ops: Lightning Indexer enabled
+0.36.101.339 I resolve_fused_ops: resolving fused DeepSeek V4 HC support:
+0.36.106.173 I resolve_fused_ops: fused DeepSeek V4 HC pre enabled
+0.36.111.005 I resolve_fused_ops: fused DeepSeek V4 HC comb enabled
+0.36.115.840 I resolve_fused_ops: fused DeepSeek V4 HC post enabled
+0.36.167.765 I sched_reserve:      CUDA0 compute buffer size =  1199.75 MiB
+0.36.167.774 I sched_reserve:      CUDA1 compute buffer size =   160.13 MiB
+0.36.167.776 I sched_reserve:      CUDA2 compute buffer size =   164.13 MiB
+0.36.167.777 I sched_reserve:      CUDA3 compute buffer size =   172.14 MiB
+0.36.167.779 I sched_reserve:  CUDA_Host compute buffer size =    22.15 MiB
+0.36.167.779 I sched_reserve: graph nodes  = 7902
+0.36.167.780 I sched_reserve: graph splits = 60 (with bs=512), 37 (with bs=1)
+0.36.167.792 I sched_reserve: reserve took 111.20 ms, sched copies = 1
+0.36.168.048 I cmn          init: llama threadpool init, n_threads = 20
+0.36.168.784 I cmn  common_init_: warming up the model with an empty run - please wait ... (--no-warmup to disable)
+0.36.595.562 I cmn  common_conte: the context does not support partial sequence removal
+0.36.599.635 I srv    load_model: speculative decoding will use checkpoints
+0.36.599.645 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 8192, kv_unified = 'false'
+0.36.599.660 I spec common_specu: no implementations specified for speculative decoding
+0.36.599.664 I slot   load_model: id  0 | task -1 | new slot, n_ctx = 8192
+0.36.599.856 I srv    load_model: prompt cache is enabled, size limit: 8192 MiB
+0.36.599.859 I srv    load_model: use `--cache-ram 0` to disable the prompt cache
+0.36.599.860 I srv    load_model: for more info see https://github.com/ggml-org/llama.cpp/pull/16391
+0.36.599.860 I srv    load_model: context checkpoints enabled, max = 32, min spacing = 8192
+0.36.599.970 I srv          init: idle slots will be saved to prompt cache upon starting a new task
+0.36.611.984 I srv          init: init: chat template, example_format: '<|im_start|>system
+You are a helpful assistant<|im_end|>
+<|im_start|>user
+Hello<|im_end|>
+<|im_start|>assistant
+<think>
+
+</think>
+
+Hi there<|im_end|>
+<|im_start|>user
+How are you?<|im_end|>
+<|im_start|>assistant
+<think>
+
+</think>
+
+'
+0.36.613.774 I srv          init: init: chat template, thinking = 0
+0.36.613.786 I srv          init: chat template supports preserving reasoning, consider enabling it via --reasoning-preserve
+0.36.613.860 I srv  llama_server: model loaded
+0.36.613.867 I srv  llama_server: listening on http://127.0.0.1:8095
+0.36.614.168 I srv  update_slots: all slots are idle
+0.37.749.978 I srv  server_strea: conv_id= (empty=1)
+0.37.766.288 I srv    operator(): chat format: peg-native
+0.37.766.625 I slot get_availabl: id  0 | task -1 |  - skipping, slot is empty
+0.37.766.633 I slot get_availabl: id  0 | task -1 | selected slot by LRU, t_last = -1
+0.37.766.635 I srv  get_availabl: updating prompt cache
+0.37.766.650 I srv          load:  - looking for better prompt, base f_keep = -1.000, f_sim = 0.000
+0.37.766.668 I srv        update:  - cache state: 0 prompts, 0.000 MiB (limits: 8192.000 MiB, 8192 tokens, 8589934592 est)
+0.37.766.671 I srv  get_availabl: prompt cache update took 0.03 ms
+0.37.766.945 I slot launch_slot_: id  0 | task -1 | sampler chain: logits -> ?penalties -> ?dry -> ?top-n-sigma -> top-k -> ?typical -> top-p -> min-p -> ?xtc -> temp-ext -> dist 
+0.37.766.980 I slot launch_slot_: id  0 | task -1 | sampler params: 
+	repeat_last_n = 64, repeat_penalty = 1.000, frequency_penalty = 0.000, presence_penalty = 0.000
+	dry_multiplier = 0.000, dry_base = 1.750, dry_allowed_length = 2, dry_penalty_last_n = 64
+	top_k = 20, top_p = 0.950, min_p = 0.050, xtc_probability = 0.000, xtc_threshold = 0.100, typical_p = 1.000, top_n_sigma = -1.000, temp = 0.000
+	mirostat = 0, mirostat_lr = 0.100, mirostat_ent = 5.000, adaptive_target = -1.000, adaptive_decay = 0.900
+0.37.766.984 I slot launch_slot_: id  0 | task 0 | processing task, is_child = 0
+0.37.767.012 I slot   operator(): id  0 | task 0 | new prompt, n_ctx_slot = 8192, n_keep = 0, task.n_tokens = 305
+0.37.767.038 I slot   operator(): id  0 | task 0 | cached n_tokens = 0, memory_seq_rm [0, end)
+0.42.357.690 I slot print_timing: id  0 | task 0 | prompt processing, n_tokens =    301, progress = 0.99, t =   4.59 s / 65.57 tokens per second
+0.42.357.696 I slot   operator(): id  0 | task 0 | cached n_tokens = 301, memory_seq_rm [301, end)
+0.42.357.881 I slot init_sampler: id  0 | task 0 | init sampler, took 0.09 ms, tokens: text = 305, total = 305
+0.42.472.425 I slot create_check: id  0 | task 0 | created context checkpoint 1 of 32 (pos_min = 300, pos_max = 300, n_tokens = 301, size = 112.571 MiB)
+0.49.596.181 I slot print_timing: id  0 | task 0 | n_gen =    100, tg =  14.26 t/s, tg_3s =  14.40 t/s
+0.52.662.227 I slot print_timing: id  0 | task 0 | n_gen =    145, tg =  14.39 t/s, tg_3s =  14.68 t/s
+0.55.704.967 I slot print_timing: id  0 | task 0 | n_gen =    187, tg =  14.25 t/s, tg_3s =  13.80 t/s
+0.58.758.252 I slot print_timing: id  0 | task 0 | n_gen =    231, tg =  14.28 t/s, tg_3s =  14.41 t/s
+1.00.499.296 I slot print_timing: id  0 | task 0 | prompt eval time =    4887.00 ms /   305 tokens (   16.02 ms per token,    62.41 tokens per second)
+1.00.499.302 I slot print_timing: id  0 | task 0 |        eval time =   17845.24 ms /   256 tokens (   69.98 ms per token,    14.29 tokens per second)
+1.00.499.304 I slot print_timing: id  0 | task 0 |       total time =   22732.24 ms /   561 tokens
+1.00.499.317 I slot print_timing: id  0 | task 0 |    graphs reused =        254
+1.00.499.648 I slot      release: id  0 | task 0 | stop processing: n_tokens = 560, truncated = 0
+1.00.499.680 I srv  update_slots: all slots are idle
+1.00.505.996 I srv  server_strea: conv_id= (empty=1)
+1.00.511.225 I srv    operator(): chat format: peg-native
+1.00.511.451 I slot get_availabl: id  0 | task -1 |  - checking sim = 0.039 (12/310) > 0.100
+1.00.511.457 I slot get_availabl: id  0 | task -1 | selected slot by LRU, t_last = 12205649834
+1.00.511.459 I srv  get_availabl: updating prompt cache
+1.00.511.788 I srv   prompt_save:  - saving prompt with length 560, total state size = 130.644 MiB (draft: 0.000 MiB)
+1.00.785.105 I srv          load:  - looking for better prompt, base f_keep = 0.021, f_sim = 0.039
+1.00.785.115 I srv          load:    - prompt with length     560, lcp =      12, f_keep = 0.021, f_sim = 0.039
+1.00.785.121 I srv        update:  - cache state: 1 prompts, 243.215 MiB (limits: 8192.000 MiB, 8192 tokens, 18861 est)
+1.00.785.123 I srv        update:    - prompt 0x5c360f86cc70:     560 tokens, checkpoints:  1,   243.215 MiB
+1.00.785.125 I srv  get_availabl: prompt cache update took 273.67 ms
+1.00.785.249 I slot launch_slot_: id  0 | task -1 | sampler chain: logits -> ?penalties -> ?dry -> ?top-n-sigma -> top-k -> ?typical -> top-p -> min-p -> ?xtc -> temp-ext -> dist 
+1.00.785.262 I slot launch_slot_: id  0 | task -1 | sampler params: 
+	repeat_last_n = 64, repeat_penalty = 1.000, frequency_penalty = 0.000, presence_penalty = 0.000
+	dry_multiplier = 0.000, dry_base = 1.750, dry_allowed_length = 2, dry_penalty_last_n = 64
+	top_k = 20, top_p = 0.950, min_p = 0.050, xtc_probability = 0.000, xtc_threshold = 0.100, typical_p = 1.000, top_n_sigma = -1.000, temp = 0.000
+	mirostat = 0, mirostat_lr = 0.100, mirostat_ent = 5.000, adaptive_target = -1.000, adaptive_decay = 0.900
+1.00.785.267 I slot launch_slot_: id  0 | task 258 | processing task, is_child = 0
+1.00.785.287 I slot   operator(): id  0 | task 258 | new prompt, n_ctx_slot = 8192, n_keep = 0, task.n_tokens = 310
+1.00.785.291 I slot   operator(): id  0 | task 258 | checking checkpoint with [300, 300] against 12...
+1.00.785.293 I slot   operator(): id  0 | task 258 | forcing full prompt re-processing due to lack of cache data (likely due to SWA or hybrid/recurrent memory, see https://github.com/ggml-org/llama.cpp/pull/13194#issuecomment-2868343055)
+1.00.785.295 I slot   operator(): id  0 | task 258 | erased invalidated context checkpoint (pos_min = 300, pos_max = 300, n_tokens = 301, n_swa = 0, pos_next = 0, size = 112.571 MiB)
+1.00.793.207 I slot   operator(): id  0 | task 258 | cached n_tokens = 0, memory_seq_rm [0, end)
+1.05.292.195 I slot print_timing: id  0 | task 258 | prompt processing, n_tokens =    306, progress = 0.99, t =   4.51 s / 67.90 tokens per second
+1.05.292.202 I slot   operator(): id  0 | task 258 | cached n_tokens = 306, memory_seq_rm [306, end)
+1.05.292.356 I slot init_sampler: id  0 | task 258 | init sampler, took 0.07 ms, tokens: text = 310, total = 310
+1.05.406.546 I slot create_check: id  0 | task 258 | created context checkpoint 1 of 32 (pos_min = 305, pos_max = 305, n_tokens = 306, size = 112.571 MiB)
+1.12.373.971 I slot print_timing: id  0 | task 258 | n_gen =    100, tg =  14.55 t/s, tg_3s =  14.70 t/s
+1.15.385.379 I slot print_timing: id  0 | task 258 | n_gen =    144, tg =  14.57 t/s, tg_3s =  14.61 t/s
+1.18.403.854 I slot print_timing: id  0 | task 258 | n_gen =    188, tg =  14.57 t/s, tg_3s =  14.58 t/s
+1.21.442.759 I slot print_timing: id  0 | task 258 | n_gen =    232, tg =  14.55 t/s, tg_3s =  14.48 t/s
+1.23.086.435 I slot print_timing: id  0 | task 258 | prompt eval time =    4784.87 ms /   310 tokens (   15.44 ms per token,    64.79 tokens per second)
+1.23.086.441 I slot print_timing: id  0 | task 258 |        eval time =   17516.25 ms /   256 tokens (   68.69 ms per token,    14.56 tokens per second)
+1.23.086.455 I slot print_timing: id  0 | task 258 |       total time =   22301.12 ms /   566 tokens
+1.23.086.456 I slot print_timing: id  0 | task 258 |    graphs reused =        507
+1.23.086.672 I slot      release: id  0 | task 258 | stop processing: n_tokens = 565, truncated = 0
+1.23.086.693 I srv  update_slots: all slots are idle
+1.23.092.718 I srv  server_strea: conv_id= (empty=1)
+1.23.098.055 I srv    operator(): chat format: peg-native
+1.23.098.286 I slot get_availabl: id  0 | task -1 |  - checking sim = 0.042 (13/306) > 0.100
+1.23.098.290 I slot get_availabl: id  0 | task -1 | selected slot by LRU, t_last = 12228236858
+1.23.098.292 I srv  get_availabl: updating prompt cache
+1.23.098.435 I srv   prompt_save:  - saving prompt with length 565, total state size = 130.806 MiB (draft: 0.000 MiB)
+1.23.331.266 I srv          load:  - looking for better prompt, base f_keep = 0.023, f_sim = 0.042
+1.23.331.275 I srv          load:    - prompt with length     560, lcp =      12, f_keep = 0.021, f_sim = 0.039
+1.23.331.277 I srv          load:    - prompt with length     565, lcp =      13, f_keep = 0.023, f_sim = 0.042
+1.23.331.283 I srv        update:  - cache state: 2 prompts, 486.592 MiB (limits: 8192.000 MiB, 8192 tokens, 18939 est)
+1.23.331.285 I srv        update:    - prompt 0x5c360f86cc70:     560 tokens, checkpoints:  1,   243.215 MiB
+1.23.331.290 I srv        update:    - prompt 0x5c360f86cd20:     565 tokens, checkpoints:  1,   243.377 MiB
+1.23.331.292 I srv  get_availabl: prompt cache update took 233.00 ms
+1.23.331.415 I slot launch_slot_: id  0 | task -1 | sampler chain: logits -> ?penalties -> ?dry -> ?top-n-sigma -> top-k -> ?typical -> top-p -> min-p -> ?xtc -> temp-ext -> dist 
+1.23.331.427 I slot launch_slot_: id  0 | task -1 | sampler params: 
+	repeat_last_n = 64, repeat_penalty = 1.000, frequency_penalty = 0.000, presence_penalty = 0.000
+	dry_multiplier = 0.000, dry_base = 1.750, dry_allowed_length = 2, dry_penalty_last_n = 64
+	top_k = 20, top_p = 0.950, min_p = 0.050, xtc_probability = 0.000, xtc_threshold = 0.100, typical_p = 1.000, top_n_sigma = -1.000, temp = 0.000
+	mirostat = 0, mirostat_lr = 0.100, mirostat_ent = 5.000, adaptive_target = -1.000, adaptive_decay = 0.900
+1.23.331.432 I slot launch_slot_: id  0 | task 516 | processing task, is_child = 0
+1.23.331.449 I slot   operator(): id  0 | task 516 | new prompt, n_ctx_slot = 8192, n_keep = 0, task.n_tokens = 306
+1.23.331.454 I slot   operator(): id  0 | task 516 | checking checkpoint with [305, 305] against 13...
+1.23.331.455 I slot   operator(): id  0 | task 516 | forcing full prompt re-processing due to lack of cache data (likely due to SWA or hybrid/recurrent memory, see https://github.com/ggml-org/llama.cpp/pull/13194#issuecomment-2868343055)
+1.23.331.458 I slot   operator(): id  0 | task 516 | erased invalidated context checkpoint (pos_min = 305, pos_max = 305, n_tokens = 306, n_swa = 0, pos_next = 0, size = 112.571 MiB)
+1.23.339.434 I slot   operator(): id  0 | task 516 | cached n_tokens = 0, memory_seq_rm [0, end)
+1.27.866.830 I slot print_timing: id  0 | task 516 | prompt processing, n_tokens =    302, progress = 0.99, t =   4.54 s / 66.59 tokens per second
+1.27.866.835 I slot   operator(): id  0 | task 516 | cached n_tokens = 302, memory_seq_rm [302, end)
+1.27.866.990 I slot init_sampler: id  0 | task 516 | init sampler, took 0.06 ms, tokens: text = 306, total = 306
+1.27.980.765 I slot create_check: id  0 | task 516 | created context checkpoint 1 of 32 (pos_min = 301, pos_max = 301, n_tokens = 302, size = 112.571 MiB)
+1.35.117.338 I slot print_timing: id  0 | task 516 | n_gen =    100, tg =  14.20 t/s, tg_3s =  14.34 t/s
+1.38.133.528 I slot print_timing: id  0 | task 516 | n_gen =    143, tg =  14.22 t/s, tg_3s =  14.26 t/s
+1.41.172.301 I slot print_timing: id  0 | task 516 | n_gen =    187, tg =  14.28 t/s, tg_3s =  14.48 t/s
+1.44.180.075 I slot print_timing: id  0 | task 516 | n_gen =    230, tg =  14.28 t/s, tg_3s =  14.30 t/s
+1.46.005.938 I slot print_timing: id  0 | task 516 | prompt eval time =    4812.95 ms /   306 tokens (   15.73 ms per token,    63.58 tokens per second)
+1.46.005.944 I slot print_timing: id  0 | task 516 |        eval time =   17861.51 ms /   256 tokens (   70.05 ms per token,    14.28 tokens per second)
+1.46.005.946 I slot print_timing: id  0 | task 516 |       total time =   22674.46 ms /   562 tokens
+1.46.005.947 I slot print_timing: id  0 | task 516 |    graphs reused =        760
+1.46.006.287 I slot      release: id  0 | task 516 | stop processing: n_tokens = 561, truncated = 0
+1.46.006.476 I srv  update_slots: all slots are idle
+1.46.012.240 I srv  server_strea: conv_id= (empty=1)
+1.46.017.768 I srv    operator(): chat format: peg-native
+1.46.017.989 I slot get_availabl: id  0 | task -1 |  - checking sim = 0.040 (12/303) > 0.100
+1.46.017.994 I slot get_availabl: id  0 | task -1 | selected slot by LRU, t_last = 12251156473
+1.46.017.994 I srv  get_availabl: updating prompt cache
+1.46.018.207 I srv   prompt_save:  - saving prompt with length 561, total state size = 130.677 MiB (draft: 0.000 MiB)
+1.46.294.217 I srv          load:  - looking for better prompt, base f_keep = 0.021, f_sim = 0.040
+1.46.294.228 I srv          load:    - prompt with length     560, lcp =      12, f_keep = 0.021, f_sim = 0.040
+1.46.294.230 I srv          load:    - prompt with length     565, lcp =      12, f_keep = 0.021, f_sim = 0.040
+1.46.294.231 I srv          load:    - prompt with length     561, lcp =      12, f_keep = 0.021, f_sim = 0.040
+1.46.294.238 I srv        update:  - cache state: 3 prompts, 729.840 MiB (limits: 8192.000 MiB, 8192 tokens, 18924 est)
+1.46.294.239 I srv        update:    - prompt 0x5c360f86cc70:     560 tokens, checkpoints:  1,   243.215 MiB
+1.46.294.241 I srv        update:    - prompt 0x5c360f86cd20:     565 tokens, checkpoints:  1,   243.377 MiB
+1.46.294.242 I srv        update:    - prompt 0x5c3612117340:     561 tokens, checkpoints:  1,   243.248 MiB
+1.46.294.244 I srv  get_availabl: prompt cache update took 276.25 ms
+1.46.294.422 I slot launch_slot_: id  0 | task -1 | sampler chain: logits -> ?penalties -> ?dry -> ?top-n-sigma -> top-k -> ?typical -> top-p -> min-p -> ?xtc -> temp-ext -> dist 
+1.46.294.435 I slot launch_slot_: id  0 | task -1 | sampler params: 
+	repeat_last_n = 64, repeat_penalty = 1.000, frequency_penalty = 0.000, presence_penalty = 0.000
+	dry_multiplier = 0.000, dry_base = 1.750, dry_allowed_length = 2, dry_penalty_last_n = 64
+	top_k = 20, top_p = 0.950, min_p = 0.050, xtc_probability = 0.000, xtc_threshold = 0.100, typical_p = 1.000, top_n_sigma = -1.000, temp = 0.000
+	mirostat = 0, mirostat_lr = 0.100, mirostat_ent = 5.000, adaptive_target = -1.000, adaptive_decay = 0.900
+1.46.294.440 I slot launch_slot_: id  0 | task 774 | processing task, is_child = 0
+1.46.294.457 I slot   operator(): id  0 | task 774 | new prompt, n_ctx_slot = 8192, n_keep = 0, task.n_tokens = 303
+1.46.294.464 I slot   operator(): id  0 | task 774 | checking checkpoint with [301, 301] against 12...
+1.46.294.465 I slot   operator(): id  0 | task 774 | forcing full prompt re-processing due to lack of cache data (likely due to SWA or hybrid/recurrent memory, see https://github.com/ggml-org/llama.cpp/pull/13194#issuecomment-2868343055)
+1.46.294.470 I slot   operator(): id  0 | task 774 | erased invalidated context checkpoint (pos_min = 301, pos_max = 301, n_tokens = 302, n_swa = 0, pos_next = 0, size = 112.571 MiB)
+1.46.303.337 I slot   operator(): id  0 | task 774 | cached n_tokens = 0, memory_seq_rm [0, end)
+1.50.793.584 I slot print_timing: id  0 | task 774 | prompt processing, n_tokens =    299, progress = 0.99, t =   4.50 s / 66.46 tokens per second
+1.50.793.590 I slot   operator(): id  0 | task 774 | cached n_tokens = 299, memory_seq_rm [299, end)
+1.50.793.738 I slot init_sampler: id  0 | task 774 | init sampler, took 0.06 ms, tokens: text = 303, total = 303
+1.50.907.791 I slot create_check: id  0 | task 774 | created context checkpoint 1 of 32 (pos_min = 298, pos_max = 298, n_tokens = 299, size = 112.571 MiB)
+1.57.982.343 I slot print_timing: id  0 | task 774 | n_gen =    100, tg =  14.33 t/s, tg_3s =  14.47 t/s
+2.01.030.185 I slot print_timing: id  0 | task 774 | n_gen =    144, tg =  14.36 t/s, tg_3s =  14.44 t/s
+2.04.097.745 I slot print_timing: id  0 | task 774 | n_gen =    189, tg =  14.43 t/s, tg_3s =  14.67 t/s
+2.07.110.312 I slot print_timing: id  0 | task 774 | n_gen =    232, tg =  14.40 t/s, tg_3s =  14.27 t/s
+2.08.824.320 I slot print_timing: id  0 | task 774 | prompt eval time =    4778.11 ms /   303 tokens (   15.77 ms per token,    63.41 tokens per second)
+2.08.824.327 I slot print_timing: id  0 | task 774 |        eval time =   17751.71 ms /   256 tokens (   69.61 ms per token,    14.36 tokens per second)
+2.08.824.329 I slot print_timing: id  0 | task 774 |       total time =   22529.83 ms /   559 tokens
+2.08.824.330 I slot print_timing: id  0 | task 774 |    graphs reused =       1013
+2.08.825.076 I slot      release: id  0 | task 774 | stop processing: n_tokens = 558, truncated = 0
+2.08.825.154 I srv  update_slots: all slots are idle
+2.09.052.741 I srv    operator(): operator(): cleaning up before exit...
+2.09.056.297 I common_memory_breakdown_print: | memory breakdown [MiB]     | total   free     self   model   context   compute    unaccounted |
+2.09.056.302 I common_memory_breakdown_print: |   - CUDA0 (P100-PCIE-16GB) | 16269 = 3115 + (12784 = 11518 +      66 +    1199) +         369 |
+2.09.056.303 I common_memory_breakdown_print: |   - CUDA1 (P100-PCIE-16GB) | 16269 = 3023 + (12875 = 12646 +      68 +     160) +         370 |
+2.09.056.304 I common_memory_breakdown_print: |   - CUDA2 (P100-PCIE-16GB) | 16269 = 3037 + (12862 = 12607 +      90 +     164) +         369 |
+2.09.056.304 I common_memory_breakdown_print: |   - CUDA3 (P100-PCIE-16GB) | 16269 = 3313 + (12586 = 12263 +     150 +     172) +         369 |
+2.09.056.305 I common_memory_breakdown_print: |   - Host                   |                 41060 = 41038 +       0 +      22                |
