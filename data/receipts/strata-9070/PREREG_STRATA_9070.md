@@ -85,3 +85,12 @@ Any change after the first timed row gets a numbered Deviation here before the a
   - **Replacement S_nomtp2:** `--spec 2`, no `--mtp`, `--suffix-draft 0`, so nothing drafts and every pass yields one
     token. Otherwise the installer config, on code-v1.
   - It still pays for a two-wide verify, so S_code / S_nomtp2 slightly OVERSTATES what MTP buys.
+- **Deviation 2 (before its row; 10-05 ~21:50).**
+  - **S_nomtp cannot run in any form:** Strata's server requires MTP ("strata serve: needs --spec T, --mtp DIR and
+    --prefill CHUNK"), and the native pack requires `--spec >= 2`.
+  - **P2 is therefore evaluated from Strata's own accounting:** the request log's "drafts accepted A of D" over 256
+    output tokens gives tokens per pass = 256 / (256 - A). That is an UPPER bound on what MTP buys.
+  - **Added arm L_code_mtp:** llama.cpp with the same GGUF's built-in MTP layer (`--spec-type draft-mtp`,
+    `--spec-draft-n-max 3`), `-ncmoe` 28 (stepped up if it does not fit), otherwise as L_code.
+    - **Why:** Strata's ~52.6 tok/s at ~2.7 tokens per pass is ~19 passes/s, against llama.cpp's 20.5 single-token
+      passes/s. The adaptive cache can only be judged against static offload once both use speculation.
