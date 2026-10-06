@@ -1,0 +1,159 @@
+{
+  "agentFeedback": {
+    "authCommand": "lmx auth --key bhk_...",
+    "authRequired": true,
+    "benchmarkStatus": "completed",
+    "blockedByAuth": true,
+    "canApiValidate": false,
+    "canSubmit": false,
+    "engine": "custom",
+    "message": "Speed-test payload is ready for API validation. API validation and submission require an API key.",
+    "mode": "remote",
+    "nextCommand": "lmx auth --key bhk_...",
+    "outputPath": "~/sbench/runs/lmx_S_c.json",
+    "outputPathAbsolute": "~/sbench/runs/lmx_S_c.json",
+    "requiresMetrics": false,
+    "runPersisted": true,
+    "savedRunPath": "runs/ISTA-DASLab-Qwen3.8-Flash-Next-GSQ-RCO-GGUF/20261006T144117Z.json",
+    "savedRunPathAbsolute": "~/sbench/runs/ISTA-DASLab-Qwen3.8-Flash-Next-GSQ-RCO-GGUF/20261006T144117Z.json",
+    "savedRunPathRelative": "runs/ISTA-DASLab-Qwen3.8-Flash-Next-GSQ-RCO-GGUF/20261006T144117Z.json",
+    "status": "ready_for_api_validation",
+    "submissionStatus": "needs_auth",
+    "validationCommand": "lmx speed-test validate-local ~/sbench/runs/lmx_S_c.json"
+  },
+  "batchSize": 1,
+  "benchmarkMode": "remote",
+  "detectedEngines": [],
+  "engineFlags": {
+    "baseUrl": "http://127.0.0.1:8097",
+    "concurrency": 1,
+    "iterations": 3,
+    "maxTokens": 256,
+    "mode": "remote",
+    "prefixCacheBust": "leading_nonce_per_request",
+    "promptFile": "~/sbench/canonical_code-v1.txt",
+    "promptSource": "file",
+    "servedModel": "qwen3.8-flash-next-iq3_xxs",
+    "servedModelSource": "v1_models",
+    "stream": true,
+    "timeoutSeconds": 600,
+    "warmup": 1
+  },
+  "engineName": "custom",
+  "hardware": {
+    "backend": "cuda",
+    "cpu": "2x Intel Xeon E5-2650 v3",
+    "cpuThreads": 40,
+    "gpuCount": 4,
+    "gpuName": "Tesla P100-PCIE-16GB",
+    "hwClass": "DISCRETE_GPU",
+    "os": "linux",
+    "ramGb": 128,
+    "vramGb": 64
+  },
+  "hardwareSource": "file",
+  "hfId": "ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF",
+  "metricSource": "remote_endpoint",
+  "modelResolution": {
+    "candidates": [],
+    "declaredBaseModel": "ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF",
+    "hfId": "ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF",
+    "loadedFilename": "Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00001-of-00002.gguf",
+    "searchCommand": "lmx model search qwen3.8-flash-next-iq3_xxs",
+    "searchQuery": "qwen3.8-flash-next-iq3_xxs",
+    "searchQuerySource": "served_model",
+    "servedModel": "qwen3.8-flash-next-iq3_xxs",
+    "servedModelSource": "v1_models",
+    "status": "alias"
+  },
+  "modelRevision": "main",
+  "outputText": "```python\n#!/usr/bin/env python3\n\"\"\"logtally: a small command-line tool that reads newline-delimited JSON log records\nfrom stdin and prints per-service counts by level and p50/p95 latency percentiles.\"\"\"\n\nimport sys\nimport json\nimport argparse\nfrom datetime import datetime, timezone\nfrom collections import defaultdict\n\n\ndef parse_iso8601(ts_str):\n    \"\"\"Parse an ISO-8601 timestamp string into a datetime object.\"\"\"\n    # Handle common ISO-8601 formats\n    # Try fromisoformat first (Python 3.7+)\n    try:\n        dt = datetime.fromisoformat(ts_str)\n        # If no timezone info, assume UTC\n        if dt.tzinfo is None:\n            dt = dt.replace(tzinfo=timezone.utc)\n        return dt\n    except ValueError:\n        # Try some common variations\n        for fmt in (\n            \"%Y-%m-%dT%H:%M:%S.%fZ\",\n            \"%Y-%m-%dT%H:%M:%SZ\",\n            \"%Y-%m-%dT%H:%M:%S.%f%z\",\n            \"%Y-%m-%dT%H:%M",
+  "outputTokens": 256,
+  "prefillTokens": 0,
+  "prompt": "Implement a small command-line tool in Python called `logtally`.\n\nRequirements:\n- It reads newline-delimited JSON log records from stdin. Each record has `ts` (ISO-8601 string), `level` (one of DEBUG, INFO, WARN, ERROR), `service` (string), and optional `latency_ms` (number).\n- It prints, per service, the count of records by level and the p50 and p95 of `latency_ms` (ignore records without latency).\n- Malformed lines must be counted and reported at the end, never crash the program.\n- Support a `--since \u003cISO timestamp\u003e` flag that drops earlier records.\n- Use only the standard library.\n\nAfter the code, explain in two or three sentences how you computed percentiles and why you chose that method, then list three edge cases a unit test suite should cover.",
+  "promptTokens": 240,
+  "provenance": {
+    "benchmarkMode": "remote",
+    "cli": "localmaxxing-go",
+    "createdAt": "2026-10-06T14:41:17Z",
+    "metricSource": "remote_endpoint",
+    "timingSource": "client_observed_http",
+    "ttftSource": "stream_first_token"
+  },
+  "quantization": "IQ3_XXS",
+  "quantizationResolution": {
+    "cli": "IQ3_XXS",
+    "filename": "IQ3_XXS",
+    "modelPath": "~/AI/Models/fn_gsq_base/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00001-of-00002.gguf",
+    "status": "matched",
+    "trusted": "IQ3_XXS",
+    "trustedSource": "filename"
+  },
+  "sampleStats": {
+    "tokSOut": {
+      "count": 3,
+      "max": 33.3,
+      "mean": 32.73,
+      "min": 32.2,
+      "p50": 32.7,
+      "stddev": 0.55
+    },
+    "tokSTotal": {
+      "count": 3,
+      "max": 47.6,
+      "mean": 46.77,
+      "min": 46,
+      "p50": 46.7,
+      "stddev": 0.8
+    },
+    "ttftMs": {
+      "count": 3,
+      "max": 2864.05,
+      "mean": 2812.74,
+      "min": 2747.63,
+      "p50": 2826.54,
+      "stddev": 59.43
+    }
+  },
+  "samples": [
+    {
+      "iteration": 1,
+      "outputTokens": 256,
+      "promptTokens": 242,
+      "request": 1,
+      "tokSOut": 32.7,
+      "tokSPrefill": 84.5,
+      "ttftMs": 2864.05
+    },
+    {
+      "iteration": 2,
+      "outputTokens": 256,
+      "promptTokens": 239,
+      "request": 1,
+      "tokSOut": 32.2,
+      "tokSPrefill": 84.6,
+      "ttftMs": 2826.54
+    },
+    {
+      "iteration": 3,
+      "outputTokens": 256,
+      "promptTokens": 240,
+      "request": 1,
+      "tokSOut": 33.3,
+      "tokSPrefill": 87.3,
+      "ttftMs": 2747.63
+    }
+  ],
+  "timingSource": "client_observed_http",
+  "tokSOut": 32.7,
+  "tokSOutSource": "inter_token",
+  "tokSPrefill": 84.6,
+  "tokSPrefillSource": "estimated_from_ttft",
+  "tokSTotal": 46.7,
+  "tokenSources": {
+    "output": "endpoint_usage",
+    "prompt": "endpoint_usage"
+  },
+  "ttftMs": 2826.54,
+  "ttftSource": "stream_first_token"
+}
