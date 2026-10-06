@@ -80,7 +80,7 @@ engine args (from strata-iq3_xxs.json):
 - **Decode expert cache hit rate:** 98.7-99.7 % over the 12 short-prompt requests. ~0 % of routed experts went over
   PCIe; the whole IQ3_XXS expert arena fits in the four cards.
 - **Memory after load:** 49 GB of RAM used (72 GB available); VRAM 13.1 / 13.4 / 15.5 / 15.8 GB on GPUs 0-3.
-- **Two 36.4K runs ended before the cap** (233 and 235 tokens; finish reason stop).
+- **Two 36.4K runs ended before the cap** (233 and 235 tokens; the engine generated fewer than 256, so the model stopped on its own; finish reason not recorded).
 - **Failures:** none. Every request completed.
 
 **For context only (a different engine):** the same weights on llama.cpp (a fork at `0b2789f23`, tensor split, the
