@@ -52,3 +52,19 @@
 ## Deviations
 
 Any change after the first row gets a numbered Deviation here before the affected rows run.
+- **Addendum K4 (before its rows; 10-06 ~12:45): agreement between the two unofficial ports.** Mark: "Let's check the
+  second Kolibri port and see if it's different."
+  - **Port 2:** `Eliasfpv28/Kolibri-1-Q3_K_S-GGUF` @ `04f6e403`, `runtime-source/kolibri1-runtime.patch` on upstream
+    llama.cpp `edd6e2b`. Read before building: model code, `gguf-py`, converter only. It cites Aleph Alpha's
+    inference reference. Built for sm_60 / CUDA 12.4 / gcc-13 like port 1.
+  - **The test:** both ports on the SAME GGUF.
+    - First choice: Hob-forge's Q4_K_M, if port 2 loads it.
+    - Otherwise: port 2's own Q3_K_S in both, if port 1 loads it.
+    - If neither cross-loads, the ports are reported as not comparable on one file, with the reason.
+  - **Measures:**
+    - `llama-perplexity` wikitext-2, 16 x 512, `-b 512`. Port 1's logits are the base; port 2 runs with
+      `--kl-divergence` against them.
+    - The three K_sane prompts, greedy, compared as text.
+  - **K4 prediction:** the ports agree, mean KLD < 0.01 and same top-1 >= 98 % (confidence 0.45). If they do not,
+    whichever has the lower PPL on the same file is the better candidate, but neither is proven correct without a
+    reference.
