@@ -1,4 +1,4 @@
-# Result -- Strata decodes Flash-Next Coder at 52.6 tok/s (code) and 65.5 (reasoning) on a 16 GB RX 9070 XT with 31 GB of RAM, 2.6x llama.cpp's static offload (20.5); but it runs ~19 forward passes/s against llama.cpp's 20.5, so the measured lead is MTP's tokens per pass, and the adaptive expert cache is not yet shown to beat static offload
+# Result -- Strata decodes Flash-Next Coder at 52.6 tok/s (code) and 65.5 (reasoning) on a 16 GB RX 9070 XT with 31 GB of RAM, 2.57x llama.cpp's static offload (20.5). Its adaptive expert cache serves 83 % of routed-expert lookups from the GPU with ~40 % of the experts resident, against static -ncmoe's fixed 42 %, and it verifies 4-token MTP windows at ~19 passes/s where a 4-token pass costs llama.cpp here >=10x a single token
 
 **2026-10-05.** Pre-registration `PREREG_STRATA_9070.md` (`544e3106`), with an OOM incident, Deviations 1-2 and a
 wording clarification recorded there before their rows.
@@ -42,28 +42,54 @@ wording clarification recorded there before their rows.
 |---|---|---|
 | P1 | S_code at 30-50 tok/s | **does not hold, faster:** 52.6 (two starts, 53.0 / 52.2). Strata's README claims 44 for this card and pack, measured at 4K answers on 0.1.26. |
 | P2 | MTP worth at least 1.4x | **holds as an upper bound only:** 2.6-2.8 tokens per pass on code and 3.3-3.5 on reasoning. A no-MTP arm cannot run (Deviation 2), so it is not measured directly. |
-| P3 | Strata at least 3x llama.cpp static offload | **does not hold:** 2.57x (52.6 / 20.5) |
+| P3 | Strata at least 3x llama.cpp static offload | **does not hold:** 2.57x (52.6 / 20.5). The cache is still a measured contributor (checks below). |
+
+## Checks added after review (Deviation 3)
+
+**Check 1, from the existing logs.** Strata's "decode expert cache hit rate" per request:
+- **82.7-83.2 %** (129-132k hits of 154-160k lookups), with 69.1 % on each run's first request while the cache warms.
+- It keeps about 4,600-5,200 of the Coder's 12,288 experts (48 layers x 256) on the GPU, ~40 %.
+- llama.cpp's `-ncmoe 28` puts a similar count there (20 layers x 256 = 5,120), but as whole layers. That is a FIXED
+  41.7 % of routed-expert work.
+- **So for about the same VRAM, the adaptive cache serves twice the share of expert work from the GPU (83 vs 42 %).**
+  That is the cache's contribution, measured directly.
+
+**Check 2, L_verify** (`llama-bench` b11433, shard 1, `-ngl 99 -fa 1 -ncmoe 28`, x5):
+
+| test | tok/s | time per pass |
+|---|---:|---:|
+| 4-token batch (`-p 4 -ub 4 -b 4`) | 2.86 ± 1.22 | ~1.4 s |
+| 1-token decode (`-n 32`) | 13.57 ± 3.08 | ~74 ms |
+
+- **Both are noisy:** the 54 GB model cannot stay in the page cache with 31 GB of RAM. The steady server decode was
+  20.5.
+- **Even at the extremes of both ranges, a 4-token pass costs at least 10x a 1-token pass here.**
+- **Prior art agrees:** INDEX L438 has llama.cpp MTP on Flash-Next under heavy offload (`-ncmoe 44`, P100s) at only
+  1.30x (2 GPUs) / 1.44x (4), because verifying a draft reads more host-resident experts.
 
 ## What it means
 
-- **The decode lead is speculation, not (yet demonstrably) the cache.**
-  - Strata: 52.6 / 2.7 ≈ 19.5 passes/s on code and 65.5 / 3.45 ≈ 19 on reasoning.
-  - llama.cpp's static offload: 20.5 single-token passes/s.
-  - Each Strata pass verifies a window of up to 4 tokens, so it is doing more work per pass: its expert handling is
-    more efficient per verified token.
-  - But the 2.6x end to end is what MTP's 2.7 tokens per pass would give llama.cpp too, IF llama.cpp had a usable MTP
-    head for this model. Whether the adaptive cache beats static `-ncmoe` once speculation is matched is the open
-    question this run could not answer.
-- **Prompts are Strata's weak spot at short lengths:** 135-166 tok/s on 242-306-token prompts (TTFT ~1.8 s), against
-  llama.cpp's 240-270 (TTFT ~1.0 s). Its 1,420 tok/s claim is for 32K prompts, where its 8,192-token chunks amortize.
-- **RAM is the real constraint on this desktop.** The installer's config leaves ~7 GB available. That was enough to
-  trigger a global OOM while the desktop was in use (the incident in the prereg).
+- **Strata's lead is the combination, and the cache is a measured part of it.**
+  - MTP gives it 2.6-3.5 tokens per pass.
+  - What makes those multi-token verify passes affordable (~19/s, close to llama.cpp's single-token 20.5) is the
+    cache's 83 % GPU hit rate and the CPU computing its misses in place.
+  - llama.cpp's static offload pays at least 10x for a 4-token pass here, so adding MTP to it would not reproduce
+    Strata's result. An earlier draft of this receipt said "the lead is MTP, not the cache". That was wrong, withdrawn
+    after review.
+- **The transferable idea is the popularity-based VRAM expert cache.** On this model's routing, ~40 % of the experts
+  catch 83 % of the lookups. Whether other MoEs are as skewed is the next test (simulate it from routing traces).
+- **Prompts, short ones especially:** 135-166 tok/s on 242-306-token prompts (TTFT ~1.8 s) against llama.cpp's
+  240-270 (TTFT ~1.0 s).
+  - **Caveat:** setup warned that it has no hipBLASLt tuning table for this ROCm version, so Strata's dense prompt
+    products ran on plain hipBLAS. Its 1,420 tok/s claim is also for 32K prompts. Not a fair verdict on Strata's
+    prefill.
+- **RAM is the real constraint on this desktop.** The installer's config leaves ~7 GB available, enough to trigger a
+  global OOM while the desktop was in use (see the incident in the prereg).
 
 ## Not established
 
-- **The adaptive cache's own contribution.** That needs speculation matched: llama.cpp with a usable MTP head on the
-  same weights, e.g. the full Flash-Next (whose unsloth GGUFs carry MTP layers we have used before) on .194, against
-  Strata's P100 path, or a box with the RAM for Strata's full packs.
+- **A speculation-matched engine comparison** (check 1 measures the cache directly; an end-to-end match still needs llama.cpp with a usable MTP head on the
+  same weights, llama.cpp with a usable MTP head on the same weights, e.g. the full Flash-Next on .194 against Strata's P100 path).
 - **Quality** (see INDEX L186 for this Coder).
 - **Long contexts and 32K prompts.**
 - **Strata's own figures under its own benchmark.**
