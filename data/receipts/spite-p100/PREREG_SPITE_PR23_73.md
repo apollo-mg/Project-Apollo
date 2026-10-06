@@ -119,3 +119,17 @@ Any change after the first GPU row gets a numbered Deviation here before the aff
     3.6.4, Rust 1.97 from the repo's toolchain pin.
   - The release binaries T3-T8 use built on .73 without hitting this, because `cargo build --release` does not
     compile that dependency.
+- **Deviation 3 (after T3-T8, before any T5b row; 10-06 ~15:55): T5b, the agreement test with Spite's sampler
+  neutralised.**
+  - **Why:** T5's comparison is confounded. `Executor::generate` (`crates/spite-executor/src/lib.rs`) hard-codes
+    `repetition_penalty: 1.1` for every `spite run`, temperature 0 included. `apply_repetition_penalty` divides a
+    positive logit by the penalty **once per occurrence** in the whole context, prompt included, so a token seen k
+    times is divided by 1.1^k. llama.cpp's greedy run used no penalty.
+  - **T5b:** a local diagnostic build that changes only that line to `1.0`, built in the same tree on .73 and kept
+    as a separate binary. The PR binary is kept and restored.
+    - The same four prompts on the same default split, 128 tokens.
+    - Compared with the llama.cpp outputs T5 already captured (same file, `-sm layer`, f16 KV, no penalty).
+  - **T5b holds** if prompt 1 starts with " 391", and each Spite continuation matches llama.cpp's up to llama.cpp's
+    end-of-generation token or for at least 16 llama.cpp tokens.
+  - If T5b holds, the T5 differences are the sampler, not the P100 kernels.
+  - The daily-driver server and the wake proxy are taken down again for these runs and restored after.
