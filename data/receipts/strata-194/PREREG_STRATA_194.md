@@ -75,3 +75,15 @@ the 10-05 desktop run. Receipts found:
 ## Deviations
 
 Any change after the first timed row gets a numbered Deviation here before the affected rows run.
+- **Addendum (before its rows; 10-06 ~11:10): a Strata community report (descriptive, no predictions).** Mark: "we
+  can do both".
+  - **What:** Strata only, same install and IQ3_XXS pack. Prompts of ~4K and ~32K tokens, 3 runs each.
+  - **The prompts:** built from Strata's own MIT docs at the measured commit, plus a question (`strata_bench.py`).
+  - **Requests:** a unique nonce first line (no prefix reuse), 256-token cap, temperature 0, `reasoning_effort: none`
+    in the request, streaming.
+  - **What is recorded:**
+    - client TTFT and total;
+    - the engine's own timing lines (prompt read ms and tok/s, generated ms and tok/s, drafts);
+    - RAM and VRAM;
+    - the short-prompt rows already measured above.
+  - **Submission:** Strata's PR template, only after Mark reviews the draft.
