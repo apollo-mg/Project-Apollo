@@ -112,3 +112,10 @@ Any change after the first GPU row gets a numbered Deviation here before the aff
     - The same strings go to llama.cpp `/completion` (`temperature 0`, `n_predict 128`, `cache_prompt false`).
     - The first 64 tokens are compared. The common prefix is measured in llama.cpp tokens (via `/tokenize`), and the
       prompt token counts are compared too.
+- **Deviation 2 (before any GPU row): T2 runs on the desktop, not .73.**
+  - `cargo test --workspace` on .73 stops at `openssl-sys`'s build script: "Could not find directory of OpenSSL
+    installation". Ubuntu 26.04 on .73 has no OpenSSL headers, and no system packages are installed on .73 for this.
+  - T2 is the PR's CPU-only suite, so it runs in the desktop checkout of the same commit `ab8177a`: CachyOS, OpenSSL
+    3.6.4, Rust 1.97 from the repo's toolchain pin.
+  - The release binaries T3-T8 use built on .73 without hitting this, because `cargo build --release` does not
+    compile that dependency.
