@@ -150,3 +150,27 @@ captured by `g4_proxy.py` (lmx still times):
   and notes intact. The hardware is listed as "RX 9070 XT".
 - The account is not yet a verified user; that takes 3 verified runs.
 - Owner edits are possible until about 2026-10-07 00:00Z.
+
+## Follow-up: TheTom could not reproduce on his llama.cpp (unregistered diagnostics, 10-05 ~20:50)
+
+**His local run:** b11347, 90.6 tok/s, prefill 1,034, TTFT 300 ms, 2.49 tokens per pass, acceptance 74.9 %. Ours,
+like for like, was 110.7 / 2.7 / 86 %.
+
+Each variant below is one fresh start of our like-for-like configuration (canonical reasoning-v1, `--reasoning off`,
+Q8_0 drafter, draft 2, proxy on) with one thing changed:
+
+| variant | tok/s (median) | acceptance (timed) | TTFT ms |
+|---|---:|---|---:|
+| **his build, b11347** (2 starts) | 110.0 / 111.1 | 0.83-0.87 | 309 / 257 |
+| temperature 1.0 | 110.8 | 0.84-0.88 | 227 |
+| KV q8_0 | 103.2 | 0.85-0.86 | 212 |
+| KV q4_0 | 104.2 | 0.85-0.90 | 199 |
+| QAT repo's Q4_0 drafter (fcb35dea) | **115.1** | 0.89 | 302 |
+| `-np 4` | 113.5 | 0.87-0.88 | 240 |
+
+- **None reproduces 74.9 %.** The build, temperature, KV type and slot count are each ruled out on this card. The gap
+  is in something not yet known on his side: the target or drafter file, the template, flags, or the hardware.
+- **Side findings:**
+  - The smaller Q4_0 drafter is faster than the Q8_0 (115.1), with acceptance as high.
+  - A quantized KV cache brings TTFT down to 199-212 ms, level with or under vbutter's 213, at about 6 % decode cost.
+    That fits the cache-save cost scaling with KV size (Deviation 1).
