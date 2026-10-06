@@ -53,3 +53,33 @@
 - Long contexts (the sliding-window path beyond 513 was only exercised by the ~300-token prompts' KV, i.e. barely).
 - Thinking mode.
 - MTP or speculation (none shipped for llama.cpp).
+
+## K4: the two unofficial ports agree (addendum K4/K4b, Deviation K4-1)
+
+- **Port 2:** Eliasfpv28's `kolibri1-runtime.patch` on upstream `edd6e2b`, which cites Aleph Alpha's inference
+  reference. Built for sm_60 like port 1.
+- **The test:** both ports run on the same Hob-forge Q4_K_M file. Port 1's logits are the base; port 2 is scored
+  with `--kl-divergence`.
+- **The tokenizer override:** port 2 needs `--override-kv tokenizer.ggml.pre=str:qwen2`. Port 1's `kolibri1`
+  pre-tokenizer is the QWEN2 type in its own source, so tokenization is identical.
+
+| context | port 1 PPL | port 2 PPL | mean KLD | max KLD | 99.9 % KLD | same top-1 |
+|---|---:|---:|---:|---:|---:|---:|
+| 512 (16 chunks) | 28.4302 | 28.4297 | -0.00001 (zero within rounding) | 0.000024 | 0.000010 | **100.000 %** |
+| 2,048 (8 chunks, past the 513-token window) | 15.8325 | 15.8331 | -0.000008 | 0.000024 | 0.000013 | **100.000 %** |
+
+**K4 holds.** Two independently written graph implementations produce the same next-token distributions to
+rounding error, both inside and beyond the sliding window. Their routers are written differently: one as a new
+generic gating op, one as model-local code that follows Aleph Alpha's reference.
+
+**What this does and does not settle:**
+- **K2's PPL is not a graph bug.** The implementations agree, and PPL falls from 28.4 at 512 to 15.8 at 2,048. The
+  512 figure was mostly the short context.
+- **It does NOT validate Hob-forge's conversion.** Both ports read the same converted file, so a converter error
+  (tensor mapping, expert bias, norms) would be shared.
+- **The converter test:** port 2's own GGUF (Q3_K_S, from Eliasfpv28's separate streaming converter) on the same
+  wikitext.
+  - Its PPL should come out a little above Q4_K_M's, since it is a lower quant.
+  - A PPL far below would point at Hob-forge's conversion.
+  - It needs a 31.5 GB download and was not run.
+- **Raw:** `raw_k4/`. The base logit files (1-2 GB) were left on .194.
