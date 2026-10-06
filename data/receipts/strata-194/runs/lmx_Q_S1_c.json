@@ -1,0 +1,206 @@
+{
+  "agentFeedback": {
+    "authCommand": "lmx auth --key bhk_...",
+    "authRequired": true,
+    "benchmarkStatus": "completed",
+    "blockedByAuth": true,
+    "canApiValidate": false,
+    "canSubmit": false,
+    "engine": "custom",
+    "message": "Speed-test payload is ready for API validation. API validation and submission require an API key.",
+    "mode": "remote",
+    "nextCommand": "lmx auth --key bhk_...",
+    "outputPath": "~/sbench/runs/lmx_Q_S1_c.json",
+    "outputPathAbsolute": "~/sbench/runs/lmx_Q_S1_c.json",
+    "requiresMetrics": false,
+    "rerunWithDetectedMetadataCommand": "lmx speed-test run custom --mode remote --base-url http://127.0.0.1:8097 --served-model qwen3.8-flash-next-unsloth-ud-q4_k_xl --hf-id unsloth/Qwen3.8-Flash-Next-GGUF --quantization Q4_K_XL --hardware hardware.json --out ~/sbench/runs/lmx_Q_S1_c.json",
+    "runPersisted": true,
+    "savedRunPath": "runs/unsloth-Qwen3.8-Flash-Next-GGUF/20261006T193452Z.json",
+    "savedRunPathAbsolute": "~/sbench/runs/unsloth-Qwen3.8-Flash-Next-GGUF/20261006T193452Z.json",
+    "savedRunPathRelative": "runs/unsloth-Qwen3.8-Flash-Next-GGUF/20261006T193452Z.json",
+    "status": "ready_for_api_validation",
+    "submissionStatus": "needs_auth",
+    "validationCommand": "lmx speed-test validate-local ~/sbench/runs/lmx_Q_S1_c.json"
+  },
+  "batchSize": 1,
+  "benchmarkMode": "remote",
+  "detectedEngines": [],
+  "engineFlags": {
+    "baseUrl": "http://127.0.0.1:8097",
+    "concurrency": 1,
+    "iterations": 3,
+    "maxTokens": 256,
+    "mode": "remote",
+    "prefixCacheBust": "leading_nonce_per_request",
+    "promptFile": "~/sbench/canonical_code-v1.txt",
+    "promptSource": "file",
+    "servedModel": "qwen3.8-flash-next-unsloth-ud-q4_k_xl",
+    "servedModelSource": "v1_models",
+    "stream": true,
+    "timeoutSeconds": 600,
+    "warmup": 1
+  },
+  "engineName": "custom",
+  "hardware": {
+    "backend": "cuda",
+    "cpu": "2x Intel Xeon E5-2650 v3",
+    "cpuThreads": 40,
+    "gpuCount": 4,
+    "gpuName": "Tesla P100-PCIE-16GB",
+    "hwClass": "DISCRETE_GPU",
+    "os": "linux",
+    "ramGb": 128,
+    "vramGb": 64
+  },
+  "hardwareSource": "file",
+  "hfId": "unsloth/Qwen3.8-Flash-Next-GGUF",
+  "metricSource": "remote_endpoint",
+  "modelResolution": {
+    "candidates": [
+      {
+        "benchmarkCount": 35,
+        "displayName": "Qwen3.8-Flash-Next",
+        "family": "Qwen",
+        "hfId": "Qwen/Qwen3.8-Flash-Next",
+        "params": 180
+      },
+      {
+        "benchmarkCount": 19,
+        "displayName": "Qwen3.8-Flash-Next-GGUF",
+        "family": "Qwen",
+        "hfId": "unsloth/Qwen3.8-Flash-Next-GGUF",
+        "params": 180
+      },
+      {
+        "benchmarkCount": 18,
+        "displayName": "Qwen3.8-Flash-Next-NVFP4",
+        "family": "Qwen",
+        "hfId": "nvidia/Qwen3.8-Flash-Next-NVFP4",
+        "params": 180
+      },
+      {
+        "benchmarkCount": 14,
+        "displayName": "Qwen3.8-Flash-Next-FP8",
+        "family": "Qwen",
+        "hfId": "Qwen/Qwen3.8-Flash-Next-FP8",
+        "params": 180
+      },
+      {
+        "benchmarkCount": 9,
+        "displayName": "Qwen3.8-Flash-Next-GGUF",
+        "family": "Qwen",
+        "hfId": "AtomicChat/Qwen3.8-Flash-Next-GGUF",
+        "params": 180
+      }
+    ],
+    "declaredBaseModel": "unsloth/Qwen3.8-Flash-Next-GGUF",
+    "hfId": "unsloth/Qwen3.8-Flash-Next-GGUF",
+    "loadedFilename": "Qwen3.8-Flash-Next-UD-Q4_K_XL-00001-of-00004.gguf",
+    "searchCommand": "lmx model search Qwen3.8-Flash-Next",
+    "searchQuery": "Qwen3.8-Flash-Next",
+    "searchQuerySource": "loaded_filename",
+    "servedModel": "qwen3.8-flash-next-unsloth-ud-q4_k_xl",
+    "servedModelSource": "v1_models",
+    "sourceRepo": "unsloth/Qwen3.8-Flash-Next-GGUF",
+    "sourceRepoMatch": "exact_filename",
+    "status": "source_repo_detected"
+  },
+  "modelRevision": "main",
+  "outputText": "```python\n#!/usr/bin/env python3\n\"\"\"logtally: A command-line tool to tally log records from stdin.\"\"\"\n\nimport sys\nimport json\nimport argparse\nfrom datetime import datetime, timezone\nfrom collections import defaultdict\n\n\ndef parse_iso_timestamp(ts_str: str) -\u003e datetime:\n    \"\"\"Parse an ISO-8601 timestamp string into a datetime object.\"\"\"\n    # Handle 'Z' suffix for UTC\n    if ts_str.endswith('Z'):\n        ts_str = ts_str[:-1] + '+00:00'\n    return datetime.fromisoformat(ts_str)\n\n\ndef compute_percentile(sorted_values: list, percentile: float) -\u003e float:\n    \"\"\"\n    Compute the given percentile from a sorted list of values.\n    Uses the nearest-rank method: the value at index ceil(p/100 * n) - 1.\n    \"\"\"\n    if not sorted_values:\n        return 0.0\n    n = len(sorted_values)\n    rank = int((percentile / 100.0) * n)\n    # Ensure rank is at least 1 and at most n\n    rank = max(1, min(rank, n))\n",
+  "outputTokens": 256,
+  "prefillTokens": 0,
+  "prompt": "Implement a small command-line tool in Python called `logtally`.\n\nRequirements:\n- It reads newline-delimited JSON log records from stdin. Each record has `ts` (ISO-8601 string), `level` (one of DEBUG, INFO, WARN, ERROR), `service` (string), and optional `latency_ms` (number).\n- It prints, per service, the count of records by level and the p50 and p95 of `latency_ms` (ignore records without latency).\n- Malformed lines must be counted and reported at the end, never crash the program.\n- Support a `--since \u003cISO timestamp\u003e` flag that drops earlier records.\n- Use only the standard library.\n\nAfter the code, explain in two or three sentences how you computed percentiles and why you chose that method, then list three edge cases a unit test suite should cover.",
+  "promptTokens": 241,
+  "provenance": {
+    "benchmarkMode": "remote",
+    "cli": "localmaxxing-go",
+    "createdAt": "2026-10-06T19:34:52Z",
+    "metricSource": "remote_endpoint",
+    "timingSource": "client_observed_http",
+    "ttftSource": "stream_first_token"
+  },
+  "quantization": "UD-Q4_K_XL",
+  "quantizationResolution": {
+    "cli": "UD-Q4_K_XL",
+    "filename": "Q4_K_XL",
+    "mismatches": [
+      {
+        "left": "UD-Q4_K_XL",
+        "leftSource": "cli",
+        "right": "Q4_K_XL",
+        "rightSource": "filename"
+      }
+    ],
+    "modelPath": "~/strata-data/models/unsloth-UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00001-of-00004.gguf",
+    "status": "mismatch",
+    "trusted": "Q4_K_XL",
+    "trustedSource": "filename"
+  },
+  "sampleStats": {
+    "tokSOut": {
+      "count": 3,
+      "max": 19,
+      "mean": 18.7,
+      "min": 18.5,
+      "p50": 18.6,
+      "stddev": 0.26
+    },
+    "tokSTotal": {
+      "count": 3,
+      "max": 27,
+      "mean": 26.17,
+      "min": 25.4,
+      "p50": 26.1,
+      "stddev": 0.8
+    },
+    "ttftMs": {
+      "count": 3,
+      "max": 5787.71,
+      "mean": 5363.31,
+      "min": 5050.16,
+      "p50": 5252.07,
+      "stddev": 381.15
+    }
+  },
+  "samples": [
+    {
+      "iteration": 1,
+      "outputTokens": 256,
+      "promptTokens": 241,
+      "request": 1,
+      "tokSOut": 18.5,
+      "tokSPrefill": 41.6,
+      "ttftMs": 5787.71
+    },
+    {
+      "iteration": 2,
+      "outputTokens": 256,
+      "promptTokens": 239,
+      "request": 1,
+      "tokSOut": 18.6,
+      "tokSPrefill": 45.5,
+      "ttftMs": 5252.07
+    },
+    {
+      "iteration": 3,
+      "outputTokens": 256,
+      "promptTokens": 243,
+      "request": 1,
+      "tokSOut": 19,
+      "tokSPrefill": 48.1,
+      "ttftMs": 5050.16
+    }
+  ],
+  "timingSource": "client_observed_http",
+  "tokSOut": 18.6,
+  "tokSOutSource": "inter_token",
+  "tokSPrefill": 45.5,
+  "tokSPrefillSource": "estimated_from_ttft",
+  "tokSTotal": 26.1,
+  "tokenSources": {
+    "output": "endpoint_usage",
+    "prompt": "endpoint_usage"
+  },
+  "ttftMs": 5252.07,
+  "ttftSource": "stream_first_token"
+}
