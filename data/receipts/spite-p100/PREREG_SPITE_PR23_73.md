@@ -151,3 +151,34 @@ Any change after the first GPU row gets a numbered Deviation here before the aff
       end-of-generation, p4 for 15 tokens. (0.8)
     - **R2:** `spite-bench --mtp` still crashes on the split. Neither new commit names it. (0.65)
     - **R3:** decode within 3 % of `ab8177a`'s 6.69 tok/s. (0.7)
+- **Addendum R3 (before any R3 row; 10-06 ~19:35): round 3 at PR head `f1cc494`, requested on the PR by the author.**
+  - **What the head claims:**
+    - `092094f` fixes our #1 (the MTP split crash), #2 (the penalty is now once per distinct token, with a
+      `repeat_last_n` 64 window) and #4 (stops on any control token).
+    - Batched hybrid prefill (`a9bb561`..`290c102`) is aimed at #5.
+  - **The author's asks:**
+    - `verify.py` and `verify_batch_cuda.py` on the sm_60 `.so`;
+    - spite-bench prefill before/after;
+    - confirmation that greedy output is unchanged;
+    - `cargo test`;
+    - a refreshed `sm_60/tesla_p100/qwen3_5.bench`.
+  - **Before/after instrument:** the `06e44a0` binaries and kernel `.so` files were copied to `~/spite-test/b06/`
+    before the checkout, and run with `--kernels-dir` pointing there. Same host, model, clocks and session.
+  - **Rows:**
+    - T1 (build, cubins). T2 (desktop `cargo test`).
+    - T3/T4 (4 prompts x default / `--gpus 1,0` / repeat), with generated text compared against `06e44a0`'s.
+    - T6: `verify.py` and `verify_batch_cuda.py <vendor .so> <libcudart.so.12>`.
+    - T7:
+      - `spite-bench` defaults, after (decode, `.bench` line);
+      - `spite-bench --n-prompt 512 --n-tokens 32 --n-runs 3`, before and after (prefill);
+      - llama.cpp prompt processing for the same 512-token padded prompt, matched `-sm layer` server, 3 runs, as
+        context.
+    - T8: `spite-bench --mtp` (after).
+  - **Predictions:**
+    - **Q1:** both verify tools pass on sm_60. (0.75)
+    - **Q2:** prefill at 512 prompt tokens is at least 3x the `06e44a0` binary's. (0.55)
+    - **Q3:** decode within 3 % of 6.69 tok/s. (0.75)
+    - **Q4:** greedy text equals `06e44a0`'s on all 4 prompts, up to where `06e44a0` printed its first EOG token.
+      (0.6)
+    - **Q5:** p1-p3 now end at the EOG token, with nothing after it. (0.85)
+    - **Q6:** `spite-bench --mtp` completes on the split. (0.7)
