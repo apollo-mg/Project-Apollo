@@ -133,3 +133,21 @@ Any change after the first GPU row gets a numbered Deviation here before the aff
     end-of-generation token or for at least 16 llama.cpp tokens.
   - If T5b holds, the T5 differences are the sampler, not the P100 kernels.
   - The daily-driver server and the wake proxy are taken down again for these runs and restored after.
+- **Addendum R (after the report, before any R row; 10-06 ~17:15): rerun at the new PR head `06e44a0`.**
+  - **Origin:** the author pushed `b33e50f` (greedy decode no longer applies the repetition penalty) and `06e44a0`
+    (NVLink/PCIe probe, prefer pipeline, Q6_K budget) after our runs. Mark approved a rerun.
+  - **Same instrument:** host, model, kernels config, prompts.
+  - **What reruns:**
+    - T1 (build, cubins);
+    - T3/T4 (4 prompts x default / `--gpus 1,0` / repeat);
+    - T5 with the PR binary itself, now that temperature 0 should be penalty-free, against the llama.cpp outputs
+      already captured (same file and server config, so not re-run);
+    - T6 (`verify.py`);
+    - T7 (`spite-bench`, compared with the captured llama.cpp 8.90 tok/s);
+    - T8 (`spite run --mtp`, `spite-bench --mtp`).
+  - T2 (`cargo test`) reruns on the desktop at the same commit.
+  - **Predictions:**
+    - **R1:** T5 now holds with the PR binary. Its outputs equal T5b's diagnostic build: p1-p3 through
+      end-of-generation, p4 for 15 tokens. (0.8)
+    - **R2:** `spite-bench --mtp` still crashes on the split. Neither new commit names it. (0.65)
+    - **R3:** decode within 3 % of `ab8177a`'s 6.69 tok/s. (0.7)
