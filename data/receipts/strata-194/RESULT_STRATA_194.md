@@ -74,3 +74,10 @@
 - Quality.
 - Clock sensitivity (both engines were measured at 1,063 MHz).
 - **Nothing was submitted.**
+
+## Community report posted (Mark's OK, 10-06)
+
+- **The PR:** Niko1221/Strata#1192, "Community benchmark: 4x Tesla P100 16 GB (Pascal), IQ3_XXS, CUDA 12 engine",
+  from `apollo-mg:community-4x-tesla-p100`. Results only: README + `runs.json` + client timings + `strata_bench.py` +
+  the two canonical prompts.
+- **Folder:** `bench/results/2026-10-06-community-4x-tesla-p100/`. The draft is in `strata_pr/`.
