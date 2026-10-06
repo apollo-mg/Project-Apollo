@@ -1,0 +1,156 @@
+{
+  "agentFeedback": {
+    "benchmarkStatus": "completed",
+    "canApiValidate": true,
+    "canSubmit": true,
+    "engine": "llama.cpp",
+    "message": "Speed-test payload is ready for API validation.",
+    "mode": "remote",
+    "nextCommand": "lmx speed-test dry-run /mnt/TG_2TB/Projects/Apollo/data/receipts/strata-9070/runs/lmx_L_code_ncmoe28.json",
+    "outputPath": "/mnt/TG_2TB/Projects/Apollo/data/receipts/strata-9070/runs/lmx_L_code_ncmoe28.json",
+    "outputPathAbsolute": "/mnt/TG_2TB/Projects/Apollo/data/receipts/strata-9070/runs/lmx_L_code_ncmoe28.json",
+    "requiresMetrics": false,
+    "runPersisted": true,
+    "savedRunPath": "runs/ISTA-DASLab-Qwen3.8-Flash-Next-GSQ-RCO-Coder-GGUF/20261006T014032Z.json",
+    "savedRunPathAbsolute": "/mnt/TG_2TB/Projects/Apollo/data/receipts/strata-9070/runs/ISTA-DASLab-Qwen3.8-Flash-Next-GSQ-RCO-Coder-GGUF/20261006T014032Z.json",
+    "savedRunPathRelative": "runs/ISTA-DASLab-Qwen3.8-Flash-Next-GSQ-RCO-Coder-GGUF/20261006T014032Z.json",
+    "status": "ready_for_api_validation",
+    "submissionStatus": "ready",
+    "submitCommand": "lmx speed-test submit /mnt/TG_2TB/Projects/Apollo/data/receipts/strata-9070/runs/lmx_L_code_ncmoe28.json"
+  },
+  "batchSize": 1,
+  "benchmarkMode": "remote",
+  "detectedEngines": [],
+  "engineFlags": {
+    "baseUrl": "http://127.0.0.1:8097",
+    "concurrency": 1,
+    "iterations": 3,
+    "maxTokens": 256,
+    "mode": "remote",
+    "prefixCacheBust": "leading_nonce_per_request",
+    "promptFile": "/mnt/TG_2TB/Projects/Apollo/data/receipts/strata-9070/../gemma4-9070-spec/canonical_code-v1.txt",
+    "promptSource": "file",
+    "servedModel": "/mnt/TG_2TB/AI/strata-data/models/coder-IQ1_M/Qwen3.8-Flash-Next-GSQ-RCO-IQ1_M-00001-of-00002.gguf",
+    "servedModelSource": "v1_models",
+    "stream": true,
+    "timeoutSeconds": 600,
+    "warmup": 1
+  },
+  "engineName": "llama.cpp",
+  "hardware": {
+    "backend": "rocm",
+    "cpu": "AMD Ryzen 7 5700X3D 8-Core Processor",
+    "cpuThreads": 16,
+    "gpuCount": 1,
+    "gpuName": "AMD Radeon RX 9070 XT",
+    "hwClass": "DISCRETE_GPU",
+    "os": "linux",
+    "ramGb": 32,
+    "vramGb": 16
+  },
+  "hardwareSource": "file",
+  "hfId": "ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-Coder-GGUF",
+  "metricSource": "remote_endpoint",
+  "modelResolution": {
+    "candidates": [],
+    "declaredBaseModel": "ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-Coder-GGUF",
+    "hfId": "ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-Coder-GGUF",
+    "loadedFilename": "Qwen3.8-Flash-Next-GSQ-RCO-IQ1_M-00001-of-00002.gguf",
+    "searchCommand": "lmx model search Qwen3.8-Flash-Next-GSQ-RCO",
+    "searchQuery": "Qwen3.8-Flash-Next-GSQ-RCO",
+    "searchQuerySource": "loaded_filename",
+    "servedModel": "/mnt/TG_2TB/AI/strata-data/models/coder-IQ1_M/Qwen3.8-Flash-Next-GSQ-RCO-IQ1_M-00001-of-00002.gguf",
+    "servedModelSource": "v1_models",
+    "status": "alias"
+  },
+  "modelRevision": "main",
+  "outputText": "```python\n#!/usr/bin/env python3\n\"\"\"logtally: Tally log records from stdin, reporting per-service stats.\"\"\"\n\nimport sys\nimport json\nimport argparse\nfrom collections import defaultdict\nfrom datetime import datetime\nfrom typing import Optional\n\n\ndef parse_iso_timestamp(ts_str: str) -\u003e Optional[datetime]:\n    \"\"\"Parse an ISO-8601 timestamp string. Returns None if parsing fails.\"\"\"\n    try:\n        # Handle 'Z' suffix\n        if ts_str.endswith('Z'):\n            ts_str = ts_str[:-1] + '+00:00'\n        return datetime.fromisoformat(ts_str)\n    except Exception:\n        return None\n\n\ndef percentile(sorted_values: list, p: float) -\u003e Optional[float]:\n    \"\"\"Compute the p-th percentile (0-100) using linear interpolation.\n    \n    Uses the 'inclusive' method (like numpy's default): \n    index = (n - 1) * p / 100\n    Then interpolate between floor and ceil indices.\n    \"\"\"\n    if not sorted_values:\n        return None\n    n = len(sorted_values)\n    if n == 1:\n        return float(sorted",
+  "outputTokens": 256,
+  "prefillTokens": 0,
+  "prompt": "Implement a small command-line tool in Python called `logtally`.\n\nRequirements:\n- It reads newline-delimited JSON log records from stdin. Each record has `ts` (ISO-8601 string), `level` (one of DEBUG, INFO, WARN, ERROR), `service` (string), and optional `latency_ms` (number).\n- It prints, per service, the count of records by level and the p50 and p95 of `latency_ms` (ignore records without latency).\n- Malformed lines must be counted and reported at the end, never crash the program.\n- Support a `--since \u003cISO timestamp\u003e` flag that drops earlier records.\n- Use only the standard library.\n\nAfter the code, explain in two or three sentences how you computed percentiles and why you chose that method, then list three edge cases a unit test suite should cover.",
+  "promptTokens": 242,
+  "provenance": {
+    "benchmarkMode": "remote",
+    "cli": "localmaxxing-go",
+    "createdAt": "2026-10-06T01:40:32Z",
+    "metricSource": "remote_endpoint",
+    "timingSource": "client_observed_http",
+    "ttftSource": "stream_first_token"
+  },
+  "quantization": "IQ1_M",
+  "quantizationResolution": {
+    "cli": "IQ1_M",
+    "filename": "IQ1_M",
+    "modelPath": "/mnt/TG_2TB/AI/strata-data/models/coder-IQ1_M/Qwen3.8-Flash-Next-GSQ-RCO-IQ1_M-00001-of-00002.gguf",
+    "status": "matched",
+    "trusted": "IQ1_M",
+    "trustedSource": "filename"
+  },
+  "sampleStats": {
+    "tokSOut": {
+      "count": 3,
+      "max": 20.6,
+      "mean": 20.47,
+      "min": 20.3,
+      "p50": 20.5,
+      "stddev": 0.15
+    },
+    "tokSTotal": {
+      "count": 3,
+      "max": 37.4,
+      "mean": 37,
+      "min": 36.7,
+      "p50": 36.9,
+      "stddev": 0.36
+    },
+    "ttftMs": {
+      "count": 3,
+      "max": 1046.26,
+      "mean": 1003.01,
+      "min": 936.03,
+      "p50": 1026.72,
+      "stddev": 58.82
+    }
+  },
+  "samples": [
+    {
+      "iteration": 1,
+      "outputTokens": 256,
+      "promptTokens": 242,
+      "request": 1,
+      "tokSOut": 20.5,
+      "tokSPrefill": 235.7,
+      "ttftMs": 1026.72
+    },
+    {
+      "iteration": 2,
+      "outputTokens": 256,
+      "promptTokens": 242,
+      "request": 1,
+      "tokSOut": 20.3,
+      "tokSPrefill": 231.3,
+      "ttftMs": 1046.26
+    },
+    {
+      "iteration": 3,
+      "outputTokens": 256,
+      "promptTokens": 242,
+      "request": 1,
+      "tokSOut": 20.6,
+      "tokSPrefill": 258.5,
+      "ttftMs": 936.03
+    }
+  ],
+  "timingSource": "client_observed_http",
+  "tokSOut": 20.5,
+  "tokSOutSource": "inter_token",
+  "tokSPrefill": 235.7,
+  "tokSPrefillSource": "estimated_from_ttft",
+  "tokSTotal": 36.9,
+  "tokenSources": {
+    "output": "endpoint_usage",
+    "prompt": "endpoint_usage"
+  },
+  "ttftMs": 1026.72,
+  "ttftSource": "stream_first_token"
+}

@@ -1,0 +1,39 @@
+loading the model (the first start takes a minute or two) ...
+[strata] starting the engine: reading the model's weights ...
+[strata] loading the experts the GPU does not hold into RAM (of about 30 GB) and locking part of them for the GPU.
+         YOUR PC CAN BE SLOW OR STOP RESPONDING FOR 1-3 MINUTES NOW - this is normal.
+         Please wait and don't close this window; the browser opens when it is ready.
+[strata] filling the GPU's expert cache (5217 experts, 9.92 GiB of VRAM) ...
+[strata] almost ready ...
+Traceback (most recent call last):
+  File "/mnt/TG_2TB/Projects/strata/serve/server.py", line 4145, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/mnt/TG_2TB/Projects/strata/serve/server.py", line 4001, in main
+    engine = StrataEngine(exe, engine_args(cfg) + (effort_end or []), cwd=cfg.get("cwd"), log=cfg.get("log"),
+                          env=env, lazy=lazy)
+  File "/mnt/TG_2TB/Projects/strata/serve/server.py", line 478, in __init__
+    raise RuntimeError("the engine exited before it was ready" + (f" (see {log})" if log else "") +
+                       start_failure_hint(log, log_start) + start_log_tail(log, log_start))
+RuntimeError: the engine exited before it was ready (see /mnt/TG_2TB/Projects/strata/strata-coder-iq1_m-nomtp.log)
+the engine log's last lines:
+  strata generate: the GPU computes the experts in the cache; it rounds differently from the CPU,
+                   so a reply can differ slightly from a run without the cache (same quality:
+                   bench/results/2026-09-27-cache-parity).
+                   PROFILE, ranked by routing frequency, no eviction.
+  strata generate: pre-filled 5217 of 5217 slots from the profile; slot 0 verified
+  strata generate: R4 hit path ON - resident experts are computed on the GPU
+  strata generate: 7 expert-pool workers + the host thread
+  strata generate: session is up (engine 0.1.39)
+  strata generate: token graph hit path: 5217 resident experts, decided on the device
+  FileExpertSource: allocating 16.89 GiB pageable resident cache complement
+  FileExpertSource: copied cache complement through layer 8/48 (3.89 GiB)
+  FileExpertSource: copied cache complement through layer 16/48 (6.43 GiB)
+  FileExpertSource: copied cache complement through layer 24/48 (9.10 GiB)
+  FileExpertSource: copied cache complement through layer 32/48 (12.08 GiB)
+  FileExpertSource: copied cache complement through layer 40/48 (14.97 GiB)
+  FileExpertSource: copied cache complement through layer 48/48 (16.89 GiB)
+  FileExpertSource: pageable resident cache complement ready: resident 16.89 GiB, pinned 0.00 GiB
+  FileExpertSource: 1797 of the prompt path's 1797 lendable slots keep their experts in RAM too
+  strata generate: resident RAM mode: 16.89 GiB of experts in RAM (pageable), 5217 in the GPU cache; adaptive swaps exchange them with the GPU cache (no file reads)
+  strata serve: needs --spec T, --mtp DIR and --prefill CHUNK (and a fillable --expert-cache; the graphed hit path additionally needs --expert-profile P)
