@@ -90,3 +90,20 @@ the error, and P1, P2 and P4 are not scored.
 ## Deviations
 
 Any change after the first row gets a numbered Deviation here before the affected rows run.
+- **Addendum C (after the Q4XL rows, before any C row; 10-06 ~16:40): UD-IQ4_XS on ONE card, to separate "four cards
+  -> one" from "bigger experts".**
+  - **Origin:** Mark read 37.2 -> 19.3 as a bpw knee, but the two runs differ in card count (cache 17,473 vs 2,815
+    slots) as well as in file. He asked for the run: "Let's go ahead and handle the IQ4 test".
+  - **Strata config:** setup's one-card Q4_K_XL config (`runs/strata_config_q4xl.json`) with only the model paths
+    swapped to the UD-IQ4_XS pack, shard and tokenizer, and the RAM budget set by setup's own formula
+    (`resident_budget_gib`: min(122 - 24, int(59.5 / 1.0737)) = **55 GiB**). Hand-written, not produced by setup,
+    because setup would overwrite the existing four-card IQ4 config. Saved as `runs/strata_config_iq4_1card.json`.
+  - **buun:** as Q_B1 (one card, auto-fit `-fitt 4096`, MTP head draft 3) on the UD-IQ4_XS files.
+  - **Arms:** C_S1_r1, C_B1_r1, C_S1_r2, C_B1_r2 (reasoning-v1), same kit, same boot as every Q row. The system
+    update runs only after these rows.
+  - **Predictions:**
+    - **C1:** Strata's warm hit rate on one card is between 66 % and 80 %. Smaller experts give more slots in the
+      same VRAM. (0.6)
+    - **C2:** Strata's one-card IQ4_XS decode is below 28.3 tok/s, closer to the one-card Q4_K_XL 19.3 than to the
+      four-card IQ4_XS 37.2. So card count, not bpw, is most of the halving. (0.75)
+    - The Strata/buun ratio on one card is reported, without a registered direction.
