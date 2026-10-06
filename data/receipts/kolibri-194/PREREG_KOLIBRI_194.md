@@ -80,3 +80,40 @@ Any change after the first row gets a numbered Deviation here before the affecte
     tokenization. This replaces the registered fallback (downloading port 2's own Q3_K_S), so the comparison stays
     on one file.
   - Any other metadata incompatibility is recorded as found.
+- **Addendum K5 (before any K5 row; 10-06 ~14:40): does Hob-forge's conversion agree with an independent one?**
+  Mark: "We can go ahead and knock out the remaining two".
+  - **Prior art checked:** `ledger_precheck.py "Kolibri converter Q3_K_S KLD"` -> only this campaign's K1-K4. **What
+    K5 adds:** K4 showed the two ports run one file identically; it could not test the file itself.
+  - **The second file:** `Eliasfpv28/Kolibri-1-Q3_K_S-GGUF` @ `04f6e403`, `Kolibri-1-Q3_K_S.gguf`,
+    33,870,242,400 B, sha256 `26ce4a2f…d34aa` (HF LFS), checked on .194 before any row. Its `provenance.json`: from
+    the official `Aleph-Alpha/Kolibri-1-BF16` @ `7a8f290e`, converted by its own `stream-convert.py`, then
+    `llama-quantize --tensor-type ffn_gate_inp=f32 … Q3_K_S`, no imatrix. Hob-forge's card says FP8 checkpoint ->
+    BF16 -> Q4_K_M. **So the two files differ in source precision AND in quant, as well as in converter.**
+  - **Why PPL/KLD alone cannot decide it:** Q3_K_S-vs-Q4_K_M noise would hide a subtle converter error. So the
+    direct comparisons below are the gates, and KLD is the end-to-end figure.
+  - **Gates (gguf-py from port 2's tree `edd6e2b`, reading headers and single tensors; no model load):**
+    - **K5a, metadata:** every GGUF KV pair compared, except `general.*`, `tokenizer.ggml.pre`, `general.file_type`
+      and quantization-version keys. The vocab tokens, token types and merges are compared by hash. **Holds** if every
+      other key is equal. Rope base, norm epsilon, sliding window/pattern, expert counts and gating are listed
+      explicitly in the result either way.
+    - **K5b, tensor list:** the same tensor names and shapes (types may differ). **Holds** if equal.
+    - **K5c, tensors stored as F32 in BOTH files** (norms, routers `ffn_gate_inp`, expert biases; which ones qualify is
+      read from Hob-forge's header first and listed). Values compared. **Holds** if each is bit-identical, or within
+      BF16 rounding (max relative difference <= 2^-7). A +1 norm offset, a sign flip or a permutation fails it.
+    - **K5d, quantized weights:** dequantize `blk.0.attn_q.weight` (or the first attention projection present) and
+      expert 0 of `blk.0.ffn_gate_exps.weight` and `blk.0.ffn_down_exps.weight` from each file and correlate.
+      **Holds** if Pearson r >= 0.95 on each. Q3 against Q4 noise should give ~0.98-0.99. A transpose or permutation
+      error gives ~0. r < 0.5 on any is registered as a structural disagreement.
+  - **End to end (K5e):** port 2 (`edd6e2b` + its patch, its native file) runs `llama-perplexity` on Q3_K_S with
+    `--kl-divergence` against port 1's saved Q4_K_M base logits (`runs_k4/base_p1_c512.bin`, `base_p1_c2048.bin`),
+    at 16 x 512 `-b 512` and 8 x 2048 `-b 2048`. PPL and the ratio to Q4_K_M are reported. Port 2 only; K4 already
+    showed the ports equal.
+  - **Predictions:**
+    - K5a-K5c hold (0.65).
+    - K5d holds (0.8).
+    - K5e: mean KLD < 0.3 and same top-1 >= 80 % at 512 (0.7). KLD > 1.0 or top-1 < 60 % would mean the conversions
+      differ materially, with neither proven right. In between is inconclusive.
+  - **Not decided by K5:** which conversion is right if they disagree (no reference runs here); quality against Aleph
+    Alpha's numbers.
+  - **Housekeeping:** the Q3_K_S file is deleted after K5 (re-obtainable at the pinned revision) to make room for
+    `strata-194/PREREG_STRATA_194_Q4XL.md`.
