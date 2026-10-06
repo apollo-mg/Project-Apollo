@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Wake proxy: the store's age check ignores `commit` files (Claude, 2026-10-06)
+- **What happened:** the first night with the 12 h age-out did not reset the store.
+  - Each shutdown rewrites a restored entry's small `commit` file even when nobody used the conversation (22:40 after
+    a ledger wake), while its data files were from 14:37.
+  - So the newest file looked 6.6 h old at the 05:18 daydream suspend.
+- **Fix:** age = the newest file under `entries/` other than `commit`. Tested on a fake store: old data plus a fresh
+  commit resets, fresh data is kept.
+- Slot erases worked overnight: the daydream erased slots 0/1, the ledger slot 0 at 21:08 and 22:09, and the store
+  took nothing new (4.55 GB all night).
+
 ### .73 `--resume` hygiene: the ledger erases its slots; the proxy resets a stale store (Claude, 2026-10-05)
 - **Why:** a wake took 83-131 s again (35 s right after 10-03). About 45-50 s of that was restoring the LEDGER's own
   summarisation chats, which `--resume` saved at suspend and then restored, blocking /health, on every later wake.

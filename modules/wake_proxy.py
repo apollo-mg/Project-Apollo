@@ -340,7 +340,8 @@ class Node:
         AGE resets the WHOLE store (2026-10-05, Mark's OK): every saved conversation is restored at every wake
         (~3.8 ms/token, blocking /health), so a stale one costs ~45 s per wake for nothing. When the NEWEST file in
         the store is older than WP_RESUME_MAX_AGE_H, the store holds nothing worth that, and removing all of it
-        cannot strand a placement. It also clears entries the count bound never reaches (six pre-flag host
+        cannot strand a placement. Age is the newest PAYLOAD file: each shutdown rewrites a restored entry's small `commit`
+        file even when nobody used it (10-06: a 22:40 re-commit kept 14:37 data looking fresh), so `commit` is ignored. It also clears entries the count bound never reaches (six pre-flag host
         entries, 10-03). The next start recreates the store, as on its first start (10-02)."""
         if not self.c.resume_store or not self.c.resume_store.startswith("/home/"):
             return
@@ -349,7 +350,7 @@ class Node:
             cmd = (f"pgrep -x llama-server >/dev/null && {{ echo running; exit 0; }}; "
                    f"[ -d {st}/resume ] || {{ echo empty; exit 0; }}; "
                    f"n=$(find {st}/resume -mindepth 3 -maxdepth 3 -path '*/entries/*' -type d | wc -l); "
-                   f"t=$(find {st}/resume -type f -path '*/entries/*' -printf '%T@\\n' | sort -n | tail -1); "
+                   f"t=$(find {st}/resume -type f -path '*/entries/*' -not -name commit -printf '%T@\\n' | sort -n | tail -1); "
                    f"[ -n \"$t\" ] || {{ echo empty; exit 0; }}; "
                    f"age=$(( $(date +%s) - ${{t%.*}} )); "
                    f"if [ $age -gt {int(self.c.resume_max_age_h * 3600)} ]; then rm -rf -- {st}/resume && echo \"reset $n $age\"; "
