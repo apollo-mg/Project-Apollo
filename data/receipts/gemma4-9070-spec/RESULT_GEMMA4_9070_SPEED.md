@@ -140,3 +140,13 @@ captured by `g4_proxy.py` (lmx still times):
 - **Nothing was submitted to LocalMaxxing.** That is Mark's decision.
 
 - **Submission run SUB1 (filler prompt, thinking mode, official lmx):** 102.1. It was superseded as the submission candidate by the like-for-like R_D8n2 start 2.
+
+## Submitted (Mark's OK, 10-05 ~20:00 EDT)
+
+- **Row:** `runs/sub_R_D8n2_r2.json`, LocalMaxxing speed test `cmuvwxpmq006nmr01viqmmmkr`, created
+  2026-10-06T00:00:52Z.
+- **Read back from the public API:** status APPROVED, `verifiedRun: true`, no verification issues. tok/s 110.7, TTFT
+  317 ms, prompt 305 / output 256, context 262144, reasoning-v1 sha matching, MTP draft 2 (187/161), command snippet
+  and notes intact. The hardware is listed as "RX 9070 XT".
+- The account is not yet a verified user; that takes 3 verified runs.
+- Owner edits are possible until about 2026-10-07 00:00Z.
