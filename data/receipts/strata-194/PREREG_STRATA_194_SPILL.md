@@ -61,3 +61,13 @@ Any change after the first row gets a numbered Deviation here before the affecte
   - **Fix:** add `-ts 1,1,1,0.6`, the split-conc layer recipe's own tensor split, to every L4/L40 arm. Then step
     `-ncmoe` up from 4 again until it serves.
   - **Reporting:** the static GPU share is still reported as (48 - N) / 48. The S4 arms are unchanged.
+- **Deviation 2 (before any L4 row; 10-06 ~12:22).** With `-ts 1,1,1,0.6`, every `-ncmoe` from 4 to 24 still failed:
+  CUDA1 needed a 17,066 MiB buffer.
+  - **Why:** `-ncmoe N` offloads only the FIRST N layers' experts (all on GPU 0). GPU 1 stays overfull until N is
+    past ~26, so a static first-N split could keep only about a third of the expert work on the GPUs. This is the
+    same trap `glm53-flash/` hit with an explicit `-ncmoe` on .194.
+  - **Replacement:** llama.cpp's own automatic fit, which offloads experts per device as needed: `-fit on -fitt
+    1024,1024,1024,4096` (4 GB margin on CUDA3 for the MTP drafter), `-sm layer`, no `-ngl`, no `-ncmoe`, `-c 8192`.
+    That is how our GLM-5.3 runs were placed.
+  - The arms are otherwise as registered (L4_r x2, L4_c, L40_r with the same fit).
+  - **Q1's "static GPU share":** the fraction of expert bytes the fit leaves on the GPUs, from the load log.
