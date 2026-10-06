@@ -68,3 +68,6 @@ Any change after the first row gets a numbered Deviation here before the affecte
   - **K4 prediction:** the ports agree, mean KLD < 0.01 and same top-1 >= 98 % (confidence 0.45). If they do not,
     whichever has the lower PPL on the same file is the better candidate, but neither is proven correct without a
     reference.
+  - **K4b (added before any K4 row):** the same base/KLD comparison at `-c 2048 -b 2048`, 8 chunks. At 512 nothing
+    reaches past the 513-token sliding window, so a window-semantics difference between the ports could only show at
+    the longer context.
