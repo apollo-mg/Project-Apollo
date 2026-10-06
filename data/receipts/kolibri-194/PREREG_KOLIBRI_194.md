@@ -97,8 +97,10 @@ Any change after the first row gets a numbered Deviation here before the affecte
       other key is equal. Rope base, norm epsilon, sliding window/pattern, expert counts and gating are listed
       explicitly in the result either way.
     - **K5b, tensor list:** the same tensor names and shapes (types may differ). **Holds** if equal.
-    - **K5c, tensors stored as F32 in BOTH files** (norms, routers `ffn_gate_inp`, expert biases; which ones qualify is
-      read from Hob-forge's header first and listed). Values compared. **Holds** if each is bit-identical, or within
+    - **K5c, tensors stored as a float type in BOTH files** (F32, F16 or BF16, cast to float32: norms, routers
+      `ffn_gate_inp`, expert biases; which ones qualify is read from the headers and listed). Widened from "F32" before
+      any K5 row: llama-quantize keeps `ffn_gate_inp` in its source type unless told otherwise, so Hob-forge's may be
+      BF16. Values compared. **Holds** if each is bit-identical, or within
       BF16 rounding (max relative difference <= 2^-7). A +1 norm offset, a sign flip or a permutation fails it.
     - **K5d, quantized weights:** dequantize `blk.0.attn_q.weight` (or the first attention projection present) and
       expert 0 of `blk.0.ffn_gate_exps.weight` and `blk.0.ffn_down_exps.weight` from each file and correlate.
