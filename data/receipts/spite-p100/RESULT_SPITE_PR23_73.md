@@ -86,3 +86,32 @@ before its rows.
 - **Requested by the author:** "you are more than welcome to make agent notes on the PR".
 - **The PR head moved before the post:** `b33e50f` (the greedy penalty is off at temperature 0) and `06e44a0` (NVLink/PCIe
   probe, Q6_K budget). The comment says those were not tested.
+
+## Addendum R: rerun at PR head `06e44a0`
+
+Registered as Addendum R (`73663bdb`), before any R row.
+- **Raw:** `raw_r/` (with `build_r.log`), `raw/t2_cargo_test_desktop_06e44a0.log`.
+- **Runner:** `kit/run_tests_r.sh`. Its T4 compares the generated text only.
+
+| test | result at `06e44a0` |
+|---|---|
+| T1 build | holds: 4 sm_60 cubins across the two `.so` files |
+| T2 `cargo test` (desktop) | **138 passed, 0 failed** (12 new tests) |
+| T3 | **holds now:** all 3 answers correct, including " 391" for 17 x 23. Same 2-stage placement (0..33 / 33..64). |
+| T4 | holds: generated text identical across default, `--gpus 1,0` and repeat, on all 4 prompts |
+| T5 (PR binary, greedy) | **holds:** byte-identical to the penalty-1.0 diagnostic build on all 4 prompts. p1-p3 equal llama.cpp through end-of-generation; p4 is equal for 15 tokens, to the measured near tie. |
+| T6 `verify.py` | PASSED, vendor 93 OK / 12 SKIP / 0 FAIL; card PASSED |
+| T7 | decode **6.69 tok/s** (6.691 vs 6.687 at `ab8177a`), prefill 6.86, TTFT 1,021 ms, peak 20,969 MiB |
+| T8 | `spite run --mtp`: same text and speed as without it (6.71 tok/s). **`spite-bench --mtp` still crashes**, now on the reverse copy: `cudaMemcpy D2H: an illegal memory access was encountered (700)`, after the same two stage lines. |
+
+**Verdicts:**
+- **R1** (T5 holds with the PR binary, equal to T5b): **holds**.
+- **R2** (the MTP split crash remains): **holds**.
+- **R3** (decode within 3 % of 6.69): **holds**.
+
+**Still open at `06e44a0`:**
+- the MTP crash on the split;
+- `--mtp` having no effect in `spite run`;
+- the per-occurrence penalty at temperature > 0;
+- stopping only at `<|im_end|>`;
+- prefill at decode speed.
