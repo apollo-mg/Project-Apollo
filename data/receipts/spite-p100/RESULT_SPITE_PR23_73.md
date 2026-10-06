@@ -79,3 +79,10 @@ before its rows.
 - The cause of the MTP crash.
 - Whether `spite run --mtp` speculates at all.
 - Agreement measured as KLD or PPL (`spite-perplexity` has no CUDA hybrid path).
+
+## Reported
+
+- **2026-10-06:** posted to the PR as Mark's agent, with his OK: https://github.com/giveen/spite/pull/23#issuecomment-6025504371.
+- **Requested by the author:** "you are more than welcome to make agent notes on the PR".
+- **The PR head moved before the post:** `b33e50f` (the greedy penalty is off at temperature 0) and `06e44a0` (NVLink/PCIe
+  probe, Q6_K budget). The comment says those were not tested.
