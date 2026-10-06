@@ -71,3 +71,12 @@ Any change after the first row gets a numbered Deviation here before the affecte
   - **K4b (added before any K4 row):** the same base/KLD comparison at `-c 2048 -b 2048`, 8 chunks. At 512 nothing
     reaches past the 513-token sliding window, so a window-semantics difference between the ports could only show at
     the longer context.
+- **Deviation K4-1 (after port 1's K4 rows, before any port 2 row; 10-06 ~12:58).**
+  - **The failure:** port 2 cannot load Hob-forge's GGUF: "unknown pre-tokenizer type: 'kolibri1'".
+  - **Source check:** port 1's patch adds `kolibri1` to the branch that sets `LLAMA_VOCAB_PRE_TYPE_QWEN2,
+    clean_spaces = false`, which is identical to `qwen2` in port 2's tree. Port 2's converter also states "Same
+    pre-tokenizer regex as Qwen2".
+  - **So:** port 2 runs on the same file with `--override-kv tokenizer.ggml.pre=str:qwen2`, which gives identical
+    tokenization. This replaces the registered fallback (downloading port 2's own Q3_K_S), so the comparison stays
+    on one file.
+  - Any other metadata incompatibility is recorded as found.
