@@ -174,3 +174,14 @@ Q8_0 drafter, draft 2, proxy on) with one thing changed:
   - The smaller Q4_0 drafter is faster than the Q8_0 (115.1), with acceptance as high.
   - A quantized KV cache brings TTFT down to 199-212 ms, level with or under vbutter's 213, at about 6 % decode cost.
     That fits the cache-save cost scaling with KV size (Deviation 1).
+
+## TheTom's capture script (10-05 ~22:15)
+
+- **What he sent:** his gist `b317372d` (`tom_receipt/`), one warmup + one measured non-streamed chat call on his
+  `prose.txt` (303 prompt tokens), with his exact server command (`--spec-draft-n-max 2 --spec-draft-p-min 0
+  --reasoning off -c 262144 -np 1 --metrics`).
+- **Result:** b11433 92.7 tok/s and b11347 93.1. Both drafted 227 and accepted 141 (0.62): 2.25 tokens per pass,
+  24 ms per pass, thinking off, drafter sha matching his `145db909`.
+- **On his prose our llama.cpp matches his ~90.6.** His non-repro was most likely prose vs our reasoning-v1 row:
+  acceptance 0.62 vs 0.86. That is content type again (INDEX L503).
+- Receipts: `tom_receipt/receipt_b11433.json`, `receipt_b11347.json`.
