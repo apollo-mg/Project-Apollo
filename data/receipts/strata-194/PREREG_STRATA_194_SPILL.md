@@ -53,3 +53,11 @@ speculation on both sides.
 ## Deviations
 
 Any change after the first row gets a numbered Deviation here before the affected rows run.
+- **Deviation 1 (after the S4 arms, before any L4 row; 10-06 ~12:12).** As registered, buun failed to load at every
+  `-ncmoe` from 4 to 24.
+  - **The error:** "unable to allocate CUDA3 buffer" for the MTP draft model.
+  - **The cause:** under layer split the drafter goes to the last card, while `-ncmoe` offloads the FIRST N layers'
+    experts, so CUDA3 stays full at any N. This is the drafter-gates-the-KV-budget effect we have seen before.
+  - **Fix:** add `-ts 1,1,1,0.6`, the split-conc layer recipe's own tensor split, to every L4/L40 arm. Then step
+    `-ncmoe` up from 4 again until it serves.
+  - **Reporting:** the static GPU share is still reported as (48 - N) / 48. The S4 arms are unchanged.
