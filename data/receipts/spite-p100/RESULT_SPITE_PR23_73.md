@@ -207,3 +207,6 @@ Registered as Addendum R4 (`f29e1ad0`), before any R4 row.
 
 **Note for the author:** `ncu` and `nsys` are installed on this box (`/usr/bin`). That is the profiling the author
 said further work would need.
+
+**Reported:** round 4 was posted with Mark's OK at
+https://github.com/giveen/spite/pull/23#issuecomment-6044406798.
