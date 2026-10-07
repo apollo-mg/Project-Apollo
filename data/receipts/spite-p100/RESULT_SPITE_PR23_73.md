@@ -118,3 +118,50 @@ Registered as Addendum R (`73663bdb`), before any R row.
 
 **Reported:** the follow-up was posted with Mark's OK at
 https://github.com/giveen/spite/pull/23#issuecomment-6025811147.
+
+## Addendum R3: round 3 at PR head `f1cc494`
+
+Registered as Addendum R3 (`257ba7d3`), before any R3 row.
+- **Raw:** `raw_r3/`, `raw/t2_cargo_test_desktop_f1cc494.log`.
+- **Runner:** `kit/run_tests_r3.sh`.
+- **The "before" for prefill** is the saved `06e44a0` binaries and kernel `.so` files (`--kernels-dir`), run in the
+  same session.
+
+| test | result at `f1cc494` |
+|---|---|
+| T1 build | holds: 6 sm_60 cubins across the `.so` files |
+| T2 `cargo test` (desktop) | **146 passed, 0 failed** |
+| T6 `verify.py` | PASSED, 93 OK / 12 SKIP / 0 FAIL |
+| T6 `verify_batch_cuda.py` (sm_60) | **PASSED:** ffn batch m=3 max abs diff 8.5e-8, matmul 8.2e-8, attention_ex and linear_attn batch **bit-identical** to sequential |
+| T3/T4 | holds: correct answers, 2 stages, identical text across default / `--gpus 1,0` / repeat |
+| Greedy vs `06e44a0` | **identical** on all 4 prompts, up to where `06e44a0` printed its first EOG token |
+| EOG stop (#4) | **fixed:** p1 " 391" (4 tokens), p2 "\n\nParis." (3), p3 the 22-token sentence, each ending without the token printed |
+| T8 `spite-bench --mtp` (#1) | **no longer crashes**, but **acceptance 0.0 %** over 5 runs x 512 tokens (`spec=mtp K=1`). Decode 6.65 tok/s, no gain. |
+| T7 prefill, 512-token padded prompt, 3 runs | **before (`06e44a0`) 7.234 tok/s, TTFT 70.78 s; after (`f1cc494`) 7.235 tok/s, TTFT 70.77 s. Unchanged.** |
+| T7 defaults (decode) | 6.67 tok/s (prefill 6.86 at 8 tokens, TTFT 1,021 ms, peak 20,969 MiB) |
+| llama.cpp `-sm layer`, the same 512-token prompt | **117.5 tok/s** prompt processing (117.7, 117.4, 117.5) |
+
+**Why prefill did not move: the batched path is switched off on any split.** `batch_capable()` in
+`crates/spite-models/src/hybrid.rs` requires `self.layer_stage.iter().all(|&s| s == 0)`, i.e. a single stage.
+- A 27B Q5/Q6 does not fit one 16 GB P100, so on this PR's own target the prompt always takes the per-token path.
+- The kernels do advertise the capability: `spite_kernel_caps` is exported by both the vendor `.so` and the generic
+  one, and the batch verifier passes on sm_60.
+- The author's batched-prefill check was on a single GPU, which explains the difference.
+- The doc comment above `batch_capable` ("the per-card CUDA kernels do not yet") is stale for qwen3_5/nvidia.
+
+**Verdicts:**
+- **Q1** (both verify tools pass): **holds**.
+- **Q2** (prefill at least 3x): **does not hold**, 1.00x, because of the stage gate above.
+- **Q3** (decode within 3 %): **holds**, 6.67.
+- **Q4** (greedy unchanged up to EOG): **holds**.
+- **Q5** (p1-p3 end at EOG): **holds**.
+- **Q6** (`--mtp` bench completes): **holds**, but with 0 % acceptance, so MTP is still not functional on the split.
+
+**Open after round 3:**
+- MTP acceptance 0 % on the split;
+- `--mtp` in `run` (#3, the author's next step);
+- batched prefill on multi-stage splits;
+- prefill gap: 7.2 vs 117.5 tok/s for llama.cpp at 512 tokens.
+
+**Not tested:** the per-distinct-token penalty at temperature > 0 (#2 claims a fix) was not exercised. Only greedy runs
+were made.
