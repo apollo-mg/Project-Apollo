@@ -210,3 +210,40 @@ said further work would need.
 
 **Reported:** round 4 was posted with Mark's OK at
 https://github.com/giveen/spite/pull/23#issuecomment-6044406798.
+
+## Addendum R5: round 5 at `caa2d72` (head `6e708fb`), the author's list; R5-b, the acceptance cross-check
+
+Registered as Addendum R5 (`cd37cdaa`) and R5-b (`33e72b2e`), each before its rows.
+- **Raw:** `raw_r5/` (profiler streams left on .73: one `.nsys-rep` and five `.qdstrm`).
+- **Runners:** `kit/run_tests_r5.sh`, `kit/run_tests_r5b.sh`. The first launch of r5 failed (the script was not
+  executable) and was relaunched.
+
+| item | result |
+|---|---|
+| verify / `cargo test` | `verify.py` PASSED (93 OK), `verify_batch_cuda.py` PASSED, `cargo test --workspace` **149/149** (desktop) |
+| rows | 512/32/3: **prefill 7.37 tok/s** (TTFT 69.5 s), decode 6.70. Defaults: decode 6.69, TTFT 922 ms. Prefill is **-6.6 %** against round 4's 7.89, beyond the author's 5 % line; this is the added draft pass per prompt token. |
+| (a) scaling | TTFT 1.03 / 3.87 / 15.34 / 69.52 s at 8 / 32 / 128 / 512 prompt tokens: **~120-135 ms per token, flat**. A per-token cost, not per-prompt. |
+| (b) nsys | One usable profile (512-token prefill plus 16 decode, at `caa2d72`). The other four streams failed in nsys 2023.4's importer ("Wrong event order"), with and without the osrt trace. The bench's warmup is a full prefill, so the profile holds 2 x 512 prefill tokens. Kernel time **140.7 s**, about equal to 2 x 69.6 s: **kernels own the wall time, not host gaps.** `gemv_batch_kernel<Q6_K>` **81.5 %** (704 calls, **163 ms each**), `gemv_row_kernel<Q6_K>` 12.7 % (11,274 x 1.58 ms), `gemv_batch_kernel<Q8_0>` 4.4 %, everything else < 1 % each. API: `cudaLaunchKernel` 119.5 s (avg 737 us, blocking on a full queue), `cudaMemcpy` 44.7 s (the 22.7 GB model upload 21.6 s). |
+| (c) counters | **Not available on sm_60 here:** Nsight Compute 2024.1 says "Profiling is not supported on device 0/1"; `nvprof` gives "Internal profiling error 4211:27" with driver 580. |
+| (d) GPU log, 512 run | SM 1,328 MHz, mem 715 MHz, power median **106 W** (cap 150, "SW Power Cap: Not Active"), utilization.gpu **100 %**, **utilization.memory 2 %** |
+| (e) | nsys 2023.4.4, ncu 2024.1.1. `gemv_batch_kernel<Q6_K>` **99 registers per thread** (the Q5_K instance 40) |
+| (f) acceptance, Roman Republic prompt, 128 tokens | spite `--mtp` K = 1 / 2 / 3: **100.0 / 98.8 / 100.0 %**. **llama.cpp (buun 510cb, same GGUF and NextN head, `--draft-max 1`): 58 / 69 = 84.1 %**, 14.8 tok/s (plain 8.90). Greedy text identical between spite and llama.cpp on this prompt. |
+| CPU gate row | not run: `DenseWeights::load` dequantizes everything to F32 (~108 GB for the 27B), against 15 GiB of RAM |
+
+**Reading:**
+- **Prefill is bound by the batched Q6_K GEMV kernel itself.**
+  - At about 91 GFLOP per FFN-shaped call, 163 ms is ~0.56 TFLOPS, ~6 % of FP32 peak.
+  - The memory bus sits at 2 %, with 99 registers per thread.
+  - So the kernel is compute- and latency-bound on repeated Q6_K dequantization (once per 4-column chunk, i.e.
+    128 times per weight at 512 tokens) at low occupancy. It is not bandwidth-bound.
+- **The real-text acceptance is still an artifact.** The same NextN weights on the same prompt accept 84 % in
+  llama.cpp, and spite's chained K = 3 drafts never miss. That is consistent with drafts that track the trunk's own
+  next prediction, not with a working head.
+
+**Verdicts:**
+- **V1** (verify and tests unchanged): **holds**.
+- **V2** (prefill within 5 %): **does not hold**, -6.6 %.
+- **V3** (TTFT(512) / TTFT(128) >= 3.5): **holds**, 4.53.
+- **V4** (kernels below 50 % of wall): **does not hold**, about 100 %.
+- **V5** (acceptance 40-90 %): **does not hold**, 100 %, an artifact.
+- **R5-b1** (llama.cpp acceptance below 95 %): **holds**, 84.1 %.

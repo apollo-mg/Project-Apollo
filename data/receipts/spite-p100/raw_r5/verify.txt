@@ -1,0 +1,325 @@
+
+Reference : ~/spite/build/kernels/generic/generic/libkernel_generic.so
+Under test: kernels/qwen/qwen3_5/nvidia/libkernel_qwen_qwen3_5_nvidia.so
+
+── ABI check ──────────────────────────────────────────────────────
+  reference: arch=generic gpu=generic abi=7 author=spite project
+  under-test: arch=qwen3_5 gpu=cuda abi=7 author=spite project (generic nvidia/cuda path)
+
+── Op correctness ─────────────────────────────────────────────────
+
+  [rms_norm] dim=64
+    OK: max_abs_diff=2.38e-07
+
+  [rms_norm] dim=4096
+    OK: max_abs_diff=1.19e-06
+
+  [mtp_stem] dim=64 tokens=1
+    OK: max_abs_diff=4.77e-07
+
+  [mtp_stem] dim=4096 tokens=3
+    OK: max_abs_diff=1.91e-06
+
+  [matmul] shape=[128, 64]
+    OK: max_abs_diff=7.15e-07
+
+  [matmul] shape=[4096, 4096]
+    OK: max_abs_diff=9.78e-06
+
+  [matmul] shape=[256, 64] q8_0
+    OK: max_abs_diff=4.77e-07
+
+  [matmul] shape=[256, 512] q8_0
+    OK: max_abs_diff=2.86e-06
+
+  [matmul] shape=[256, 1024] q8_0
+    OK: max_abs_diff=2.15e-06
+
+  [matmul] shape=[256, 2048] q8_0
+    OK: max_abs_diff=3.10e-06
+
+  [matmul] shape=[256, 4096] q8_0
+    OK: max_abs_diff=3.58e-06
+
+  [matmul] shape=[16384, 64] q8_0
+    OK: max_abs_diff=9.54e-07
+
+  [matmul] type=F32 shape=[256, 1024]
+    OK: max_abs_diff=2.03e-06  (|out| max 3.15)
+
+  [matmul] type=F32 shape=[37, 768]
+    OK: max_abs_diff=1.13e-06  (|out| max 1.63)
+
+  [matmul] type=F16 shape=[256, 1024]
+    OK: max_abs_diff=3.34e-06  (|out| max 4.39)
+
+  [matmul] type=F16 shape=[37, 768]
+    OK: max_abs_diff=1.79e-06  (|out| max 3.84)
+
+  [matmul] type=BF16 shape=[256, 1024]
+    OK: max_abs_diff=1.91e-06  (|out| max 3.03)
+
+  [matmul] type=BF16 shape=[37, 768]
+    OK: max_abs_diff=8.34e-07  (|out| max 1.69)
+
+  [matmul] type=Q4_0 shape=[256, 1024]
+    OK: max_abs_diff=2.38e-06  (|out| max 3.30)
+
+  [matmul] type=Q4_0 shape=[37, 768]
+    OK: max_abs_diff=1.55e-06  (|out| max 2.03)
+
+  [matmul] type=Q4_1 shape=[256, 1024]
+    OK: max_abs_diff=3.22e-06  (|out| max 3.25)
+
+  [matmul] type=Q4_1 shape=[37, 768]
+    OK: max_abs_diff=1.19e-06  (|out| max 3.44)
+
+  [matmul] type=Q5_0 shape=[256, 1024]
+    OK: max_abs_diff=2.62e-06  (|out| max 3.07)
+
+  [matmul] type=Q5_0 shape=[37, 768]
+    OK: max_abs_diff=2.26e-06  (|out| max 3.04)
+
+  [matmul] type=Q5_1 shape=[256, 1024]
+    OK: max_abs_diff=2.15e-06  (|out| max 3.57)
+
+  [matmul] type=Q5_1 shape=[37, 768]
+    OK: max_abs_diff=1.43e-06  (|out| max 2.19)
+
+  [matmul] type=Q8_0 shape=[256, 1024]
+    OK: max_abs_diff=2.15e-06  (|out| max 2.70)
+
+  [matmul] type=Q8_0 shape=[37, 768]
+    OK: max_abs_diff=1.79e-06  (|out| max 2.05)
+
+  [matmul] type=Q1_0 shape=[256, 1024]
+    OK: max_abs_diff=5.01e-06  (|out| max 3.65)
+
+  [matmul] type=Q1_0 shape=[37, 768]
+    OK: max_abs_diff=1.04e-06  (|out| max 2.17)
+
+  [matmul] type=Q2_0 shape=[256, 1024]
+    OK: max_abs_diff=1.67e-06  (|out| max 3.81)
+
+  [matmul] type=Q2_0 shape=[37, 768]
+    OK: max_abs_diff=1.79e-06  (|out| max 2.02)
+
+  [matmul] type=Q2_K shape=[256, 1024]
+    OK: max_abs_diff=2.26e-06  (|out| max 2.78)
+
+  [matmul] type=Q2_K shape=[37, 768]
+    OK: max_abs_diff=1.43e-06  (|out| max 2.17)
+
+  [matmul] type=Q3_K shape=[256, 1024]
+    OK: max_abs_diff=2.38e-06  (|out| max 3.65)
+
+  [matmul] type=Q3_K shape=[37, 768]
+    OK: max_abs_diff=1.07e-06  (|out| max 2.22)
+
+  [matmul] type=Q4_K shape=[256, 1024]
+    OK: max_abs_diff=2.15e-06  (|out| max 2.75)
+
+  [matmul] type=Q4_K shape=[37, 768]
+    OK: max_abs_diff=8.34e-07  (|out| max 2.68)
+
+  [matmul] type=Q5_K shape=[256, 1024]
+    OK: max_abs_diff=2.62e-06  (|out| max 2.61)
+
+  [matmul] type=Q5_K shape=[37, 768]
+    OK: max_abs_diff=1.91e-06  (|out| max 2.53)
+
+  [matmul] type=Q6_K shape=[256, 1024]
+    OK: max_abs_diff=2.15e-06  (|out| max 3.01)
+
+  [matmul] type=Q6_K shape=[37, 768]
+    OK: max_abs_diff=1.48e-06  (|out| max 2.84)
+
+  [matmul] type=IQ2_XXS shape=[256, 1024]
+    OK: max_abs_diff=3.10e-06  (|out| max 2.58)
+
+  [matmul] type=IQ2_XXS shape=[37, 768]
+    OK: max_abs_diff=1.43e-06  (|out| max 2.41)
+
+  [matmul] type=IQ2_XS shape=[256, 1024]
+    OK: max_abs_diff=3.34e-06  (|out| max 2.74)
+
+  [matmul] type=IQ2_XS shape=[37, 768]
+    OK: max_abs_diff=1.67e-06  (|out| max 2.49)
+
+  [matmul] type=IQ2_S shape=[256, 1024]
+    OK: max_abs_diff=4.29e-06  (|out| max 3.14)
+
+  [matmul] type=IQ2_S shape=[37, 768]
+    OK: max_abs_diff=1.46e-06  (|out| max 2.26)
+
+  [matmul] type=IQ3_XXS shape=[256, 1024]
+    OK: max_abs_diff=3.58e-06  (|out| max 3.84)
+
+  [matmul] type=IQ3_XXS shape=[37, 768]
+    OK: max_abs_diff=1.43e-06  (|out| max 2.12)
+
+  [matmul] type=IQ3_S shape=[256, 1024]
+    OK: max_abs_diff=1.79e-06  (|out| max 3.17)
+
+  [matmul] type=IQ3_S shape=[37, 768]
+    OK: max_abs_diff=1.43e-06  (|out| max 3.80)
+
+  [matmul] type=IQ1_S shape=[256, 1024]
+    OK: max_abs_diff=2.03e-06  (|out| max 2.74)
+
+  [matmul] type=IQ1_S shape=[37, 768]
+    OK: max_abs_diff=1.31e-06  (|out| max 2.20)
+
+  [matmul] type=IQ1_M shape=[256, 1024]
+    OK: max_abs_diff=2.03e-06  (|out| max 3.69)
+
+  [matmul] type=IQ1_M shape=[37, 768]
+    OK: max_abs_diff=1.07e-06  (|out| max 2.39)
+
+  [matmul] type=IQ4_NL shape=[256, 1024]
+    OK: max_abs_diff=2.74e-06  (|out| max 3.15)
+
+  [matmul] type=IQ4_NL shape=[37, 768]
+    OK: max_abs_diff=1.19e-06  (|out| max 2.01)
+
+  [matmul] type=IQ4_XS shape=[256, 1024]
+    OK: max_abs_diff=3.34e-06  (|out| max 3.90)
+
+  [matmul] type=IQ4_XS shape=[37, 768]
+    OK: max_abs_diff=1.31e-06  (|out| max 2.31)
+
+  [matmul] type=TQ1_0 shape=[256, 1024]
+    OK: max_abs_diff=2.03e-06  (|out| max 3.06)
+
+  [matmul] type=TQ1_0 shape=[37, 768]
+    OK: max_abs_diff=1.07e-06  (|out| max 2.45)
+
+  [matmul] type=TQ2_0 shape=[256, 1024]
+    OK: max_abs_diff=2.26e-06  (|out| max 3.56)
+
+  [matmul] type=TQ2_0 shape=[37, 768]
+    OK: max_abs_diff=8.34e-07  (|out| max 2.19)
+
+  [matmul] type=MXFP4 shape=[256, 1024]
+    OK: max_abs_diff=2.38e-06  (|out| max 3.64)
+
+  [matmul] type=MXFP4 shape=[37, 768]
+    OK: max_abs_diff=8.34e-07  (|out| max 1.83)
+
+  [matmul] type=NVFP4 shape=[256, 1024]
+    OK: max_abs_diff=3.81e-06  (|out| max 7.44)
+
+  [matmul] type=NVFP4 shape=[37, 768]
+    OK: max_abs_diff=2.62e-06  (|out| max 5.52)
+
+  [matmul] per-type summary over 28 types x 2 shapes: 56 OK, 0 SKIP, 0 FAIL
+
+  [ffn] hidden=64 ffn_dim=128
+    OK: max_abs_diff=2.98e-07
+
+  [ffn] hidden=2048 ffn_dim=4096
+    OK: max_abs_diff=5.13e-06
+
+  [moe_ffn] hidden=64 intermediate=128 n_expert=256 n_used=8 shared=True
+    OK: max_abs_diff=2.38e-07
+
+  [moe_ffn] hidden=64 intermediate=128 n_expert=256 n_used=8 shared=False
+    OK: max_abs_diff=1.49e-07
+
+  [attention] d_model=64 heads=4 kv_heads=2 head_dim=16 ctx=8 pos=3 kv=F32
+    SKIP: test kernel has no attention
+
+  [attention] d_model=64 heads=4 kv_heads=2 head_dim=16 ctx=8 pos=3 kv=F32 (no QK norm)
+    SKIP: test kernel has no attention
+
+  [attention] d_model=64 heads=4 kv_heads=2 head_dim=80 ctx=160 pos=20 kv=F32
+    SKIP: test kernel has no attention
+
+  [attention] d_model=64 heads=4 kv_heads=2 head_dim=64 ctx=96 pos=7 kv=F32
+    SKIP: test kernel has no attention
+
+  [attention] d_model=64 heads=4 kv_heads=2 head_dim=96 ctx=160 pos=20 kv=F32
+    SKIP: test kernel has no attention
+
+  [attention] d_model=64 heads=4 kv_heads=2 head_dim=64 ctx=320 pos=140 kv=F32
+    SKIP: test kernel has no attention
+
+  [attention] VBR tiers f16/q8_0/q5_1/q4_0 (block decoders): SKIP — the reference
+              kernel declares F32-only KV; pass a tier-capable .so as --ref to check them
+
+  [reference contract] linear_attn / attention_ex validation and scratch handling
+    OK: 11 GDN + 17 attention_ex malformed calls rejected cleanly, provided-scratch path bit-identical to malloc
+
+  [linear_attn] n_kh=2 n_vh=4 S=64 K=4 d_model=256 weights=F32 steps=3
+    OK: max_abs_diff=4.02e-07 (threshold 1e-04); reference vs float64 oracle 1.64e-07
+
+  [linear_attn] n_kh=2 n_vh=4 S=64 K=4 d_model=256 weights=Q8_0 steps=3
+    OK: max_abs_diff=4.17e-07 (threshold 1e-03); reference vs float64 oracle 1.69e-07
+
+  [linear_attn] n_kh=2 n_vh=4 S=64 K=4 d_model=256 weights=Q4_K/Q5_K/Q6_K steps=3
+    OK: max_abs_diff=5.96e-08 (threshold 1e-03); reference vs float64 oracle 1.50e-07
+
+  [linear_attn] n_kh=4 n_vh=8 S=128 K=4 d_model=512 weights=F32 steps=3
+    OK: max_abs_diff=4.77e-07 (threshold 1e-04); reference vs float64 oracle 1.90e-07
+
+  [linear_attn] n_kh=4 n_vh=8 S=128 K=4 d_model=512 weights=Q8_0 steps=3
+    OK: max_abs_diff=5.36e-07 (threshold 1e-03); reference vs float64 oracle 1.76e-07
+
+  [linear_attn] n_kh=4 n_vh=8 S=128 K=4 d_model=512 weights=Q4_K/Q5_K/Q6_K steps=3
+    OK: max_abs_diff=1.49e-07 (threshold 1e-03); reference vs float64 oracle 1.86e-07
+
+  [linear_attn] n_kh=16 n_vh=48 S=128 K=4 d_model=5120 weights=Q8_0 steps=3
+    OK: max_abs_diff=6.85e-07 (threshold 1e-03)
+
+  [linear_attn] n_kh=1 n_vh=2 S=16 K=1 d_model=32 weights=F32 steps=3
+    SKIP: test linear_attn returned -1 (geometry or weight type unsupported)
+
+  [linear_attn] n_kh=2 n_vh=2 S=16 K=2 d_model=64 weights=F32 steps=3
+    SKIP: test linear_attn returned -1 (geometry or weight type unsupported)
+
+  [linear_attn] n_kh=2 n_vh=6 S=16 K=3 d_model=64 weights=F32 steps=3
+    SKIP: test linear_attn returned -1 (geometry or weight type unsupported)
+
+  [attention_ex] d_model=256 heads=4 kv_heads=2 head_dim=64 rope_dim=32 gated=1 ctx=48 pos=17+3 weights=F32 kv=F32
+    OK: max_abs_diff=1.43e-06 (threshold 1e-04); reference vs float64 oracle 1.28e-06
+
+  [attention_ex] d_model=512 heads=8 kv_heads=2 head_dim=256 rope_dim=64 gated=1 ctx=96 pos=40+3 weights=F32 kv=F32
+    OK: max_abs_diff=2.86e-06 (threshold 1e-04); reference vs float64 oracle 2.88e-06
+
+  [attention_ex] d_model=256 heads=4 kv_heads=2 head_dim=64 rope_dim=32 gated=1 ctx=48 pos=17+3 weights=Q8_0 kv=F32
+    OK: max_abs_diff=1.67e-06 (threshold 1e-03); reference vs float64 oracle 1.54e-06
+
+  [attention_ex] d_model=512 heads=8 kv_heads=2 head_dim=256 rope_dim=64 gated=1 ctx=96 pos=40+3 weights=Q8_0 kv=F32
+    OK: max_abs_diff=2.62e-06 (threshold 1e-03); reference vs float64 oracle 2.54e-06
+
+  [attention_ex] d_model=256 heads=4 kv_heads=2 head_dim=64 rope_dim=32 gated=1 ctx=48 pos=17+3 weights=Q4_K/Q5_K/Q6_K kv=F32
+    OK: max_abs_diff=1.91e-06 (threshold 1e-03); reference vs float64 oracle 1.88e-06
+
+  [attention_ex] d_model=512 heads=8 kv_heads=2 head_dim=256 rope_dim=64 gated=1 ctx=96 pos=40+3 weights=Q4_K/Q5_K/Q6_K kv=F32
+    OK: max_abs_diff=4.53e-06 (threshold 1e-03); reference vs float64 oracle 4.63e-06
+
+  [attention_ex] d_model=256 heads=4 kv_heads=2 head_dim=64 rope_dim=64 gated=1 ctx=48 pos=17+3 weights=F32 kv=F32
+    OK: max_abs_diff=1.92e-06 (threshold 1e-04); reference vs float64 oracle 1.89e-06
+
+  [attention_ex] d_model=256 heads=4 kv_heads=2 head_dim=64 rope_dim=16 gated=0 ctx=48 pos=17+3 weights=F32 kv=F32
+    OK: max_abs_diff=1.91e-06 (threshold 1e-04); reference vs float64 oracle 2.31e-06
+
+  [attention_ex] d_model=256 heads=4 kv_heads=2 head_dim=64 rope_dim=64 gated=0 ctx=48 pos=17+3 weights=F32 kv=F32
+    OK: max_abs_diff=1.91e-06 (threshold 1e-04); reference vs float64 oracle 2.18e-06; reference == v4 attention (bit-exact)
+
+  [attention_ex] d_model=256 heads=4 kv_heads=2 head_dim=64 rope_dim=64 gated=0 ctx=48 pos=17+3 weights=Q8_0 kv=F32
+    OK: max_abs_diff=1.91e-06 (threshold 1e-03); reference vs float64 oracle 1.81e-06; reference == v4 attention (bit-exact)
+
+  [attention_ex] d_model=256 heads=4 kv_heads=2 head_dim=64 rope_dim=64 gated=0 ctx=48 pos=17+3 weights=Q4_K/Q5_K/Q6_K kv=F32
+    OK: max_abs_diff=2.15e-06 (threshold 1e-03); reference vs float64 oracle 1.95e-06; reference == v4 attention (bit-exact)
+
+  [attention_ex] d_model=256 heads=4 kv_heads=2 head_dim=64 rope_dim=64 gated=0 ctx=48 pos=17+3 weights=F32 kv=F32 (no QK norm)
+    OK: max_abs_diff=1.55e-06 (threshold 1e-04); reference vs float64 oracle 1.58e-06; reference == v4 attention (bit-exact)
+
+  [attention_ex] d_model=256 heads=8 kv_heads=2 head_dim=128 rope_dim=128 gated=0 ctx=160 pos=140+3 weights=F32 kv=F32
+    OK: max_abs_diff=1.47e-05 (threshold 1e-04); reference vs float64 oracle 1.45e-05; reference == v4 attention (bit-exact)
+
+  [attention_ex] VBR tiers f16/q8_0/q5_1/q4_0: SKIP - the reference kernel declares F32-only KV; pass a tier-capable .so as --ref to check them
+
+── Result ─────────────────────────────────────────────────────────
+PASSED — all checks OK
