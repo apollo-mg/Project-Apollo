@@ -182,3 +182,27 @@ Any change after the first GPU row gets a numbered Deviation here before the aff
       (0.6)
     - **Q5:** p1-p3 now end at the EOG token, with nothing after it. (0.85)
     - **Q6:** `spite-bench --mtp` completes on the split. (0.7)
+- **Addendum R4 (before any R4 row; 10-07 ~13:40): round 4 at PR head `f85a2a2`, requested by the author ("probably the
+  last one I do").**
+  - **What the commit claims:**
+    - batched prefill across stages (the `batch_capable` single-stage gate is removed, and `[d, m]` blocks pass over
+      the host hop);
+    - real MTP. `MtpBenchRunner` sampled the trunk's logits as the "draft", so acceptance was structurally 0. Now an
+      exact speculative-decode loop drives the NextN head, and greedy is claimed bit-exact against plain decode.
+      `--mtp` / `--draft-tokens` are wired into `spite run`.
+  - **Before/after:** the `f1cc494` binaries and `.so` files are saved to `~/spite-test/b_f1/` before the checkout.
+  - **Rows:**
+    - T1 build. T2 `cargo test` (desktop).
+    - T6: `verify.py`, `verify_batch_cuda.py`.
+    - T3/T4: 4 prompts x default / `--gpus 1,0` / repeat, compared with `f1cc494`'s text.
+    - T7: `spite-bench --n-prompt 512 --n-tokens 32 --n-runs 3`, before and after; `spite-bench` defaults after.
+    - T8:
+      - `spite-bench --mtp`, plus `--draft-tokens 2` and `3` (acceptance, decode);
+      - `spite run --mtp` on the 4 prompts, text compared with plain `spite run`.
+  - **Predictions:**
+    - **S1:** both verify tools pass. (0.85)
+    - **S2:** prefill at 512 tokens is at least 3x `f1cc494`'s 7.23 tok/s on the 2-stage split. (0.6)
+    - **S3:** plain decode within 3 % of 6.67 tok/s. (0.8)
+    - **S4:** greedy text equals `f1cc494`'s on all 4 prompts. (0.65)
+    - **S5:** `spite-bench --mtp` acceptance above 30 %, and `spite run --mtp` text identical to plain on all 4. (0.55)
+    - **S6:** MTP decode at least 1.2x plain decode. (0.4)
