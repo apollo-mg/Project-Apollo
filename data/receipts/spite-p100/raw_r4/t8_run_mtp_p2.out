@@ -1,0 +1,32 @@
+spite — One Engine, Your Model, Your Card.
+──────────────────────────────────────────
+model arch   : qwen35
+card         : tesla_p100 (16 GiB)
+gpu arch     : sm_60
+kernels      :
+features     : mtp
+kv cache     : f16 start  (auto-VBR)
+  rms_norm       → cuda/kernels/qwen/qwen3_5/nvidia
+  attention      → generic/kernels/generic/generic
+  ffn            → cuda/kernels/qwen/qwen3_5/nvidia
+  layer          → generic/kernels/generic/generic
+  matmul         → cuda/kernels/qwen/qwen3_5/nvidia
+  linear_attn    → cuda/kernels/qwen/qwen3_5/nvidia
+  attention_ex   → cuda/kernels/qwen/qwen3_5/nvidia
+  mtp_stem       → cuda/kernels/qwen/qwen3_5/nvidia
+  moe_ffn        → cuda/kernels/qwen/qwen3_5/nvidia
+  spec_verify    → generic/kernels/generic/generic
+  prefill        → generic/kernels/generic/generic
+context      : 8192 tokens
+
+prompt       : Question: What is the capital of France?
+Answer:
+max tokens   : 128
+temperature  : 0
+device       : Cuda (hybrid) — weights 20.33 GiB + KV 0.53 GiB (F16) + recurrent state 0.15 GiB + scratch 0.83 MiB; 5.34/15.89 GiB free
+  stage      : GPU 0 — layers 0..33 (10.14 GiB)
+  stage      : GPU 1 — layers 33..64 (10.87 GiB)
+
+
+
+Paris.

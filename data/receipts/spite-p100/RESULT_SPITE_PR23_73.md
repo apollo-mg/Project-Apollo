@@ -168,3 +168,42 @@ were made.
 
 **Reported:** round 3 was posted with Mark's OK at
 https://github.com/giveen/spite/pull/23#issuecomment-6028319572.
+
+## Addendum R4: round 4 at PR head `f85a2a2` (cross-stage batched prefill, "real" MTP)
+
+Registered as Addendum R4 (`f29e1ad0`), before any R4 row.
+- **Raw:** `raw_r4/`, `raw/t2_cargo_test_desktop_f85a2a2.log`.
+- **Runner:** `kit/run_tests_r4.sh`.
+- **The "before"** is the saved `f1cc494` binaries and `.so` files. The kernel `.so` is byte-identical between the two
+  heads, so every difference is in the host code.
+
+| test | result at `f85a2a2` |
+|---|---|
+| T1 / T2 | builds (6 sm_60 cubins); `cargo test` **148 passed, 0 failed** |
+| T6 | `verify.py` PASSED (93 OK / 12 SKIP / 0 FAIL); `verify_batch_cuda.py` PASSED |
+| T3/T4 | greedy text **identical to `f1cc494`** on all 4 prompts, in both stage orders and on a repeat. Short-prompt `spite run` wall time drops, e.g. p1 2.85 s -> 2.42 s. |
+| T7 prefill, 512-token prompt, 2-stage split | **7.24 -> 7.89 tok/s (1.09x)**; TTFT 70.7 -> 64.9 s. llama.cpp `-sm layer` on the same prompt, box and file: 117.5 (round 3). |
+| T7 defaults | decode 6.69 tok/s (prefill 8.07 at 8 tokens, TTFT 868 ms against 1,021) |
+| T8 `spite run --mtp` | **text identical to plain decode on all 4 prompts**, so greedy speculative decoding is exact. It is slower: p4 128 tokens 5.60 tok/s against 6.79 plain. |
+| T8 `spite-bench --mtp` | acceptance **99.6 / 99.4 / 99.0 %** at K = 1 / 2 / 3; decode **6.26 / 6.12 / 6.05 tok/s**, against 6.67 plain |
+
+**Why MTP is slower despite ~99 % acceptance:**
+- `Executor::generate_speculative_from_logits` (`crates/spite-executor/src/lib.rs`) checks each draft against the
+  current logits and then feeds the accepted draft through `decode_step(d)`, one token at a time.
+- So every output token still costs one full trunk pass, plus the NextN head per draft. The verify is sequential,
+  not batched.
+- The speedup needs one trunk pass over `[tok, d1..dK]` (m = K + 1, which the new cross-stage `forward_batch` can
+  carry), then rolling back the KV and the GDN recurrent state for any rejected tail.
+- The ~99 % acceptance comes from spite-bench's fixed prompt, a greedy 512-token continuation that is probably
+  repetitive. It is not an acceptance rate for real text.
+
+**Verdicts:**
+- **S1** (verify tools pass): **holds**.
+- **S2** (prefill at least 3x): **does not hold**, 1.09x.
+- **S3** (plain decode within 3 %): **holds**, 6.67-6.69.
+- **S4** (greedy text unchanged): **holds**.
+- **S5** (acceptance above 30 %, and `--mtp` text identical): **holds**.
+- **S6** (MTP at least 1.2x): **does not hold**, 0.91-0.94x.
+
+**Note for the author:** `ncu` and `nsys` are installed on this box (`/usr/bin`). That is the profiling the author
+said further work would need.
