@@ -165,3 +165,6 @@ Registered as Addendum R3 (`257ba7d3`), before any R3 row.
 
 **Not tested:** the per-distinct-token penalty at temperature > 0 (#2 claims a fix) was not exercised. Only greedy runs
 were made.
+
+**Reported:** round 3 was posted with Mark's OK at
+https://github.com/giveen/spite/pull/23#issuecomment-6028319572.
