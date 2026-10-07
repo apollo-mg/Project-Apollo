@@ -206,3 +206,30 @@ Any change after the first GPU row gets a numbered Deviation here before the aff
     - **S4:** greedy text equals `f1cc494`'s on all 4 prompts. (0.65)
     - **S5:** `spite-bench --mtp` acceptance above 30 %, and `spite run --mtp` text identical to plain on all 4. (0.55)
     - **S6:** MTP decode at least 1.2x plain decode. (0.4)
+- **Addendum R5 (before any R5 row; 10-07 ~17:10): round 5 at `caa2d72` (head `6e708fb` = `caa2d72` plus a test
+  comment), the author's list.**
+  - **What the head claims:** the MTP KV is filled over the prompt. The draft head previously attended over unwritten
+    KV rows, so round 4's ~99 % acceptance came from a context-blind head.
+  - **Method correction accepted from the author:** "text identical to plain under `--mtp`" does not show the head
+    ran, since the loop emits only trunk-argmax tokens. Acceptance > 0 does.
+  - **Rows:**
+    - verify tools; `cargo test` (desktop);
+    - refreshed `spite-bench` rows (512/32/3 and defaults);
+    - (a) prompt-length scaling at n = 8/32/128/512;
+    - (b) `nsys profile --trace=cuda,osrt --stats=true` on a 512-token prefill at `caa2d72` and at the saved
+      `f1cc494` binaries, plus `--n-tokens 16` at `caa2d72`;
+    - (c) `sudo ncu` on `gemv_batch_kernel` / `gemv_row_kernel`. Run unconditionally, because ncu needs root here
+      (RmProfilingAdminOnly=1) and a second window costs more than the run.
+    - (d) an `nvidia-smi` 1 s log during the 512 run, plus `-q -d PERFORMANCE,ECC`;
+    - (e) tool versions and `cuobjdump -res-usage`;
+    - (f) real-text MTP acceptance (the author's Roman Republic prompt, 128 tokens, K = 1).
+  - **Not run:** the generic CPU gate row. `DenseWeights::load` dequantizes every tensor to F32 (~108 GB for the
+    27B) against 15 GiB of RAM on .73. Reported as infeasible on this box.
+  - **Predictions:**
+    - **V1:** verify tools and `cargo test` unchanged. (0.9)
+    - **V2:** 512-token prefill within 5 % of round 4's 7.89 tok/s, despite the added draft pass per prompt token.
+      (0.6)
+    - **V3:** TTFT scales roughly linearly with prompt length: TTFT(512) / TTFT(128) >= 3.5. (0.8)
+    - **V4:** the sum of GPU kernel time under nsys is below 50 % of the 512-token prefill wall time (host and sync
+      gaps dominate). (0.55)
+    - **V5:** real-text MTP acceptance at K = 1 is between 40 % and 90 %. (0.6)
