@@ -81,3 +81,8 @@
   from `apollo-mg:community-4x-tesla-p100`. Results only: README + `runs.json` + client timings + `strata_bench.py` +
   the two canonical prompts.
 - **Folder:** `bench/results/2026-10-06-community-4x-tesla-p100/`. The draft is in `strata_pr/`.
+
+**Landed (2026-10-07):** the community report from PR #1192 is in Strata v0.1.40.2 as
+`bench/results/2026-10-06-community-4x-tesla-p100/`, with authorship kept and a row in `bench/results/COMMUNITY.md`. The
+maintainer closed the PR and copied the folder in by hand. Raw dumps and logs were trimmed; the folder's TRIMMED.md lists
+them.
