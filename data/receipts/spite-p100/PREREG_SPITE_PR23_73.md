@@ -233,3 +233,12 @@ Any change after the first GPU row gets a numbered Deviation here before the aff
     - **V4:** the sum of GPU kernel time under nsys is below 50 % of the 512-token prefill wall time (host and sync
       gaps dominate). (0.55)
     - **V5:** real-text MTP acceptance at K = 1 is between 40 % and 90 %. (0.6)
+  - **R5-b (after the (f) row, before its follow-ups; 10-07 ~17:45): is the 100 % real-text acceptance real?**
+    - (f) gave acceptance 100.0 % at K = 1 on the author's Roman Republic prompt. That is implausible for a NextN
+      head on free text, and the bench reports no token count.
+    - **Reference:** buun `510cb-nohost` llama-server, the daily driver's binary, on the same GGUF, its own NextN head
+      (`--spec-type draft-mtp --draft-max 1`), `-sm layer -fa on -c 8192 -np 1`, f16 KV, `/completion` greedy,
+      `cache_prompt` false, the same prompt, 128 tokens. Acceptance = `draft_n_accepted / draft_n` from its timings.
+    - **Also:** spite `--mtp --draft-tokens 2` and `3` on the same prompt.
+    - **Prediction R5-b1:** llama.cpp's K = 1 acceptance on this prompt is below 95 %, which would make spite's 100 %
+      a counting or drafting artifact, not a property of the head. (0.75)
