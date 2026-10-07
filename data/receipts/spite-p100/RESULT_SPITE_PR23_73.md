@@ -247,3 +247,6 @@ Registered as Addendum R5 (`cd37cdaa`) and R5-b (`33e72b2e`), each before its ro
 - **V4** (kernels below 50 % of wall): **does not hold**, about 100 %.
 - **V5** (acceptance 40-90 %): **does not hold**, 100 %, an artifact.
 - **R5-b1** (llama.cpp acceptance below 95 %): **holds**, 84.1 %.
+
+**Reported:** round 5 was posted with Mark's OK at
+https://github.com/giveen/spite/pull/23#issuecomment-6048055944.
