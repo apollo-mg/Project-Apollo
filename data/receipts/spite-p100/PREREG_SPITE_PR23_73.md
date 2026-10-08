@@ -289,3 +289,20 @@ Any change after the first GPU row gets a numbered Deviation here before the aff
       file. That points at the head path, not the split. (0.55)
     - **W8:** the CPU gate row completes on the 2B. (0.8)
     - **W9:** greedy text at `69676bc` equals R4's on all 4 prompts, and `--mtp` text equals plain. (0.75)
+  - **Deviation R6-1 (after the 27B `--mtp` text row, before any of these rows; 10-08 ~18:20): is the `--mtp` text
+    divergence a split bug or a verify bug?**
+    - **Why:** at `69676bc`, `spite run --mtp` (K = 3 default) on the Roman Republic prompt diverges from plain greedy
+      at character 14 ("overthrown in 5091509 BC"), while spite-bench reports 100 % acceptance at K = 1/2/3 with TV
+      0.10-0.13. An exact greedy loop can only emit the trunk's own tokens, so the verify accepts drafts the trunk would
+      not choose. The host acceptance code (`spite-executor` batched path) indexes `batch_logits[k]` against draft `k`
+      correctly on reading, which points at the logits `verify_batch` returns.
+    - **Rows** (after the main R6 runner exits; `spite run`, greedy, 128 tokens, the Roman Republic prompt; `spite run`
+      prints no acceptance, so these are text checks):
+      - 27B, `--mtp --draft-tokens 1` (verify width 2), against the plain text already captured;
+      - 2B unsplit (automatic placement): plain, `--mtp`, `--mtp --draft-tokens 1`;
+      - 2B forced split `--gpus 0,1 --layer-split 12,12`: plain, `--mtp`;
+      - 2B plain text against llama.cpp's greedy text from the reference row (same file).
+    - **Predictions:**
+      - **R6-1a:** 27B `--mtp` at K = 1 also differs from plain. (0.7)
+      - **R6-1b:** 2B unsplit `--mtp` differs from plain, so the fault is in the verify, not the split. (0.65)
+      - **R6-1c:** 2B split plain text equals 2B unsplit plain text. (0.8)
