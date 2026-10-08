@@ -318,3 +318,8 @@ Any change after the first GPU row gets a numbered Deviation here before the aff
       (acceptance, TV).
     - **Prediction R6-2a:** `2a7d5ac` also diverges at K = 1 on the 27B, i.e. the fault predates the row tiling.
       (0.6)
+  - **R6-3 (after the R6 result, before the capture; 10-08): a clean profile for the author's Q5.** The R5 profiler
+    streams embed the run's shell environment (hundreds of `NAME=value` strings), so they are not sent. Instead: one
+    `nsys profile --trace=cuda,osrt` of `spite-bench --n-prompt 512 --n-tokens 16 --n-runs 1` at `69676bc` on the 27B,
+    run under `env -i` (PATH and the CUDA library path only) from a copy of the binaries outside the home directory. The
+    file is scanned for environment strings before it leaves the box. A capture, not a test: no prediction.
