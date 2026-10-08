@@ -250,3 +250,84 @@ Registered as Addendum R5 (`cd37cdaa`) and R5-b (`33e72b2e`), each before its ro
 
 **Reported:** round 5 was posted with Mark's OK at
 https://github.com/giveen/spite/pull/23#issuecomment-6048055944.
+
+## Addendum R6: round 6 (`2a7d5ac`) and the row-tiling commit (`69676bc`, PR head), one pass
+
+Registered as Addendum R6 (`ac9f40c7`, 17:39), Deviation R6-1 (`5b8f6920`, 18:08) and R6-2 (`84963bf0`, 18:14), each
+before its rows (first R6 row 17:40). The approximate times written inside the prereg are off by a few minutes; the
+commit times are the record.
+- **Raw:** `raw_r6/` (home paths redacted). **Runners:** `kit/run_tests_r6.sh`, `kit/run_tests_r6_1.sh`; R6-2 ran inline
+  (its commands are in `raw_r6/run.log`'s R6-2 lines).
+- **Small model (Mark: "pick whatever works and fits"):** unsloth `Qwen3.5-2B-MTP-GGUF` / `Qwen3.5-2B-Q6_K.gguf`,
+  sha256 `0559d914...90e7af73` (matches the Hugging Face LFS oid). `qwen35`, 24 trunk blocks + 1 NextN; ~7.8 GB as F32.
+
+**Checks:** `verify.py` PASSED (93 OK / 12 SKIP / 0 FAIL) and `verify_batch_cuda.py` PASSED on the `69676bc` sm_60 `.so`;
+`cargo test --workspace` at `69676bc` (desktop) **150 passed, 0 failed**, 3 ignored.
+
+**27B prefill, 512-token prompt, 32 tokens, 3 runs, 2-stage split:**
+
+| binary | prefill tok/s | TTFT | decode tok/s |
+|---|---:|---:|---:|
+| `6e708fb` (R5 head, rerun) | 7.36 | 69.5 s | 6.69 |
+| `2a7d5ac` | 9.63 (**1.31x**) | 53.2 s | 6.69 |
+| `69676bc` | **18.54** (**1.93x** over `2a7d5ac`, 2.52x over R5) | 27.6 s | 6.67 |
+
+- Defaults at `69676bc`: decode 6.69, TTFT 427 ms (R5: 922 ms).
+- llama.cpp `-sm layer` on the same box: 117.5 tok/s prefill, so spite is at 0.16x.
+- **Registers** (`cuobjdump -res-usage`, `gemv_batch_kernel<Q6_K>`): 75 at `2a7d5ac` (R5, chunk 4: 99); at `69676bc` 76 for
+  (tile 1, chunk 8) and 128 for (tile 4, chunk 4). **No spills** (`LOCAL:0`) in any GEMV instance. The chunk sweep was
+  not run (as registered): the 27B's large projections take the tiled form, where the chunk is fixed at 4.
+
+**MTP, Roman Republic prompt, 128 tokens, greedy:**
+
+| | K | acceptance | draft-vs-trunk TV | decode tok/s |
+|---|---|---:|---:|---:|
+| 27B split, `69676bc` | plain | | | 6.71 |
+| | 1 / 2 / 3 | **100 / 100 / 100 %** | 0.098 / 0.110 / 0.126 | 10.03 / 11.51 / 12.39 |
+| 27B split, `2a7d5ac` (R6-2) | 1 | 100 % | 0.098 (same digits) | 6.65 |
+| 2B unsplit, `69676bc` | plain | | | 43.4 |
+| | 1 / 2 / 3 | **82.9** / 29.0 / 53.3 % | 0.50 / 0.52 / 0.56 | 31.3 / 18.8 / 22.7 |
+| llama.cpp (buun `510cb`), same 2B file, one GPU | 1 | **81.4 %** (57/70) | | 113.6 |
+
+**Greedy text (`spite run`):**
+- Plain at `69676bc` equals R4's on all 4 raw prompts. The 2B's plain text equals llama.cpp's greedy text over its full
+  654 characters. 2B forced split (`--gpus 0,1 --layer-split 12,12`) plain equals unsplit plain.
+- **`--mtp` differs from plain in every case tested:**
+  - 27B at K = 3 and K = 1, at character 14 ("The last king, Tarquinius..." becomes "The last king of Rome..."; the K = 3 text
+    later reads "overthrown in 5091509 BC");
+  - 27B K = 1 at `2a7d5ac`, byte-identical to `69676bc`'s K = 1 text;
+  - 2B unsplit at K = 3 and K = 1, at character 11, after which it repeats the prompt back;
+  - 2B split, byte-identical to 2B unsplit `--mtp`.
+
+**2B CPU gate row** (`--device cpu --n-prompt 16 --n-tokens 8 --n-runs 1`): prefill 0.25 tok/s, decode 0.16, TTFT
+64.5 s. The same shape on sm_60: 131.8 / 44.8 tok/s, TTFT 121 ms. `peak_mem_mib` reads 1,563 on both, so it is probably
+not measuring the CPU run.
+
+**Verdicts:**
+- **W1** holds. **W2** holds (1.31x). **W3** holds (1.93x). **W4** holds (6.67, -0.3 %). **W8** holds.
+- **W5** fails: acceptance >= 95 % holds, but TV is 0.098, not < 0.05.
+- **W6** holds as measured (1.50x at K = 1), but the speedup comes from accepting tokens the trunk would not emit, so it
+  is not a usable speedup.
+- **W7** fails: the 2B's head is healthy unsplit (82.9 % vs llama.cpp's 81.4 % on the same file).
+- **W9** fails: plain holds, `--mtp` diverges.
+- **R6-1a**, **R6-1b**, **R6-1c** and **R6-2a** hold.
+
+**Reading:**
+- **Prefill:** row tiling is the biggest single step so far, and larger on the P100 (1.93x end to end) than the
+  author's RTX 5090 screen (1.42-1.58x per projection).
+- **MTP greedy output is not exact,** on both models, split or not, at both heads. There are two symptoms:
+  - **2B: the head is fine; the rollback is not.** On a rejected draft (greedy), `rollback_drafts(n > 0)` calls
+    `restore_recurrent`, which puts back the GDN conv/delta state saved before the whole verify batch
+    (`crates/spite-models/src/hybrid.rs`). The executor then advances `n_ctx_used` by `1 + accepted` and samples from
+    `batch_logits[accepted]` (`crates/spite-executor/src/lib.rs`, batched path), and nothing re-runs the verified token
+    and accepted drafts through the GDN layers. After the first rejection the recurrent state is missing `1 + accepted`
+    tokens. This is from reading the code, not instrumented; it fits the divergence at character 11, the prompt
+    regurgitation, and K = 2's 29 % sitting below K = 1's 83 %.
+  - **27B: 100 % acceptance and still divergent.** With no rejections, no rollback runs, yet the verify rows agree with
+    drafts that plain decode does not produce. It is not the row tiling (`2a7d5ac` gives the same text and the same
+    TV digits) and not the split (the 2B's split and unsplit `--mtp` texts are identical). R4's sequential verify also
+    gave 99-100 % on this model, with text equal to plain (exact by construction), so the 27B's near-perfect
+    draft/trunk agreement predates the batched verify. Not localised.
+- **On the 2B, MTP is slower than plain at every K** (31 / 19 / 23 against 43 tok/s), even at a healthy 83 %.
+
+**Not run:** the author's Q5 (sending the R5 `.nsys-rep`/`.qdstrm` files) needs Mark's decision on what leaves the box.

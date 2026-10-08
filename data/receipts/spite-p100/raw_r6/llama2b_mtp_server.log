@@ -1,0 +1,32 @@
+0.00.013.851 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.014.195 W srv  llama_server: -----------------
+0.00.014.197 W srv  llama_server: CORS is set to allow all origins ('*') and no API key is set
+0.00.014.197 W srv  llama_server: this can be a security risk (cross-origin attacks)
+0.00.014.197 W srv  llama_server: more info: https://github.com/ggml-org/llama.cpp/pull/25655
+0.00.014.197 W srv  llama_server: -----------------
+0.00.015.547 I srv    load_model: loading model '~/spite-test/models/Qwen3.5-2B-Q6_K.gguf'
+0.00.015.553 I srv    load_model: auto-enabled kv-unified: single-slot server doesn't need separate KV stream
+VMEAN tap: no live V layers — add disabled
+0.01.386.780 I cmn          init: llama threadpool init, n_threads = 6
+TCQ decode: context-adaptive V alpha enabled
+0.02.306.941 I srv    load_model: creating MTP draft context against the target model '~/spite-test/models/Qwen3.5-2B-Q6_K.gguf'
+VMEAN tap: no live V layers — add disabled
+0.02.322.159 I srv    load_model: computation-frontier ratchet: legacy reads authoritative, flip after 1024 qualifying agreements
+0.02.322.165 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 8192, kv_unified = 'true'
+0.02.322.346 I slot   load_model: id  0 | task -1 | speculative decoding context initialized
+0.02.323.243 I srv    load_model: decayed-frequency host-cache authority is enabled
+0.02.327.989 I srv  llama_server: model loaded
+0.02.327.994 I srv  llama_server: listening on http://127.0.0.1:8085
+0.02.718.730 I slot cache_plan_s: id  0 | task -1 | selected slot by LRU, t_last = -1 (best rejected sim = 0.000)
+0.02.718.776 I slot launch_slot_: id  0 | task 0 | processing task, is_child = 0
+0.02.718.793 I slot   operator(): id  0 | task 0 | edit/divergence sample (cached/incoming/lcp/reusable/rewind/append/cache_prompt) = (0/14/0/0/0/14/0)
+0.02.847.657 W slot   operator(): id  0 | task 0 | created context checkpoint 1 of 32 (pos_min = 9, pos_max = 9, n_tokens = 10, size = 19.294 MiB)
+0.03.993.429 I slot print_timing: id  0 | task 0 | prompt eval time =     156.18 ms /    14 tokens (   11.16 ms per token,    89.64 tokens per second)
+0.03.993.433 I slot print_timing: id  0 | task 0 |        eval time =    1118.43 ms /   128 tokens (    8.81 ms per token,   113.55 tokens per second)
+0.03.993.434 I slot print_timing: id  0 | task 0 |       total time =    1274.61 ms /   142 tokens
+0.03.993.437 I slot print_timing: id  0 | task 0 |    graphs reused =         69
+0.03.993.439 I slot print_timing: id  0 | task 0 | draft acceptance = 0.81429 (   57 accepted /    70 generated), mean len =  1.81
+0.03.993.441 I slot print_timing: id  0 | task 0 | verify/rollback histogram (draft/rejected:cycles) = (1/0:57, 1/1:13)
+0.03.993.463 I slot      release: id  0 | task 0 | stop processing: n_tokens = 141, truncated = 0
+0.04.024.032 I srv    operator(): operator(): cleaning up before exit...
+0.04.024.750 I srv       destroy: CACHE_AUTHORITY_SUMMARY configured=1 commits=1 refusals=0 retries=0 rollbacks=0
