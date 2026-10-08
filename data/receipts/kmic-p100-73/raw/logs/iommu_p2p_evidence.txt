@@ -1,0 +1,118 @@
+# .73 IOMMU / P2P evidence, captured 2026-10-08T14:18:56-04:00
+# kernel: 7.0.0-31-generic
+# cmdline: BOOT_IMAGE=/boot/vmlinuz-7.0.0-31-generic root=<redacted> ro quiet splash
+# iommu groups with the GPUs:
+0000:01:00.0 -> group 2
+0000:02:00.0 -> group 2
+# GPU BARs:
+01:00.0 3D controller: NVIDIA Corporation GP100GL [Tesla P100 PCIe 16GB] (rev a1)
+	Memory at 40000000 (32-bit, non-prefetchable) [size=16M]
+	Memory at 2000000000 (64-bit, prefetchable) [size=16G]
+	Memory at 2400000000 (64-bit, prefetchable) [size=32M]
+02:00.0 3D controller: NVIDIA Corporation GP100GL [Tesla P100 PCIe 16GB] (rev a1)
+	Memory at ee000000 (32-bit, non-prefetchable) [size=16M]
+	Memory at 2800000000 (64-bit, prefetchable) [size=16G]
+	Memory at 2c00000000 (64-bit, prefetchable) [size=32M]
+# nvidia-smi topo -m:
+	[4mGPU0	GPU1	CPU Affinity	NUMA Affinity	GPU NUMA ID[0m
+GPU0	 X 	PHB	0-11	0		N/A
+GPU1	PHB	 X 	0-11	0		N/A
+
+Legend:
+
+  X    = Self
+  SYS  = Connection traversing PCIe as well as the SMP interconnect between NUMA nodes (e.g., QPI/UPI)
+  NODE = Connection traversing PCIe as well as the interconnect between PCIe Host Bridges within a NUMA node
+  PHB  = Connection traversing PCIe as well as a PCIe Host Bridge (typically the CPU)
+  PXB  = Connection traversing multiple PCIe bridges (without traversing the PCIe Host Bridge)
+  PIX  = Connection traversing at most a single PCIe bridge
+  NV#  = Connection traversing a bonded set of # NVLinks
+# nvidia-smi topo -p2p r:
+ 	[4mGPU0	GPU1	[0m
+ GPU0	X	OK	
+ GPU1	OK	X	
+
+Legend:
+
+  X    = Self
+  OK   = Status Ok
+  CNS  = Chipset not supported
+  GNS  = GPU not supported
+  TNS  = Topology not supported
+  NS   = Not supported
+  U    = Unknown
+# DMAR lines in the kernel log (journalctl -k -b):
+Oct 02 14:06:08 ai-p100-sli kernel: DMAR: DRHD: handling fault status reg 3
+Oct 02 14:06:08 ai-p100-sli kernel: DMAR: [DMA Read NO_PASID] Request device [0a:00.0] fault addr 0xfcc7f000 [fault reason 0x06] PTE Read access is not set
+Oct 03 10:05:08 ai-p100-sli kernel: DMAR: DRHD: handling fault status reg 3
+Oct 03 10:05:08 ai-p100-sli kernel: DMAR: [DMA Read NO_PASID] Request device [0a:00.0] fault addr 0x34540000 [fault reason 0x06] PTE Read access is not set
+Oct 06 09:32:33 ai-p100-sli kernel: DMAR: DRHD: handling fault status reg 3
+Oct 06 09:32:33 ai-p100-sli kernel: DMAR: [DMA Read NO_PASID] Request device [0a:00.0] fault addr 0x31306000 [fault reason 0x06] PTE Read access is not set
+Oct 08 11:17:27 ai-p100-sli kernel: DMAR: DRHD: handling fault status reg 3
+Oct 08 11:17:27 ai-p100-sli kernel: DMAR: [DMA Read NO_PASID] Request device [0a:00.0] fault addr 0xf5c36000 [fault reason 0x06] PTE Read access is not set
+Oct 08 12:08:32 ai-p100-sli kernel: DMAR: DRHD: handling fault status reg 3
+Oct 08 12:08:32 ai-p100-sli kernel: DMAR: [DMA Write NO_PASID] Request device [01:00.0] fault addr 0xee139000 [fault reason 0x05] PTE Write access is not set
+Oct 08 12:08:32 ai-p100-sli kernel: DMAR: DRHD: handling fault status reg 3
+Oct 08 12:08:32 ai-p100-sli kernel: DMAR: [DMA Write NO_PASID] Request device [02:00.0] fault addr 0x40139000 [fault reason 0x05] PTE Write access is not set
+Oct 08 12:08:32 ai-p100-sli kernel: DMAR: DRHD: handling fault status reg 3
+Oct 08 12:08:32 ai-p100-sli kernel: DMAR: [DMA Write NO_PASID] Request device [01:00.0] fault addr 0x2800000000 [fault reason 0x05] PTE Write access is not set
+Oct 08 12:08:32 ai-p100-sli kernel: DMAR: DRHD: handling fault status reg 3
+Oct 08 12:08:37 ai-p100-sli kernel: DMAR: DRHD: handling fault status reg 3
+Oct 08 12:08:37 ai-p100-sli kernel: DMAR: [DMA Write NO_PASID] Request device [02:00.0] fault addr 0x2000000000 [fault reason 0x05] PTE Write access is not set
+Oct 08 12:08:37 ai-p100-sli kernel: DMAR: DRHD: handling fault status reg 3
+Oct 08 12:08:37 ai-p100-sli kernel: DMAR: [DMA Write NO_PASID] Request device [01:00.0] fault addr 0x2800000000 [fault reason 0x05] PTE Write access is not set
+Oct 08 12:08:37 ai-p100-sli kernel: DMAR: DRHD: handling fault status reg 3
+Oct 08 12:08:37 ai-p100-sli kernel: DMAR: [DMA Write NO_PASID] Request device [01:00.0] fault addr 0x2800009000 [fault reason 0x05] PTE Write access is not set
+Oct 08 12:08:37 ai-p100-sli kernel: DMAR: DRHD: handling fault status reg 3
+Oct 08 12:08:42 ai-p100-sli kernel: DMAR: DRHD: handling fault status reg 3
+Oct 08 12:08:42 ai-p100-sli kernel: DMAR: [DMA Write NO_PASID] Request device [01:00.0] fault addr 0x2800000000 [fault reason 0x05] PTE Write access is not set
+Oct 08 12:08:42 ai-p100-sli kernel: DMAR: DRHD: handling fault status reg 3
+Oct 08 12:08:42 ai-p100-sli kernel: DMAR: [DMA Write NO_PASID] Request device [02:00.0] fault addr 0x2000000000 [fault reason 0x05] PTE Write access is not set
+Oct 08 12:08:42 ai-p100-sli kernel: DMAR: DRHD: handling fault status reg 3
+Oct 08 12:08:42 ai-p100-sli kernel: DMAR: [DMA Write NO_PASID] Request device [02:00.0] fault addr 0x2000009000 [fault reason 0x05] PTE Write access is not set
+Oct 08 12:08:42 ai-p100-sli kernel: DMAR: DRHD: handling fault status reg 3
+Oct 08 12:08:48 ai-p100-sli kernel: DMAR: DRHD: handling fault status reg 3
+Oct 08 12:08:48 ai-p100-sli kernel: DMAR: [DMA Write NO_PASID] Request device [01:00.0] fault addr 0x2800000000 [fault reason 0x05] PTE Write access is not set
+Oct 08 12:08:48 ai-p100-sli kernel: DMAR: DRHD: handling fault status reg 3
+Oct 08 12:08:48 ai-p100-sli kernel: DMAR: [DMA Write NO_PASID] Request device [02:00.0] fault addr 0x2000000000 [fault reason 0x05] PTE Write access is not set
+Oct 08 12:08:48 ai-p100-sli kernel: DMAR: DRHD: handling fault status reg 3
+Oct 08 12:08:48 ai-p100-sli kernel: DMAR: [DMA Write NO_PASID] Request device [01:00.0] fault addr 0x2800000000 [fault reason 0x05] PTE Write access is not set
+Oct 08 12:08:48 ai-p100-sli kernel: DMAR: DRHD: handling fault status reg 3
+Oct 08 12:08:53 ai-p100-sli kernel: DMAR: DRHD: handling fault status reg 3
+Oct 08 12:08:53 ai-p100-sli kernel: DMAR: [DMA Write NO_PASID] Request device [01:00.0] fault addr 0x2800000000 [fault reason 0x05] PTE Write access is not set
+Oct 08 12:08:53 ai-p100-sli kernel: DMAR: DRHD: handling fault status reg 3
+Oct 08 12:08:53 ai-p100-sli kernel: DMAR: [DMA Write NO_PASID] Request device [02:00.0] fault addr 0x2000000000 [fault reason 0x05] PTE Write access is not set
+# total DMAR fault lines this boot: 1972
+# suppressed-message lines:
+Oct 08 13:05:45 ai-p100-sli kernel: dmar_fault: 632 callbacks suppressed
+Oct 08 13:05:50 ai-p100-sli kernel: dmar_fault: 626 callbacks suppressed
+Oct 08 13:05:55 ai-p100-sli kernel: dmar_fault: 596 callbacks suppressed
+Oct 08 13:06:00 ai-p100-sli kernel: dmar_fault: 605 callbacks suppressed
+Oct 08 13:06:05 ai-p100-sli kernel: dmar_fault: 578 callbacks suppressed
+# DMAR fault lines bucketed by device and 10-minute window (HH:M), this boot. P2P cells: MD1 12:08-12:49, MK1 12:51-13:09; non-P2P cells 13:10-14:16:
+0a:00.0 09:3 1
+0a:00.0 10:0 1
+0a:00.0 11:1 1
+suppressed-notice 12:0 17
+02:00.0 12:0 23
+01:00.0 12:0 31
+suppressed-notice 12:1 119
+01:00.0 12:1 178
+02:00.0 12:1 179
+suppressed-notice 12:2 119
+01:00.0 12:2 174
+02:00.0 12:2 183
+suppressed-notice 12:3 120
+01:00.0 12:3 179
+02:00.0 12:3 181
+suppressed-notice 12:4 118
+01:00.0 12:4 174
+02:00.0 12:4 180
+02:00.0 12:5 120
+01:00.0 12:5 147
+suppressed-notice 12:5 89
+02:00.0 13:0 104
+01:00.0 13:0 115
+suppressed-notice 13:0 73
+0a:00.0 14:0 1
+# 0a:00.0 = Non-Volatile memory controller: Intel Corporation Optane NVME SSD H10 with Solid State Storage [Teton Glacier] (rev 03) (unrelated; ~1 read fault per day)
