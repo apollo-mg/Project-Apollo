@@ -105,3 +105,22 @@ Any change after the first row gets a numbered Deviation here before the affecte
     copied here). It changes no code path.
   - **Resume:** the build continued in the same tree with the same flags. The CUDA objects were already compiled and
     are unaffected.
+- **Deviation 2 (after cell MD1, before any other cell): buun with `GGML_CUDA_P2P=1` is pathological on .73, so the
+  matched cells drop P2P.**
+  - **MD1 (D + `GGML_CUDA_P2P=1`, micro flags):**
+    - a 2,044-token prompt prefilled at a normal 124.8 t/s;
+    - every single-token step took 5-13 s: the 5-token warmup ran at 0.20 t/s and decode at 0.08 t/s, for 188
+      tokens in ~40 min;
+    - the cards drew ~35 W at 1328 MHz, i.e. mostly waiting.
+  - **A 2-minute probe of the same flags without P2P** (`MD0_probe.log`, two 48-token requests, outside the
+    registered request shape): 15.0 t/s.
+  - **Disposition:**
+    - MD1 is reported as a finding (P7 does not hold, in the opposite direction), not as a speed row;
+    - kbench never wrote its completion record, because the runner was stopped. The evidence is the server log
+      `MD1_p2p_slow.log`.
+  - **Revised M1 cells, in order:**
+    - **MK1:** K + `GGML_CUDA_P2P=1`, his recommended env. If it is also pathological, K's served legs drop P2P
+      too, as Deviation 3.
+    - **MD0a, MK0a, MK0b, MD0b:** both builds without P2P, matched ABBA.
+  - **P1/P2 are scored on MK0 vs MD0.** MK1 vs MK0 measures P2P on K.
+  - **The served legs are unchanged:** D never set P2P, and K keeps his QUICKSTART env subject to MK1.

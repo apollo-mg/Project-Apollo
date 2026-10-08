@@ -22,7 +22,8 @@ KS=(-m "$MODEL" -ngl 99 -sm tensor -fa 1 -ctk q4_0 -ctv q4_0 -c 262144 -b 32768 
 KENV=(GGML_CUDA_P2P=1 GGML_CUDA_GRAPHS_PRE_VOLTA=3 LLAMA_SPEC_SAMPLE_TEMP=1.0 LLAMA_SPEC_DRAFT_TOPK=20)
 case $CELL in
   MD1|MD2) CMD=(env GGML_CUDA_P2P=1 "$BIN_D" "${MICRO[@]}");;
-  MD0)     CMD=("$BIN_D" "${MICRO[@]}");;
+  MD0|MD0a|MD0b) CMD=("$BIN_D" "${MICRO[@]}");;
+  MK0|MK0a|MK0b) CMD=("$BIN_K" "${MICRO[@]}");;
   MK1|MK2) CMD=(env GGML_CUDA_P2P=1 "$BIN_K" "${MICRO[@]}");;
   D1|D2)   CMD=("$BIN_D" "${DS[@]}");;
   K1|K2)   CMD=(env "${KENV[@]}" "$BIN_K" "${KS[@]}");;
