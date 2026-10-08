@@ -306,3 +306,15 @@ Any change after the first GPU row gets a numbered Deviation here before the aff
       - **R6-1a:** 27B `--mtp` at K = 1 also differs from plain. (0.7)
       - **R6-1b:** 2B unsplit `--mtp` differs from plain, so the fault is in the verify, not the split. (0.65)
       - **R6-1c:** 2B split plain text equals 2B unsplit plain text. (0.8)
+  - **Deviation R6-2 (after R6-1, before these rows; 10-08 ~18:16): did the row-tiling commit cause the 27B
+    divergence?**
+    - **Why:** R6-1: every `--mtp` text differs from plain, both models, split or not (2B split `--mtp` = 2B unsplit
+      `--mtp` byte for byte). The 2B diverges at character 11 with 83 % acceptance, which fits the rollback reading:
+      `rollback_drafts` restores the GDN state saved before the whole batch, and nothing replays the accepted prefix.
+      But the 27B diverges at character 14 with 100 % acceptance, so no rollback ran there; its verify rows agree with
+      drafts plain decode rejects. `69676bc` changed the batched GEMV used by the verify (row tiling at >= 1,024 rows).
+    - **Rows:** the saved `2a7d5ac` binaries (batched verify, no row tiling) on the 27B: `spite run --mtp
+      --draft-tokens 1` text against plain, and `spite-bench --mtp --draft-tokens 1` on the Roman Republic prompt
+      (acceptance, TV).
+    - **Prediction R6-2a:** `2a7d5ac` also diverges at K = 1 on the 27B, i.e. the fault predates the row tiling.
+      (0.6)
