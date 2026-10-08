@@ -79,6 +79,9 @@ its rows (`bfaba5e4`, `26a7a35b`, `bc47b071`).
 - **Part of the prefill gap is D's `-ub 512`, not K's code.** D prefills 219.5 t/s at `-ub 2048` in M1 and 176.8 served
   at 2k. Adding `-ub 2048` to the daily command should recover some of it. That was not tested here, and it costs
   compute-buffer VRAM that VBR's auto budget would otherwise give to KV.
+  - **Tested the same day in `ub-daily-73/RESULT_UB_DAILY_73.md`: it does not.** `-ub 2048` costs +2,168 MiB per
+    card and every real request fails (the MTP draft context runs out of VRAM on GPU 0). `-ub 1024` buys 1.14-1.16x
+    prefill, but drops the KV to ~4.75 bits/value at 32k and fails at 102k tokens.
 - **The 128k decode gap (4.10x) has three candidate causes, and none was isolated:**
   - the per-call whole-cache f16 conversion that D's `launch_fattn` still does and K removed (the registered
     mechanism behind P4);
