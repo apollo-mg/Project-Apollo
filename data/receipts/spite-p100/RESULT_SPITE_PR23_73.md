@@ -331,3 +331,12 @@ not measuring the CPU run.
 - **On the 2B, MTP is slower than plain at every K** (31 / 19 / 23 against 43 tok/s), even at a healthy 83 %.
 
 **Not run:** the author's Q5 (sending the R5 `.nsys-rep`/`.qdstrm` files) needs Mark's decision on what leaves the box.
+
+**R6-3 capture:** `nsys profile --trace=cuda,osrt` of the 512-token prefill at `69676bc` under `env -i`, from binaries
+copied outside the home directory. nsys 2023.4.4's importer failed again ("AnalysisFailed"), so the raw `.qdstrm` was
+sent. Scanned before it left the box: no API-key or token formats (`hf_`, `gh*_`, `sk-`, `AKIA`, bearer) and no
+secret-like variable names; it still holds generic session variables and 6 home-path strings. Hosted as a release asset:
+https://github.com/apollo-mg/Project-Apollo/releases/tag/spite-pr23-r6-profile (35 MB gzipped).
+
+**Reported:** round 6 was posted with Mark's OK at
+https://github.com/giveen/spite/pull/23#issuecomment-6070332374.
