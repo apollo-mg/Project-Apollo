@@ -124,3 +124,19 @@ Any change after the first row gets a numbered Deviation here before the affecte
     - **MD0a, MK0a, MK0b, MD0b:** both builds without P2P, matched ABBA.
   - **P1/P2 are scored on MK0 vs MD0.** MK1 vs MK0 measures P2P on K.
   - **The served legs are unchanged:** D never set P2P, and K keeps his QUICKSTART env subject to MK1.
+- **Deviation 3 (after MK1, before any other cell): P2P is pathological on .73 for BOTH builds, so K's served legs drop
+  `GGML_CUDA_P2P=1`.**
+  - **MK1 (K + P2P, micro flags):** warmup decode 13.1 s per token (0.08 t/s); the 5-token prompt at 0.13 t/s; the
+    2,044-token prompt at 89 t/s. The cards sat at 99-100 % utilization drawing ~36 W, the same signature as MD1
+    (Mark spotted it on the telemetry).
+  - **Shutdown:** the server ignored SIGTERM for over 3 min and was SIGKILLed by its recorded PID.
+  - **This is not a buun defect.** Two independent builds behave identically, so it is the platform, even though
+    `nvidia-smi topo -p2p r` reports read OK:
+    - Coffee Lake i5-8600K, 580.178.04;
+    - each card on its own CPU root port: `00:01.0` x16 bifurcated / `00:01.1` x8, topology `PHB`.
+  - **Hypothesis (untested):** peer reads across client-CPU root ports are not supported in hardware and are
+    emulated.
+  - **Disposition:** K's served env becomes `GGML_CUDA_GRAPHS_PRE_VOLTA=3 LLAMA_SPEC_SAMPLE_TEMP=1.0
+    LLAMA_SPEC_DRAFT_TOPK=20`. Every other part of his QUICKSTART command is unchanged. Remaining cells, in order:
+    MD0a, MK0a, MK0b, MD0b, D1, K1, K2, D2.
+  - **Evidence:** `MK1_p2p_slow.log`, `MD1_p2p_slow.log` (on .73 under `~/kmic73/`, copied to `raw/logs/` at the end).

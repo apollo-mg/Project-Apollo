@@ -15,11 +15,11 @@ DS=(-m "$MODEL" --mmproj "$MMPROJ" -ngl 99 -c 262144 -ctk vbr -ctv vbr --vbr-flo
     -sm tensor -fa on --spec-type draft-mtp --draft-max 3 --jinja --kv-unified
     --chat-template-kwargs '{"reasoning_effort":"medium"}' --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.0
     --presence-penalty 0.0)
-# M2 K: Kaden's QUICKSTART.md command, plus our F16 projector. KUB is the registered -ub fallback.
+# M2 K: Kaden's QUICKSTART.md command, plus our F16 projector, minus GGML_CUDA_P2P=1 (Deviation 3). KUB is the registered -ub fallback.
 KS=(-m "$MODEL" -ngl 99 -sm tensor -fa 1 -ctk q4_0 -ctv q4_0 -c 262144 -b 32768 -ub "${KUB:-2048}" -np 1
     --spec-type draft-mtp --spec-draft-n-max 4 --spec-draft-p-min 0.2 -ngld 99 -ubd 64 -ctkd q4_0 -ctvd q4_0
     --jinja --temp 1.0 --top-k 20 --top-p 0.95 --min-p 0.0 --mmproj "$MMPROJ")
-KENV=(GGML_CUDA_P2P=1 GGML_CUDA_GRAPHS_PRE_VOLTA=3 LLAMA_SPEC_SAMPLE_TEMP=1.0 LLAMA_SPEC_DRAFT_TOPK=20)
+KENV=(GGML_CUDA_GRAPHS_PRE_VOLTA=3 LLAMA_SPEC_SAMPLE_TEMP=1.0 LLAMA_SPEC_DRAFT_TOPK=20)
 case $CELL in
   MD1|MD2) CMD=(env GGML_CUDA_P2P=1 "$BIN_D" "${MICRO[@]}");;
   MD0|MD0a|MD0b) CMD=("$BIN_D" "${MICRO[@]}");;
