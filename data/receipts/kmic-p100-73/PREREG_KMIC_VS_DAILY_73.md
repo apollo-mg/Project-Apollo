@@ -95,3 +95,13 @@ projector, rerun that leg at `-ub 1024` (his own documented fix). Record it as a
 ## Deviations
 
 Any change after the first row gets a numbered Deviation here before the affected rows run.
+
+- **Deviation 1 (build, before any row): one-line local patch to K.**
+  - **Error:** the build stopped at 45% with `src/llama-context.cpp:2178: error: no matching function for call to
+    'max<int64_t>(<brace-enclosed initializer list>)'`. The host C++ compiler here is GCC 15.2. Only nvcc's host
+    compiler is pinned to gcc-13, as in the D build. The file uses `std::max` on an initializer list without
+    including `<algorithm>`, which GCC 15 no longer pulls in transitively.
+  - **Fix:** add `#include <algorithm>` (`local_patch_algorithm_include.diff`, kept next to the build on .73 and
+    copied here). It changes no code path.
+  - **Resume:** the build continued in the same tree with the same flags. The CUDA objects were already compiled and
+    are unaffected.
