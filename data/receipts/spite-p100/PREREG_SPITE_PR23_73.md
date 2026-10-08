@@ -242,3 +242,50 @@ Any change after the first GPU row gets a numbered Deviation here before the aff
     - **Also:** spite `--mtp --draft-tokens 2` and `3` on the same prompt.
     - **Prediction R5-b1:** llama.cpp's K = 1 acceptance on this prompt is below 95 %, which would make spite's 100 %
       a counting or drafting artifact, not a property of the head. (0.75)
+- **Addendum R6 (before any R6 row; 10-08 ~17:45): round 6 at `2a7d5ac` plus the row-tiling commit `69676bc` (PR head),
+  run together in one pass.**
+  - **Origin:** the author's round-6 list on the PR (6 questions, posted at `2a7d5ac`), then `69676bc` ("Owed before
+    this can gate a PR: the P100 before/after"). Mark: option 1, one combined pass, a short results table instead of a
+    full write-up per round.
+  - **Prior art checked:** this file's own R3-R5 rows; nothing else covers spite.
+  - **Binaries, all built on .73 the same way as R5:** `6e708fb` (R5 head, saved to `b_6e7/`), `2a7d5ac` (saved to
+    `b_2a7/`), `69676bc` (in tree). `cuobjdump -res-usage` captured for each new `.so`.
+  - **27B rows** (same Q6_K file, 2-stage split, 150 W / 1,328 MHz recorded):
+    - verify: `verify.py` and `verify_batch_cuda.py` on the `69676bc` sm_60 `.so`; `cargo test --workspace` at
+      `69676bc` on the desktop.
+    - prefill/decode: `spite-bench --n-prompt 512 --n-tokens 32 --n-runs 3` at all three binaries, in the order
+      `6e708fb`, `2a7d5ac`, `69676bc`; defaults at `69676bc`.
+    - MTP (author's Q1/Q2): `spite-bench --prompt "<Roman Republic>" --n-tokens 128 --n-runs 1 --mtp
+      --draft-tokens 1/2/3` at `69676bc`: acceptance, `draft-vs-trunk TV`, decode. The same prompt without `--mtp`
+      for the plain decode it has to beat.
+    - greedy text: `spite run` on the 4 raw prompts at `69676bc`, compared with R4's plain text; `spite run --mtp` on
+      the Roman Republic prompt compared with plain.
+  - **Small model (author's Q2/Q3; Mark: "pick whatever works and fits"):** unsloth `Qwen3.5-2B-MTP-GGUF`,
+    `Qwen3.5-2B-Q6_K.gguf`.
+    - **Why this file:** `qwen35` with a NextN block (checked before any row); the same Q6_K type as the 27B; ~1.9 B
+      params, so ~7.8 GB once `DenseWeights::load` expands it to F32, inside .73's 15 GiB. Our Qwen3.5-4B is 16.8 GB as
+      F32 and has no NextN block.
+    - **CPU gate row:** `spite-bench --device cpu --n-prompt 16 --n-tokens 8 --n-runs 1`, then the same command on
+      `--device cuda --card TESLA_P100`, and CUDA defaults.
+    - **Unsplit MTP:** the 2B fits on one card, so spite-bench places it unsplit. Roman Republic prompt, K = 1/2/3:
+      acceptance and TV.
+    - **Reference:** buun `510cb-nohost` llama-server on the same 2B file, one GPU, `--spec-type draft-mtp
+      --draft-max 1`, greedy, `cache_prompt` false, 128 tokens.
+    - **Conditional:** spite-bench has no split override. Only if the 2B unsplit acceptance is within 10 points of
+      llama.cpp's (a healthy head unsplit) does a forced-split comparison follow, as a numbered deviation.
+  - **Not run:** a `SPITE_GEMV_BATCH_CHUNK` sweep. At `69676bc` the chunk only governs the untiled form, which
+    `rows / kRowTile >= kRowTileMinBlocks` restricts to shapes under ~1,024 rows; the 27B's large projections all
+    take the tiled (4, 4) form. Reported with the register counts instead.
+  - **Predictions:**
+    - **W1:** both verify tools pass at `69676bc`; `cargo test` passes with >= 150 tests. (0.85)
+    - **W2:** 512-token prefill at `2a7d5ac` is >= 1.05x `6e708fb`'s (batched MTP prefill removes the per-token draft
+      pass). (0.6)
+    - **W3:** 512-token prefill at `69676bc` is >= 1.30x `2a7d5ac`'s (the author measured 1.42-1.58x per projection
+      on an RTX 5090). (0.55)
+    - **W4:** plain decode at `69676bc` within 3 % of 6.69 tok/s (the m = 1 path is unchanged). (0.8)
+    - **W5:** 27B, K = 1: acceptance >= 95 % and TV < 0.05, i.e. the head still reproduces the trunk. (0.55)
+    - **W6:** 27B MTP decode at K = 1 >= 1.2x plain decode on the same prompt (batched verify). (0.45)
+    - **W7:** the 2B unsplit shows the same artifact: spite K = 1 acceptance >= 10 points above llama.cpp's on the same
+      file. That points at the head path, not the split. (0.55)
+    - **W8:** the CPU gate row completes on the 2B. (0.8)
+    - **W9:** greedy text at `69676bc` equals R4's on all 4 prompts, and `--mtp` text equals plain. (0.75)
