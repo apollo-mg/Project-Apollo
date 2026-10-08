@@ -56,6 +56,10 @@ its rows (`bfaba5e4`, `26a7a35b`, `bc47b071`).
 - **MTP acceptance** (accepted/drafted): D 0.750 / 0.682 / 0.843 at 2k / 32k / 128k; K 0.676 / 0.611 / 0.781. K
   drafts deeper (4 against 3) and accepts a smaller share, and still decodes 2.1-4.1x faster.
 - **Depth falloff, 2k -> 128k:** D keeps 0.42 of its 2k decode, K keeps 0.81. Prefill: D keeps 0.56, K 0.79.
+  - This conflates depth with text, at n=1: each depth continues a different slice.
+  - Acceptance at 128k is higher on both arms (0.84 and 0.78, against 0.68 and 0.61 at 32k), which flatters both
+    128k decode figures.
+  - It also flatters the README comparison below. It barely moves the 4.10x ratio, since both arms get the lift.
 - **The 128k leg's wall time:** D 1,378 s, K 454 s.
 - **Against the daily driver's 09-24 curve** (`split-prefill-73`, buun `08826ad6e` at 1,063 MHz: decode 24.7 -> 8.0,
   prefill 151 -> 99), today's D at 1,328 MHz is 26.5 -> 11.25 decode and 176.8 -> 98.4 prefill.
@@ -117,18 +121,20 @@ its rows (`bfaba5e4`, `26a7a35b`, `bc47b071`).
 
   - Example line: `DMAR: [DMA Write NO_PASID] Request device [01:00.0] fault addr 0x2800000000 [fault reason 0x05]
     PTE Write access is not set`.
-  - Counts: 1,968 logged GPU fault lines plus 655 rate-limit notices covering **7,445,787 suppressed** faults.
+  - Counts: 1,968 logged GPU fault lines, plus 655 rate-limit notices covering **7,445,787 rate-limited fault
+    messages**. That counts suppressed log calls, not faults one for one.
   - VT-d is enabled in firmware, and the kernel runs it in DMA-translation mode (default; the cmdline is only `ro quiet
-    splash`). The peer apertures are not in the IOMMU page tables, so each peer write faults. Both GPUs are in IOMMU
-    group 2.
+    splash`). Read directly, the GPUs' IOMMU group 2 has domain type `DMA-FQ` (translation; passthrough would read
+    `identity`). The peer apertures are not in its page tables, so each peer write faults.
 - **Control by time.** GPU faults occur only from 12:08 to 13:09, which is the MD1 and MK1 (P2P) windows. There are
   **none** in the 66 minutes of non-P2P cells from 13:10 to 14:16 (`iommu_p2p_evidence.txt`, bucketed by 10-minute
   window). The Optane H10 at 0a:00.0 also logs about one read fault a day, before and during the run; that is
   unrelated.
 - **The readiness probe lies.** `nvidia-smi topo -p2p r` reports OK, and CUDA enables peer access without error, so
   only the kernel log shows anything.
-- **Deviation 3's hypothesis was wrong.** It guessed that peer reads across client-CPU root ports are emulated. The
-  DMAR evidence replaces that guess. The prereg text stands as written.
+- **Deviation 3's hypothesis is superseded as the explanation.** It guessed that peer reads across client-CPU root
+  ports are emulated. The IOMMU accounts for this stall, and every fault is a write. Whether root-port P2P actually
+  helps once translation is off is what an `iommu=pt` test would show. The prereg text stands as written.
 - **Fix candidates, UNTESTED:** `iommu=pt` (keeps VT-d available, identity-maps DMA) or `intel_iommu=off` on the kernel
   cmdline, or VT-d off in firmware. Each needs a reboot. Until one is measured, `GGML_CUDA_P2P=1` stays off on .73.
 
