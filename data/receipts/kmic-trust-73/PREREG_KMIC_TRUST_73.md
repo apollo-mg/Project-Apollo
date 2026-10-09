@@ -85,3 +85,13 @@ Recorded per request: text, timings, `draft_n`, `draft_n_accepted`.
 ## Deviations
 
 Any change after the first row gets a numbered Deviation here before the affected rows run.
+- **Deviation 1 (after all 8 registered arms, before this arm; 10-08 ~20:55): KSng, the sampled drafter without CUDA
+  graphs.**
+  - **Why:** KS varies within and across servers. KG, KN and KN0 never vary, and greedy text is exact in every arm.
+  - **A hypothesis already ruled out by the log, without a run:** GPU top-k order in the offloaded draft sampler. KS's
+    log says "backend sampling not supported with SPLIT_MODE_TENSOR; using CPU", so draft sampling is already on the
+    CPU and `--no-spec-draft-backend-sampling` would be an inert knob (AFM-19).
+  - **Next candidate:** `GGML_CUDA_GRAPHS_PRE_VOLTA=3` captures the single-token MTP draft steps. Replay jitter in the
+    draft logits would move a sampled draw but not an argmax.
+  - **Arm KSng:** KS's command and env minus `GGML_CUDA_GRAPHS_PRE_VOLTA`. One server, the same 3 seeded reps + greedy.
+  - **Prediction D1a:** KSng still varies within the server, i.e. graphs are not the cause. (0.6)

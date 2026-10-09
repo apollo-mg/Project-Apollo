@@ -22,6 +22,7 @@ for ARM in ${*:-DS KSa KGa KNa KN0 KSb KGb KNb}; do
     KGa|KGb) CMD=(env GGML_CUDA_GRAPHS_PRE_VOLTA=3 "$BIN_K" "${KBASE[@]}" "${KSPEC[@]}" "${KTAIL[@]}");;
     KNa|KNb) CMD=(env GGML_CUDA_GRAPHS_PRE_VOLTA=3 "$BIN_K" "${KBASE[@]}" "${KTAIL[@]}");;
     KN0)     CMD=("$BIN_K" "${KBASE[@]}" "${KTAIL[@]}");;
+    KSng)    CMD=(env LLAMA_SPEC_SAMPLE_TEMP=1.0 LLAMA_SPEC_DRAFT_TOPK=20 "$BIN_K" "${KBASE[@]}" "${KSPEC[@]}" "${KTAIL[@]}");;
     *) log "unknown arm $ARM"; exit 2;;
   esac
   pgrep -x llama-server >/dev/null && { log "ABORT $ARM: llama-server already running"; exit 1; }
