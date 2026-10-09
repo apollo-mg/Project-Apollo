@@ -33,17 +33,31 @@ ms per token, per GPU. The two GPUs run in parallel under tensor split, so per-G
 | | D | K | D minus K | share of gap |
 |---|---:|---:|---:|---:|
 | wall per token | 69.58 | 35.99 | **33.59** | |
-| matvec (`mul_mat_vec_q`, `quantize_q8_1`, `mul_mat_vec_f`) | 57.18 | 25.50 | **31.68** | **94.3 %** |
+| matvec (`mul_mat_vec_q`, `quantize_q8_1`, `mul_mat_vec_f`) | 55.68 | 24.00 | **31.68** | **94.3 %** |
 | GPU idle | 9.01 | 7.47 | 1.54 | 4.6 % |
 | attention | 0.77 | 0.49 | 0.28 | 0.8 % |
 | elementwise / norms | 3.27 | 3.10 | 0.17 | 0.5 % |
 | GDN | 0.85 | 0.72 | 0.13 | 0.4 % |
 | convert | 0 | 0.22 | -0.22 | -0.6 % |
 
-- **One kernel:** `mul_mat_vec_q` is **107.6 ms per token on D against 45.2 on K** (both GPUs summed), the same
-  kernel name over the same Q6_K weights. That is K's sm_60-tuned matvec (gated `#if __CUDA_ARCH_LIST__ == 600` in
-  his tree). Roughly ~200 GB/s per card on D against ~480 on K, an estimate from file size; the P100's HBM2 peak is
-  732.
+- **One kernel:** `mul_mat_vec_q` is **107.6 ms per token on D against 45.2 on K** (both GPUs summed), over the same
+  Q6_K weights.
+- **Same template, different kernel** (from the trace's `demangledName` and launch records): both run
+  `mul_mat_vec_q<Q6_K, ncols 1>`, but the bodies and launch shapes differ:
+
+  | | block | rows per block | registers | shared memory | 8,704 x 5,120 call |
+  |---|---|---:|---:|---:|---:|
+  | D | 32 x 4 | 1 | 40 | 384 B | **187 us** (~195 GB/s) |
+  | K | 32 x 2 | 2 | 80 | 6,048 B | **75 us** (~490 GB/s) |
+
+  The P100's HBM2 peak is 732 GB/s. The difference is his kernel design, not a code path the carve-out switches.
+- **What his OPTLOG says won on this path** (single column, Pascal):
+  - Q6_K vec-dot at `vdr = 4`, with index math shared across the group (attempts 10-11; 29 % fewer load/store ops per
+    block);
+  - weights staged into shared memory in `uint4` units (attempt 12);
+  - the scale and the int-to-float conversion folded out of the vdr loop (attempt 18; Pascal has no IMAD);
+  - a q8_1 activation-quantization cache (attempt 36), which matches D's `quantize_q8_1` 2.5 vs K's 1.6 ms per token;
+  - cooperative staging of the q8_1 activation, gated to one column on Pascal (attempt 42).
 - **Communication is not the gap.** Both builds stage the tensor-split exchange through host memory: about 1.18 ms
   HtoD + 0.98 ms DtoH of copies per token on each, within 2 %. D has no NCCL kernels despite `GGML_CUDA_NCCL=ON`.
 - **Launch count:** D issues 3,546 kernels per token across both GPUs, K 3,229. K fuses add + RMS norm
@@ -105,9 +119,12 @@ Ranked by what each would buy the daily driver:
    - Porting it is the single change that matters for decode. Our notes say it is a port into buun's 3,100-line
      `mmvq.cu`, not a cherry-pick.
 2. **The prefill GEMM, 70 % of the prefill gap.**
-   - The carve-out sends every prefill GEMM through fp32 SGEMM.
-   - K's fold GEMM keeps fp16 products with fp32 folds, and his OPTLOG reports that as ~100x closer to an fp64
-     reference than the q8_1 path. That would let buun drop the carve-out for prefill.
+   - The carve-out sends every prefill GEMM through fp32 SGEMM, which is the accuracy-safe path. The carve-out exists
+     because of a measured KLD problem.
+   - K's `gemm_fold_kernel_u2` uses fp16 products with fp32 folds. His "~100x closer to fp64" figure is a simulated
+     matvec on synthetic data against the q8_1 path, not a measurement of the fold GEMM against fp32 SGEMM.
+   - So this is a **~1.8x prefill candidate that needs a KLD check against the carve-out build** before anyone adopts
+     it.
 3. **q4_0 decode attention at depth:** 5.5x at 32k. It matters for long contexts. The daily's VBR cache is a
    different attention path, so this needs its own check before it is claimed for the daily.
 4. **Small items:** chunked GDN prefill (7.5 % of prefill), fused add + norm, about 9 % fewer launches.
