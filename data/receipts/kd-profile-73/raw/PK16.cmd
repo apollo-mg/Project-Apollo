@@ -1,0 +1,1 @@
+/mnt/HDD/kmic-p100/src/build-opt/bin/llama-server -m /mnt/models/AI_Models/Qwen 3.8/Qwen3.8-27B-Q6_K.gguf -ngl 99 -sm tensor -fa on -b 2048 -ub 2048 -np 1 -fit off --host 127.0.0.1 --port 8086 -ctk f16 -ctv f16 -c 8192

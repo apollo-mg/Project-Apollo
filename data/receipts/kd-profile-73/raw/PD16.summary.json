@@ -1,0 +1,446 @@
+{
+ "db": "PD16.sqlite",
+ "kernels_total": 1896974,
+ "graph_launches": 0,
+ "n_clusters": 4,
+ "requests": [
+  {
+   "name": "warmup",
+   "cluster_ms": 1448.0,
+   "prompt_ms": 387.684,
+   "predicted_ms": 1087.367,
+   "prompt_n": 5,
+   "predicted_n": 16,
+   "prefill_tps": 12.89710176329175,
+   "decode_tps": 13.79479053530225
+  },
+  {
+   "name": "r1",
+   "cluster_ms": 27038.9,
+   "prompt_ms": 9410.917,
+   "predicted_ms": 17819.669,
+   "prompt_n": 2048,
+   "predicted_n": 256,
+   "prefill_tps": 217.61960072541285,
+   "decode_tps": 14.310030113353957,
+   "decode": {
+    "window_ms": 17819.67,
+    "n_tokens": 256,
+    "kernels": 907800,
+    "kernels_per_token": 3546.0938,
+    "busy_frac": {
+     "0": 0.8684,
+     "1": 0.8688
+    },
+    "ms_per_token_by_cat": {
+     "matvec": 111.1561,
+     "elementwise": 6.528,
+     "gdn": 1.7035,
+     "attention": 1.5382
+    },
+    "ms_per_token_by_cat_dev": {
+     "0": {
+      "matvec": 55.5697,
+      "elementwise": 3.2601,
+      "gdn": 0.8525,
+      "attention": 0.7687
+     },
+     "1": {
+      "matvec": 55.5863,
+      "elementwise": 3.268,
+      "gdn": 0.851,
+      "attention": 0.7695
+     }
+    },
+    "top_kernels_ms_per_token": [
+     [
+      "mul_mat_vec_q",
+      107.4183
+     ],
+     [
+      "quantize_q8_1",
+      2.515
+     ],
+     [
+      "rms_norm_mul_bcast_f32",
+      2.3891
+     ],
+     [
+      "k_bin_bcast",
+      2.2212
+     ],
+     [
+      "flash_attn_tile",
+      1.3458
+     ],
+     [
+      "mul_mat_vec_f",
+      1.2227
+     ],
+     [
+      "unary_gated_op_kernel",
+      1.1721
+     ],
+     [
+      "gated_delta_net_cuda",
+      1.0283
+     ],
+     [
+      "conv_state_concat",
+      0.6752
+     ],
+     [
+      "rms_norm_mul_rope_f32",
+      0.4068
+     ],
+     [
+      "unary_op_kernel",
+      0.2196
+     ],
+     [
+      "flash_attn_combine_results",
+      0.1924
+     ],
+     [
+      "k_set_rows",
+      0.1094
+     ],
+     [
+      "k_get_rows_float",
+      0.0099
+     ]
+    ],
+    "copy_ms_per_token": {
+     "HtoD": 1.1763,
+     "DtoH": 0.9716
+    },
+    "copy_bytes": {
+     "HtoD": 1351575480,
+     "DtoH": 1589724160
+    },
+    "matmul_kernels_in_window": 0
+   },
+   "prefill": {
+    "window_ms": 9410.92,
+    "n_tokens": 2048,
+    "kernels": 7978,
+    "kernels_per_token": 3.8955,
+    "busy_frac": {
+     "0": 0.7789,
+     "1": 0.7796
+    },
+    "ms_per_token_by_cat": {
+     "matmul": 6.3279,
+     "gdn": 0.3322,
+     "elementwise": 0.1896,
+     "convert": 0.1354,
+     "attention": 0.1037,
+     "matvec": 0.073
+    },
+    "ms_per_token_by_cat_dev": {
+     "0": {
+      "matmul": 3.1617,
+      "gdn": 0.1669,
+      "elementwise": 0.0948,
+      "convert": 0.0677,
+      "attention": 0.052,
+      "matvec": 0.0364
+     },
+     "1": {
+      "matmul": 3.1662,
+      "gdn": 0.1653,
+      "elementwise": 0.0948,
+      "convert": 0.0677,
+      "attention": 0.0517,
+      "matvec": 0.0366
+     }
+    },
+    "top_kernels_ms_per_token": [
+     [
+      "sgemm_128x128x8_NT_vec",
+      6.2605
+     ],
+     [
+      "gated_delta_net_cuda",
+      0.3174
+     ],
+     [
+      "dequantize_block_q6_K",
+      0.1197
+     ],
+     [
+      "flash_attn_tile",
+      0.1034
+     ],
+     [
+      "k_bin_bcast",
+      0.0806
+     ],
+     [
+      "mul_mat_vec_q",
+      0.0716
+     ],
+     [
+      "unary_gated_op_kernel",
+      0.0495
+     ],
+     [
+      "rms_norm_mul_bcast_f32",
+      0.047
+     ],
+     [
+      "maxwell_sgemm_128x64_tn",
+      0.0446
+     ],
+     [
+      "sgemm_32x32x32_NT_vec",
+      0.0188
+     ],
+     [
+      "dequantize_block",
+      0.0157
+     ],
+     [
+      "conv_state_silu_prefill",
+      0.0143
+     ],
+     [
+      "rms_norm_mul_rope_f32",
+      0.0091
+     ],
+     [
+      "gemmSN_TN_kernel",
+      0.004
+     ],
+     [
+      "quantize_q8_1",
+      0.0014
+     ]
+    ],
+    "copy_ms_per_token": {
+     "DtoH": 0.8702,
+     "HtoD": 0.8661
+    },
+    "copy_bytes": {
+     "DtoH": 10900023296,
+     "HtoD": 10838212632
+    },
+    "matmul_kernels_in_window": 1184
+   }
+  },
+  {
+   "name": "r2",
+   "cluster_ms": 27097.5,
+   "prompt_ms": 9359.181,
+   "predicted_ms": 17812.887,
+   "prompt_n": 2048,
+   "predicted_n": 256,
+   "prefill_tps": 218.82256577792435,
+   "decode_tps": 14.315478451078707,
+   "decode": {
+    "window_ms": 17812.89,
+    "n_tokens": 256,
+    "kernels": 907800,
+    "kernels_per_token": 3546.0938,
+    "busy_frac": {
+     "0": 0.8698,
+     "1": 0.8712
+    },
+    "ms_per_token_by_cat": {
+     "matvec": 111.3555,
+     "elementwise": 6.5382,
+     "gdn": 1.7074,
+     "attention": 1.54
+    },
+    "ms_per_token_by_cat_dev": {
+     "0": {
+      "matvec": 55.6315,
+      "elementwise": 3.2666,
+      "gdn": 0.8527,
+      "attention": 0.7694
+     },
+     "1": {
+      "matvec": 55.724,
+      "elementwise": 3.2716,
+      "gdn": 0.8548,
+      "attention": 0.7706
+     }
+    },
+    "top_kernels_ms_per_token": [
+     [
+      "mul_mat_vec_q",
+      107.6177
+     ],
+     [
+      "quantize_q8_1",
+      2.5183
+     ],
+     [
+      "rms_norm_mul_bcast_f32",
+      2.3949
+     ],
+     [
+      "k_bin_bcast",
+      2.2224
+     ],
+     [
+      "flash_attn_tile",
+      1.3471
+     ],
+     [
+      "mul_mat_vec_f",
+      1.2195
+     ],
+     [
+      "unary_gated_op_kernel",
+      1.1724
+     ],
+     [
+      "gated_delta_net_cuda",
+      1.032
+     ],
+     [
+      "conv_state_concat",
+      0.6754
+     ],
+     [
+      "rms_norm_mul_rope_f32",
+      0.4087
+     ],
+     [
+      "unary_op_kernel",
+      0.2203
+     ],
+     [
+      "flash_attn_combine_results",
+      0.1929
+     ],
+     [
+      "k_set_rows",
+      0.1096
+     ],
+     [
+      "k_get_rows_float",
+      0.0099
+     ]
+    ],
+    "copy_ms_per_token": {
+     "HtoD": 1.1764,
+     "DtoH": 0.9724
+    },
+    "copy_bytes": {
+     "HtoD": 1351575480,
+     "DtoH": 1589724160
+    },
+    "matmul_kernels_in_window": 0
+   },
+   "prefill": {
+    "window_ms": 9359.18,
+    "n_tokens": 2048,
+    "kernels": 7978,
+    "kernels_per_token": 3.8955,
+    "busy_frac": {
+     "0": 0.7876,
+     "1": 0.7883
+    },
+    "ms_per_token_by_cat": {
+     "matmul": 6.3613,
+     "gdn": 0.3367,
+     "elementwise": 0.1906,
+     "convert": 0.1356,
+     "attention": 0.1041,
+     "matvec": 0.073
+    },
+    "ms_per_token_by_cat_dev": {
+     "0": {
+      "matmul": 3.1774,
+      "gdn": 0.1702,
+      "elementwise": 0.0952,
+      "convert": 0.0677,
+      "attention": 0.0519,
+      "matvec": 0.0365
+     },
+     "1": {
+      "matmul": 3.1839,
+      "gdn": 0.1665,
+      "elementwise": 0.0954,
+      "convert": 0.0678,
+      "attention": 0.0521,
+      "matvec": 0.0365
+     }
+    },
+    "top_kernels_ms_per_token": [
+     [
+      "sgemm_128x128x8_NT_vec",
+      6.2937
+     ],
+     [
+      "gated_delta_net_cuda",
+      0.3219
+     ],
+     [
+      "dequantize_block_q6_K",
+      0.1199
+     ],
+     [
+      "flash_attn_tile",
+      0.1037
+     ],
+     [
+      "k_bin_bcast",
+      0.0811
+     ],
+     [
+      "mul_mat_vec_q",
+      0.0716
+     ],
+     [
+      "unary_gated_op_kernel",
+      0.0497
+     ],
+     [
+      "rms_norm_mul_bcast_f32",
+      0.0472
+     ],
+     [
+      "maxwell_sgemm_128x64_tn",
+      0.0448
+     ],
+     [
+      "sgemm_32x32x32_NT_vec",
+      0.0188
+     ],
+     [
+      "dequantize_block",
+      0.0157
+     ],
+     [
+      "conv_state_silu_prefill",
+      0.0143
+     ],
+     [
+      "rms_norm_mul_rope_f32",
+      0.0091
+     ],
+     [
+      "gemmSN_TN_kernel",
+      0.004
+     ],
+     [
+      "quantize_q8_1",
+      0.0014
+     ]
+    ],
+    "copy_ms_per_token": {
+     "HtoD": 0.8708,
+     "DtoH": 0.8751
+    },
+    "copy_bytes": {
+     "HtoD": 10838212632,
+     "DtoH": 10895304704
+    },
+    "matmul_kernels_in_window": 1184
+   }
+  }
+ ]
+}

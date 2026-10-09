@@ -1,0 +1,460 @@
+{
+ "db": "PKQ4.sqlite",
+ "kernels_total": 1890238,
+ "graph_launches": 0,
+ "n_clusters": 4,
+ "requests": [
+  {
+   "name": "warmup",
+   "cluster_ms": 984.6,
+   "prompt_ms": 467.133,
+   "predicted_ms": 545.695,
+   "prompt_n": 5,
+   "predicted_n": 16,
+   "prefill_tps": 10.703589769937041,
+   "decode_tps": 27.487882425164237
+  },
+  {
+   "name": "r2k",
+   "cluster_ms": 14803.2,
+   "prompt_ms": 5412.45,
+   "predicted_ms": 9580.827,
+   "prompt_n": 2048,
+   "predicted_n": 256,
+   "prefill_tps": 378.3868673151715,
+   "decode_tps": 26.615656456378975,
+   "decode": {
+    "window_ms": 9580.83,
+    "n_tokens": 256,
+    "kernels": 859350,
+    "kernels_per_token": 3356.8359,
+    "busy_frac": {
+     "0": 0.77,
+     "1": 0.7692
+    },
+    "ms_per_token_by_cat": {
+     "matvec": 47.7516,
+     "elementwise": 6.6913,
+     "gdn": 1.4365,
+     "attention": 1.3099,
+     "convert": 0.4182
+    },
+    "ms_per_token_by_cat_dev": {
+     "0": {
+      "matvec": 23.8895,
+      "elementwise": 3.3473,
+      "gdn": 0.7186,
+      "attention": 0.6545,
+      "convert": 0.2091
+     },
+     "1": {
+      "matvec": 23.8621,
+      "elementwise": 3.344,
+      "gdn": 0.7179,
+      "attention": 0.6554,
+      "convert": 0.2092
+     }
+    },
+    "top_kernels_ms_per_token": [
+     [
+      "mul_mat_vec_q",
+      44.9454
+     ],
+     [
+      "add_rms_norm_mul_f32",
+      2.0959
+     ],
+     [
+      "quantize_q8_1",
+      1.6
+     ],
+     [
+      "rms_norm_f32_warp",
+      1.3229
+     ],
+     [
+      "mul_mat_vec_f",
+      1.2062
+     ],
+     [
+      "flash_attn_ext_q4p",
+      1.1598
+     ],
+     [
+      "gated_delta_net_cuda",
+      1.0967
+     ],
+     [
+      "k_bin_bcast_flat",
+      0.7116
+     ],
+     [
+      "concat_non_cont_dim0_flat",
+      0.5387
+     ],
+     [
+      "unary_gated_op_kernel",
+      0.5288
+     ],
+     [
+      "cpy_scalar_fastdiv",
+      0.4182
+     ],
+     [
+      "fwht_cuda",
+      0.3837
+     ],
+     [
+      "ssm_conv_f32",
+      0.3398
+     ],
+     [
+      "k_set_rows_quant",
+      0.333
+     ],
+     [
+      "add_softplus_mul_f32",
+      0.2751
+     ]
+    ],
+    "copy_ms_per_token": {
+     "HtoD": 1.286,
+     "DtoH": 0.9897
+    },
+    "copy_bytes": {
+     "HtoD": 1491798960,
+     "DtoH": 1589227520
+    },
+    "matmul_kernels_in_window": 0
+   },
+   "prefill": {
+    "window_ms": 5412.45,
+    "n_tokens": 2048,
+    "kernels": 8752,
+    "kernels_per_token": 4.2734,
+    "busy_frac": {
+     "0": 0.7373,
+     "1": 0.7392
+    },
+    "ms_per_token_by_cat": {
+     "matmul": 3.3991,
+     "elementwise": 0.2059,
+     "attention": 0.1237,
+     "convert": 0.1224,
+     "matvec": 0.0321,
+     "gdn": 0.0189
+    },
+    "ms_per_token_by_cat_dev": {
+     "0": {
+      "matmul": 1.6974,
+      "elementwise": 0.1028,
+      "attention": 0.0618,
+      "convert": 0.0611,
+      "matvec": 0.016,
+      "gdn": 0.0094
+     },
+     "1": {
+      "matmul": 1.7017,
+      "elementwise": 0.1031,
+      "attention": 0.0619,
+      "convert": 0.0613,
+      "matvec": 0.0161,
+      "gdn": 0.0095
+     }
+    },
+    "top_kernels_ms_per_token": [
+     [
+      "gemm_fold_kernel_u2",
+      3.2816
+     ],
+     [
+      "flash_attn_tile",
+      0.1144
+     ],
+     [
+      "dequantize_block_q6_K_vec4",
+      0.083
+     ],
+     [
+      "gdn2_main",
+      0.0749
+     ],
+     [
+      "gemm_fold_prescale_v",
+      0.0482
+     ],
+     [
+      "maxwell_sgemm_128x64_tn",
+      0.0455
+     ],
+     [
+      "add_rms_norm_mul_f32",
+      0.0437
+     ],
+     [
+      "k_bin_bcast_flat",
+      0.03
+     ],
+     [
+      "convert_unary_cont_vec4",
+      0.03
+     ],
+     [
+      "mmvq_f16_q6_K",
+      0.0277
+     ],
+     [
+      "sgemm_32x32x32_NT_vec",
+      0.0197
+     ],
+     [
+      "ssm_conv_long_token_f32",
+      0.0179
+     ],
+     [
+      "concat_dim0_tiled",
+      0.015
+     ],
+     [
+      "gdn2_prep",
+      0.015
+     ],
+     [
+      "rms_norm_f32_warp",
+      0.0129
+     ]
+    ],
+    "copy_ms_per_token": {
+     "DtoH": 0.6429,
+     "HtoD": 0.6352
+    },
+    "copy_bytes": {
+     "DtoH": 5539702792,
+     "HtoD": 5464375288
+    },
+    "matmul_kernels_in_window": 2432
+   }
+  },
+  {
+   "name": "r32k",
+   "cluster_ms": 93190.5,
+   "prompt_ms": 83255.904,
+   "predicted_ms": 10087.999,
+   "prompt_n": 32768,
+   "predicted_n": 256,
+   "prefill_tps": 393.58169722113644,
+   "decode_tps": 25.27755999975813,
+   "decode": {
+    "window_ms": 10088.0,
+    "n_tokens": 256,
+    "kernels": 859350,
+    "kernels_per_token": 3356.8359,
+    "busy_frac": {
+     "0": 0.7809,
+     "1": 0.7826
+    },
+    "ms_per_token_by_cat": {
+     "matvec": 48.0836,
+     "elementwise": 6.7607,
+     "attention": 4.8945,
+     "gdn": 1.4493,
+     "convert": 0.4235
+    },
+    "ms_per_token_by_cat_dev": {
+     "0": {
+      "matvec": 24.0194,
+      "elementwise": 3.376,
+      "attention": 2.4439,
+      "gdn": 0.7229,
+      "convert": 0.2115
+     },
+     "1": {
+      "matvec": 24.0642,
+      "elementwise": 3.3847,
+      "attention": 2.4506,
+      "gdn": 0.7263,
+      "convert": 0.212
+     }
+    },
+    "top_kernels_ms_per_token": [
+     [
+      "mul_mat_vec_q",
+      45.2478
+     ],
+     [
+      "flash_attn_ext_q4p",
+      4.6406
+     ],
+     [
+      "add_rms_norm_mul_f32",
+      2.1193
+     ],
+     [
+      "quantize_q8_1",
+      1.6185
+     ],
+     [
+      "rms_norm_f32_warp",
+      1.3308
+     ],
+     [
+      "mul_mat_vec_f",
+      1.2173
+     ],
+     [
+      "gated_delta_net_cuda",
+      1.1054
+     ],
+     [
+      "k_bin_bcast_flat",
+      0.7196
+     ],
+     [
+      "concat_non_cont_dim0_flat",
+      0.543
+     ],
+     [
+      "unary_gated_op_kernel",
+      0.53
+     ],
+     [
+      "cpy_scalar_fastdiv",
+      0.4235
+     ],
+     [
+      "fwht_cuda",
+      0.4
+     ],
+     [
+      "ssm_conv_f32",
+      0.3438
+     ],
+     [
+      "k_set_rows_quant",
+      0.3355
+     ],
+     [
+      "add_softplus_mul_f32",
+      0.2779
+     ]
+    ],
+    "copy_ms_per_token": {
+     "HtoD": 1.3083,
+     "DtoH": 0.9923
+    },
+    "copy_bytes": {
+     "HtoD": 1523133360,
+     "DtoH": 1589724160
+    },
+    "matmul_kernels_in_window": 0
+   },
+   "prefill": {
+    "window_ms": 83255.9,
+    "n_tokens": 32768,
+    "kernels": 99626,
+    "kernels_per_token": 3.0403,
+    "busy_frac": {
+     "0": 0.8504,
+     "1": 0.8529
+    },
+    "ms_per_token_by_cat": {
+     "matmul": 3.4434,
+     "elementwise": 0.7329,
+     "convert": 0.1232,
+     "gdn": 0.0182,
+     "attention": 0.008,
+     "matvec": 0.002
+    },
+    "ms_per_token_by_cat_dev": {
+     "0": {
+      "matmul": 1.7186,
+      "elementwise": 0.3665,
+      "convert": 0.0615,
+      "gdn": 0.0091,
+      "attention": 0.004,
+      "matvec": 0.001
+     },
+     "1": {
+      "matmul": 1.7248,
+      "elementwise": 0.3663,
+      "convert": 0.0617,
+      "gdn": 0.0091,
+      "attention": 0.004,
+      "matvec": 0.001
+     }
+    },
+    "top_kernels_ms_per_token": [
+     [
+      "gemm_fold_kernel_u2",
+      3.3247
+     ],
+     [
+      "fa_fold_pv2",
+      0.2627
+     ],
+     [
+      "fa_fold_qk2",
+      0.2542
+     ],
+     [
+      "dequantize_block_q6_K_vec4",
+      0.0835
+     ],
+     [
+      "gdn2_main",
+      0.0758
+     ],
+     [
+      "gemm_fold_prescale_v",
+      0.0484
+     ],
+     [
+      "maxwell_sgemm_128x64_tn",
+      0.0462
+     ],
+     [
+      "add_rms_norm_mul_f32",
+      0.0429
+     ],
+     [
+      "convert_unary_cont_vec4",
+      0.0303
+     ],
+     [
+      "k_bin_bcast_flat",
+      0.0297
+     ],
+     [
+      "sgemm_32x32x32_NT_vec",
+      0.0199
+     ],
+     [
+      "ssm_conv_long_token_f32",
+      0.0182
+     ],
+     [
+      "concat_dim0_tiled",
+      0.0153
+     ],
+     [
+      "gdn2_prep",
+      0.0152
+     ],
+     [
+      "rms_norm_f32_warp",
+      0.0123
+     ]
+    ],
+    "copy_ms_per_token": {
+     "DtoH": 0.625,
+     "HtoD": 0.634
+    },
+    "copy_bytes": {
+     "DtoH": 86226708480,
+     "HtoD": 87264362608
+    },
+    "matmul_kernels_in_window": 38432
+   }
+  }
+ ]
+}

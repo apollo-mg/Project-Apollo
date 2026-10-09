@@ -1,0 +1,454 @@
+{
+ "db": "PDQ4.sqlite",
+ "kernels_total": 2043404,
+ "graph_launches": 0,
+ "n_clusters": 4,
+ "requests": [
+  {
+   "name": "warmup",
+   "cluster_ms": 1432.8,
+   "prompt_ms": 375.184,
+   "predicted_ms": 1087.266,
+   "prompt_n": 5,
+   "predicted_n": 16,
+   "prefill_tps": 13.326794319587187,
+   "decode_tps": 13.796071982385174
+  },
+  {
+   "name": "r2k",
+   "cluster_ms": 27398.0,
+   "prompt_ms": 9434.858,
+   "predicted_ms": 18164.647,
+   "prompt_n": 2048,
+   "predicted_n": 256,
+   "prefill_tps": 217.06738988546516,
+   "decode_tps": 14.038257941373702,
+   "decode": {
+    "window_ms": 18164.65,
+    "n_tokens": 256,
+    "kernels": 948600,
+    "kernels_per_token": 3705.4688,
+    "busy_frac": {
+     "0": 0.8699,
+     "1": 0.8701
+    },
+    "ms_per_token_by_cat": {
+     "matvec": 111.0827,
+     "elementwise": 7.363,
+     "attention": 3.2964,
+     "gdn": 1.7264
+    },
+    "ms_per_token_by_cat_dev": {
+     "0": {
+      "matvec": 55.5289,
+      "elementwise": 3.6786,
+      "attention": 1.6555,
+      "gdn": 0.8635
+     },
+     "1": {
+      "matvec": 55.5538,
+      "elementwise": 3.6844,
+      "attention": 1.6409,
+      "gdn": 0.8629
+     }
+    },
+    "top_kernels_ms_per_token": [
+     [
+      "mul_mat_vec_q",
+      107.3122
+     ],
+     [
+      "flash_attn_ext_vec",
+      3.1065
+     ],
+     [
+      "quantize_q8_1",
+      2.5226
+     ],
+     [
+      "rms_norm_mul_bcast_f32",
+      2.4427
+     ],
+     [
+      "k_bin_bcast",
+      2.2406
+     ],
+     [
+      "mul_mat_vec_f",
+      1.2478
+     ],
+     [
+      "unary_gated_op_kernel",
+      1.1811
+     ],
+     [
+      "gated_delta_net_cuda",
+      1.0298
+     ],
+     [
+      "conv_state_concat",
+      0.6965
+     ],
+     [
+      "k_set_rows_quant",
+      0.471
+     ],
+     [
+      "rms_norm_mul_rope_f32",
+      0.4362
+     ],
+     [
+      "fwht_cuda",
+      0.3592
+     ],
+     [
+      "unary_op_kernel",
+      0.2198
+     ],
+     [
+      "flash_attn_combine_results",
+      0.1899
+     ],
+     [
+      "k_get_rows_float",
+      0.0124
+     ]
+    ],
+    "copy_ms_per_token": {
+     "HtoD": 1.2732,
+     "DtoH": 0.9678
+    },
+    "copy_bytes": {
+     "HtoD": 1493624760,
+     "DtoH": 1589227520
+    },
+    "matmul_kernels_in_window": 0
+   },
+   "prefill": {
+    "window_ms": 9434.86,
+    "n_tokens": 2048,
+    "kernels": 8426,
+    "kernels_per_token": 4.1143,
+    "busy_frac": {
+     "0": 0.7784,
+     "1": 0.7775
+    },
+    "ms_per_token_by_cat": {
+     "matmul": 6.3318,
+     "gdn": 0.3283,
+     "elementwise": 0.1944,
+     "convert": 0.1364,
+     "attention": 0.1037,
+     "matvec": 0.0731
+    },
+    "ms_per_token_by_cat_dev": {
+     "0": {
+      "matmul": 3.1661,
+      "gdn": 0.1662,
+      "elementwise": 0.0972,
+      "convert": 0.0682,
+      "attention": 0.0519,
+      "matvec": 0.0364
+     },
+     "1": {
+      "matmul": 3.1657,
+      "gdn": 0.1621,
+      "elementwise": 0.0972,
+      "convert": 0.0682,
+      "attention": 0.0519,
+      "matvec": 0.0366
+     }
+    },
+    "top_kernels_ms_per_token": [
+     [
+      "sgemm_128x128x8_NT_vec",
+      6.2645
+     ],
+     [
+      "gated_delta_net_cuda",
+      0.3134
+     ],
+     [
+      "dequantize_block_q6_K",
+      0.1198
+     ],
+     [
+      "flash_attn_tile",
+      0.1034
+     ],
+     [
+      "k_bin_bcast",
+      0.0807
+     ],
+     [
+      "mul_mat_vec_q",
+      0.0717
+     ],
+     [
+      "unary_gated_op_kernel",
+      0.0495
+     ],
+     [
+      "rms_norm_mul_bcast_f32",
+      0.047
+     ],
+     [
+      "maxwell_sgemm_128x64_tn",
+      0.0445
+     ],
+     [
+      "sgemm_32x32x32_NT_vec",
+      0.0189
+     ],
+     [
+      "dequantize_block",
+      0.0157
+     ],
+     [
+      "conv_state_silu_prefill",
+      0.0143
+     ],
+     [
+      "rms_norm_mul_rope_f32",
+      0.0089
+     ],
+     [
+      "gemmSN_TN_kernel",
+      0.004
+     ],
+     [
+      "fwht_cuda",
+      0.0037
+     ]
+    ],
+    "copy_ms_per_token": {
+     "DtoH": 0.8696,
+     "HtoD": 0.8659
+    },
+    "copy_bytes": {
+     "DtoH": 10898450432,
+     "HtoD": 10839326744
+    },
+    "matmul_kernels_in_window": 1184
+   }
+  },
+  {
+   "name": "r32k",
+   "cluster_ms": 190338.0,
+   "prompt_ms": 169432.029,
+   "predicted_ms": 21073.547,
+   "prompt_n": 32768,
+   "predicted_n": 256,
+   "prefill_tps": 193.3990886693566,
+   "decode_tps": 12.100478386481402,
+   "decode": {
+    "window_ms": 21073.55,
+    "n_tokens": 256,
+    "kernels": 948600,
+    "kernels_per_token": 3705.4688,
+    "busy_frac": {
+     "0": 0.888,
+     "1": 0.8885
+    },
+    "ms_per_token_by_cat": {
+     "matvec": 111.234,
+     "attention": 25.935,
+     "elementwise": 7.3516,
+     "gdn": 1.7214
+    },
+    "ms_per_token_by_cat_dev": {
+     "0": {
+      "matvec": 55.4866,
+      "attention": 13.0825,
+      "elementwise": 3.6704,
+      "gdn": 0.8592
+     },
+     "1": {
+      "matvec": 55.7474,
+      "attention": 12.8525,
+      "elementwise": 3.6811,
+      "gdn": 0.8622
+     }
+    },
+    "top_kernels_ms_per_token": [
+     [
+      "mul_mat_vec_q",
+      107.4685
+     ],
+     [
+      "flash_attn_ext_vec",
+      25.7282
+     ],
+     [
+      "quantize_q8_1",
+      2.5224
+     ],
+     [
+      "rms_norm_mul_bcast_f32",
+      2.4382
+     ],
+     [
+      "k_bin_bcast",
+      2.2451
+     ],
+     [
+      "mul_mat_vec_f",
+      1.243
+     ],
+     [
+      "unary_gated_op_kernel",
+      1.1825
+     ],
+     [
+      "gated_delta_net_cuda",
+      1.033
+     ],
+     [
+      "conv_state_concat",
+      0.6884
+     ],
+     [
+      "k_set_rows_quant",
+      0.454
+     ],
+     [
+      "rms_norm_mul_rope_f32",
+      0.427
+     ],
+     [
+      "fwht_cuda",
+      0.3713
+     ],
+     [
+      "unary_op_kernel",
+      0.2208
+     ],
+     [
+      "flash_attn_combine_results",
+      0.2068
+     ],
+     [
+      "k_get_rows_float",
+      0.0126
+     ]
+    ],
+    "copy_ms_per_token": {
+     "HtoD": 1.2953,
+     "DtoH": 0.9695
+    },
+    "copy_bytes": {
+     "HtoD": 1524959160,
+     "DtoH": 1589724160
+    },
+    "matmul_kernels_in_window": 0
+   },
+   "prefill": {
+    "window_ms": 169432.03,
+    "n_tokens": 32768,
+    "kernels": 69416,
+    "kernels_per_token": 2.1184,
+    "busy_frac": {
+     "0": 0.8183,
+     "1": 0.8203
+    },
+    "ms_per_token_by_cat": {
+     "matmul": 6.39,
+     "attention": 1.4143,
+     "gdn": 0.3324,
+     "elementwise": 0.1921,
+     "convert": 0.1396,
+     "matvec": 0.0046
+    },
+    "ms_per_token_by_cat_dev": {
+     "0": {
+      "matmul": 3.1911,
+      "attention": 0.7059,
+      "gdn": 0.1662,
+      "elementwise": 0.0959,
+      "convert": 0.0697,
+      "matvec": 0.0023
+     },
+     "1": {
+      "matmul": 3.1988,
+      "attention": 0.7084,
+      "gdn": 0.1662,
+      "elementwise": 0.0962,
+      "convert": 0.0698,
+      "matvec": 0.0023
+     }
+    },
+    "top_kernels_ms_per_token": [
+     [
+      "sgemm_128x128x8_NT_vec",
+      6.3261
+     ],
+     [
+      "flash_attn_tile",
+      1.414
+     ],
+     [
+      "gated_delta_net_cuda",
+      0.318
+     ],
+     [
+      "dequantize_block_q6_K",
+      0.1201
+     ],
+     [
+      "k_bin_bcast",
+      0.0804
+     ],
+     [
+      "unary_gated_op_kernel",
+      0.0498
+     ],
+     [
+      "rms_norm_mul_bcast_f32",
+      0.0463
+     ],
+     [
+      "maxwell_sgemm_128x64_tn",
+      0.0448
+     ],
+     [
+      "sgemm_32x32x32_NT_vec",
+      0.0189
+     ],
+     [
+      "dequantize_block",
+      0.0158
+     ],
+     [
+      "conv_state_silu_prefill",
+      0.0144
+     ],
+     [
+      "rms_norm_mul_rope_f32",
+      0.0088
+     ],
+     [
+      "mul_mat_vec_q",
+      0.0045
+     ],
+     [
+      "dequantize_block_q4_0",
+      0.0037
+     ],
+     [
+      "fwht_cuda",
+      0.0036
+     ]
+    ],
+    "copy_ms_per_token": {
+     "DtoH": 0.8589,
+     "HtoD": 0.8752
+    },
+    "copy_bytes": {
+     "DtoH": 172116617216,
+     "HtoD": 175434137744
+    },
+    "matmul_kernels_in_window": 16064
+   }
+  }
+ ]
+}
