@@ -1,4 +1,4 @@
-# Result -- Coder390 invents no answers where none exist: 0 of 24 on unsolvable problems, and on CAL every miss it makes, stock Qwen3.8-27B makes too, in 0.41x the tokens. Against its own parent it fixes 3 of 4 runaways and invents less (descriptive). The bare thinking cap that also removes the base's runaway invents one new answer
+# Result -- Coder390 invents no answers where none exist: 0 of 24 on unsolvable problems, and on CAL every miss it makes, stock Qwen3.8-27B makes too, in 0.41x the tokens. Against its own parent, several training stages upstream, it runs away once where the parent ran away 4 times (descriptive). The bare thinking cap that also removes the base's runaway invents one new answer
 
 **2026-10-11.**
 - **Prereg:** `PREREG_CODER390_UNSOLVABLE.md` (`5b5fc886`; pre-arm fixes `b2eeed8c`, `1a0a64c3`), two deviations,
@@ -118,14 +118,19 @@ questions (1 UNS, 15 CAL). No answerable row in either tier reached it.
   cuts this model's thinking on invented questions to 0.20x of B's total (9,795 vs 49,467 tokens) for that one
   invented answer.
 
-## The parent: where the stopping fix does show (descriptive, not registered)
+## Parent vs Coder390 on CAL (descriptive, not registered)
 
-No prediction covered N against P on CAL; the prereg ran P's CAL rows for context. They turn out to be where the card's
-claim shows:
+No prediction covered N against P on CAL; the prereg ran P's CAL rows for context. **What separates the two is not
+only RLOO.**
+- **Training:** P to N spans K3 SFT, a week-2 SFT, another SFT and two RLOO rounds (prereg, lineage).
+- **The GGUFs differ too:** P has no MTP head, its `ssm_alpha/beta` are Q6_K where N's are BF16, and the imatrix
+  corpora differ.
+
+Read the table as "parent to Coder390", not "RLOO alone":
 
 | CAL invented questions | P, the parent | N, Coder390 |
 |---|---:|---:|
-| Runaways | **4** (CAL-U2@1002, CAL-U4@1001, CAL-U4@1002, CAL-U8@1003) | **1** (CAL-U4@1002) |
+| Runaways | **4**, on 3 distinct items (CAL-U2@1002, CAL-U4@1001, CAL-U4@1002, CAL-U8@1003) | **1** (CAL-U4@1002) |
 | Wrong | **4** (CAL-U3 x3 "1906", CAL-U5@1001 "1359" after 6,766 tokens) | **3** (CAL-U3 x3 "1906") |
 | Abstained | 16 | 20 |
 | Scored tokens | 85,090 | 27,480 |
@@ -139,8 +144,8 @@ claim shows:
   94K, and without the fabrication cost the prereg predicted.
 - **This is 24 rows per arm, unregistered, and the item-level pattern is the strength of it, not the counts.** On the
   20 rows where neither ran away, N used 11,170 tokens against P's 35,938, and N was shorter on 18 of all 24.
-- **The parent also has the base's AFM-51 grader miss:** `weber (Wb)` on CAL-A2 seed 1002. Corrected, it is 24/24 on
-  answerable questions.
+- **The parent has the same AFM-51 grader miss as Coder390:** `weber (Wb)` on CAL-A2 seed 1002, the same row (the base
+  answered `weber` there). Corrected, it is 24/24 on answerable questions.
 
 ## What this adds to earlier receipts
 
@@ -165,9 +170,11 @@ claim shows:
   effects on easy problems only.
 - **One quant (Q6_K), one host, one effort (xhigh), a 16k budget.** The card's claim is about a 94K cap. **That regime
   is untested.**
-- **Whether the registered follow-up triggers is ambiguous.** The prereg made a harder, blind UNS tier conditional on
-  "CAL shows N winning on runaways", without naming the comparison arm. Against stock Qwen, CAL shows a tie (1 vs 1);
-  against the parent, N wins (4 vs 1). That is a call for Mark, not one to make after seeing the data.
+- **The registered follow-up does not trigger.** The prereg made a harder, blind UNS tier conditional on "CAL shows N
+  winning on runaways". Before any data, it named B "the card's comparison", and every CAL verdict is against B. Against
+  B, CAL is a tie (1 vs 1).
+  - The parent comparison (4 vs 1) is a reason to consider registering a hard tier fresh.
+  - That is Mark's decision as a new prereg. It is not this one's trigger reinterpreted after the data.
 - **The GGUF recipes differ** in small tensors and imatrix corpora (prereg, Models). The outcome tables do not separate
   a quantisation effect from the fine-tune's. Identical outcomes on identical items make a large hidden effect
   unlikely; they do not rule out a small one.
@@ -190,3 +197,5 @@ claim shows:
 - **Wall clock:** about 2 h for lane A including the resume, and 4.1 h for lane B (23:18 to 03:25), most of it the
   parent's CAL runaways. That is shorter than the prereg's
   4.5 h estimate on lane A, because the UNS rows averaged about 200 tokens and B's CAL total was 52.6k scored tokens.
+- **After the run:** .194 was powered off at 03:31 (BMC: chassis off, 0 W). N's and P's GGUFs lived in `/dev/shm` and
+  are gone. `run_coder390.sh preflight` re-fetches both at the pinned revisions and checks their sha256.
