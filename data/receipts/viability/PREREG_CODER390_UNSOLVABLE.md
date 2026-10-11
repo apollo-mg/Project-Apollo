@@ -269,3 +269,25 @@ the base failing, which flatters the other arms on runaways. It is named as a fo
 ## Deviations
 
 Any change after the first arm row gets a numbered Deviation here before the affected rows run.
+
+**Deviation 1 (2026-10-11 01:10, before any BC CAL row): the BC plan lost 3 of its 4 lines; they run now, unchanged.**
+- **What happened.** Lane A ran the registered cap rule (cap **512**: P90 of B's 24 solvable UNS rows times 1.5, up to
+  a multiple of 256). G2 passed: 2 rows, byte-identical to B. `bcplan` then emitted four lines:
+  - `uns 1002 UNS-U2`
+  - `cal 1001 CAL-U2,CAL-U3,CAL-U4,CAL-U5,CAL-U6`
+  - `cal 1002 CAL-U2,CAL-U4,CAL-U5,CAL-U6,CAL-U8`
+  - `cal 1003 CAL-U2,CAL-U4,CAL-U5,CAL-U6,CAL-U8`
+
+  The runner read them with `bcplan | while read`. `fixture_pass` runs `ssh`, and ssh read the loop's stdin, which
+  swallowed lines 2-4. Lane A ran only `UNS-U2` (518 completion tokens, so the cap binds) and reported "lane A done"
+  with no error. The prereg says BC's information comes mostly from CAL, so the 15 missing rows are most of the arm.
+- **Fix.** Read the whole plan into an array before the first pass (`mapfile`). On a resumed lane, G2 re-checks its
+  stored rows instead of re-running. Nothing else changes: the cap, the rule, the plan, the ids, the seeds, sampling and
+  the gates. Completed passes are skipped by the resume logic, so lane A re-runs exactly those 15 rows, each on a fresh
+  verified server with canaries.
+- **Seen before this note:** which ids exceed the cap. All 15 are CAL unanswerable items: every B answerable CAL row
+  finished within 512 completion tokens. **Not seen:** any BC CAL row (none exists) and B's CAL verdicts.
+- **Instrument note.** Lane B was still running its bash process from `run_coder390.sh`. I first applied the fix to that
+  file in place, which is unsafe for a running bash script. I restored the committed bytes into the same inode within
+  about two minutes. Lane B was inside a compound command and function bodies that were parsed before the edit. It
+  runs on unaffected. The fix lands in `run_coder390.sh` once lane B exits; until then it runs from a copy.
