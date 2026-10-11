@@ -270,7 +270,7 @@ the base failing, which flatters the other arms on runaways. It is named as a fo
 
 Any change after the first arm row gets a numbered Deviation here before the affected rows run.
 
-**Deviation 1 (2026-10-11 01:10, before any BC CAL row): the BC plan lost 3 of its 4 lines; they run now, unchanged.**
+**Deviation 1 (committed 2026-10-11 01:06:17, before any BC CAL row; the lane resumed 01:06:32): the BC plan lost 3 of its 4 lines; they run now, unchanged.**
 - **What happened.** Lane A ran the registered cap rule (cap **512**: P90 of B's 24 solvable UNS rows times 1.5, up to
   a multiple of 256). G2 passed: 2 rows, byte-identical to B. `bcplan` then emitted four lines:
   - `uns 1002 UNS-U2`
@@ -291,3 +291,16 @@ Any change after the first arm row gets a numbered Deviation here before the aff
   file in place, which is unsafe for a running bash script. I restored the committed bytes into the same inode within
   about two minutes. Lane B was inside a compound command and function bodies that were parsed before the edit. It
   runs on unaffected. The fix lands in `run_coder390.sh` once lane B exits; until then it runs from a copy.
+
+**Deviation 2 (2026-10-11, after B's and N's CAL counts were seen, before any BC CAL row existed): a completeness gate
+in the analyzer. No verdict rule changes.**
+- **What I saw first.** Between Deviation 1's commit and the BC CAL rows landing, I ran `report` without writing. It
+  printed B's and N's complete UNS and CAL tables, and P's partial ones. It also printed **K4 "holds"**, which was false:
+  with the BC CAL re-runs missing, `load_arm` scored BC as B's copies (RUN 1 / WRONG 3, a tie with N).
+- **The change.** `report` now recomputes `bcplan` and records `BC_plan_complete` (planned rows, missing rows). It does
+  not evaluate K4 while any planned re-run is missing. The K4 rule itself (`BC RUN <= N RUN and BC WRONG <= N WRONG`) is
+  unchanged, as are U1-U3 and K1-K3. The self-test still passes.
+- **Why it is disclosed.** It is an analysis edit made after seeing outcome data. It only withholds a verdict while the
+  data is incomplete. Once all 16 re-runs exist, it cannot change any verdict.
+- **Also in this commit:** Deviation 1's header gets its actual commit time (01:06:17). The draft said 01:10, an
+  estimate.

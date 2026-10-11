@@ -126,7 +126,12 @@ def report(out, write=True):
     if cap is not None and "BC" in arms:
         reruns = [(k, r) for t in ("uns", "cal") for k, r in data[("BC", t)].items() if r["_src"] == "rerun"]
         bad = [k for k, r in reruns if (r.get("completion_tokens") or 0) > cap + 1024]
+        # completeness (Deviation 1): every row bcplan names must have a re-run, or BC silently reads as B's copies
+        want = {(i, int(sd)) for t, sd, ids in bcplan(out, cap, "pass" if g2 and all(same_text(g2[i], b1.get(i, {})) for i in g2) else "fail")
+                for i in ids.split(",")}
+        missing = sorted(want - {k for k, r in reruns})
         R["gates"]["BC_cap_honoured"] = {"cap": cap, "reruns": len(reruns), "over_cap_plus_1024": bad}
+        R["gates"]["BC_plan_complete"] = {"planned": len(want), "missing": [f"{i}@{sd}" for i, sd in missing]}
 
     # ---- tables
     for t, fx, twins in (("uns", fxu, ("answerable", "unanswerable")), ("cal", fxc, ("answerable", "unanswerable"))):
@@ -168,7 +173,7 @@ def report(out, write=True):
                    "verdict": "holds" if cn["RUN"] < cb["RUN"] and cn["WRONG"] > cb["WRONG"] else "fails"}
         V["K3"] = {"claim": "CAL: Coder390 abstains on fewer invented questions than base", "N": cn["ABS"], "B": cb["ABS"],
                    "verdict": "holds" if cn["ABS"] < cb["ABS"] else "fails"}
-    if full(C("BC"), 48) and full(C("N"), 48):
+    if full(C("BC"), 48) and full(C("N"), 48) and not R["gates"].get("BC_plan_complete", {}).get("missing"):
         cc, cn = counts(C("BC"), fxc, "unanswerable"), counts(C("N"), fxc, "unanswerable")
         V["K4"] = {"claim": "CAL: the free cap matches Coder390 on runaways without its fabrication",
                    "BC": {"RUN": cc["RUN"], "WRONG": cc["WRONG"]}, "N": {"RUN": cn["RUN"], "WRONG": cn["WRONG"]},
