@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# PREREG_CODER390_UNSOLVABLE.md -- one lane of the .194 campaign.   usage: run_coder390.sh A|B
+# PREREG_CODER390_UNSOLVABLE.md -- one lane of the .194 campaign.   usage: run_coder390.sh preflight | A | B
+#   preflight (once, before either lane): free disk, GPU pairing, fetch both GGUFs at the pinned revisions, sha256 of all
+#   three against the registered values (G-1). Writes coder390/gates/preflight.txt; any failure exits 1.
 #   lane A = GPUs 0,1, port 8191:  B (UNS x2 seeds, CAL x3) -> BC (thinking-cap reruns on B)
 #   lane B = GPUs 2,3, port 8192:  G1 (B, two rows) -> N (UNS x2, CAL x3) -> P (UNS x2, CAL x3)
 # Every arm on one scheme: 2-GPU tensor split, f16 KV, -c 20480, -np 1, MTP off, buun 0b2789f23, cache_prompt false.
@@ -15,10 +17,16 @@ BIN='~/buun-0b278/build_sm60/bin/llama-server'
 B_GGUF='~/AI/Models/Qwen3.8-27B/Qwen3.8-27B-Q6_K.gguf'
 N_GGUF='~/AI/Models/coder390/Qwen3.8-27B-Coder390-EfficientThink-Q6_K-MTP.gguf'
 P_GGUF='~/AI/Models/coder390/Qwen3.8-27B-EfficientThink-SimPO-Q6_K.gguf'
+B_SHA=562fbf760503008f118e5df38de5b3e97992d1f693f475815631198547486727
+N_SHA=302597c53d1b00f7230b53a8a050831390a4371e92a80c1ac644fa920af76ab1
+P_SHA=20c4f349b0a355e6b7725d9a6ee7a862172d5081a8284b4defb1c5e5955ca5bc
+N_URL=https://huggingface.co/nerkyor/Qwen3.8-27B-Coder390-EfficientThink-Opus5.5-GPT6Astra-Grok4.7-DSV4Pro-K3-SFT-RLOO-MTP-DFlash2/resolve/b85739f2e2ee71dd090265493a8ffad5ce321083/GGUF/Qwen3.8-27B-Coder390-EfficientThink-Q6_K-MTP.gguf
+P_URL=https://huggingface.co/nerkyor/Qwen3.8-27B-EfficientThink-Uncensored-K3-Opus5-Grok4.6-GPT5.6Sol-SFT-SimPO-DFlash2/resolve/882e1af3b8f5844f3b3163b132e343c06e91908f/GGUF/Q6_K/Qwen3.8-27B-EfficientThink-SimPO-Q6_K.gguf
 case $LANE in
   A) GPUS=0,1; PORT=8191 ;;
   B) GPUS=2,3; PORT=8192 ;;
-  *) echo "usage: $0 A|B"; exit 2 ;;
+  preflight) GPUS=; PORT=0 ;;
+  *) echo "usage: $0 preflight|A|B"; exit 2 ;;
 esac
 URL="http://$H:$PORT"
 FLAGS="-ngl 99 -c 20480 -np 1 -fa on --kv-unified -ctk f16 -ctv f16 -sm tensor -fit off --jinja --host 0.0.0.0 --port $PORT"
@@ -35,7 +43,7 @@ stop_server() {    # only the PID this lane recorded, and only if it is still a 
     || { log "llama-server $pid survived SIGTERM -- aborting"; exit 1; }
   $SSH "rm -f ~/c390_lane$LANE.pid"
 }
-trap 'stop_server; scp -q "$H:c390_${LANE}_*.log" "$OUT/gates/" 2>/dev/null' EXIT
+[ "$LANE" = preflight ] || trap 'stop_server; scp -q "$H:c390_${LANE}_*.log" "$OUT/gates/" 2>/dev/null' EXIT
 
 start_server() {   # TAG MODEL -> 0 ours and verified; 1 died / not healthy; 2 wrong server / placement / context
   local tag=$1 model=$2 up=0
@@ -121,8 +129,8 @@ print(",".join(i for i in ids if i not in have))
 EOF
 }
 
-fixture_pass() {   # ARM MODEL TIER(uns|cal) SEED [CAP] [IDS] -- one pass on a fresh server
-  local arm=$1 model=$2 tier=$3 seed=$4 cap=${5:-} subset=${6:-}
+fixture_pass() {   # ARM MODEL TIER(uns|cal) SEED [CAP] [IDS] [RETRY] -- one pass on a fresh server
+  local arm=$1 model=$2 tier=$3 seed=$4 cap=${5:-} subset=${6:-} retry=${7:-0}
   local fx=$UNS_FX; [ "$tier" = cal ] && fx=$CAL_FX
   local jl="$OUT/$arm/${tier}_seed$seed.jsonl" pss="${tier}_$seed" ids rc
   ids=$(missing "$jl" "$fx" "$subset"); [ -z "$ids" ] && { log "$arm $pss: complete"; return 0; }
@@ -136,9 +144,45 @@ fixture_pass() {   # ARM MODEL TIER(uns|cal) SEED [CAP] [IDS] -- one pass on a f
       >> "$OUT/$arm/${tier}_seed$seed.log" 2>&1
   log "$arm $pss: exit $? ($(wc -l < "$jl") rows)"
   canary "$arm" "$pss" post >> "$LOG"
-  canary_ok "$arm" "$pss" >> "$LOG" 2>&1 || log "$arm $pss: CANARY SUSPECT (see PREREG: quarantine and re-run once)"
+  if ! canary_ok "$arm" "$pss" >> "$LOG" 2>&1; then
+    if [ "$retry" = 0 ]; then         # registered: quarantine the pass's rows and re-run it ONCE on a fresh server
+      mv "$jl" "$jl.quarantine1"
+      log "$arm $pss: CANARY SUSPECT -- rows moved to $(basename "$jl").quarantine1; re-running the pass once"
+      fixture_pass "$arm" "$model" "$tier" "$seed" "$cap" "$subset" 1
+    else
+      log "$arm $pss: CANARY SUSPECT on the re-run too -- rows kept and flagged SUSPECT in the receipt"
+      echo "$arm $pss" >> "$OUT/gates/suspect_passes.txt"
+    fi
+  fi
 }
 
+preflight() {      # G-1: run once before either lane
+  local pf="$OUT/gates/preflight.txt" ok=1 topo got
+  : > "$pf"
+  pflog() { echo "$*" | tee -a "$pf"; }
+  pflog "preflight $(date '+%F %T')"
+  pflog "free: $($SSH "mkdir -p ~/AI/Models/coder390 && df -BG --output=avail ~/AI/Models/coder390 | tail -1 | tr -d ' G'") GB"
+  topo=$($SSH "nvidia-smi topo -m" | sed 's/\x1b\[[0-9;]*m//g')
+  echo "$topo" >> "$pf"
+  echo "$topo" | awk '$1=="GPU0"{a=$3} $1=="GPU2"{b=$5} END{exit !(a=="PHB" && b=="PHB")}' \
+    && pflog "GPU pairs 0-1 and 2-3: PHB" || { pflog "FAIL: GPU 0-1 / 2-3 are not PHB pairs"; ok=0; }
+  for spec in "$N_URL|$N_GGUF|23177516384" "$P_URL|$P_GGUF|22082530048"; do
+    IFS='|' read -r url dst size <<< "$spec"
+    [ "$($SSH "stat -c %s $dst 2>/dev/null")" = "$size" ] && { pflog "have  $(basename "$dst") ($size bytes)"; continue; }
+    pflog "fetch $(basename "$dst") ($size bytes)"
+    $SSH "curl -sSL --fail --retry 5 -C - -o $dst '$url'" || { pflog "FAIL: download $(basename "$dst")"; ok=0; }
+  done
+  for spec in "$B_GGUF|$B_SHA" "$N_GGUF|$N_SHA" "$P_GGUF|$P_SHA"; do
+    IFS='|' read -r f want <<< "$spec"
+    got=$($SSH "sha256sum $f 2>/dev/null | cut -d' ' -f1")
+    [ "$got" = "$want" ] && pflog "sha256 ok   $(basename "$f") ${want:0:12}" || { pflog "FAIL: sha256 $(basename "$f") got '${got:0:12}' want ${want:0:12}"; ok=0; }
+  done
+  pflog "binary: $($SSH "ls -l --time-style=+%F $BIN | awk '{print \$6, \$7}'")"
+  [ $ok = 1 ] && pflog "PREFLIGHT PASS" || { pflog "PREFLIGHT FAIL"; exit 1; }
+}
+
+if [ "$LANE" = preflight ]; then preflight; exit 0; fi
+grep -q "PREFLIGHT PASS" "$OUT/gates/preflight.txt" 2>/dev/null || { echo "run preflight first"; exit 1; }
 log "== start (GPUs $GPUS, port $PORT)"
 if [ "$LANE" = A ]; then
   for s in 1001 1002; do fixture_pass B "$B_GGUF" uns $s; done

@@ -122,11 +122,17 @@ Preset `card` serves every arm.
   - **Canary** before and after each pass: thinking off, temp 0, "Count from 1 to 20". A post canary with different text
     or under 0.7x the pre canary's decode rate marks the pass SUSPECT (AFM-26 / AFM-30: a degraded server generates to
     the cap, which looks exactly like a runaway).
-  - **A SUSPECT pass** has its rows moved to a quarantine file and is re-run once on a fresh server. Both are reported.
+  - **A SUSPECT pass** has its rows moved to `<pass>.jsonl.quarantine1` and is re-run once on a fresh server, automatically
+    (`fixture_pass`). If the re-run is SUSPECT too, its rows are kept and listed in `gates/suspect_passes.txt`. Both are
+    reported.
 
 ### Gates
 
-- **G-1 (pre-flight):** each file's sha256 as above.
+- **G-1 (pre-flight, `run_coder390.sh preflight`, once before either lane):**
+  - free disk; `nvidia-smi topo -m` must show 0-1 and 2-3 as PHB pairs;
+  - both GGUFs fetched at the pinned revisions;
+  - all three sha256s equal the registered values.
+  - Output `coder390/gates/preflight.txt`. Neither lane starts without a PASS.
 - **G0 (per arm, first server):**
   - `swift_fn_probe.py gate` gives a clean count to 20;
   - the warm-up's `draft_n` is 0;
