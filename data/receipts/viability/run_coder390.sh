@@ -193,13 +193,20 @@ if [ "$LANE" = A ]; then
     echo "$CAP" > "$OUT/BC/cap.txt"
     # G2: determinism + the cap binds. Two rows the cap cannot reach must come back byte-identical to B's; then every
     # B row whose completion exceeded the cap is re-run with it (the rest are byte-identical copies by construction).
-    start_server BC_g2 "$B_GGUF" || exit 1
-    (cd "$HERE" && $PY -u run_fixture_structfix.py --host "$URL" --fixture "$UNS_FX" --tier cal --effort xhigh --sampling card \
-        --seed 1001 --no-cache-prompt --only "$($PY "$HERE/analyze_coder390.py" g2ids "$OUT" uns 1001 "$CAP")" --arm BC \
-        --jsonl "$OUT/gates/g2_uns_seed1001.jsonl" --budget "$CAP") >> "$OUT/gates/g2.log" 2>&1
+    if [ ! -s "$OUT/gates/g2_uns_seed1001.jsonl" ]; then      # G2 runs once; a resumed lane re-checks its rows
+      start_server BC_g2 "$B_GGUF" || exit 1
+      (cd "$HERE" && $PY -u run_fixture_structfix.py --host "$URL" --fixture "$UNS_FX" --tier cal --effort xhigh --sampling card \
+          --seed 1001 --no-cache-prompt --only "$($PY "$HERE/analyze_coder390.py" g2ids "$OUT" uns 1001 "$CAP")" --arm BC \
+          --jsonl "$OUT/gates/g2_uns_seed1001.jsonl" --budget "$CAP") >> "$OUT/gates/g2.log" 2>&1
+    fi
     $PY "$HERE/analyze_coder390.py" g2check "$OUT" >> "$LOG" 2>&1 && G2=pass || G2=fail
     log "G2 $G2"
-    $PY "$HERE/analyze_coder390.py" bcplan "$OUT" "$CAP" "$G2" | while read -r tier seed ids; do
+    # Read the whole plan BEFORE the first pass: fixture_pass runs ssh, which reads stdin, so a `| while read` loop
+    # lost every plan line after the first (Deviation 1: the BC CAL lines never ran on the first lane A pass).
+    mapfile -t PLAN < <($PY "$HERE/analyze_coder390.py" bcplan "$OUT" "$CAP" "$G2")
+    log "BC plan: ${#PLAN[@]} passes"
+    for line in "${PLAN[@]}"; do
+      read -r tier seed ids <<< "$line"
       fixture_pass BC "$B_GGUF" "$tier" "$seed" "$CAP" "$ids"
     done
   fi

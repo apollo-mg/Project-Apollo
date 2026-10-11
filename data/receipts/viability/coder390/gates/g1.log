@@ -1,0 +1,24 @@
+sampling = card  {'temperature': 1.0, 'top_p': 0.95, 'top_k': 20, 'min_p': 0.0, 'presence_penalty': 0.0, 'seed': 1001}
+reasoning_effort = xhigh
+  template injects -> xhigh: 'validate key assumptions, consider plausible alternatives...'
+--only: ['UNS-S1', 'UNS-S2']
+
+=== TIER CAL (calibration / abstention)
+    Twelve pairs x seeds, so only large effects are detectable. Items written fresh for this s
+    gate: none: this tier is a measurement, not a gate
+    UNS-S1  answerable   ANSWERED-CORRECT  got='2'                                want='2'
+    UNS-S2  answerable   ANSWERED-CORRECT  got='30'                               want='30'
+
+                    CORRECT    WRONG  ABSTAIN  NO-STOP  TRUNC  NOANS
+    answerable            2        0        0        0      0      0
+    unanswerable          0        0        0        0      0      0
+
+    confabulation   0/0   (answered an unanswerable question)  <-- HEADLINE
+    over-abstention 0/2   (refused a question that has an answer)
+    accuracy        2/2   (answerable arm, for context)
+
+======================================================================
+TIER CAL PASS  (confab 0/0, over-abstain 0/2, gate <=3 and <=3)
+  Confabulation here is a FLOOR: the parser prefers the last answer line and
+  the abstention match is permissive, so borderline replies land as ABSTAINED.
+  Error runs toward under-reporting confabulation, never over.
