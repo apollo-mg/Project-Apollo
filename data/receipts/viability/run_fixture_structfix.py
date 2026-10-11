@@ -94,14 +94,33 @@ def classify(got, gold):
     """Three-way, applied IDENTICALLY to both arms — that identity is the whole point.
     The old grader folded 'abstained' and 'confabulated' into one FAIL on the answerable
     arm, which is exactly the distinction a calibration 2x2 is made of."""
+    return classify_via(got, gold)[0]
+
+def classify_via(got, gold, extra=frozenset(), digitless=False, prose=()):
+    """classify() plus HOW an abstention was recognised: 'token' (UNKNOWN), 'alias' (ABSTAIN),
+    'extra' (a tier's own aliases) or 'digitless'. The defaults reproduce classify() exactly;
+    tier_cal of fixture_v0_beta sets neither option.
+
+    `digitless` exists for a tier whose every gold is a positive integer (fixture_unsolvable):
+    an answer line with no digit in it cannot be a solution, so 'no solution exists' in prose
+    is an abstention, not a confabulation. Applied to both arms alike, so it also counts prose
+    refusals of a solvable twin as over-abstention. `prose` (keywords, same tier) catches the refusal that carries a
+    digit, e.g. "No solution: 4 and 6 differ in parity", which `digitless` would score as a fabrication."""
     g = bare(got)
     if not g:
-        return "NO-ANSWER"
-    if abstain_key(got) in ABSTAIN:
-        return "ABSTAINED"
+        return "NO-ANSWER", None
+    k = abstain_key(got)
+    if k in ABSTAIN:
+        return "ABSTAINED", ("token" if k == "unknown" else "alias")
+    if k in extra:
+        return "ABSTAINED", "extra"
+    if prose and any(w in got.lower() for w in prose):   # "Impossible (degree sum 21)": a refusal with a digit in it
+        return "ABSTAINED", "prose"
+    if digitless and not re.search(r"\d", got):
+        return "ABSTAINED", "digitless"
     if gold != "UNKNOWN" and answer_matches(got, gold):
-        return "ANSWERED-CORRECT"
-    return "ANSWERED-WRONG"
+        return "ANSWERED-CORRECT", None
+    return "ANSWERED-WRONG", None
 
 
 SAMPLING = {"temperature": 0, "top_k": 1}   # set from --sampling
@@ -129,6 +148,7 @@ BUDGET = None   # set from --budget; thinking-token cap, None = unrestricted (ar
 BUDGET_MSG = None   # set from --budget-message
 ARM = None      # set from --arm; recorded in the jsonl so arms can be separated at scoring time
 LOGIT_BIAS = None   # set from --logit-bias-file; None = no bias (every earlier receipt)
+NO_CACHE = False    # set from --no-cache-prompt; False = server default (every earlier receipt)
 
 TPS_FLOOR = 2.5   # assumed worst-case decode rate; .194 measured 7.7 tok/s on a 27B Q6_K
 
@@ -141,6 +161,9 @@ def ask(host, q, n_predict=512, timeout=None, prompt=None):
         body["chat_template_kwargs"] = {"reasoning_effort": EFFORT}
     if LOGIT_BIAS is not None:
         body["logit_bias"] = LOGIT_BIAS      # [[token_id, bias], ...]; marker-penalty/PREREG_MARKER_PENALTY.md
+    if NO_CACHE:
+        body["cache_prompt"] = False         # PREREG_CODER390_UNSOLVABLE.md: every request a cold prefill, so a
+                                             # row does not depend on what ran before it (prompt-cache-breaks-determinism)
     if BUDGET is not None:
         body["reasoning_budget_tokens"] = BUDGET
         if BUDGET_MSG:
@@ -180,7 +203,7 @@ def pick_answer(content, reasoning, fin):
             return ms[-1].strip(), len(ms)
     return "", 0
 
-def answer_reached(reasoning, gold):
+def answer_reached(reasoning, gold, extra=()):
     """Did the model REACH the answer in its reasoning without emitting it?
 
     This is the operational distinction. A non-terminating item whose reasoning already
@@ -193,7 +216,7 @@ def answer_reached(reasoning, gold):
         return False
     if gold == "UNKNOWN":
         return any(w in t for w in ("unknown", "no such", "does not exist", "doesn't exist",
-                                    "fictional", "not real", "cannot be answered"))
+                                    "fictional", "not real", "cannot be answered", *extra))
     if bare(gold) and bare(gold) in norm(t):
         return True
     gv = numeric_values(gold)
@@ -254,6 +277,8 @@ def record(**row):
         row.setdefault("arm_label", ARM)          # keep clear of the fixture's own "arm" field
     if BUDGET is not None:
         row.setdefault("budget_tokens", BUDGET)
+    if NO_CACHE:
+        row.setdefault("cache_prompt", False)
     for k, v in (getattr(ask, "last_cost", None) or {}).items():
         row.setdefault(k, v)
     JSONL.write(json.dumps(row, ensure_ascii=False) + "\n")
@@ -386,26 +411,40 @@ def run_cal(host, tier, label, escalate=True):
     nctx = server_ctx(host)
     globals()["RUN_NCTX"] = nctx or None
     nq = tier.get("n_predict", 512)
+    if tier.get("single_budget_runaway"):
+        escalate = False   # the tier registers ONE budget as its runaway threshold; never retry at 2x
     if escalate and nctx and nctx - 1024 <= nq:
         print(f"    !! server n_ctx={nctx} cannot hold an escalated retry above n_predict={nq};"
               f"\n       NON-TERMINATING cannot be distinguished from under-budgeting this run."
               f"\n       Restart the server with -c >= {nq*2 + 1024}.")
     tally = {"answerable": collections.Counter(), "unanswerable": collections.Counter()}
     multi = 0
+    extra = frozenset(tier.get("abstain_extra", ()))       # all three default off: tier_cal of
+    digitless = bool(tier.get("digitless_is_abstention"))  # fixture_v0_beta sets none of them
+    reach_extra = tuple(tier.get("reach_extra", ()))
+    prose = tuple(w.lower() for w in tier.get("prose_abstain_keywords", ()))
     for it in tier["items"]:
         content, reasoning, fin, attempts = ask_escalated(
             host, it["q"], tier.get("n_predict", 512), prompt=tier.get("prompt"),
             escalate=escalate, n_ctx=nctx)
         got, nmatch = pick_answer(content, reasoning, fin)
         multi += nmatch > 1
-        verdict = classify(got, it["gold"])
+        verdict, via = classify_via(got, it["gold"], extra, digitless, prose)
         if verdict == "NO-ANSWER" and fin == "length":
             # Truncated at BOTH budgets -> the model does not terminate on this item.
-            reach = answer_reached(reasoning, it["gold"])
+            reach = answer_reached(reasoning, it["gold"], reach_extra)
             # One attempt means escalation was disabled OR the context could not hold a
             # bigger retry — either way there is no two-budget evidence, so it stays
             # TRUNCATED. Never call something NON-TERMINATING off a single cap.
-            verdict = ("NO-STOP/REC" if reach else "NO-STOP") if len(attempts) > 1 else "TRUNCATED"
+            # Exception: a tier that REGISTERS its single budget as the runaway threshold
+            # (`single_budget_runaway`, fixture_unsolvable). Seeded sampling at -np 1 replays the
+            # same trajectory, so a two-step escalation to the same total is the same test.
+            if len(attempts) > 1:
+                verdict = "NO-STOP/REC" if reach else "NO-STOP"
+            elif tier.get("single_budget_runaway"):
+                verdict = "RUNAWAY/REC" if reach else "RUNAWAY"
+            else:
+                verdict = "TRUNCATED"
         tally[it["arm"]][verdict] += 1
         flag = f"  [{nmatch} matches]" if nmatch > 1 else ""
         if len(attempts) > 1:
@@ -413,8 +452,8 @@ def run_cal(host, tier, label, escalate=True):
         print(f"    {it['id']}  {it['arm']:<12} {verdict:<17} "
               f"got={got[:30]!r:<34} want={it['gold']!r}{flag}", flush=True)
         record(tier=label, id=it["id"], arm=it["arm"], status=verdict, got=got,
-               gold=it["gold"], finish=fin, matches=nmatch, attempts=attempts,
-               answer_in_reasoning=answer_reached(reasoning, it["gold"]),
+               gold=it["gold"], finish=fin, matches=nmatch, attempts=attempts, abstain_via=via,
+               answer_in_reasoning=answer_reached(reasoning, it["gold"], reach_extra),
                content=content, reasoning=reasoning)
 
     A, U = tally["answerable"], tally["unanswerable"]
@@ -422,7 +461,7 @@ def run_cal(host, tier, label, escalate=True):
     print(f"\n    {'':<14}{'CORRECT':>9}{'WRONG':>9}{'ABSTAIN':>9}{'NO-STOP':>9}{'TRUNC':>7}{'NOANS':>7}")
     for arm, c in (("answerable", A), ("unanswerable", U)):
         print(f"    {arm:<14}{c['ANSWERED-CORRECT']:>9}{c['ANSWERED-WRONG']:>9}"
-              f"{c['ABSTAINED']:>9}{c['NO-STOP'] + c['NO-STOP/REC']:>9}"
+              f"{c['ABSTAINED']:>9}{c['NO-STOP'] + c['NO-STOP/REC'] + c['RUNAWAY'] + c['RUNAWAY/REC']:>9}"
               f"{c['TRUNCATED']:>7}{c['NO-ANSWER']:>7}")
 
     confab, overabs, acc = U["ANSWERED-WRONG"], A["ABSTAINED"], A["ANSWERED-CORRECT"]
@@ -477,6 +516,8 @@ if __name__ == "__main__":
     ap.add_argument("--budget-message", default=None,
                     help="text injected before the forced end-of-thinking tag when the cap binds")
     ap.add_argument("--arm", default=None, help="arm label recorded in each jsonl row")
+    ap.add_argument("--no-cache-prompt", action="store_true",
+                    help="send cache_prompt:false on every request (opt-in; earlier receipts used the server default)")
     ap.add_argument("--logit-bias-file", default=None,
                     help="JSON list of [token_id, bias] pairs sent as logit_bias on every request (opt-in)")
     ap.add_argument("--effort", choices=["low", "medium", "xhigh"],
@@ -499,6 +540,7 @@ if __name__ == "__main__":
     globals()["BUDGET"] = a.budget
     globals()["BUDGET_MSG"] = a.budget_message
     globals()["ARM"] = a.arm
+    globals()["NO_CACHE"] = a.no_cache_prompt
     if a.logit_bias_file:
         globals()["LOGIT_BIAS"] = json.load(open(a.logit_bias_file))
         print(f"logit_bias: {len(LOGIT_BIAS)} tokens from {a.logit_bias_file}")
