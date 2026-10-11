@@ -69,6 +69,8 @@ The card, verbatim:
 | **BC** | B with a bare thinking cap (rule below) | B's file | | |
 
 Each download is verified against its LFS sha256 before use, and B's file on .194 against `562fbf76…`.
+**Pre-arm note (before any row):** .194's only disk has 19 GB free, so N and P live in `/dev/shm` (tmpfs, 61 GB). They
+are lost on a reboot and re-fetched by the preflight. B loads from disk as always. Nothing on .194 was deleted or moved.
 
 **The quant recipes differ, and only on small tensors.** Headers read by range request (`tools/gguf_remote_header.py`):
 - **Bulk weights:** Q6_K in all three.
@@ -106,7 +108,7 @@ Preset `card` serves every arm.
   - `GGML_CUDA_ALLREDUCE=internal`;
   - fleet clocks 150 W / 1063 MHz, read back per server.
 - **Build:** buun `0b2789f23` (`~/buun-0b278/build_sm60`).
-- **Server:** `-ngl 99 -c 20480 -np 1 -fa on --kv-unified -ctk f16 -ctv f16 -sm tensor -fit off --jinja`. These are
+- **Server:** `-ngl 99 -c 20480 -np 1 -fa on --kv-unified -ctk f16 -ctv f16 -sm tensor -fit off --jinja -lv 4` (`-lv 4` is log verbosity only, so the offload line exists to check). These are
   the flags of `overthink_q6k_chain.sh`, plus `-fit off`, with `-c` raised from 16384 to fit the new tier's budget.
   CAL's escalated retry is still `min(12288, n_ctx - 1024)` = 12,288, as in every 16k-context CAL receipt.
 - **MTP off on every arm:** no `--spec-type`, and G0 checks `draft_n` is 0. Seeded sampling at `-np 1` is then

@@ -15,8 +15,8 @@ PY=/mnt/TG_2TB/Projects/Apollo/venv_cachyos/bin/python3
 H=10.0.0.194; SSH="ssh -o BatchMode=yes -o ConnectTimeout=8 $H"
 BIN='~/buun-0b278/build_sm60/bin/llama-server'
 B_GGUF='~/AI/Models/Qwen3.8-27B/Qwen3.8-27B-Q6_K.gguf'
-N_GGUF='~/AI/Models/coder390/Qwen3.8-27B-Coder390-EfficientThink-Q6_K-MTP.gguf'
-P_GGUF='~/AI/Models/coder390/Qwen3.8-27B-EfficientThink-SimPO-Q6_K.gguf'
+N_GGUF='/dev/shm/coder390/Qwen3.8-27B-Coder390-EfficientThink-Q6_K-MTP.gguf'   # tmpfs: / has 19 GB free
+P_GGUF='/dev/shm/coder390/Qwen3.8-27B-EfficientThink-SimPO-Q6_K.gguf'
 B_SHA=562fbf760503008f118e5df38de5b3e97992d1f693f475815631198547486727
 N_SHA=302597c53d1b00f7230b53a8a050831390a4371e92a80c1ac644fa920af76ab1
 P_SHA=20c4f349b0a355e6b7725d9a6ee7a862172d5081a8284b4defb1c5e5955ca5bc
@@ -29,7 +29,7 @@ case $LANE in
   *) echo "usage: $0 preflight|A|B"; exit 2 ;;
 esac
 URL="http://$H:$PORT"
-FLAGS="-ngl 99 -c 20480 -np 1 -fa on --kv-unified -ctk f16 -ctv f16 -sm tensor -fit off --jinja --host 0.0.0.0 --port $PORT"
+FLAGS="-ngl 99 -c 20480 -np 1 -fa on --kv-unified -ctk f16 -ctv f16 -sm tensor -fit off --jinja -lv 4 --host 0.0.0.0 --port $PORT"
 OUT="$HERE/coder390"; mkdir -p "$OUT"/{B,N,P,BC,gates}
 LOG="$OUT/run_lane$LANE.log"; CANARY="$OUT/canary.jsonl"
 UNS_FX="$HERE/fixture_unsolvable.json"; CAL_FX="$HERE/fixture_v0_beta.json"
@@ -161,7 +161,7 @@ preflight() {      # G-1: run once before either lane
   : > "$pf"
   pflog() { echo "$*" | tee -a "$pf"; }
   pflog "preflight $(date '+%F %T')"
-  pflog "free: $($SSH "mkdir -p ~/AI/Models/coder390 && df -BG --output=avail ~/AI/Models/coder390 | tail -1 | tr -d ' G'") GB"
+  pflog "free: $($SSH "mkdir -p /dev/shm/coder390 && df -BG --output=avail /dev/shm/coder390 | tail -1 | tr -d ' G'") GB in /dev/shm (needs 47)"
   topo=$($SSH "nvidia-smi topo -m" | sed 's/\x1b\[[0-9;]*m//g')
   echo "$topo" >> "$pf"
   echo "$topo" | awk '$1=="GPU0"{a=$3} $1=="GPU2"{b=$5} END{exit !(a=="PHB" && b=="PHB")}' \
