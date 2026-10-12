@@ -191,3 +191,29 @@ QUINN 5,841 9/10; OMNI capped at 480 s). No drawing has been looked at, no panel
 **Consequence.** Rep 1 has no reasoning text for any arm (counts only). The reasoning comparison uses reps 2-5. A
 capped rep's token count stays "capped" under R1 whatever the partial chunk count says. The first streamed rep is
 checked for a non-null token count, a non-empty reasoning file and an SVG in the content before the run continues.
+
+## Addendum 1 (2026-10-12 02:05 EDT, after all 20 reps, before anyone has seen a drawing): the blind page, sealed
+
+**Generation outcome, as it bears on the page:** OMNI r1 and r2 hit the cap (OMNI r2 had 19.5k chars of reasoning
+and 8.3k chars of answer when cut off, so it was slow, not looping). Their two pairs are **not shown** and count as
+CTRL wins under "Missing drawings". Every other rep produced a drawing: **13 shown pairs**, 18 drawings.
+
+**`MAPPING_SEALED.json` sha256 `d77a2f10773a97508dd4068bfa86ebe49912056ed2f1a76311f58249afa92fed`.**
+Built by `tools/svgbench/build_tb_blind_page.py` from the OS RNG. It is gitignored until rating is done, and so is
+`blind_page.html` (its source repeats each CTRL drawing's code, which would mark the control).
+
+**Page design, fixed now:**
+- No drawing codes on screen (the ladder page showed them). Each CTRL drawing recurs in two or three pairs, and a
+  visible code would mark it. Pairs are ordered so a CTRL drawing never recurs within 3 pairs.
+- Per pair: question 1 (better picture: A / B / can't decide), then question 2 (persona guess: A / B / no idea).
+- **Storage:** `db` with rules `ratings` read+write `owner`, `ratings/{self}` read+write `interact`: each rater
+  writes only their own `ratings/<id>/picks/<pair>`, no rater can see another's, the owner reads all. Viewers who
+  cannot write (outside the organization) get an export code at the end instead, as the ladder share page did.
+
+**Known tells, measured rather than removed:**
+- **Recurrence.** A drawing a rater has seen before is a CTRL drawing. This can inform question 2 beyond style, and it
+  is a property of the registered pairing (each CTRL drawing in up to three pairs).
+- **Text in the drawing.** 2 of 13 mode drawings contain text (QUINN r3 "vwoop", QUINN r4 "whoosh~"); 0 of 5 CTRL
+  (CTRL r2 has an SVG `<title>`, which does not render). No emoji in any SVG.
+- **Size.** Mode SVGs are 5.2-10.0 KB, CTRL 3.4-4.7 KB, which probably shows as visible detail. That is an effect of the
+  modes, not a rendering artifact, so it stays.
