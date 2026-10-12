@@ -26,6 +26,59 @@ GEN_CAP_S = 480
 
 _post = R.post
 R.post = lambda body, timeout=GEN_CAP_S: _post(body, min(timeout, GEN_CAP_S))
+CURRENT = {}                         # arm and rep of the rep in progress, for the reasoning file names
+
+
+def generate_stream(prompt):
+    """run_ladder.generate's request and return value, streamed (prereg Deviation 1) so the reasoning text is kept,
+    including the partial text of a rep that hits the 480 s cap. Sampling and server settings are unchanged."""
+    import re
+    t0 = time.time()
+    body = {"model": "x", "temperature": R.TEMP, "max_tokens": R.MAXTOK, "stream": True,
+            "stream_options": {"include_usage": True}, "messages": [{"role": "user", "content": prompt}]}
+    req = urllib.request.Request("http://127.0.0.1:8090/v1/chat/completions", data=json.dumps(body).encode(),
+                                 headers={"Content-Type": "application/json"})
+    content, reasoning, finish, usage, timings, chunks, capped = [], [], None, {}, {}, 0, False
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        for raw in resp:
+            if time.time() - t0 > GEN_CAP_S:
+                capped = True
+                break
+            line = raw.decode("utf-8", "replace").strip()
+            if not line.startswith("data:"):
+                continue
+            data = line[5:].strip()
+            if data == "[DONE]":
+                break
+            o = json.loads(data)
+            usage = o.get("usage") or usage
+            timings = o.get("timings") or timings
+            for ch in o.get("choices") or []:
+                d = ch.get("delta") or {}
+                if d.get("content"):
+                    content.append(d["content"])
+                if d.get("reasoning_content"):
+                    reasoning.append(d["reasoning_content"])
+                if d.get("content") or d.get("reasoning_content"):
+                    chunks += 1
+                finish = ch.get("finish_reason") or finish
+    content, reasoning = "".join(content), "".join(reasoning)
+    b = R.base(CURRENT["arm"], CURRENT["rep"], "p1")
+    if capped:
+        Path(b + ".partial_reasoning.txt").write_text(reasoning)
+        Path(b + ".partial_content.txt").write_text(content)
+        R.record({"quant": CURRENT["arm"], "rep": CURRENT["rep"], "step": "partial", "ts": time.time(),
+                  "chunks": chunks, "reasoning_chars": len(reasoning), "content_chars": len(content)})
+        raise TimeoutError(f"timed out (stream cap {GEN_CAP_S} s)")
+    Path(b + ".reasoning.txt").write_text(reasoning)
+    svgs = re.findall(r"<svg.*?</svg>", content, re.S | re.I)
+    return {"content": content, "svg": svgs[-1] if svgs else None, "finish": finish,
+            "tokens": usage.get("completion_tokens", timings.get("predicted_n")),
+            "prompt_tokens": usage.get("prompt_tokens", timings.get("prompt_n")),
+            "reasoning_chars": len(reasoning), "elapsed_s": round(time.time() - t0, 1)}
+
+
+R.generate = generate_stream
 
 
 def start_server(model, log_path):
@@ -112,6 +165,7 @@ def main():
                       "error": "R4: rendered prompt differs from render_check; not generated"})
             return
         generating = True
+        CURRENT.update(arm=arm, rep=rep)
         R.do_step(arm, rep, "p1", prompt, None)
     except KeyboardInterrupt:
         if generating:               # R1: the wall-clock backstop fired mid-generation -- recorded, not rerun

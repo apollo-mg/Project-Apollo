@@ -172,3 +172,22 @@ blind art panels found raters agreeing on only 58-66% of decisive pairs, so a sm
 - **CTRL is `medium`, which injects no system text.** The Qwen default when no effort is set (`xhigh`, a 207-char
   prompt) is not an arm.
 - **n = 5 per arm, one prompt.** The panel is small; per-mode preference is descriptive.
+
+## Deviation 1 (2026-10-12 00:40 EDT, after rep 1 of all four arms, before rep 2): the client streams, so reasoning text is kept
+
+**What changed.** `run_tb_p1.py` now sends the same request with `"stream": true` (plus
+`stream_options.include_usage`) and assembles the reply itself. The server, its flags, the template, the sampling
+and the 480 s cap (now an overall deadline from the request start) are unchanged; the returned record has the same
+fields. New files per rep: `<ARM>_r<k>_p1.reasoning.txt`; a capped rep instead leaves
+`.partial_reasoning.txt` / `.partial_content.txt` and a `"step": "partial"` record (chunk count, chars).
+
+**Why.** Mark asked to compare the reasoning between modes. The harness kept only `reasoning_chars`, and a capped rep
+kept nothing, because a non-streamed reply never arrives. Reasoning text is a new descriptive outcome; no registered
+outcome or rule changes.
+
+**What was seen before the change:** rep 1's summary lines only (CTRL 5,022 tokens 10/10; CODER 5,510 10/10;
+QUINN 5,841 9/10; OMNI capped at 480 s). No drawing has been looked at, no panel exists.
+
+**Consequence.** Rep 1 has no reasoning text for any arm (counts only). The reasoning comparison uses reps 2-5. A
+capped rep's token count stays "capped" under R1 whatever the partial chunk count says. The first streamed rep is
+checked for a non-null token count, a non-empty reasoning file and an SVG in the content before the run continues.
