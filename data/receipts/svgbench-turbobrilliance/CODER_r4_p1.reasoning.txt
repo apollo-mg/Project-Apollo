@@ -1,0 +1,152 @@
+The user wants me to generate an SVG of a pelican riding a bicycle. Let me think about this carefully.
+
+A pelican has:
+- Large body (oval-ish)
+- Very distinctive large beak with a pouch
+- Small head relative to body
+- Wings (folded on sides)
+- Legs (two, thin)
+- White/cream coloring typically, with some gray
+
+A bicycle has:
+- Two wheels (circles with spokes)
+- Frame (triangular structure)
+- Handlebars
+- Seat/saddle
+- Pedals
+- Chain
+
+The pelican should be "riding" - so positioned on the seat, legs on the pedals, beak maybe near the handlebars.
+
+Let me construct this SVG. I'll need to be thoughtful about layering (what's in front of what) and make it look recognizable.
+
+Let me plan the coordinate system - say a 500x400 viewport.
+
+Bicycle:
+- Rear wheel: center around (150, 300), radius 60
+- Front wheel: center around (350, 300), radius 60
+- Frame connecting them
+- Seat post around (200, 200)
+- Handlebars around (350, 180)
+- Pedals around (250, 300)
+
+Pelican (positioned on the seat, facing right):
+- Body: large oval centered around (220, 160)
+- Head: circle around (280, 100)
+- Beak: long shape extending right from head
+- Pouch: below the beak
+- Wings: on the body
+- Legs: from body down to pedals
+
+Let me sketch this out more carefully:
+
+SVG viewBox: 0 0 500 400
+
+Bicycle:
+- Rear wheel: cx=130, cy=310, r=55
+- Front wheel: cx=370, cy=310, r=55
+- Hub centers same
+- Spokes: lines from center
+- Frame:
+  - Seat tube: from (210, 200) to (250, 310) [seat post to bottom bracket]
+  - Down tube: from (210, 200) to (330, 250)
+  - Top tube: from (210, 210) to (340, 220)
+  - Seat stay: from (130, 310) to (210, 210)
+  - Chain stay: from (130, 310) to (250, 310)
+  - Fork: from (370, 310) to (350, 230)
+  - Head tube / handlebars: from (350, 230) to (355, 190)
+  - Seat: small shape at (200, 190)
+  - Handlebars: curved at top
+  - Pedals: at (240, 320) and (260, 300)
+  - Chainring: circle at (250, 310)
+
+Pelican (riding position, facing right):
+- Body: large ellipse, center around (230, 140), rx=70, ry=45
+- Tail: pointed shape at back-left
+- Head: circle around (300, 80), r=25
+- Beak: long triangular/pouch shape extending right from head
+  - Upper beak: from (310, 78) to (380, 85) - long and flat
+  - Lower pouch: curved shape below, from (310, 85) curving down and back
+- Eye: small circle on head
+- Wing: folded on body
+- Legs: from bottom of body down to pedals
+  - Left leg: from (210, 180) to (240, 310)
+  - Right leg: from (230, 180) to (260, 310)
+  - Feet on pedals
+
+Let me refine this to look good. I'll use clean paths and shapes.
+
+Actually, let me reconsider the layout. The pelican's body should be ON the bicycle seat. The pelican faces right (same direction as the bike faces).
+
+Let me redo coordinates:
+
+viewBox: 0 0 520 420
+
+Bicycle:
+- Rear wheel: cx=140, cy=320, r=58
+- Front wheel: cx=380, cy=320, r=58
+- Bottom bracket (crank center): (255, 320)
+- Seat cluster (top of seat tube): (215, 205)
+- Head tube top: (365, 200)
+- Head tube bottom / fork crown: (370, 260)
+
+Frame tubes:
+- Seat tube: (215, 205) to (255, 320)
+- Down tube: (215, 210) to (365, 250) -- actually the down tube goes from head tube to bottom bracket
+  - Actually: (365, 250) to (255, 320) is the down tube
+  - (215, 205) to (365, 210) is the top tube
+  - (140, 320) to (215, 205) is the seat stay
+  - (140, 320) to (255, 320) is the chain stay
+  - (255, 320) to (365, 250) is the down tube
+  - Fork: (380, 320) to (368, 230)
+  - Seat post: (215, 205) up to (215, 185)
+  - Handlebar stem: (365, 210) up to (365, 190)
+  - Handlebars: small curve at (365, 190)
+
+Seat: small oval at (210, 185)
+Pedals: small rects at crank positions
+Chainring: circle at (255, 320), r=12
+
+Pelican (sitting on seat, facing right):
+- Body center: (230, 140), large oval
+- The pelican's butt is on the seat, so body extends up and forward from seat
+- Body: ellipse cx=240, cy=140, rx=75, ry=48
+- Tail: pointed feathers at back, around (160, 130)
+- Head: circle at (310, 85), r=28
+- Neck: connects body to head, S-curve
+- Beak: 
+  - Upper: long flat shape from (325, 80) extending to (400, 90)
+  - Pouch: curved below, creating the characteristic pelican throat pouch
+- Eye: (315, 78), small black dot
+- Wing: on top of body, folded
+- Legs:
+  - From lower body (~220, 175) down to pedal (~245, 310)
+  - From lower body (~240, 175) down to other pedal (~265, 310)
+  - Feet: small shapes on pedals
+
+Let me write the SVG now. I'll aim for a clean, slightly cartoonish look.
+
+Colors:
+- Pelican body: white (#FFFFFF) with light gray outline
+- Pelican wing: light gray (#D4D4D4) or slightly darker white
+- Beak: orange/yellow (#E8A317 or #F5A623)
+- Pouch: slightly darker orange or pinkish
+- Eye: black
+- Bicycle frame: dark red or blue (#2C5F8A or #C0392B)
+- Wheels: dark gray for tire, lighter for rim, spokes gray
+- Seat: dark brown/black
+- Handlebars: dark gray
+- Pedals: dark gray
+- Sky/background: light blue or transparent
+
+Let me write this out properly now. I'll make it clean and well-structured.
+
+Let me think about the beak more carefully. A pelican's beak is:
+- Very long and straight on top
+- Has a large expandable pouch underneath
+- The pouch is pinkish/salmon colored
+- The upper beak is orange/yellow
+
+I'll make the beak point slightly downward-right since the pelican is looking ahead while riding.
+
+Let me finalize my SVG:

@@ -1,0 +1,95 @@
+Create an SVG of a pelican on a bicycle. Design elements: two wheels (circles), the frame, pedals, handlebars, and a cartoonish pelican with a large orange beak with a pouch, sitting on the saddle. Use a viewBox of about 400x400.
+
+Let's plan the coordinates:
+- Ground line around y=340.
+- Wheels: rear center (110, 300) r=55, front center (310, 300) r=55.
+- Frame: from rear wheel hub (110,300) to bottom bracket (185, 300)? Actually place the bottom bracket around (185, 300). Saddle at (140, 205). Front hub (310,300), head tube top (290, 200), handlebar there.
+
+Frame lines:
+- Rear hub (110,300) → seat tube top (150, 210)
+- Bottom bracket (190, 300)
+- Rear hub (110,300) → bottom bracket (190,300)
+- Seat tube (150,210) → (190,300)
+- Down tube: (285, 205) → (190,300)
+- Top tube: (150,225) → (285, 215)
+- Fork: (310,300) → (285, 200)
+- Handlebar curves at (285,200).
+
+Pedals: crank circle r=12 at (190,300), pedal arms.
+
+Pelican: white body sitting on the saddle, large neck and head on the front side, large beak.
+
+Pelican body: oval centered around (165, 175), facing forward (right). Head at upper right around (225, 95), beak extending right. Pouch: orange/yellow.
+
+Let me write the paths:
+
+Body: ellipse cx=165 cy=180 rx=52 ry=40, slightly rotated. White fill, gray stroke.
+Wing: arc path on top of the body.
+Neck: path curving up from the front of the body to the head: e.g., M 195 160 C 215 140, 220 120, 215 100 ... Head circle at (215, 95) r=14.
+Beak: long shape: path M 222 90 L 300 100 L 225 108 → pouch: curve from beak top (222, 98) down to (275, 135), back to (228, 112). Orange fill.
+
+Eye: small black circle at (218, 90).
+
+Legs: from body to pedals. One leg to pedal at (190, 300)? Pedal positions: crank arms at angles; pedal1 at (190+25, 300-... ) hmm. Bottom bracket (190,300) — same height as the wheel hub, that's fine, typical. Pedal arm length 22: pedal A at (205, 312), pedal B at (175, 288).
+
+Legs: from body (185, 210) down to pedal A (205, 312)? The body's bottom edge is around y=215, and the saddle is around (150,205). The pelican straddles the saddle. Legs: orange path/line with stroke width 8: front leg from (180, 210) to (200, 310); back leg from (150, 205) to (175, 288). Feet: small orange shapes on top of the pedals.
+
+Wheel spokes: a few lines. Chainring at the bottom bracket: circle r=16.
+
+Add a small cloud or two, sun, etc. Keep it simple.
+
+Add a title/description for accessibility.
+
+Let me write out the coordinates consistently:
+
+Wheels:
+- Rear: cx=110 cy=300 r=52
+- Front: cx=310 cy=300 r=52
+- Hub r=6.
+- Tire stroke #333 width 8? Use a circle with stroke #2c3e50 width 6.
+
+Frame color red #e74c3c, stroke width 6, round caps.
+
+Frame points:
+- BB (185, 295)
+- Seat tube top (150, 205)
+- Head tube top (295, 195), fork to front hub (310, 300).
+- Rear: rear hub (110,300) → (185,295); (110,300) → (150,205)? Seat stay: rear hub → top of seat cluster (152, 210). Chainstay: rear hub → BB.
+- Down tube: (293, 200) → (185, 295).
+- Top tube: (152, 215) → (290, 202).
+- Seat tube: (150,205) → (185,295).
+- Head tube: (295,195) → (300, 215)? Just draw the fork line (310,300) → (295, 195).
+- Handlebar: from (295,195) up to (288, 180), then curve back: path M 295 195 L 287 178 Q 280 170 270 174.
+
+Saddle: line from (150,205) up to (150, 192), then ellipse cx=150 cy=190 rx=14 ry=5 fill #2c3e50.
+
+Crankset: circle at (185,295) r=14 stroke; crank arms: line to pedal A (204, 309)? Arm length 20 at 45°: pedal A = (185+16, 295+12)=(201,307); pedal B = (169, 283). Pedals: 14x4 rectangles at each location.
+
+Chain: line from crank to rear hub, both top and bottom: (195,295)→(110,300) or so. Just one line is enough: line from (185,295) to (110,300) offset: (110,292) to (190,283)? More simply: two lines: M 110 294 L 192 288 and M 110 306 L 192 302? Crank r14, hub r? Rear hub r 5. Well, just a single line with dash for a chain look. OK.
+
+Pelican:
+- Far leg (drawn before the body? Draw legs behind the body): back leg from (160,205) to (169,283): orange line width 7. Foot: ellipse at (169,281).
+- Body: path or ellipse: ellipse cx=168 cy=175 rx=48 ry=36 fill white stroke #9aa5ad width 3, slightly rotated: transform rotate(-8 168 175).
+- Tail: small triangle at the back: path M 122 165 L 100 150 L 108 175 Z white.
+- Wing: path M 130 175 Q 165 160 195 185 Q 170 205 135 195 Z fill #e8eef2.
+- Neck: path M 195 150 C 210 130, 218 118, 214 100 — head. Draw as a thick stroke: line from (190,160) to (212,100) width ~26 white with stroke? Better: neck as a filled shape: M 185 160 Q 215 145 212 105 L 192 108 Q 195 135 172 150 Z fill white stroke.
+
+More simply: neck as a path with stroke: M 188 158 Q 212 140 210 105 stroke white width 24, with an outline? Hard to outline the stroke. Use a filled shape:
+
+Neck shape: M 172 150 C 200 150 214 130 212 102 L 190 100 C 190 125 180 138 160 148 Z — hmm, head is at the top ~(201,100), head circle at (205,98) r=13 covers the top.
+
+Let me simplify: head circle at (208, 96) r=14. Neck: path M 175 155 Q 195 135 198 100 L 212 100 Q 214 140 190 160 Z, white.
+
+Beak: upper mandible: path M 216 90 L 298 104 L 218 102 Z fill #f39c12. Pouch: path M 218 100 L 292 106 Q 268 140 224 118 Q 214 108 218 100 Z fill #e67e22. More simply: pouch as path M 218 100 Q 250 135 288 108 L 218 106 Z fill orange.
+
+Eye: circle (204, 90) r=2.5 #2c3e50. Small brow.
+
+- Near leg: orange line width 7 from (192, 205) to (201, 307). Foot: rounded rectangle at pedal (201,307): rect x=193 y=303 w=18 h=6 rx=3 fill orange.
+
+Waving hand/arm: pelicans have flippers; skip.
+
+Ground: line at y=352, from 40 to 380, stroke #ccc. Shadow ellipses under the wheels.
+
+Clouds: two simple ellipse groups at (330,60) and (60,70) in the sky? Place sun in the upper left.
+
+Let me write the final SVG at about 400x400.

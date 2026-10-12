@@ -1,0 +1,127 @@
+The user wants me to generate an SVG of a pelican riding a bicycle. This is a creative/technical request that fits perfectly within Harley Quinn's persona - she'd treat this as a little street performance, a bit of chaos theater. Let me craft an SVG that actually works, while wrapping it in her voice.
+
+Let me design a simple but recognizable SVG:
+- A bicycle (two circles for wheels, frame lines, handlebars, seat)
+- A pelican on top (body, big beak, wings, legs on pedals)
+
+Let me think about the coordinates:
+- Canvas: 400x400
+- Bicycle wheels: centered around y=300, circles at x=100 and x=300, radius 40
+- Frame: connecting lines
+- Seat post going up from rear wheel area
+- Handlebars going up from front wheel area
+- Pelican body: oval/ellipse above the seat area
+- Pelican beak: big triangular/winged shape
+- Pelican head: circle at top
+- Eye: small circle
+- Wings: curved shape
+- Legs: lines from body to pedals
+- Pedals: small circles at bottom of wheel centers
+
+Let me plan coordinates more carefully:
+- Canvas: 400x350
+- Rear wheel: cx=100, cy=280, r=40
+- Front wheel: cx=300, cy=280, r=40
+- Frame: 
+  - Rear axle to seat tube top: (100,280) to (150,200)
+  - Seat tube top to front: (150,200) to (250,200)
+  - Front to front axle: (250,200) to (300,280)
+  - Seat post: (150,200) to (150,170)
+  - Handlebar post: (250,200) to (270,170)
+  - Handlebars: curve at top of that
+  - Seat: small horizontal line at (140-165, 170)
+  - Pedals: (150,280) area - actually crank at (150,280)? No, let me put the bottom bracket at around (200, 280)
+  
+Let me redo:
+- Rear wheel: cx=100, cy=280, r=35
+- Front wheel: cx=280, cy=280, r=35
+- Bottom bracket (pedal center): (170, 280)
+- Seat tube: from (170,280) up to (160, 200)
+- Top tube: from (160,200) to (250, 195)
+- Down tube: from (170,280) to (250, 195)
+- Fork: from (250,195) to (280,280)
+- Rear stay: from (100,280) to (160,200)
+- Seat: at (155, 195) horizontal ellipse
+- Seat post: (160,200) to (155,185)
+- Handlebar stem: from (250,195) up to (255, 170)
+- Handlebars: small curve
+
+Pelican (sitting on the seat):
+- Body: ellipse centered around (155, 150), rx=30, ry=25
+- Head: circle at (185, 115), r=15
+- Beak: big shape from head going right - pelicans have HUGE beaks with pouches
+- Eye: small circle
+- Wing: on the body
+- Legs: from body bottom (155, 170) down to pedals (170, 280)
+
+Actually let me simplify and make it look good. I'll make it stylized.
+
+Let me write the SVG code:
+
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 350" width="400" height="350">
+  <!-- Bicycle -->
+  <!-- Wheels -->
+  <circle cx="100" cy="280" r="35" fill="none" stroke="#333" stroke-width="3"/>
+  <circle cx="280" cy="280" r="35" fill="none" stroke="#333" stroke-width="3"/>
+  <!-- Spokes hint -->
+  <circle cx="100" cy="280" r="3" fill="#333"/>
+  <circle cx="280" cy="280" r="3" fill="#333"/>
+  
+  <!-- Frame -->
+  <line x1="100" y1="280" x2="165" y2="200" stroke="#c0392b" stroke-width="4"/>
+  <line x1="165" y1="200" x2="250" y2="195" stroke="#c0392b" stroke-width="4"/>
+  <line x1="165" y1="200" x2="180" y2="280" stroke="#c0392b" stroke-width="4"/>
+  <line x1="250" y1="195" x2="280" y2="280" stroke="#c0392b" stroke-width="4"/>
+  <line x1="180" y1="280" x2="250" y2="195" stroke="#c0392b" stroke-width="4"/>
+  
+  <!-- Seat post and seat -->
+  <line x1="165" y1="200" x2="160" y2="180" stroke="#333" stroke-width="3"/>
+  <ellipse cx="160" cy="178" rx="15" ry="5" fill="#333"/>
+  
+  <!-- Handlebars -->
+  <line x1="250" y1="195" x2="255" y2="172" stroke="#333" stroke-width="3"/>
+  <path d="M 245 172 Q 255 160 270 170" fill="none" stroke="#333" stroke-width="3"/>
+  
+  <!-- Pedals and cranks -->
+  <circle cx="180" cy="280" r="5" fill="#555"/>
+  <line x1="180" y1="280" x2="195" y2="290" stroke="#555" stroke-width="3"/>
+  <rect x="188" y="286" width="14" height="5" fill="#555" rx="1"/>
+  <line x1="180" y1="280" x2="165" y2="270" stroke="#555" stroke-width="3"/>
+  <rect x="158" y="266" width="14" height="5" fill="#555" rx="1"/>
+  
+  <!-- Pelican -->
+  <!-- Legs -->
+  <line x1="155" y1="155" x2="168" y2="270" stroke="#f4a460" stroke-width="4"/>
+  <line x1="165" y1="155" x2="192" y2="285" stroke="#f4a460" stroke-width="4"/>
+  
+  <!-- Body -->
+  <ellipse cx="158" cy="135" rx="32" ry="24" fill="#fff" stroke="#ddd" stroke-width="1.5"/>
+  
+  <!-- Wing -->
+  <path d="M 140 130 Q 120 145 135 155 Q 145 158 155 150 Z" fill="#ddd" stroke="#ccc" stroke-width="1"/>
+  
+  <!-- Tail -->
+  <path d="M 128 140 Q 110 150 115 155" fill="none" stroke="#ddd" stroke-width="2"/>
+  
+  <!-- Neck -->
+  <path d="M 175 125 Q 185 105 188 95" fill="none" stroke="#fff" stroke-width="12"/>
+  <path d="M 175 125 Q 185 105 188 95" fill="none" stroke="#ddd" stroke-width="13" stroke-dasharray="none"/>
+  
+  Hmm, the neck is tricky. Let me think of it differently.
+  
+  Actually let me restart the pelican design more carefully:
+  
+  Pelican facing right:
+  - Body: ellipse at (155, 140), rx=30, ry=22, white
+  - Neck: curved path from top of body (170, 125) up and forward to head area (190, 90)
+  - Head: small circle at (192, 88), r=10
+  - Beak: THE iconic pelican beak - long, with a pouch
+    - Top: line from (198, 86) to (240, 82)
+    - Bottom pouch: curve from (198, 92) down to (230, 100) back to (240, 82)
+  - Eye: small dot at (194, 85)
+  - Wing on body: curved shape
+  - Legs: from bottom of body down to pedals
+  - Tail: small pointed shape at back
+
+Let me redo this more carefully with actual SVG paths.

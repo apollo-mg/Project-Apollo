@@ -1,0 +1,120 @@
+The user wants me to generate an SVG of a pelican riding a bicycle. Let me think about this carefully.
+
+A pelican has:
+- A large, elongated beak/pouch (the most distinctive feature)
+- A white body
+- Gray/dark wings
+- A somewhat round body
+- Small legs (but here they'll be on a bicycle)
+- An orange/yellow beak with a large pouch
+
+A bicycle has:
+- Two wheels (circles with spokes)
+- A frame (diamond shape or similar)
+- Handlebars
+- A seat
+- Pedals
+- Chain
+
+Let me compose this as an SVG. I need to think about the layout:
+- The bicycle will be in the center-bottom area
+- The pelican sits on the seat, body extending back
+- The pelican's long beak points forward
+- Wings might be on the handlebars (like hands)
+- Legs on the pedals
+
+Let me plan coordinates. I'll use a 600x500 viewBox.
+
+Bicycle:
+- Rear wheel: center (150, 350), radius 60
+- Front wheel: center (400, 350), radius 60
+- Frame connects these
+- Seat at around (180, 260)
+- Handlebars at around (380, 240)
+- Pedals at center bottom around (280, 350)
+
+Pelican:
+- Body: ellipse centered around (200, 230), fairly large
+- Head: circle above body, around (240, 160)
+- Beak: long shape extending from head forward
+- Pouch: below the beak
+- Wings: extending forward to handlebars
+- Legs: from body down to pedals
+
+Let me refine:
+
+Bicycle components:
+- Rear wheel: cx=140, cy=360, r=55
+- Front wheel: cx=420, cy=360, r=55
+- Frame: lines connecting
+  - Seat tube: from seat (190, 250) down to bottom bracket (270, 350)
+  - Top tube: from seat (190, 250) to head tube (400, 250)
+  - Down tube: from head tube (400, 250) to bottom bracket (270, 350)
+  - Chain stay: from rear axle (140, 360) to bottom bracket (270, 350)
+  - Seat stay: from rear axle (140, 360) to seat area (190, 250)
+  - Fork: from front axle (420, 360) to head tube top (410, 240)
+  - Handlebars: from (410, 240) curving up
+  - Seat: small shape at (190, 245)
+  - Pedals: circles at bottom bracket area
+
+Pelican:
+- Body: ellipse cx=210, cy=210, rx=55, ry=40
+- Head: circle cx=270, cy=155, r=22
+- Beak: polygon/path from head extending forward and down - long orange beak
+- Pouch: curve below beak
+- Eye: small circle on head
+- Wing: path from body extending to handlebars
+- Legs: from body bottom to pedals
+- Tail: small feathers at back
+
+Let me write this out as SVG code. I'll make it colorful and recognizable.
+
+Let me reconsider the layout to make it look right:
+
+ViewBox: 0 0 600 500
+
+Bicycle:
+- Rear wheel: cx=150, cy=370, r=55
+- Front wheel: cx=420, cy=370, r=55
+- Spokes on both wheels
+- Frame (diamond):
+  - Bottom bracket: (275, 360)
+  - Seat tube top (seat post area): (200, 255)
+  - Head tube top: (395, 245)
+  - Down tube: (275, 360) to (395, 245)
+  - Top tube: (200, 255) to (395, 245)
+  - Seat tube: (200, 255) to (275, 360)
+  - Chain stay: (150, 370) to (275, 360)
+  - Seat stay: (150, 370) to (200, 255)
+  - Fork: (420, 370) to (395, 245)
+  - Handlebars: curve from (395, 245) up and forward
+  - Seat: small oval at (200, 248)
+  - Pedal: circle at (275, 360) with small rect for pedal
+
+Pelican sitting on the bike:
+- Body (white oval): cx=215, cy=210, rx=50, ry=38
+- Head: cx=275, cy=150, r=20
+- Beak (long, orange): path from (285, 155) extending to about (380, 175) - long and slightly downward
+- Pouch: curved path below the beak
+- Eye: cx=280, cy=147, r=3
+- Wing (gray, reaching to handlebars): path from body to near handlebars
+- Tail feathers: small pointed shapes at back of body
+- Legs: from body (215, 240) down to pedal area
+- Feet on pedals
+
+Let me write the SVG now. I'll use paths, circles, ellipses, and lines.
+
+Actually let me think about this more carefully to make it look good:
+
+The pelican should be clearly a pelican - the big beak/pouch is key. The bird is sitting on the bike seat, body oriented forward, beak pointing forward-left or forward, wings as "hands" on the handlebars.
+
+Let me adjust: pelican facing RIGHT (toward the front of the bike).
+
+- Body: centered around (210, 215), white
+- Head: above and slightly forward of body, around (260, 155)
+- Beak: extending to the RIGHT from head, long and slightly down - to about (370, 170)
+- Pouch: hanging below the beak
+- Wing: from body reaching forward to handlebars
+- Legs: from lower body to pedals
+
+Let me code this up properly now.

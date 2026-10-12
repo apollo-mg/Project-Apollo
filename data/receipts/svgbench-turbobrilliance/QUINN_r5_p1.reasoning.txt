@@ -1,0 +1,209 @@
+The user wants me to generate an SVG of a pelican riding a bicycle. Let me think about how to approach this.
+
+First, I need to stay in character as Harley Quinn while fulfilling the request. Let me design a fun SVG that shows a pelican on a bicycle.
+
+Let me think about the SVG components:
+- A bicycle: two wheels (circles), a frame (lines/paths), handlebars, seat, pedals
+- A pelican: body (oval/egg shape), big beak (that distinctive pouch), eye, legs, wings
+- The pelican sitting on the bicycle
+
+Let me plan the SVG:
+
+Bicycle:
+- Two wheels: circles at roughly (150, 300) and (350, 300) with radius 60
+- Frame: lines connecting wheel centers to seat and handlebars
+- Handlebars at top
+- Seat in the middle
+- Pedals
+
+Pelican:
+- Sitting on the seat
+- Big body (rounded shape)
+- Large beak with the pouch
+- Small eye
+- Legs reaching down to pedals
+- Maybe a wing
+
+Let me construct this carefully:
+
+Wheels: 
+- Rear wheel: cx=150, cy=320, r=55
+- Front wheel: cx=350, cy=320, r=55
+
+Frame:
+- Rear axle to seat: line from (150,320) to (220, 240)
+- Seat to front: line from (220,240) to (310, 250)
+- Front fork: line from (350,320) to (310, 250)
+- Rear axle to pedal area: line from (150,320) to (200, 300)
+- Seat post: (220, 240) up to (220, 220)
+
+Handlebars: from (310, 250) up and forward
+
+Pedals: small circles or lines at bottom of crank
+
+Pelican:
+- Body: ellipse centered around (210, 180), fairly large
+- Beak: large triangular/oval shape extending forward from the face
+- Pouch: the big dangly part under the beak
+- Eye: small circle
+- Legs: lines from body down to pedals
+- Wing: a shape on the body
+
+Let me refine coordinates:
+
+Actually, let me think about this more carefully and make it look good.
+
+Canvas: 500x450
+
+Bicycle:
+- Rear wheel: cx=140, cy=340, r=55
+- Front wheel: cx=370, cy=340, r=55
+- Frame triangle: 
+  - Rear axle (140,340) to bottom bracket (230,320)
+  - Bottom bracket (230,320) to seat top (210,230)
+  - Rear axle (140,340) to seat top (210,230)
+  - Seat top (210,230) to head tube (340,240)
+  - Head tube (340,240) to front axle (370,340)
+- Handlebars: from (340,240) up to (350,200) then curve
+- Seat: small oval at (210,225)
+- Pedal/crank: at (230,320), small circle, with pedal lines
+
+Pelican sitting on the bike:
+- Body: ellipse around (200, 170), rx=50, ry=40
+- Head: circle at (240, 130), r=25
+- Beak: long shape extending from head forward-right, maybe a path
+- Pouch: the big under-beak shape
+- Eye: small circle on head
+- Legs: from body bottom down to pedals
+- Wing: on the side of body
+
+Let me write this out as SVG code. I'll make it colorful and fun.
+
+Actually, let me reconsider the layout. The pelican should be clearly visible on the bike. Let me use a 500x450 viewBox.
+
+Let me write the SVG:
+
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 450">
+  <!-- Background -->
+  <rect width="500" height="450" fill="#E8F4FD"/>
+  
+  <!-- Ground -->
+  <ellipse cx="250" cy="400" rx="220" ry="15" fill="#D4C5A0" opacity="0.3"/>
+  
+  <!-- Bicycle -->
+  <!-- Rear wheel -->
+  <circle cx="140" cy="340" r="55" fill="none" stroke="#333" stroke-width="4"/>
+  <circle cx="140" cy="340" r="4" fill="#333"/>
+  <!-- Spokes rear -->
+  <line x1="140" y1="285" x2="140" y2="395" stroke="#555" stroke-width="1.5"/>
+  <line x1="85" y1="340" x2="195" y2="340" stroke="#555" stroke-width="1.5"/>
+  <line x1="101" y1="301" x2="179" y2="379" stroke="#555" stroke-width="1.5"/>
+  <line x1="179" y1="301" x2="101" y2="379" stroke="#555" stroke-width="1.5"/>
+  
+  <!-- Front wheel -->
+  <circle cx="370" cy="340" r="55" fill="none" stroke="#333" stroke-width="4"/>
+  <circle cx="370" cy="340" r="4" fill="#333"/>
+  <!-- Spokes front -->
+  <line x1="370" y1="285" x2="370" y2="395" stroke="#555" stroke-width="1.5"/>
+  <line x1="315" y1="340" x2="425" y2="340" stroke="#555" stroke-width="1.5"/>
+  <line x1="331" y1="301" x2="409" y2="379" stroke="#555" stroke-width="1.5"/>
+  <line x1="409" y1="301" x2="331" y2="379" stroke="#555" stroke-width="1.5"/>
+  
+  <!-- Frame -->
+  <!-- Rear triangle -->
+  <line x1="140" y1="340" x2="230" y2="310" stroke="#CC3333" stroke-width="5" stroke-linecap="round"/>
+  <line x1="140" y1="340" x2="200" y2="230" stroke="#CC3333" stroke-width="5" stroke-linecap="round"/>
+  <line x1="230" y1="310" x2="200" y2="230" stroke="#CC3333" stroke-width="5" stroke-linecap="round"/>
+  <!-- Top tube and down tube -->
+  <line x1="200" y1="230" x2="340" y2="240" stroke="#CC3333" stroke-width="5" stroke-linecap="round"/>
+  <!-- Down tube -->
+  <line x1="230" y1="310" x2="340" y2="240" stroke="#CC3333" stroke-width="5" stroke-linecap="round"/>
+  <!-- Fork -->
+  <line x1="340" y1="240" x2="370" y2="340" stroke="#888" stroke-width="4" stroke-linecap="round"/>
+  
+  <!-- Seat post and seat -->
+  <line x1="200" y1="230" x2="195" y2="210" stroke="#555" stroke-width="4"/>
+  <ellipse cx="195" cy="207" rx="18" ry="6" fill="#333"/>
+  
+  <!-- Handlebars -->
+  <line x1="340" y1="240" x2="345" y2="195" stroke="#555" stroke-width="4"/>
+  <path d="M 335 195 Q 355 180 370 190" fill="none" stroke="#333" stroke-width="4" stroke-linecap="round"/>
+  
+  <!-- Crank and pedals -->
+  <circle cx="230" cy="310" r="8" fill="#666"/>
+  <line x1="230" y1="310" x2="250" y2="330" stroke="#555" stroke-width="3"/>
+  <rect x="245" y="326" width="14" height="5" rx="2" fill="#444"/>
+  <line x1="230" y1="310" x2="210" y2="290" stroke="#555" stroke-width="3"/>
+  <rect x="203" y="286" width="14" height="5" rx="2" fill="#444"/>
+  
+  <!-- Pelican -->
+  <!-- Tail feathers -->
+  <path d="M 155 175 Q 130 150 120 170 Q 125 160 115 165" fill="white" stroke="#ccc" stroke-width="1"/>
+  
+  <!-- Body -->
+  <ellipse cx="195" cy="175" rx="55" ry="40" fill="white" stroke="#DDD" stroke-width="2"/>
+  
+  <!-- Wing -->
+  <path d="M 170 160 Q 150 175 160 195 Q 175 190 185 175 Z" fill="#F0F0F0" stroke="#DDD" stroke-width="1.5"/>
+  
+  <!-- Legs (to pedals) -->
+  <line x1="200" y1="210" x2="210" y2="286" stroke="#F5A623" stroke-width="4" stroke-linecap="round"/>
+  <line x1="185" y1="210" x2="250" y2="328" stroke="#F5A623" stroke-width="4" stroke-linecap="round"/>
+  <!-- Feet -->
+  <ellipse cx="210" cy="288" rx="8" ry="4" fill="#F5A623"/>
+  <ellipse cx="252" cy="330" rx="8" ry="4" fill="#F5A623"/>
+  
+  <!-- Neck -->
+  <path d="M 220 150 Q 240 130 250 120 Q 260 110 265 115" fill="none" stroke="white" stroke-width="18" stroke-linecap="round"/>
+  <path d="M 220 150 Q 240 130 250 120 Q 260 110 265 115" fill="none" stroke="#EEE" stroke-width="16" stroke-linecap="round"/>
+  
+  <!-- Head -->
+  <circle cx="265" cy="112" r="20" fill="white" stroke="#DDD" stroke-width="1.5"/>
+  
+  <!-- Eye -->
+  <circle cx="272" cy="107" r="5" fill="#222"/>
+  <circle cx="274" cy="105" r="1.5" fill="white"/>
+  
+  <!-- Beak - upper -->
+  <path d="M 280 112 L 340 108 L 282 118" fill="#F5A623" stroke="#D4881A" stroke-width="1"/>
+  
+  <!-- Beak - lower (pouch) -->
+  <path d="M 282 118 Q 300 135 340 108" fill="#FF8C42" stroke="#D4881A" stroke-width="1"/>
+  
+  <!-- Little nostril -->
+  <circle cx="310" cy="112" r="1.5" fill="#D4881A"/>
+  
+  <!-- Blush/cheek -->
+  <circle cx="262" cy="118" r="4" fill="#FFB7C5" opacity="0.5"/>
+  
+  <!-- Little hair/feather on top of head -->
+  <path d="M 265 92 Q 268 82 272 88" fill="none" stroke="#DDD" stroke-width="2"/>
+  
+  <!-- Handlebar hands/grip -->
+  <!-- Actually pelican doesn't have hands, maybe just wing tips on handlebars -->
+  
+  <!-- Motion lines / fun elements -->
+  <line x1="50" y1="350" x2="70" y2="350" stroke="#AAA" stroke-width="2" stroke-linecap="round"/>
+  <line x1="40" y1="365" x2="65" y2="365" stroke="#AAA" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="55" y1="380" x2="75" y2="380" stroke="#AAA" stroke-width="1" stroke-linecap="round"/>
+</svg>
+```
+
+Hmm, let me reconsider the layout. The pelican needs to be sitting ON the seat of the bicycle. Let me re-think positions.
+
+The seat is around (195, 207). The pelican body should be above that. Let me adjust.
+
+Actually, let me reconsider the whole thing more carefully. Let me make the pelican clearly sitting on the bike with its legs on the pedals.
+
+Let me redo with better proportions:
+
+ViewBox: 0 0 500 450
+
+Bicycle center-bottom area: y around 320-340
+Seat height: y around 220-230
+Pelican body center: y around 160-170
+
+Let me also add some fun Harley-style elements to make it in-character.
+
+Let me write a cleaner version:
