@@ -14,12 +14,14 @@
 # excluding the boot/iGPU.
 #
 # Usage:  ./gpu_presale_test.sh [label]     e.g.  ./gpu_presale_test.sh rx580_card2
-# Output: /tmp/<label>_report.txt  and  /tmp/<label>_soak.csv  (scp them to the control plane)
+# Output: $OUTDIR/<label>_report.txt  and  $OUTDIR/<label>_soak.csv  (OUTDIR defaults to /tmp)
+# 2026-10-15: OUTDIR added for runs on the control-plane desktop, where /tmp does not survive a reboot.
 set -u
 LABEL=${1:-card$(date +%H%M)}
 DUR=${DUR:-1800}
-REPORT=/tmp/${LABEL}_report.txt
-CSV=/tmp/${LABEL}_soak.csv
+OUT=${OUTDIR:-/tmp}; mkdir -p "$OUT"
+REPORT=$OUT/${LABEL}_report.txt
+CSV=$OUT/${LABEL}_soak.csv
 export XDG_RUNTIME_DIR=/run/user/$(id -u)
 export WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-wayland-0}
 
@@ -75,7 +77,7 @@ echo
 echo "--- 4. SOAK (${DUR}s) ---"
 command -v glmark2-wayland >/dev/null || { echo "  FATAL: glmark2-wayland missing (pacman -S glmark2)"; exit 1; }
 echo "t_s,sclk_mhz,mclk_mhz,temp_c,fan_rpm,power_w,busy_pct,vram_used_mb" > "$CSV"
-nohup glmark2-wayland --run-forever > /tmp/${LABEL}_load.log 2>&1 &
+nohup glmark2-wayland --run-forever > $OUT/${LABEL}_load.log 2>&1 &
 LOAD=$!
 sleep 3
 t0=$(date +%s); crashes=0
@@ -83,7 +85,7 @@ while :; do
 	el=$(( $(date +%s) - t0 )); [ "$el" -ge "$DUR" ] && break
 	if ! kill -0 "$LOAD" 2>/dev/null; then
 		crashes=$((crashes+1)); echo "  # LOAD DIED at ${el}s (restart #$crashes)"
-		nohup glmark2-wayland --run-forever > /tmp/${LABEL}_load.log 2>&1 & LOAD=$!
+		nohup glmark2-wayland --run-forever > $OUT/${LABEL}_load.log 2>&1 & LOAD=$!
 	fi
 	s=$(grep '\*' "$CARD/pp_dpm_sclk" 2>/dev/null | grep -oE '[0-9]+Mhz' | grep -oE '[0-9]+')
 	m=$(grep '\*' "$CARD/pp_dpm_mclk" 2>/dev/null | grep -oE '[0-9]+Mhz' | grep -oE '[0-9]+')
