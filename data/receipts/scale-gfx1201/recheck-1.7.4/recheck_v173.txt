@@ -1,0 +1,32 @@
+--- toolchain <SCALE>/scale-1.7.3-Linux
+Build config: +assertions
+Cuda compilation tools, release 12.9, V12.9.999
+--- A. glibc C23 collision: build WITHOUT -U_GNU_SOURCE
+build FAILED:
+/usr/include/bits/mathcalls.h:207:17: error: __host__ function 'rsqrt' cannot overload __host__ __device__ function 'rsqrt'
+/usr/include/bits/mathcalls.h:83:1: error: exception specification in declaration does not match previous declaration
+/usr/include/bits/mathcalls.h:85:1: error: exception specification in declaration does not match previous declaration
+meminfo_probe still needs -U_GNU_SOURCE: /usr/include/bits/mathcalls.h:207:17: error: __host__ function 'rsqrt' cannot overload __host__ __device__ function 'rsqrt'
+--- B. cudaMemGetInfo charge (32 MiB x 250, as the 09-17 sweep)
+  #1     requested   0.031 GiB | rt free  15.500 GiB | rt charged   0.125 GiB | sysfs used   0.031 GiB | charge 4.00x
+  #2     requested   0.062 GiB | rt free  15.375 GiB | rt charged   0.250 GiB | sysfs used   0.063 GiB | charge 4.00x
+  #3     requested   0.094 GiB | rt free  15.250 GiB | rt charged   0.375 GiB | sysfs used   0.094 GiB | charge 4.00x
+  #4     requested   0.125 GiB | rt free  15.125 GiB | rt charged   0.500 GiB | sysfs used   0.125 GiB | charge 4.00x
+  #5     requested   0.156 GiB | rt free  14.992 GiB | rt charged   0.633 GiB | sysfs used   0.157 GiB | charge 4.05x
+  #100   requested   3.125 GiB | rt free   3.125 GiB | rt charged  12.500 GiB | sysfs used   3.133 GiB | charge 4.00x
+PHANTOM EXHAUSTION at alloc #133: runtime free 0.055 GiB, sysfs says 9.562 GiB genuinely free
+  #200   requested   6.250 GiB | rt free   0.055 GiB | rt charged  15.570 GiB | sysfs used   6.262 GiB | charge 2.49x
+--- C. cuModuleGetFunction on an absent symbol
+  CUDA_ERROR_NOT_FOUND (500) at cuModuleGetFunction time.
+
+control (present symbol) : lookup OK, launch OK
+absent symbol lookup     : 0 (CUDA_SUCCESS)
+                           ^ DEFECT REPRODUCED: success for a missing symbol
+absent handle            : 0x56273c3945a0 (non-NULL)
+deferred failure at launch: 200 (CUDA_ERROR_INVALID_IMAGE)
+=========================================
+--- D. unreferenced extern C __device__ globals at -O3
+cuModuleLoad: 0
+dev_u32                GetGlobal=200 size=12345 ptr=null value=0 (copy=-1)
+const_u32              GetGlobal=200 size=12345 ptr=null value=0 (copy=-1)
+used_u32               GetGlobal=0 size=4 ptr=set value=32 (copy=0)

@@ -1,0 +1,30 @@
+--- toolchain <SCALE>/scale-1.7.4-Linux
+Build config: +assertions
+Cuda compilation tools, release 12.9, V12.9.999
+--- A. glibc C23 collision: build WITHOUT -U_GNU_SOURCE
+build OK
+ok rsqrt(4)+cospi(4) = 1.5 (expect 1.5)
+meminfo_probe builds without -U_GNU_SOURCE
+--- B. cudaMemGetInfo charge (32 MiB x 250, as the 09-17 sweep)
+  #1     requested   0.031 GiB | rt free  15.607 GiB | rt charged   0.031 GiB | sysfs used   0.031 GiB | charge 1.00x
+  #2     requested   0.062 GiB | rt free  15.576 GiB | rt charged   0.062 GiB | sysfs used   0.062 GiB | charge 1.00x
+  #3     requested   0.094 GiB | rt free  15.545 GiB | rt charged   0.094 GiB | sysfs used   0.094 GiB | charge 1.00x
+  #4     requested   0.125 GiB | rt free  15.513 GiB | rt charged   0.125 GiB | sysfs used   0.125 GiB | charge 1.00x
+  #5     requested   0.156 GiB | rt free  15.482 GiB | rt charged   0.156 GiB | sysfs used   0.156 GiB | charge 1.00x
+  #100   requested   3.125 GiB | rt free  12.513 GiB | rt charged   3.125 GiB | sysfs used   3.125 GiB | charge 1.00x
+  #200   requested   6.250 GiB | rt free   9.388 GiB | rt charged   6.250 GiB | sysfs used   6.250 GiB | charge 1.00x
+phantom exhaustion      : NO -- runtime free tracked real usage
+--- C. cuModuleGetFunction on an absent symbol
+  CUDA_ERROR_NOT_FOUND (500) at cuModuleGetFunction time.
+
+control (present symbol) : lookup OK, launch OK
+absent symbol lookup     : 0 (CUDA_SUCCESS)
+                           ^ DEFECT REPRODUCED: success for a missing symbol
+absent handle            : 0x55e476590b40 (non-NULL)
+deferred failure at launch: 200 (CUDA_ERROR_INVALID_IMAGE)
+=========================================
+--- D. unreferenced extern C __device__ globals at -O3
+cuModuleLoad: 0
+dev_u32                GetGlobal=200 size=12345 ptr=null value=0 (copy=-1)
+const_u32              GetGlobal=200 size=12345 ptr=null value=0 (copy=-1)
+used_u32               GetGlobal=0 size=4 ptr=set value=32 (copy=0)
