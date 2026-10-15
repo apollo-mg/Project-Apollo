@@ -1,0 +1,28 @@
+sysfs ground truth: /sys/class/drm/card1/device/mem_info_vram_used
+device       : AMD Radeon RX 9070 XT - gfx1201 (AMD) <amdgcn-amd-amdhsa--gfx1201>
+chunk        : 11 MiB   max allocs: 186
+
+--- baseline (context created, nothing else allocated) ---
+  cudaMemGetInfo total : 15.922 GiB
+  cudaMemGetInfo free  : 15.638 GiB
+  runtime implies used : 0.283 GiB
+  sysfs actually used  : 1.942 GiB   <-- ground truth
+
+  #1     requested   0.011 GiB | rt free  15.628 GiB | rt charged   0.011 GiB | sysfs used   0.010 GiB | charge 1.00x
+  #2     requested   0.021 GiB | rt free  15.617 GiB | rt charged   0.021 GiB | sysfs used   0.021 GiB | charge 1.00x
+  #3     requested   0.032 GiB | rt free  15.606 GiB | rt charged   0.032 GiB | sysfs used   0.031 GiB | charge 1.00x
+  #4     requested   0.043 GiB | rt free  15.595 GiB | rt charged   0.043 GiB | sysfs used   0.043 GiB | charge 1.00x
+  #5     requested   0.054 GiB | rt free  15.585 GiB | rt charged   0.054 GiB | sysfs used   0.053 GiB | charge 1.00x
+  #100   requested   1.074 GiB | rt free  14.564 GiB | rt charged   1.074 GiB | sysfs used   1.074 GiB | charge 1.00x
+
+--- releasing 186 allocations ---
+  cudaMemGetInfo free  : 15.638 GiB  (baseline was 15.638 GiB)
+  sysfs actually used  : 3.940 GiB  (baseline was 1.942 GiB)
+
+================ VERDICT ================
+allocations completed   : 186 of 186 attempted
+total actually requested: 1.998 GiB
+phantom exhaustion      : NO -- runtime free tracked real usage
+recovery after free     : 100.0% of baseline free restored (RECOVERED)
+csv                     : meminfo_11mib.csv
+=========================================

@@ -1,0 +1,49 @@
+sysfs ground truth: /sys/class/drm/card1/device/mem_info_vram_used
+device       : AMD Radeon RX 9070 XT - gfx1201 (AMD) <amdgcn-amd-amdhsa--gfx1201>
+chunk        : 1 MiB   max allocs: 2048
+
+--- baseline (context created, nothing else allocated) ---
+  cudaMemGetInfo total : 15.922 GiB
+  cudaMemGetInfo free  : 15.601 GiB
+  runtime implies used : 0.321 GiB
+  sysfs actually used  : 2.005 GiB   <-- ground truth
+
+  #1     requested   0.001 GiB | rt free  15.140 GiB | rt charged   0.461 GiB | sysfs used   0.001 GiB | charge 472.00x
+  #2     requested   0.002 GiB | rt free  14.640 GiB | rt charged   0.961 GiB | sysfs used   0.002 GiB | charge 492.00x
+  #3     requested   0.003 GiB | rt free  14.140 GiB | rt charged   1.461 GiB | sysfs used   0.003 GiB | charge 498.67x
+  #4     requested   0.004 GiB | rt free  13.640 GiB | rt charged   1.961 GiB | sysfs used   0.004 GiB | charge 502.00x
+  #5     requested   0.005 GiB | rt free  13.103 GiB | rt charged   2.498 GiB | sysfs used   0.005 GiB | charge 511.60x
+PHANTOM EXHAUSTION at alloc #40: runtime free 0.056 GiB, sysfs says 13.878 GiB genuinely free
+  #100   requested   0.098 GiB | rt free   0.056 GiB | rt charged  15.545 GiB | sysfs used   0.098 GiB | charge 159.18x
+  #200   requested   0.195 GiB | rt free   0.056 GiB | rt charged  15.545 GiB | sysfs used   0.196 GiB | charge 79.59x
+  #300   requested   0.293 GiB | rt free   0.056 GiB | rt charged  15.545 GiB | sysfs used   0.294 GiB | charge 53.06x
+  #400   requested   0.391 GiB | rt free   0.056 GiB | rt charged  15.545 GiB | sysfs used   0.368 GiB | charge 39.80x
+  #500   requested   0.488 GiB | rt free   0.056 GiB | rt charged  15.545 GiB | sysfs used   0.483 GiB | charge 31.84x
+  #600   requested   0.586 GiB | rt free   0.056 GiB | rt charged  15.545 GiB | sysfs used   0.589 GiB | charge 26.53x
+  #700   requested   0.684 GiB | rt free   0.056 GiB | rt charged  15.545 GiB | sysfs used   0.687 GiB | charge 22.74x
+  #800   requested   0.781 GiB | rt free   0.056 GiB | rt charged  15.545 GiB | sysfs used   0.785 GiB | charge 19.90x
+  #900   requested   0.879 GiB | rt free   0.056 GiB | rt charged  15.545 GiB | sysfs used   0.883 GiB | charge 17.69x
+  #1000  requested   0.977 GiB | rt free   0.056 GiB | rt charged  15.545 GiB | sysfs used   0.968 GiB | charge 15.92x
+  #1100  requested   1.074 GiB | rt free   0.056 GiB | rt charged  15.545 GiB | sysfs used   1.065 GiB | charge 14.47x
+  #1200  requested   1.172 GiB | rt free   0.056 GiB | rt charged  15.545 GiB | sysfs used   1.163 GiB | charge 13.27x
+  #1300  requested   1.270 GiB | rt free   0.056 GiB | rt charged  15.545 GiB | sysfs used   1.261 GiB | charge 12.24x
+  #1400  requested   1.367 GiB | rt free   0.056 GiB | rt charged  15.545 GiB | sysfs used   1.358 GiB | charge 11.37x
+  #1500  requested   1.465 GiB | rt free   0.056 GiB | rt charged  15.545 GiB | sysfs used   1.456 GiB | charge 10.61x
+  #1600  requested   1.562 GiB | rt free   0.056 GiB | rt charged  15.545 GiB | sysfs used   1.554 GiB | charge 9.95x
+  #1700  requested   1.660 GiB | rt free   0.056 GiB | rt charged  15.545 GiB | sysfs used   1.651 GiB | charge 9.36x
+  #1800  requested   1.758 GiB | rt free   0.056 GiB | rt charged  15.545 GiB | sysfs used   1.749 GiB | charge 8.84x
+  #1900  requested   1.855 GiB | rt free   0.056 GiB | rt charged  15.545 GiB | sysfs used   1.847 GiB | charge 8.38x
+  #2000  requested   1.953 GiB | rt free   0.056 GiB | rt charged  15.545 GiB | sysfs used   1.944 GiB | charge 7.96x
+
+--- releasing 2048 allocations ---
+  cudaMemGetInfo free  : 2.056 GiB  (baseline was 15.601 GiB)
+  sysfs actually used  : 3.996 GiB  (baseline was 2.005 GiB)
+
+================ VERDICT ================
+allocations completed   : 2048 of 2048 attempted
+total actually requested: 2.000 GiB
+phantom exhaustion      : YES at alloc #40 (0.039 GiB requested),
+                          with 13.878 GiB genuinely free per sysfs
+recovery after free     : 13.2% of baseline free restored (NO RECOVERY)
+csv                     : meminfo_1mib.csv
+=========================================

@@ -1,0 +1,32 @@
+sysfs ground truth: /sys/class/drm/card1/device/mem_info_vram_used
+device       : AMD Radeon RX 9070 XT - gfx1201 (AMD) <amdgcn-amd-amdhsa--gfx1201>
+chunk        : 4 MiB   max allocs: 512
+
+--- baseline (context created, nothing else allocated) ---
+  cudaMemGetInfo total : 15.922 GiB
+  cudaMemGetInfo free  : 15.638 GiB
+  runtime implies used : 0.283 GiB
+  sysfs actually used  : 1.942 GiB   <-- ground truth
+
+  #1     requested   0.004 GiB | rt free  15.635 GiB | rt charged   0.004 GiB | sysfs used   0.004 GiB | charge 1.00x
+  #2     requested   0.008 GiB | rt free  15.631 GiB | rt charged   0.008 GiB | sysfs used   0.008 GiB | charge 1.00x
+  #3     requested   0.012 GiB | rt free  15.627 GiB | rt charged   0.012 GiB | sysfs used   0.012 GiB | charge 1.00x
+  #4     requested   0.016 GiB | rt free  15.623 GiB | rt charged   0.016 GiB | sysfs used   0.016 GiB | charge 1.00x
+  #5     requested   0.020 GiB | rt free  15.619 GiB | rt charged   0.020 GiB | sysfs used   0.020 GiB | charge 1.00x
+  #100   requested   0.391 GiB | rt free  15.248 GiB | rt charged   0.391 GiB | sysfs used   0.391 GiB | charge 1.00x
+  #200   requested   0.781 GiB | rt free  14.857 GiB | rt charged   0.781 GiB | sysfs used   0.781 GiB | charge 1.00x
+  #300   requested   1.172 GiB | rt free  14.467 GiB | rt charged   1.172 GiB | sysfs used   1.172 GiB | charge 1.00x
+  #400   requested   1.562 GiB | rt free  14.076 GiB | rt charged   1.562 GiB | sysfs used   1.563 GiB | charge 1.00x
+  #500   requested   1.953 GiB | rt free  13.685 GiB | rt charged   1.953 GiB | sysfs used   1.953 GiB | charge 1.00x
+
+--- releasing 512 allocations ---
+  cudaMemGetInfo free  : 15.601 GiB  (baseline was 15.638 GiB)
+  sysfs actually used  : 3.942 GiB  (baseline was 1.942 GiB)
+
+================ VERDICT ================
+allocations completed   : 512 of 512 attempted
+total actually requested: 2.000 GiB
+phantom exhaustion      : NO -- runtime free tracked real usage
+recovery after free     : 99.8% of baseline free restored (RECOVERED)
+csv                     : meminfo_4mib.csv
+=========================================

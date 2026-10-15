@@ -253,7 +253,7 @@ someone find it, and the claim in a form that is checkable.
 | The gfx1103 HIP flash-attention LINK failure (turboquant #250, `ggml_cuda_flash_attn_ext_vec_case` undefined) does NOT reproduce on gfx1201 | `turboquant-hip-fa/RESULT_GFX1201_FA_LINK.md` | 09-17 |
 | **SCALE's `cuModuleGetFunction` succeeds on symbols that do not exist** (1.7.3, gfx1201) | `scale-gfx1201/RESULT_SCALE_MODULEGETFN.md` | 09-17 |
 | **SCALE's `cudaMemGetInfo` 4x over-charge survives 1.7.3 and caps every gfx1201 board at ~24.6 % of its VRAM** | `scale-gfx1201/RESULT_SCALE_MEMINFO.md` | 09-17 |
-| **SCALE 1.7.4 fixes the 4x `cudaMemGetInfo` charge (now 1.00x, tracks sysfs) and the glibc C23 collision; `cuModuleGetFunction` on absent symbols and dropped unreferenced `-O3` globals are unchanged** (same-day 1.7.3 control) | `scale-gfx1201/RECHECK_SCALE_1.7.4.md` | 10-14 |
+| **SCALE 1.7.4 fixes the 4x `cudaMemGetInfo` charge only ABOVE 1 MiB (1 MiB and smaller allocations are charged ~500x, on 1.7.3 too) and the glibc C23 collision; `cuModuleGetFunction` on absent symbols and dropped unreferenced `-O3` globals are unchanged** (same-day 1.7.3 control) | `scale-gfx1201/RECHECK_SCALE_1.7.4.md` | 10-14 |
 | Atlas gfx1201 bring-up S0 (environment): PASS, verified past the literal gate | `atlas-gfx1201/RESULT_S0_ENVIRONMENT.md` | 09-17 |
 | Atlas gfx1201 S1: kernel compile census 180/180 clean, matches the PRD baseline | `atlas-gfx1201/RESULT_S1_CENSUS_PROBES.md` | 09-17 |
 | Atlas gfx1201 S2: all 176 kernels compile, count matches the r9700 baseline | `atlas-gfx1201/RESULT_S2_KERNEL_BUILD.md` | 09-17 |
