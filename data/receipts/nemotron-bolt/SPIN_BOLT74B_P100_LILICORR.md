@@ -73,9 +73,9 @@ acc = accepted / drafted tokens. The control reproduces the 19:11 leg (27.3-27.6
 
 **Reading.**
 - **No depth makes prose meaningfully faster.** The best is 1.06x at depth 2, even with 72 % of drafted tokens
-  accepted: on sm_60 a verify pass over 3 positions costs most of what it saves. Prose acceptance falls fast with depth
+  accepted: the likely reason (not measured) is that on sm_60 verifying 3 positions costs most of what it saves. Prose acceptance falls fast with depth
   (0.72 / 0.58 / 0.29 at 2 / 3 / 7), so deeper blocks only add rejected work.
-- **Depth trades directly against structured-output gains:** code and JSON lose about 0.3x of speed-up per step from
-  7 down to 2.
+- **Depth trades directly against structured-output gains:** going from depth 7 to 2, code falls from 1.56x to 1.27x
+  and JSON from 1.66x to 1.27x.
 - **For a mixed workload, `n_max` 7 with `p_min` 0.5 is the best single setting tried:** it keeps 1.54x / 1.67x on code
   and JSON and cuts the prose penalty from 0.68x to 0.94x. A higher `p_min` may close the remaining prose gap; untested.
