@@ -48,8 +48,34 @@ LiliCorr is worth ~1.6x.
 
 ## Not established
 
-- One prompt per content type; no `n_max` sweep (a smaller block may break even on prose); no plain-DFlash control
+- One prompt per content type; `n_max` swept at 2, 3, 7 and `p_min` at 0 and 0.5 only (below); no plain-DFlash control
   (this drafter file cannot run without its LiliCorr head as shipped); 256-token answers; short prompts only.
 - Quality was not scored beyond reading the answers. The QAT 2-bit vs post-hoc IQ2 question (AtomicChat's files from
   BF16) is open.
 - Built and measured on Pascal only. No vision (mmproj) or `--moe-cache-mib` test.
+
+## Draft-depth sweep (19:29-19:37, Mark's follow-up: can the depth be set lower for prose?)
+
+It can. In the DFlash path `--spec-draft-n-max` truncates the drafted block (capped at the trained `block_size - 1` = 7),
+and `--spec-draft-p-min` cuts a draft short at the first position whose confidence falls below it. Same build, model,
+flags and client; fresh server per leg; a same-session no-drafter control first. Medians of 2 exact-repeat reps.
+
+| setting | prose | code | JSON |
+|---|---|---|---|
+| no drafter (control, 19:29) | 27.4 tok/s | 27.5 | 27.5 |
+| `n_max` 2 | **29.1 (1.06x)**, acc 0.72 | 34.9 (1.27x), acc 0.96 | 35.0 (1.27x), acc 0.97 |
+| `n_max` 3 | 27.6 (1.01x), acc 0.58 | 37.5 (1.37x), acc 0.91 | 39.3 (1.43x), acc 0.96 |
+| `n_max` 7 (19:12 leg) | 18.7 (0.68x), acc 0.29 | 42.9 (1.56x), acc 0.85 | 45.6 (1.66x), acc 0.92 |
+| `n_max` 7, `p_min` 0.5 | 25.9 (0.94x), acc 0.61 | 42.3 (1.54x), acc 0.86 | 45.8 (1.67x), acc 0.98 |
+
+acc = accepted / drafted tokens. The control reproduces the 19:11 leg (27.3-27.6 tok/s, identical answer lengths
+1,183 / 540 / 623). All answers coherent; speculative prose diverges from the control after ~110 characters.
+
+**Reading.**
+- **No depth makes prose meaningfully faster.** The best is 1.06x at depth 2, even with 72 % of drafted tokens
+  accepted: on sm_60 a verify pass over 3 positions costs most of what it saves. Prose acceptance falls fast with depth
+  (0.72 / 0.58 / 0.29 at 2 / 3 / 7), so deeper blocks only add rejected work.
+- **Depth trades directly against structured-output gains:** code and JSON lose about 0.3x of speed-up per step from
+  7 down to 2.
+- **For a mixed workload, `n_max` 7 with `p_min` 0.5 is the best single setting tried:** it keeps 1.54x / 1.67x on code
+  and JSON and cuts the prose penalty from 0.68x to 0.94x. A higher `p_min` may close the remaining prose gap; untested.
