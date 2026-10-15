@@ -1,0 +1,42 @@
+=== GPU PRE-SALE TEST: rx580_last — 2026-10-15T15:11:01-04:00 ===
+discrete GPU: card1 at 0000:2b:00.0
+
+--- 1. IDENTITY ---
+2b:00.0 VGA compatible controller [0300]: Advanced Micro Devices, Inc. [AMD/ATI] Ellesmere [Radeon RX 470/480/570/570X/580/580X/590] [1002:67df] (rev e7) (prog-if 00 [VGA controller])
+	Subsystem: XFX Pine Group Inc. Radeon RX 580 [1682:c580]
+	Flags: bus master, fast devsel, latency 0, IRQ 92, IOMMU group 16
+  vbios     : 113-58085SHD1-M80
+  vram      : 8589934592 B (8 GB)
+  driver    :  amdgpu
+
+--- 2. CLOCK TABLES (mining-BIOS check) ---
+  reference RX580: core ~1340MHz, mem 2000MHz, power 185W
+  core max  : 1150 MHz
+  mem max   : 2100 MHz
+  power cap : 145 W
+  pcie      : 8.0GT/s, x16 *
+
+--- 3. DISPLAY CONNECTORS ---
+  (a port listed here EXISTS in the VBIOS; 'disconnected' just means nothing plugged in)
+  card1-DP-1       status=connected     enabled=enabled
+  card1-DP-2       status=disconnected  enabled=disabled
+  card1-DP-3       status=disconnected  enabled=disabled
+  card1-DVI-D-1    status=disconnected  enabled=disabled
+  card1-HDMI-A-1   status=connected     enabled=enabled
+
+--- 4. SOAK (1800s) ---
+  rows=180  temp mean=61.5C max=70C | sclk max=1150 | mclk max=2100 | power max=91.2W | busy max=100%
+  load_crashes: 0
+  amdgpu errors (excluding benign PRT init line):
+
+--- 5. VRAM INTEGRITY ---
+     3975 iteration. Passed 30.0689 seconds  written: 1512.0GB 198.8GB/sec        checked: 3024.0GB 134.6GB/sec
+  Standard 5-minute test PASSed! Just press Ctrl+C unless you plan long test run.
+     4837 iteration. Passed 30.0026 seconds  written: 1508.5GB 198.8GB/sec        checked: 3017.0GB 134.6GB/sec
+     5268 iteration. Passed 30.0129 seconds  written: 1508.5GB 198.7GB/sec        checked: 3017.0GB 134.6GB/sec
+     5699 iteration. Passed 30.0126 seconds  written: 1508.5GB 198.8GB/sec        checked: 3017.0GB 134.5GB/sec
+  memtest_vulkan: no any errors, testing PASSed.
+
+=== DONE 2026-10-15T15:48:09-04:00 ===
+report: data/receipts/gpu-resale/rx580_last_report.txt
+csv:    data/receipts/gpu-resale/rx580_last_soak.csv
