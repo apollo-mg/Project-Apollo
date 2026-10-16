@@ -50,3 +50,20 @@ Reported without a prediction: SVQ2 vs the 27B Q8_0 on H accuracy and U refusal;
 
 As `PREREG_BOLT.md`: non-empty smoke and warm-up; `reasoning` empty on every row (else a logged deviation); a server
 death resumes on a fresh server, recorded.
+
+**Addendum 1 (2026-10-15, before any Super VL row and before either file is on .194): a resource-matched arm, now
+the primary comparison.** Mark prefers comparing at matched system resources. Arm **SVNV**:
+`ggml-org/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-GGUF`, `NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-NVFP4.gguf`,
+76,918,795,552 B (lfs oid `7611c78aabe730c4...`), i.e. 2.5 % under FNQ2's 78,869,128,864 B. Chosen over unsloth's
+NVFP4 (77,686,053,984 B, 1.5 % under) because ggml-org's card lists NVIDIA's own NVFP4 checkpoint among its sources,
+so its quantisation is most likely NVIDIA's; unsloth's card does not say where its NVFP4 came from. Neither card states
+it per file. ggml-org/Q4_0 (71.8 GB) and unsloth/UD-Q4_K_XL (86.9 GB) were the next-nearest.
+- **Placement:** SVNV cannot fit 4x16 GB. `-ngl 99` with the routed experts of the last K layers on CPU via `-ot`,
+  starting at the smallest K that loads (FNIQ4's procedure), recorded. Flash-Next Q2 also kept ~28.8 GB in host memory,
+  so both arms span VRAM and host RAM at a matched total; the split differs and is reported.
+- **NVFP4 on sm_60:** v0.7.0 runs it through the generic paths (`mmvq` `vec_dot_nvfp4_q8_1` for decode, dequantise for
+  prompt batches; the MMQ fast path needs Blackwell). Speed is recorded, not predicted; the readout is greedy answers.
+- **Predictions P1-P5 apply to SVNV as registered for SVQ2** (substitute SVNV for SVQ2), and SVNV's verdicts are the
+  headline. SVQ2 stays as the label-matched arm. Order: SVNV first, then SVQ2, each on a fresh server.
+- **Analysis:** `analyze_supervl.py --sv SVNV --out RESULT_supervl_nv.json` and `--sv SVQ2 --out RESULT_supervl_q2.json`;
+  the script is unchanged.
