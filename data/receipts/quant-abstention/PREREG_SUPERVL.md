@@ -67,3 +67,8 @@ it per file. ggml-org/Q4_0 (71.8 GB) and unsloth/UD-Q4_K_XL (86.9 GB) were the n
   headline. SVQ2 stays as the label-matched arm. Order: SVNV first, then SVQ2, each on a fresh server.
 - **Analysis:** `analyze_supervl.py --sv SVNV --out RESULT_supervl_nv.json` and `--sv SVQ2 --out RESULT_supervl_q2.json`;
   the script is unchanged.
+
+**Addendum 2 (2026-10-15, before any Super VL row).** After Artificial Analysis listed Super VL at 26 on its
+Intelligence Index (Bolt 21, Qwen3.8-27B xhigh 34), Mark weighed whether the run was worth .194's evening and chose to
+run the primary arm only. **SVNV runs; SVQ2 is deferred** (not downloaded now; if run later it stays the label-matched
+secondary, under the same predictions). Nothing else changes.
