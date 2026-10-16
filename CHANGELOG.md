@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### CLAUDE.md: Starbuck separation updated (2026-10-16, Claude)
+- The "separate isolated system, do not modify from this workspace" rule is replaced. Per Mark, the separation was an
+  engineering decision from when Gemini scaffolded Starbuck (keep its context and design choices out of Apollo's scope),
+  not a safety boundary, and it no longer applies now that Anthropic is the primary provider. Starbuck can be worked on
+  from this workspace when asked; its code and design records stay in Starbuck's own tree.
+
 ### .194 system update (2026-10-06, Claude)
 - Ubuntu 26.04 `dist-upgrade` with the GPU stack held (NVIDIA 580.173.02 server driver + DKMS, CUDA 12.4.131 toolkit and runtime: 21 held packages, unchanged).
 - Kernel 7.0.0-34 -> 7.0.0-38; DKMS built nvidia-srv 580.173.02 for -38 before the reboot. 63 packages set up.

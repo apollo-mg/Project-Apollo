@@ -63,7 +63,7 @@ Supporting pieces:
 - `engines/` — vendored/forked inference engines (multiple llama.cpp forks incl. turboquant) and agent frameworks. Each is its own embedded repo.
 - `scripts/startup/` — llama-server launch scripts with tuned flags per model/hardware. The FastContext investigator sidecar (`start_investigator_sidecar.sh`) serves port 8083 locally; the main model serves 8082.
 - `vault/` — memory stores (chroma, BM25, graph DBs) and prompt "skills" (`vault/skills/`).
-- Project Starbuck (OS-management daemon on the P100 nodes) is a **separate isolated system**: do not modify `starbuck_daemon.py` or Starbuck OS tools from this workspace; interact only via MCP/Message Bus.
+- Project Starbuck (OS-management daemon on the P100 nodes) started as a separate codebase that Gemini helped brainstorm and scaffold. It was kept apart from Apollo to keep its context and design decisions out of Apollo's scope: an engineering choice, not a safety boundary. Since Anthropic became the project's primary provider, that separation is no longer a rule (Mark, 2026-10-16): Starbuck can be worked on from this workspace when asked. Keep its code and design records in Starbuck's own tree rather than mixing them into Apollo.
 
 ## Before designing an experiment: check whether it is already answered
 
