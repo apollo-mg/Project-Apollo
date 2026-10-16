@@ -72,3 +72,12 @@ it per file. ggml-org/Q4_0 (71.8 GB) and unsloth/UD-Q4_K_XL (86.9 GB) were the n
 Intelligence Index (Bolt 21, Qwen3.8-27B xhigh 34), Mark weighed whether the run was worth .194's evening and chose to
 run the primary arm only. **SVNV runs; SVQ2 is deferred** (not downloaded now; if run later it stays the label-matched
 secondary, under the same predictions). Nothing else changes.
+
+**Deviation 1 (2026-10-15 ~22:05, before any Super VL row): placement needed a tensor split.** With `-sm layer` and
+the default split (22 layers per GPU), the spilled experts all come from the last layers, which sit on GPU 3, so GPU 0
+still needed 18 GB and no K could fix it. Added `-ts`, chosen to balance bytes (llama.cpp splits 89 slots: 88 blocks +
+output). K = 8 (`-ts 18,19,18,33`): weights fit, GPU 0's 1.66 GB compute buffer did not. K = 10 (`-ts 18,17,18,36`):
+buffers reserved, then OOM on GPU 0; no 10-layer split leaves room for GPU 0's buffer (layers are ~1.6 GB lumps).
+**K = 12 with `-ts 17,17,17,38` loads:** 89/89 slots offloaded, routed experts of MoE layers 59-87 (12 layers) plus
+`token_embd` in host memory (19,168 MiB `CPU_Mapped`), CUDA model buffers 12,728 / 14,219 / 14,078 / 13,155 MiB,
+VRAM used at idle 14.7 / 14.7 / 14.6 / 13.7 GB. Other flags as registered. `-ot` string in `ot_K12.txt` on .194.
