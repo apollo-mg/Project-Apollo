@@ -45,6 +45,7 @@ def main():
     ap.add_argument("--max-tokens", type=int, default=1024)
     ap.add_argument("--expect-render-tail", default=None, help="the ceiling's render tail; a mismatch stops the arm")
     ap.add_argument("--expect-variants", default=None, help="the ceiling's UNKNOWN-variant ids (JSON)")
+    ap.add_argument("--thinking", action="store_true", help="2026-10-16: R-gen with enable_thinking true (R-slot stays thinking-off); default off, so earlier arms are unchanged")
     a = ap.parse_args()
     items = [json.loads(l) for l in open(HERE / "corpus" / f"{a.corpus}.jsonl")]
     out = HERE / "raw" / (f"main_{a.arm}.jsonl" if a.corpus == "M1" else f"main_{a.arm}.{a.corpus}.jsonl")
@@ -71,7 +72,7 @@ def main():
     def rgen(q):
         r = c.post(f"{a.url}/v1/chat/completions", json={
             "messages": [{"role": "user", "content": PROMPT.format(q=q)}], "temperature": 0, "max_tokens": a.max_tokens,
-            "cache_prompt": False, "chat_template_kwargs": {"enable_thinking": False}})
+            "cache_prompt": False, "chat_template_kwargs": {"enable_thinking": bool(a.thinking)}})
         r.raise_for_status()
         ch = r.json()["choices"][0]
         return ch["message"].get("content") or "", ch["message"].get("reasoning_content") or "", ch["finish_reason"]
@@ -88,7 +89,7 @@ def main():
     with open(out, "a") as f:
         if not done:
             p = render("Q")
-            hdr = {"header": True, "arm": a.arm, "corpus": a.corpus, "max_tokens": a.max_tokens,
+            hdr = {"header": True, "arm": a.arm, "corpus": a.corpus, "max_tokens": a.max_tokens, "thinking": bool(a.thinking),
                    "meta": json.loads(a.meta), "variant_ids": var_ids,
                    "render_tail": p[-60:], "props": c.get(f"{a.url}/props").json().get("default_generation_settings", {}),
                    "started": time.strftime("%Y-%m-%dT%H:%M:%S%z")}
