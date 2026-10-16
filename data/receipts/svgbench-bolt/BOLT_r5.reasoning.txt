@@ -1,0 +1,441 @@
+The user wants an SVG of a pelican riding a bicycle. I need to create a vector graphic that is recognizable as a pelican (large beak with pouch, white/grey feathers, wings) riding a bike (handlebars, wheels, frame, pedals).
+
+I should create a clean, stylized SVG. I'll use basic shapes (circles, paths, ellipses) to construct the image.
+
+Plan:
+1. Set up SVG canvas (e.g., 400x300).
+2. Draw the bicycle: two wheels, frame, handlebars, seat.
+3. Draw the pelican: body, head, large beak with pouch, eye, wing, legs/feet on pedals.
+4. Color scheme: Pelican - white body, grey wings/back, orange beak/legs. Bike - red or blue frame, black tires.
+
+Let's sketch the coordinates:
+- Bike wheel 1 (back): center around (80, 200), radius 40.
+- Bike wheel 2 (front): center around (280, 200), radius 40.
+- Frame: from back wheel axle (80,200) up to seat post, handlebars.
+- Handlebar stem from front wheel axle (280,200) up to handlebars at (240, 150).
+- Seat: ellipse at (100, 180).
+
+Pelican:
+- Body: large ellipse at (160, 200), white.
+- Wing: grey ellipse/path on the side.
+- Head: circle at (200, 180).
+- Beak: large path. Upper beak pointing right, lower beak with pouch hanging down.
+- Eye: small black dot.
+- Legs: two lines going down to pedals. Feet on pedals.
+
+Let's refine coordinates for a side view facing right.
+
+Bike:
+- Rear wheel: circle cx=80 cy=200 r=40. Fill none, stroke black stroke-width=3.
+- Front wheel: circle cx=260 cy=200 r=40.
+- Frame: path from (80,180) [rear axle-ish] to (120,160) [seat tube top], to (220,160) [top tube], to (240,180) [head tube], to (260,200) [front axle]. Actually need to connect properly.
+- Let's do: Seat tube from (100,190) to (100,150). Top tube from (100,150) to (220,150). Head tube from (220,150) to (240,190). Down tube from (240,190) to (140,210). Bottom bracket from (140,210) to (80,200)? Hmm.
+- Simpler stylized bike:
+  - Rear wheel at (80, 200).
+  - Front wheel at (260, 200).
+  - Frame: line from (80, 180) to (100, 150) [seat tube], line from (100, 150) to (220, 150) [top tube], line from (220, 150) to (240, 190) [head tube], line from (240, 190) to (150, 210) [down tube], line from (150, 210) to (80, 200) [seat tube lower?]. Actually the bottom bracket area.
+  - Handlebar: line from (240, 190) to (240, 140) and horizontal to (200, 140).
+  - Seat: ellipse cx=100 cy=145 rx=15 ry=8.
+  - Pedals: circle at (150, 210) and maybe front pedal? Usually one visible. Let's put pedals at bottom bracket (140, 210).
+  - Chain: path between wheels.
+
+Pelican on bike:
+- Body: ellipse cx=150 cy=190 rx=40 ry=25 (white).
+- Wing: ellipse cx=160 cy=195 rx=20 ry=15 (light grey).
+- Head: circle cx=200 cy=180 r=20 (white).
+- Neck: path connecting body to head.
+- Beak: This is the tricky part. Upper beak: path from (220,180) to (260,180) to (270,190) to (230,190) close? No, for a pelican the beak is long and has a pouch.
+  - Let's do: upper beak path: M 220 180 L 280 170 L 290 185 L 230 190 Z (roughly).
+  - Lower beak/pouch: path M 220 190 L 280 195 L 290 210 L 230 205 Z. Fill orange. Maybe add a line for the lower jaw.
+- Eye: circle cx=210 cy=175 r=3 fill black.
+- Legs: two lines from body bottom (140,210) and (160,210) down to pedals at (140,220) and (150,220)? Wait, the bird is sitting on the bike. The feet should be on the pedals. So legs go from body down to pedals around (140, 215) and (150, 215).
+- Tail: small path at back.
+
+Let's make it cute and stylized.
+
+SVG structure:
+<svg width="400" height="300" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+
+Group for bike, group for pelican.
+
+Colors:
+- Pelican body: #F0F0F0 or white.
+- Pelican wing: #CCCCCC.
+- Beak: #FFA500 (orange).
+- Legs: #FFA500.
+- Bike frame: #FF0000 (red) or #0000FF. Let's do red.
+- Tires: black.
+
+Let's write the paths carefully.
+
+Bike parts:
+- Rear wheel: <circle cx="80" cy="200" r="40" fill="none" stroke="black" stroke-width="3"/>
+- Front wheel: <circle cx="260" cy="200" r="40" fill="none" stroke="black" stroke-width="3"/>
+- Frame path: d="M 80 180 L 100 150 L 220 150 L 240 190 L 150 210 L 80 200 Z" ? That might look like a filled shape. Better to use strokes.
+  - Seat tube: <line x1="100" y1="190" x2="100" y2="150" stroke="red" stroke-width="3"/>
+  - Top tube: <line x1="100" y1="150" x2="220" y2="150" stroke="red" stroke-width="3"/>
+  - Head tube: <line x1="220" y1="150" x2="240" y2="190" stroke="red" stroke-width="3"/>
+  - Down tube: <line x1="240" y1="190" x2="150" y2="210" stroke="red" stroke-width="3"/>
+  - Seat tube lower: <line x1="150" y1="210" x2="80" y2="200" stroke="red" stroke-width="3"/> (connects to rear axle).
+  - Actually frame usually connects rear axle to bottom bracket to head tube. So:
+    - Rear axle (80,200) to bottom bracket (150,210): line.
+    - Bottom bracket (150,210) to head tube bottom (240,190): line.
+    - Head tube top (240,190) to top tube (220,150): line.
+    - Top tube to seat tube top (100,150): line.
+    - Seat tube down to seat (100,190).
+- Handlebars: <line x1="240" y1="190" x2="240" y2="130" stroke="red" stroke-width="3"/> and <line x1="240" y1="130" x2="180" y2="130" stroke="red" stroke-width="3"/>.
+- Seat: <ellipse cx="100" cy="145" rx="12" ry="6" fill="black"/>
+- Pedals: <circle cx="150" cy="210" r="5" fill="black"/> and maybe <circle cx="240" cy="190" r="3"/> for front pedal? Not visible usually. Let's add one pedal at (150,210) and the other at (150,210) hidden? Actually crank is at (150,210). Pedals stick out left/right. Since side view, one pedal visible. <circle cx="150" cy="210" r="4" fill="black"/>.
+- Chain: path from rear wheel to front wheel. <path d="M 80 200 Q 120 200 150 210 Q 220 210 260 200" fill="none" stroke="black" stroke-width="1"/>? Actually chain runs along bottom. Maybe <path d="M 90 200 L 250 200" stroke="black" stroke-width="1"/> but that's too simple. Let's do a thin path: M 80 195 Q 150 205 260 195.
+
+Pelican parts (layered on top):
+- Body: <ellipse cx="150" cy="195" rx="45" ry="28" fill="white"/>
+- Back/wing: <ellipse cx="160" cy="195" rx="25" ry="18" fill="#E0E0E0"/> (greyish wing).
+- Tail: <path d="M 110 200 L 100 210 L 120 205 Z" fill="white"/>? Or just a small triangle.
+- Neck: <path d="M 170 180 Q 190 170 210 180" stroke="white" stroke-width="12" stroke-linecap="round"/>? No, neck should connect body to head. Maybe a thick line or path.
+  - Let's do head as circle cx=210 cy=175 r=20.
+  - Neck path: <path d="M 175 190 Q 195 170 210 175" fill="none" stroke="white" stroke-width="14" stroke-linecap="round"/>.
+- Beak:
+  - Upper: <path d="M 220 170 L 280 160 L 290 180 L 230 190 Z" fill="#FFA500"/> Hmm, need to connect to face. The face is at x=210. So start at (220, 175)? Actually the beak starts at the face.
+  - Let's define:
+    - Upper mandible: path from (220, 170) to (290, 160) to (300, 180) to (220, 190) close. But that's too big.
+    - Let's scale: face center (210, 175). Beak starts at (225, 170). Goes to (290, 155). Lower tip (300, 175). Back to (225, 185). Fill orange.
+    - Lower mandible/pouch: path from (225, 185) to (290, 185) to (300, 210) to (225, 205) close. Fill lighter orange #FFD700? Or same orange with a line separating.
+    - Actually a pelican's beak: upper part is long, lower part has a large pouch.
+    - Let's do:
+      - Upper beak: <path d="M 220 175 L 290 165 L 300 185 L 220 195 Z" fill="#FFA500"/>
+      - Lower beak: <path d="M 220 195 L 290 200 L 300 225 L 220 215 Z" fill="#FFD700"/> (pouch).
+      - Dividing line: <line x1="220" y1="190" x2="290" y2="185" stroke="#FFA500" stroke-width="2"/>? Not necessary.
+- Eye: <circle cx="225" cy="170" r="3" fill="black"/>
+- Legs:
+  - Left leg: <line x1="140" y1="215" x2="140" y2="225" stroke="#FFA500" stroke-width="3"/>
+  - Right leg: <line x1="160" y1="215" x2="155" y2="225" stroke="#FFA500" stroke-width="3"/>
+  - Feet on pedals: maybe small circles at (140,225) and (155,225). But the pedal is at (150,210). Hmm, the bird is sitting on the seat, so legs go down to pedals which are lower. The seat is at y=145, body at y=195. That's a bit high. Let's adjust bike so seat is higher or bird is bigger.
+  - Actually if the bird is sitting on the seat, the body should be around the seat. Seat at (100,145). Bird body at (150,190) is too low. Let's move bike up or bird up.
+  - Let's reposition: Bike wheels at cy=220. Seat at (100, 160). Bird body at (150, 190). Bird feet reach pedals at (150, 220). That works.
+  - Let's set wheels cy=220. Frame adjusts accordingly.
+  - Rear wheel: (80, 220) r=40.
+  - Front wheel: (260, 220) r=40.
+  - Frame:
+    - Seat tube: (100, 210) to (100, 160).
+    - Top tube: (100, 160) to (220, 160).
+    - Head tube: (220, 160) to (240, 200).
+    - Down tube: (240, 200) to (150, 220).
+    - Seat tube lower: (150, 220) to (80, 220).
+  - Handlebars: (240, 200) to (240, 140) to (180, 140).
+  - Seat: ellipse (100, 155) rx=12 ry=6.
+  - Pedal/crank: (150, 220).
+  - Chain: path along bottom y=215.
+- Bird:
+  - Body ellipse: cx=150 cy=200 rx=40 ry=25.
+  - Wing: ellipse cx=160 cy=200 rx=20 ry=15 fill=#E0E0E0.
+  - Head: circle cx=200 cy=180 r=18.
+  - Neck: path from body to head. <path d="M 175 190 Q 190 175 200 180" fill="none" stroke="white" stroke-width="12" stroke-linecap="round"/>.
+  - Beak: starts at face right side (218, 180).
+    - Upper: <path d="M 220 175 L 290 165 L 300 185 L 220 190 Z" fill="#FFA500"/>
+    - Lower pouch: <path d="M 220 190 L 290 195 L 300 220 L 220 210 Z" fill="#FFD700"/>
+  - Eye: circle cx=215 cy=175 r=3.
+  - Legs: from body bottom (130, 220) and (150, 220) down to pedals.
+    - Leg 1: line (135, 220) to (140, 235).
+    - Leg 2: line (155, 220) to (150, 235).
+    - Feet: small circles at (140, 235) and (150, 235) or just line caps.
+    - But pedals are at (150, 220). So feet should be near there. Maybe legs are short. Let's put feet at (140, 225) and (150, 225) on the pedal area.
+    - Actually the crank is at (150, 220). Pedal sticks out. Let's put feet at (140, 225) and (160, 225).
+    - Legs: line (135, 222) to (140, 228), line (155, 222) to (150, 228). Stroke orange.
+- Maybe add a small smile or just eye.
+
+Let's assemble. I'll make sure layers are correct: bike frame behind bird, wheels behind bird? Actually bird is on top of bike, so bird should be drawn after bike frame but wheels can be behind or in front. Usually wheels are behind frame. Bird is on seat, so bird is on top.
+
+Order in SVG:
+1. Wheels (back)
+2. Frame
+3. Handlebar, seat, pedals
+4. Bird body, wing, neck, head, beak, legs.
+
+Let's refine coordinates with cy=220.
+
+Bike:
+- Rear wheel: circle cx=80 cy=220 r=40.
+- Front wheel: circle cx=260 cy=220 r=40.
+- Frame lines (stroke="red", stroke-width="3"):
+  - Seat tube: line x1=100 y1=215 x2=100 y2=160.
+  - Top tube: line x1=100 y1=160 x2=220 y2=160.
+  - Head tube: line x1=220 y1=160 x2=240 y2=205.
+  - Down tube: line x1=240 y1=205 x2=150 y2=220.
+  - Rear tube: line x1=150 y1=220 x2=80 y2=220.
+- Handlebars:
+  - Stem: line x1=240 y1=205 x2=240 y2=140.
+  - Bar: line x1=240 y1=140 x2=180 y2=140.
+  - Maybe grip: line x1=180 y1=140 x2=160 y2=140.
+- Seat: ellipse cx=100 cy=155 rx=12 ry=6 fill="black".
+- Pedal: circle cx=150 cy=220 r=5 fill="black".
+- Chain: path d="M 80 215 Q 150 220 260 215" fill="none" stroke="black" stroke-width="1".
+
+Bird:
+- Body: ellipse cx=150 cy=205 rx=40 ry=28 fill="white".
+- Wing: ellipse cx=160 cy=205 rx=22 ry=18 fill="#E6E6E6".
+- Tail: path d="M 115 215 L 105 225 L 125 220 Z" fill="white".
+- Neck: path d="M 175 195 Q 190 180 205 180" fill="none" stroke="white" stroke-width="14" stroke-linecap="round".
+- Head: circle cx=205 cy=180 r=18 fill="white".
+- Beak:
+  - Upper: path d="M 220 175 L 290 165 L 300 185 L 220 190 Z" fill="#FFA500".
+  - Lower pouch: path d="M 220 190 L 290 195 L 300 220 L 220 210 Z" fill="#FFD700".
+  - Maybe add a line for the mouth: line x1=220 y1=188 x2=290 y2=185 stroke="orange" stroke-width="1".
+- Eye: circle cx=220 cy=175 r=3 fill="black".
+- Legs:
+  - Leg 1: line x1=135 y1=225 x2=140 y2=235 stroke="#FFA500" stroke-width="3".
+  - Leg 2: line x1=155 y1=225 x2=150 y2=235 stroke="#FFA500" stroke-width="3".
+  - Feet: circle cx=140 cy=235 r=3 fill="#FFA500", circle cx=150 cy=235 r=3 fill="#FFA500".
+  - But feet should be on pedals. The pedal is at (150,220). The feet at y=235 are too low. Maybe the bike is smaller. Let's move wheels to cy=200. Then seat at y=140. Bird body at y=180. Legs to pedals at y=200.
+
+Let's restart coordinates with cy=200 for wheels.
+
+Bike:
+- Rear wheel: (80, 200) r=40.
+- Front wheel: (260, 200) r=40.
+- Frame:
+  - Seat tube: (100, 195) to (100, 150).
+  - Top tube: (100, 150) to (220, 150).
+  - Head tube: (220, 150) to (240, 190).
+  - Down tube: (240, 190) to (150, 200).
+  - Rear tube: (150, 200) to (80, 200).
+- Handlebars: (240, 190) to (240, 130) to (180, 130).
+- Seat: ellipse (100, 145) rx=12 ry=6.
+- Pedal: circle (150, 200) r=5.
+- Chain: path M 80 195 Q 150 200 260 195.
+
+Bird:
+- Body: ellipse (150, 190) rx=40 ry=25.
+- Wing: ellipse (160, 190) rx=20 ry=15 fill=#E6E6E6.
+- Neck: path M 170 185 Q 185 170 200 175 stroke=white stroke-width=12.
+- Head: circle (200, 175) r=17.
+- Beak:
+  - Upper: path M 215 170 L 280 160 L 290 180 L 215 190 Z fill=#FFA500.
+  - Lower: path M 215 190 L 280 195 L 290 220 L 215 210 Z fill=#FFD700.
+- Eye: circle (215, 170) r=3.
+- Legs:
+  - Leg 1: line (130, 205) to (135, 215).
+  - Leg 2: line (150, 205) to (145, 215).
+  - Feet on pedals: pedals at (150, 200). Feet should be near (140, 205) and (150, 205). Actually legs go from body down to pedals. Body bottom is around y=210. Pedals at y=200. That's above the body. Doesn't make sense.
+  - If the bird is sitting on the seat, the pedals are below the seat. Seat at y=145. Pedals at y=200. Bird body at y=190. So bird's feet reach down to pedals. Legs from body (y=210) to pedals (y=200) would be short. Let's put feet at (140, 205) and (150, 205). The pedal circle is at (150, 200). Close enough.
+  - Let's just have legs as lines from body to feet on pedals.
+  - Leg 1: line x1=135 y1=212 x2=140 y2=205 stroke=orange width=3.
+  - Leg 2: line x1=155 y1=212 x2=150 y2=205 stroke=orange width=3.
+  - Feet: small circles at (140,205) and (150,205).
+
+Actually, to make it cleaner, I'll put the feet directly on the pedal crank. The crank is at (150, 200). One pedal is visible at (150, 200). The bird's feet can be at (140, 202) and (160, 202).
+
+Let's finalize:
+
+```xml
+<svg width="400" height="300" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+  <!-- Bike -->
+  <circle cx="80" cy="200" r="40" fill="none" stroke="black" stroke-width="3"/>
+  <circle cx="260" cy="200" r="40" fill="none" stroke="black" stroke-width="3"/>
+  
+  <!-- Frame -->
+  <line x1="100" y1="195" x2="100" y2="150" stroke="red" stroke-width="3"/>
+  <line x1="100" y1="150" x2="220" y2="150" stroke="red" stroke-width="3"/>
+  <line x1="220" y1="150" x2="240" y2="190" stroke="red" stroke-width="3"/>
+  <line x1="240" y1="190" x2="150" y2="200" stroke="red" stroke-width="3"/>
+  <line x1="150" y1="200" x2="80" y2="200" stroke="red" stroke-width="3"/>
+  
+  <!-- Handlebar -->
+  <line x1="240" y1="190" x2="240" y2="130" stroke="red" stroke-width="3"/>
+  <line x1="240" y1="130" x2="180" y2="130" stroke="red" stroke-width="3"/>
+  
+  <!-- Seat -->
+  <ellipse cx="100" cy="145" rx="12" ry="6" fill="black"/>
+  
+  <!-- Pedal -->
+  <circle cx="150" cy="200" r="5" fill="black"/>
+  
+  <!-- Chain -->
+  <path d="M 80 195 Q 150 200 260 195" fill="none" stroke="black" stroke-width="1"/>
+  
+  <!-- Pelican -->
+  <!-- Body -->
+  <ellipse cx="150" cy="190" rx="40" ry="25" fill="white"/>
+  <!-- Wing -->
+  <ellipse cx="160" cy="190" rx="20" ry="15" fill="#E6E6E6"/>
+  <!-- Tail -->
+  <path d="M 115 205 L 105 215 L 125 210 Z" fill="white"/>
+  <!-- Neck -->
+  <path d="M 170 180 Q 185 170 200 175" fill="none" stroke="white" stroke-width="12" stroke-linecap="round"/>
+  <!-- Head -->
+  <circle cx="200" cy="175" r="17" fill="white"/>
+  <!-- Beak Upper -->
+  <path d="M 215 170 L 280 160 L 290 180 L 215 190 Z" fill="#FFA500"/>
+  <!-- Beak Lower/Pouch -->
+  <path d="M 215 190 L 280 195 L 290 220 L 215 210 Z" fill="#FFD700"/>
+  <!-- Eye -->
+  <circle cx="215" cy="170" r="3" fill="black"/>
+  <!-- Legs -->
+  <line x1="135" y1="210" x2="140" y2="202" stroke="#FFA500" stroke-width="3"/>
+  <line x1="155" y1="210" x2="150" y2="202" stroke="#FFA500" stroke-width="3"/>
+  <!-- Feet -->
+  <circle cx="140" cy="202" r="3" fill="#FFA500"/>
+  <circle cx="150" cy="202" r="3" fill="#FFA500"/>
+</svg>
+```
+
+Wait, the legs and feet might overlap the bike frame/pedal. The pedal is at (150,200). The feet at y=202 are just below it. That's okay.
+
+Let's check the beak shape. Upper beak path: M 215 170 (start near face), L 280 160 (top tip), L 290 180 (front tip), L 215 190 (back bottom), Z. That creates a shape. The lower pouch: M 215 190, L 280 195, L 290 220, L 215 210, Z. This looks like a pelican's beak with a pouch.
+
+The neck path: M 170 180 Q 185 170 200 175. Stroke white width 12. This connects body to head. The head is at (200,175). The path ends at (200,175) which is center of head. Good.
+
+The wing is grey. Body white.
+
+One issue: the bike frame line from (150,200) to (80,200) goes right through the bird's legs/body area? The bird body is centered at (150,190) with rx=40, so it extends from x=110 to x=190. The frame line at y=200 from x=80 to x=150 passes behind the bird's lower body. Since the bird is drawn after, it covers the frame. That's fine.
+
+The handlebars are at y=130, bird head at y=175. No overlap.
+
+The seat is at (100,145). Bird body is at (150,190). The bird is sitting on the seat but the body is shifted right. The seat is under the bird's body. That's acceptable for a stylized image.
+
+I could add a background or ground, but not necessary.
+
+I should make sure the SVG is valid and self-contained.
+
+Let me double-check coordinates:
+- SVG viewBox 0 0 400 300.
+- Everything seems within bounds.
+
+Potential improvements:
+- Add a smile? Not needed.
+- Add some detail to the wheel (spokes)? Could add a few lines but not necessary.
+- Add shading? Keep it flat.
+
+Let's add a few spokes to wheels for detail:
+- Rear wheel: line from (80,200) to (80,160) and (80,240) and (40,200) and (120,200). But stroke width 3 might be thick. Let's add simple cross.
+  - <line x1="80" y1="160" x2="80" y2="240" stroke="black" stroke-width="1"/>
+  - <line x1="40" y1="200" x2="120" y2="200" stroke="black" stroke-width="1"/>
+  Same for front wheel.
+
+- Add a bell on handlebar? Not needed.
+
+I think the current design is good. Let me refine the beak to look more like a pelican. The pouch should be more pronounced. The lower path should bulge down more.
+
+Upper beak:
+M 215 172 L 285 162 L 295 178 L 215 192 Z.
+
+Lower pouch:
+M 215 192 L 285 198 L 295 225 L 215 215 Z.
+
+That looks better.
+
+Also add a nostril? Small dot on beak. <circle cx="250" cy="170" r="1" fill="black"/>
+
+Let's add the spokes.
+
+Final check of layering:
+- Wheels with spokes.
+- Frame.
+- Handlebars.
+- Seat.
+- Pedal.
+- Chain.
+- Bird parts.
+
+The chain is at y=195, bird body at y=190. Bird might cover chain. That's fine.
+
+I think this is solid. I'll output the SVG code.
+
+One more thing: The bird's legs. The line from (135,210) to (140,202) goes upward. The bird's body bottom is around y=215. So legs start at y=210 and go up to y=202 to reach pedals. That means the bird is standing with feet higher than the body bottom? Actually if sitting, legs go down. But here the pedals are at y=200, body center at y=190. The bird's feet would be around y=200. The body bottom is y=215. So legs go from body (y=215) up to pedals (y=200). That's anatomically weird but for a cartoon it's okay. Alternatively, move pedals down to y=210. Let's move the crank/pedal to (150, 210). Then legs can go down.
+
+Let's adjust:
+- Down tube: (240, 190) to (150, 210).
+- Rear tube: (150, 210) to (80, 200). Hmm, rear axle is at (80,200). So line from (150,210) to (80,200).
+- Pedal: circle (150, 210) r=5.
+- Chain: path M 80 195 Q 150 210 260 195.
+- Bird body: ellipse (150, 190) rx=40 ry=25. Bottom at y=215.
+- Legs: from body (135, 215) to (140, 218) and (155, 215) to (150, 218). Feet at (140,218) and (150,218). Pedal at (150,210). Feet are below pedal. That's fine, feet can be on pedal which is slightly above. Or we can just have feet at (140,210) and (150,210). Let's do legs from body to pedal area.
+  - Leg 1: line (135, 212) to (140, 208).
+  - Leg 2: line (155, 212) to (150, 208).
+  - Feet: circles at (140,208) and (150,208).
+
+Actually, to keep it simple, I'll just have two orange lines for legs ending in small circles on the pedal crank area.
+
+Let's set pedal at (150, 210).
+Legs:
+- <line x1="135" y1="212" x2="140" y2="208" stroke="#FFA500" stroke-width="3"/>
+- <line x1="155" y1="212" x2="150" y2="208" stroke="#FFA500" stroke-width="3"/>
+- <circle cx="140" cy="208" r="3" fill="#FFA500"/>
+- <circle cx="150" cy="208" r="3" fill="#FFA500"/>
+
+This places feet near the crank.
+
+Frame adjustment:
+- Seat tube: (100, 195) to (100, 150).
+- Top tube: (100, 150) to (220, 150).
+- Head tube: (220, 150) to (240, 190).
+- Down tube: (240, 190) to (150, 210).
+- Rear tube: (150, 210) to (80, 200).
+
+Chain: M 80 195 Q 150 210 260 195. This dips down to the crank. Good.
+
+Let's also add a small bell or reflector? Not needed.
+
+I think this is ready. I'll write the final SVG.
+
+Wait, I want the pelican to be more prominent. Maybe make the body a bit bigger.
+
+Final code:
+
+```xml
+<svg width="400" height="300" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+  <!-- Wheels -->
+  <circle cx="80" cy="200" r="40" fill="none" stroke="black" stroke-width="3"/>
+  <line x1="80" y1="160" x2="80" y2="240" stroke="black" stroke-width="1"/>
+  <line x1="40" y1="200" x2="120" y2="200" stroke="black" stroke-width="1"/>
+  
+  <circle cx="260" cy="200" r="40" fill="none" stroke="black" stroke-width="3"/>
+  <line x1="260" y1="160" x2="260" y2="240" stroke="black" stroke-width="1"/>
+  <line x1="220" y1="200" x2="300" y2="200" stroke="black" stroke-width="1"/>
+  
+  <!-- Frame -->
+  <line x1="100" y1="195" x2="100" y2="150" stroke="#d62728" stroke-width="3"/>
+  <line x1="100" y1="150" x2="220" y2="150" stroke="#d62728" stroke-width="3"/>
+  <line x1="220" y1="150" x2="240" y2="190" stroke="#d62728" stroke-width="3"/>
+  <line x1="240" y1="190" x2="150" y2="210" stroke="#d62728" stroke-width="3"/>
+  <line x1="150" y1="210" x2="80" y2="200" stroke="#d62728" stroke-width="3"/>
+  
+  <!-- Handlebar -->
+  <line x1="240" y1="190" x2="240" y2="130" stroke="#d62728" stroke-width="3"/>
+  <line x1="240" y1="130" x2="180" y2="130" stroke="#d62728" stroke-width="3"/>
+  
+  <!-- Seat -->
+  <ellipse cx="100" cy="145" rx="12" ry="6" fill="#333"/>
+  
+  <!-- Crank/Pedal -->
+  <circle cx="150" cy="210" r="6" fill="#333"/>
+  
+  <!-- Chain -->
+  <path d="M 80 195 Q 150 210 260 195" fill="none" stroke="black" stroke-width="1.5"/>
+  
+  <!-- Pelican Body -->
+  <ellipse cx="150" cy="190" rx="42" ry="26" fill="white"/>
+  <!-- Wing -->
+  <ellipse cx="160" cy="192" rx="22" ry="16" fill="#E6E6E6"/>
+  <!-- Tail -->
+  <path d="M 115 205 L 105 215 L 125 210 Z" fill="white"/>
+  <!-- Neck -->
+  <path d="M 170 180 Q 185 170 200 175" fill="none" stroke="white" stroke-width="13" stroke-linecap="round"/>
+  <!-- Head -->
+  <circle cx="200" cy="175" r="18" fill="white"/>
+  <!-- Beak Upper -->
+  <path d="M 215 172 L 285 162 L 295 178 L 215 192 Z" fill="#FFA500"/>
+  <!-- Beak Lower/Pouch -->
+  <path d="M 215 192 L 285 198 L 295 225 L 215 215 Z" fill="#FFD700"/>
+  <!-- Eye -->
+  <circle cx="216" cy="170" r="3" fill="black"/>
+  <!-- Legs -->
+  <line x1="135" y1="212" x2="140" y2="208" stroke="#FFA500" stroke-width="3"/>
+  <line x1="155" y1="212" x2="150" y2="208" stroke="#FFA500" stroke-width="3"/>
+  <!-- Feet -->
+  <circle cx="140" cy="208" r="3" fill="#FFA500"/>
+  <circle cx="150" cy="208" r="3" fill="#FFA500"/>
+</svg>
+```
+
+This looks good. I'll present this.

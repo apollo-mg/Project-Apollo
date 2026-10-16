@@ -1,0 +1,396 @@
+The user wants an SVG of a pelican riding a bicycle. I need to create a vector graphic using SVG code.
+
+ Let me plan the composition:
+ 1. Pelican: Large beak, white body, wings, legs
+ 2. Bicycle: Two wheels, frame, handlebars, seat
+ 3. Action: Pelican sitting on the seat, pedaling or holding handlebars
+
+ I'll create a stylized, cartoon-like SVG. Let me break it down:
+
+ Pelican parts:
+ - Body: White ellipse
+ - Head: White circle with large yellow beak
+ - Eye: Small black dot
+ - Wing: Grey/white shape
+ - Legs: Two thin lines/feet
+ - Feet on pedals
+
+ Bicycle parts:
+ - Wheels: Two circles (tires)
+ - Spokes: Lines
+ - Frame: Lines connecting wheels
+ - Seat: Saddle on top of frame
+ - Handlebar: Horizontal bar at front
+ - Pedals: At the bottom
+
+ Let me think about the coordinates. I'll make it roughly 400x300 viewBox.
+
+ Pelican structure:
+ - Body centered around (200, 160)
+ - Head at (230, 130) with beak extending right
+ - Wings at (170, 170) and maybe one raised
+ - Legs going down to pedals
+
+ Bicycle:
+ - Rear wheel at (150, 200)
+ - Front wheel at (280, 200)
+ - Frame connecting them
+ - Seat at (230, 150)
+ - Handlebar at (290, 140)
+
+ Actually, for a pelican riding a bike, the pelican should be:
+ - Body over the frame
+ - Beak pointing forward (to the right)
+ - Webbed feet on pedals
+ - One wing maybe flapping or holding handlebars
+
+ Let me design this carefully:
+
+ SVG elements:
+ 1. Background circle (optional, maybe light blue)
+ 2. Bicycle wheels (two large circles)
+ 3. Bicycle frame (lines)
+ 4. Seat (small ellipse)
+ 5. Handlebar (line)
+ 6. Pelican body (white ellipse)
+ 7. Pelican head (white circle)
+ 8. Pelican beak (large yellow polygon/path)
+ 9. Pelican eye
+ 10. Pelican wing (grey shape)
+ 11. Pelican legs/feet (lines with feet on pedals)
+ 12. Pedals (small rectangles on crank)
+
+ Let me sketch coordinates in a 400x300 viewBox:
+
+ Bicycle:
+ - Rear wheel center: (120, 220), radius: 40
+ - Front wheel center: (300, 220), radius: 40
+ - Frame: From rear wheel top (120, 180) to seat post (200, 170) to handlebar post (280, 160) to front wheel top (300, 180)
+ - Seat: Ellipse at (200, 160)
+ - Handlebar: Line from (280, 160) to (320, 150), with grip
+ - Pedals: Crank at (180, 200), pedals at ends
+
+ Pelican:
+ - Body: Ellipse centered at (210, 180), rx=50, ry=35
+ - Head: Circle at (260, 160), r=25
+ - Beak: Large path from head extending right. Maybe a polygon: (275, 150), (320, 140), (330, 170), (300, 180), (285, 175)
+ - Eye: Small circle at (270, 155)
+ - Wing: Path or ellipse at (170, 190) showing wing
+ - Neck: Line or path connecting body to head
+ - Legs: Two lines from body bottom to pedals. Left leg to rear pedal, right leg to front pedal? Actually pelicans have webbed feet.
+ - Feet: Small shapes on pedals
+
+ Wait, the pelican should be sitting on the seat. So body is above seat. Legs go down to pedals.
+
+ Let me refine:
+
+ Pelican body: white ellipse at (220, 190), rx=45, ry=30
+ Pelican head: white circle at (270, 170), r=22
+ Pelican neck: path connecting (250, 185) to (260, 180)
+ Beak: yellow path: (282, 165) -> (340, 155) -> (350, 180) -> (320, 190) -> (290, 185) -> close
+ Eye: black circle at (275, 165), r=3
+ Wing: grey path at (180, 195) - maybe an ellipse or path showing wing up
+ Legs: Two thin grey lines from body bottom (around y=220) down to feet at pedals.
+ Feet: Small black shapes on pedals.
+
+ Bicycle details:
+ - Rear wheel: circle (120, 230), r=35, stroke black, fill none
+ - Front wheel: circle (300, 230), r=35, stroke black, fill none
+ - Frame: path or lines
+   - From rear wheel hub (120, 230) up to (150, 200)
+   - To seat tube (200, 180)
+   - To handlebar tube (280, 170)
+   - To front wheel hub (300, 230)
+   Actually a simple diamond/triangle frame:
+   - Bottom bracket (crank) at (180, 210)
+   - Seat post at (200, 180)
+   - Head tube at (280, 170)
+   - Front fork to (300, 230)
+   - Rear chain stay to (120, 230)
+   
+ Let me make it simpler and more stylized:
+ - Two wheels
+ - Frame lines connecting wheel centers roughly
+ - Seat on top of frame
+ - Handlebar at front
+
+ Pelican riding:
+ - Pelican's body sits on seat
+ - Feet on pedals
+ - One wing holding handlebar? Or both feet on pedals, wings spread?
+
+ Let me create a clean, cute SVG:
+
+ ```svg
+ <svg width="400" height="300" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+   <!-- Background -->
+   <rect width="400" height="300" fill="none"/>
+   
+   <!-- Bicycle -->
+   <!-- Wheels -->
+   <circle cx="130" cy="220" r="40" stroke="#333" stroke-width="3" fill="none"/>
+   <circle cx="290" cy="220" r="40" stroke="#333" stroke-width="3" fill="none"/>
+   
+   <!-- Spokes (simple) -->
+   <line x1="130" y1="220" x2="130" y2="180" stroke="#333" stroke-width="1"/>
+   <line x1="130" y1="220" x2="170" y2="220" stroke="#333" stroke-width="1"/>
+   <line x1="290" y1="220" x2="290" y2="180" stroke="#333" stroke-width="1"/>
+   <line x1="290" y1="220" x2="250" y2="220" stroke="#333" stroke-width="1"/>
+   
+   <!-- Frame -->
+   <path d="M 130 220 L 160 190 L 220 180 L 260 170 L 290 220" stroke="#333" stroke-width="3" fill="none"/>
+   <!-- Seat post -->
+   <line x1="220" y1="180" x2="220" y2="160" stroke="#333" stroke-width="2"/>
+   <!-- Seat -->
+   <ellipse cx="220" cy="150" rx="15" ry="8" fill="#555"/>
+   <!-- Handlebar -->
+   <line x1="260" y1="170" x2="310" y1="160" stroke="#333" stroke-width="3"/>
+   <circle cx="310" cy="160" r="6" fill="#333"/> <!-- grip -->
+   
+   <!-- Pedals and crank -->
+   <circle cx="170" cy="210" r="8" fill="#333"/> <!-- crank -->
+   <line x1="170" y1="210" x2="150" y2="230" stroke="#333" stroke-width="2"/> <!-- pedal -->
+   <line x1="170" y1="210" x2="190" y2="190" stroke="#333" stroke-width="2"/> <!-- pedal -->
+   
+   <!-- Pelican -->
+   <!-- Body -->
+   <ellipse cx="210" cy="190" rx="45" ry="30" fill="white" stroke="#333" stroke-width="2"/>
+   <!-- Wing -->
+   <path d="M 170 195 Q 150 210 170 220 Q 190 205 210 195" fill="#ddd" stroke="#333" stroke-width="2"/>
+   <!-- Head -->
+   <circle cx="260" cy="170" r="25" fill="white" stroke="#333" stroke-width="2"/>
+   <!-- Eye -->
+   <circle cx="265" cy="165" r="4" fill="black"/>
+   <!-- Beak -->
+   <path d="M 275 165 L 340 155 L 350 180 L 320 190 L 285 185 Z" fill="#ffcc00" stroke="#333" stroke-width="2"/>
+   <!-- Neck -->
+   <path d="M 240 185 Q 250 180 255 175" stroke="#333" stroke-width="3" fill="none"/>
+   
+   <!-- Legs -->
+   <line x1="200" y1="220" x2="170" y2="240" stroke="#333" stroke-width="3"/>
+   <line x1="230" y1="220" x2="190" y2="240" stroke="#333" stroke-width="3"/>
+   <!-- Feet -->
+   <circle cx="170" cy="240" r="5" fill="#333"/>
+   <circle cx="190" cy="240" r="5" fill="#333"/>
+   
+ </svg>
+ ```
+
+ Wait, the legs and feet need to be on the pedals. Let me adjust so feet are at pedals.
+
+ Actually, looking at my frame, the crank is at (170, 210). So feet should be near there.
+
+ Let me redesign the pelican to be more clearly riding:
+
+ Body sits on seat at (220, 150). So body center maybe (220, 180).
+ Head at (270, 165).
+ Beak pointing right.
+ Legs go down from body to pedals.
+
+ Let me also add a simple ground shadow or just keep it clean.
+
+ I think I should make it a bit more polished. Let me reconsider the bicycle frame to be more recognizable:
+
+ Rear wheel: (120, 220)
+ Front wheel: (300, 220)
+ Frame:
+ - From rear hub (120, 220) to bottom bracket (180, 200)
+ - From bottom bracket to seat tube top (220, 170)
+ - From seat tube top to head tube (280, 160)
+ - From head tube to front hub (300, 220)
+ - Also rear stay from rear hub to bottom bracket? And front fork from head tube to front hub.
+
+ Simpler frame path:
+ M 120 220 (rear hub)
+ L 170 200 (bottom bracket/crank area)
+ L 220 170 (seat post bottom)
+ L 280 160 (head tube bottom)
+ L 300 220 (front hub)
+ And back to 120 220? No, that would be weird.
+
+ Better:
+ - Rear wheel to crank: line
+ - Crank to seat tube: line (down tube)
+ - Seat tube to head tube: line (top tube)
+ - Head tube to front wheel: line (front fork)
+ - Also chain stay: rear wheel to crank
+
+ Let me do:
+ ```xml
+ <!-- Frame -->
+ <path d="M 120 220 L 180 200 L 220 170 L 280 160 L 300 220" stroke="#333" stroke-width="3" fill="none"/>
+ <!-- Rear stay -->
+ <line x1="120" y1="220" x2="180" y2="200" stroke="#333" stroke-width="2"/>
+ ```
+ Hmm, the path already goes 120->180. Let me make a proper triangle-like frame.
+
+ Actually for a cute SVG, I don't need perfect bicycle engineering. Just recognizable.
+
+ Let me finalize a clean version:
+
+ ```svg
+ <svg width="400" height="300" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+   <!-- Wheels -->
+   <circle cx="130" cy="220" r="40" stroke="#222" stroke-width="4" fill="none"/>
+   <circle cx="290" cy="220" r="40" stroke="#222" stroke-width="4" fill="none"/>
+   
+   <!-- Tire inner circles -->
+   <circle cx="130" cy="220" r="30" stroke="#444" stroke-width="2" fill="none"/>
+   <circle cx="290" cy="220" r="30" stroke="#444" stroke-width="2" fill="none"/>
+   
+   <!-- Frame -->
+   <path d="M 130 220 L 170 190 L 220 180 L 270 160 L 290 220" stroke="#222" stroke-width="4" fill="none"/>
+   <!-- Seat post -->
+   <line x1="220" y1="180" x2="220" y2="155" stroke="#222" stroke-width="3"/>
+   <!-- Seat -->
+   <ellipse cx="220" cy="148" rx="18" ry="10" fill="#555"/>
+   <!-- Handlebar -->
+   <line x1="270" y1="160" x2="320" y1="150" stroke="#222" stroke-width="4"/>
+   <circle cx="320" cy="150" r="8" fill="#222"/>
+   <!-- Crank -->
+   <circle cx="170" cy="200" r="10" fill="#222"/>
+   <!-- Pedals -->
+   <line x1="170" y1="200" x2="150" y2="220" stroke="#222" stroke-width="3"/>
+   <line x1="170" y1="200" x2="190" y2="180" stroke="#222" stroke-width="3"/>
+   
+   <!-- Pelican -->
+   <!-- Body -->
+   <ellipse cx="215" cy="185" rx="50" ry="32" fill="white" stroke="#222" stroke-width="2"/>
+   <!-- Wing -->
+   <path d="M 175 190 Q 150 200 175 215 Q 200 200 215 190" fill="#eee" stroke="#222" stroke-width="2"/>
+   <!-- Head -->
+   <circle cx="265" cy="165" r="24" fill="white" stroke="#222" stroke-width="2"/>
+   <!-- Eye -->
+   <circle cx="270" cy="160" r="4" fill="black"/>
+   <circle cx="272" cy="160" r="1.5" fill="white"/> <!-- highlight -->
+   <!-- Beak -->
+   <path d="M 280 160 L 350 150 L 360 180 L 330 190 L 290 185 Z" fill="#ffcc00" stroke="#222" stroke-width="2"/>
+   <!-- Neck connection -->
+   <path d="M 245 180 Q 255 175 260 170" stroke="#222" stroke-width="3" fill="none"/>
+   
+   <!-- Legs -->
+   <line x1="200" y1="215" x2="160" y2="235" stroke="#222" stroke-width="3"/>
+   <line x1="230" y1="215" x2="190" y2="235" stroke="#222" stroke-width="3"/>
+   <!-- Feet on pedals -->
+   <circle cx="160" cy="235" r="6" fill="#222"/>
+   <circle cx="190" cy="235" r="6" fill="#222"/>
+   
+ </svg>
+ ```
+
+ Wait, the feet are at y=235 but the pedals are at y=220 and y=180. The feet should be ON the pedals. Let me adjust legs to go to pedals.
+
+ Left pedal is at (150, 220). Right pedal is at (190, 180).
+ So left leg goes to (150, 220), right leg goes to (190, 180).
+
+ Let me adjust:
+ - Left leg: from body (200, 215) to left pedal foot (150, 225)
+ - Right leg: from body (230, 215) to right pedal foot (190, 185)
+
+ Actually the feet should be drawn ON the pedal lines. Let me make the feet small circles at the end of legs, positioned on pedals.
+
+ Let me also add a subtle shadow or make it look like it's on the ground. Maybe a small ellipse shadow under the wheels.
+
+ Let me refine the beak - pelican beaks are large and pouch-like. My path looks okay but let me make it more distinctive.
+
+ Also, I should make sure the pelican looks like it's sitting on the bike, not floating. The body overlaps the seat post.
+
+ Let me check layering order:
+ 1. Wheels
+ 2. Frame
+ 3. Seat/handlebar/pedals
+ 4. Pelican (body, head, beak, legs)
+ This way pelican is on top.
+
+ Actually legs might need to be behind pedals or in front. Let's put legs in front of frame but pedals might overlap. It's fine for a stylized SVG.
+
+ Let me add a nice touch: the pelican's other wing raised? Or both wings? Let me have one wing visible on the side.
+
+ I'll create the final SVG code now. I'll make it clean and well-structured.
+
+ One more thing - I should make sure the viewBox and aspect ratio work well. 400x300 is good.
+
+ Let me write the final code:
+
+ ```svg
+ <svg width="400" height="300" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+   <!-- Background -->
+   <rect width="400" height="300" fill="none"/>
+   
+   <!-- Shadow -->
+   <ellipse cx="210" cy="260" rx="80" ry="15" fill="#eee"/>
+   
+   <!-- Bicycle Wheels -->
+   <circle cx="130" cy="220" r="42" stroke="#333" stroke-width="4" fill="none"/>
+   <circle cx="290" cy="220" r="42" stroke="#333" stroke-width="4" fill="none"/>
+   <circle cx="130" cy="220" r="32" stroke="#666" stroke-width="2" fill="none"/>
+   <circle cx="290" cy="220" r="32" stroke="#666" stroke-width="2" fill="none"/>
+   
+   <!-- Bicycle Frame -->
+   <path d="M 130 220 L 170 200 L 220 180 L 270 165 L 290 220" stroke="#333" stroke-width="4" fill="none"/>
+   <!-- Rear stay -->
+   <line x1="130" y1="220" x2="170" y2="200" stroke="#333" stroke-width="3"/>
+   
+   <!-- Seat -->
+   <line x1="220" y1="180" x2="220" y2="155" stroke="#333" stroke-width="3"/>
+   <ellipse cx="220" cy="150" rx="18" ry="9" fill="#666"/>
+   
+   <!-- Handlebar -->
+   <line x1="270" y1="165" x2="330" y1="155" stroke="#333" stroke-width="4"/>
+   <circle cx="330" cy="155" r="8" fill="#333"/>
+   
+   <!-- Crank and Pedals -->
+   <circle cx="170" cy="200" r="9" fill="#333"/>
+   <line x1="170" y1="200" x2="145" y2="225" stroke="#333" stroke-width="3"/>
+   <line x1="170" y1="200" x2="195" y2="175" stroke="#333" stroke-width="3"/>
+   
+   <!-- Pelican -->
+   <!-- Body -->
+   <ellipse cx="215" cy="185" rx="52" ry="34" fill="white" stroke="#333" stroke-width="2"/>
+   <!-- Wing -->
+   <path d="M 170 195 Q 140 210 175 230 Q 210 210 220 195" fill="#eee" stroke="#333" stroke-width="2"/>
+   <!-- Head -->
+   <circle cx="265" cy="165" r="26" fill="white" stroke="#333" stroke-width="2"/>
+   <!-- Eye -->
+   <circle cx="270" cy="160" r="5" fill="black"/>
+   <circle cx="273" cy="158" r="2" fill="white"/>
+   <!-- Beak -->
+   <path d="M 282 162 L 360 150 L 370 185 L 340 195 L 292 190 Z" fill="#ffcc00" stroke="#333" stroke-width="2"/>
+   <!-- Neck -->
+   <path d="M 245 182 Q 255 175 260 170" stroke="#333" stroke-width="3" fill="none"/>
+   
+   <!-- Legs -->
+   <line x1="200" y1="218" x2="150" y2="230" stroke="#333" stroke-width="3"/>
+   <line x1="230" y1="218" x2="200" y2="185" stroke="#333" stroke-width="3"/>
+   <!-- Feet -->
+   <circle cx="150" cy="230" r="6" fill="#333"/>
+   <circle cx="200" cy="185" r="6" fill="#333"/>
+   
+ </svg>
+ ```
+
+ Let me verify positions:
+ - Left foot at (150, 230) - near left pedal at (145, 225). Good.
+ - Right foot at (200, 185) - near right pedal at (195, 175). Good.
+ - Body at (215, 185) - above seat post at x=220. Good.
+ - Head at (265, 165) - looking forward.
+ - Beak extends to x=370, which is past front wheel center (290) but that's fine, it's a long beak.
+
+ Actually, looking at the beak path: M 282 162 L 360 150 L 370 185 L 340 195 L 292 190 Z
+ This creates a large beak pointing right and slightly down. The top is at y=150, bottom at y=195. The head center is y=165. So the beak starts at y=162 (top of head) and goes to y=150 (higher) then down to y=185. That looks like a pelican beak with the lower mandible.
+
+ Wait, I need to make sure the beak connects properly to the head. The head circle is at (265, 165) r=26. So the rightmost point of head is at x=291. The beak starts at (282, 162) which is inside/near the head edge. Good.
+
+ The wing path: M 170 195 Q 140 210 175 230 Q 210 210 220 195. This creates a wing on the left side of the body (since body center is 215, wing is at x=170-220). It's visible.
+
+ The shadow ellipse at y=260 with wheels at y=220 and radius 42, so wheels bottom at y=262. The shadow at y=260 might be slightly overlapping. Let me move shadow to y=265 or make it smaller. Actually it's fine, it's a ground shadow.
+
+ Let me reconsider the frame path. The path goes from rear wheel (130, 220) to (170, 200) to (220, 180) to (270, 165) to (290, 220). This creates a frame that goes from rear wheel up to crank area, then to seat, then to handlebar area, then down to front wheel. This is reasonable.
+
+ The seat post line from (220, 180) to (220, 155) goes up from the frame to the seat. The seat is at (220, 150). Good.
+
+ The handlebar line from (270, 165) to (330, 155) with grip at (330, 155). The frame comes to (270, 165). Good.
+
+ I think this is solid. Let me make one small improvement: add a simple background circle or just leave it white. The user didn't specify background, so white/transparent is fine.
+
+ I'll present just the SVG code.
