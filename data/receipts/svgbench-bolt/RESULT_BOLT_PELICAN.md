@@ -19,9 +19,9 @@ v0.7.0 `620d222`, `-ngl 99 -c 24576 -np 1 -fa on`, no drafter, fresh server; .73
 
 Median 7/10 and 5,420 tokens; no rep capped; decode 27.3-27.5 tok/s throughout.
 
-**The slip:** after writing `x2=`, the model writes `y1=` again where `y2=` belongs. 2 of 35 `<line>` elements across
+**The slip:** after writing `x2=`, the model writes `y1=` again where `y2=` belongs. 2 of 39 `<line>` elements across
 the five drawings, each one invalidating its whole file (strict XML; Chrome rejects a standalone .svg with a duplicate
-attribute too). At temperature 1.0 this is a sampling slip, not a misunderstanding: the other 33 are right. It is the
+attribute too). At temperature 1.0 this is a sampling slip, not a misunderstanding: the other 37 are right. It is the
 kind of single-token precision error that also breaks a tool call's JSON.
 
 `.lenient.svg/.png` copies drop the duplicate attribute (keeping the first, as an HTML parser does) so the drawing can
