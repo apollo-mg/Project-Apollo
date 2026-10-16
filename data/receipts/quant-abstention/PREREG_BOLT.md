@@ -50,3 +50,10 @@ Reported without a prediction: U refusal BOLT - FNQ2, E accuracy, H timidity, an
   (thinking really off). A row with reasoning text is a deviation, logged, not silently kept.
 - One arm. If the server dies mid-run, the runner resumes on a fresh server (it skips ids already written); that is
   recorded as a deviation.
+
+**Addendum 1 (2026-10-15, still before any Bolt M1 row).** The motivation line above misstates Mark's question. He
+meant that Nemotron 3.5 **Super VL 120B-A12B** is the model pitched against Flash-Next (closer in parameter count),
+and regards Bolt 74B as a technology demonstration of 2-bit QAT. This arm, its predictions and its analysis are
+unchanged; it now reads as "how much does a 2-bit QAT 74B keep", with Flash-Next and the 27B as fixed reference
+points. The Super VL vs Flash-Next comparison needs its own registration (it would run on .194, matching FNQ2's
+fully-resident UD-Q2_K_XL arm).
