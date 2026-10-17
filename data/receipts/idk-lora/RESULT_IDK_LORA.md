@@ -99,6 +99,21 @@ The bare-`UNKNOWN` habit also hid all of this from our grader at first (Deviatio
 - **One base model, one seed, one instrument;** 240 items. The LoRA's final training loss (0.009) shows it fit its
   training set closely, but M1 shares no items with it.
 
+## Exploratory: does it carry over to plain chat? (12 prompts, after the result; `raw/spotcheck/spotcheck.jsonl`)
+
+Mark's question: did it learn to abstain in general, or only on this kind of question? Same server, adapter switched
+per request (`lora` scale 0 or 1), plain chat with **no M1 instruction**, greedy, 120 tokens.
+- **Normal use is unchanged:** math, a Python function, a haiku, an explanation, famous facts and obscure real facts
+  it knows are answered the same way with and without the adapter. No sign of general over-refusal.
+- **The better abstention does not obviously carry over:** asked about an invented opera with "and when did it
+  premiere?", both versions invent an answer (base: Rossini, 1823; LoRA: Donizetti, 1835), where under the M1
+  instruction both refused every invented opera. On an invented novel and an invented town both versions decline, as
+  the base already did.
+- **Reading:** every training example carried the M1 instruction, so the learned behaviour is most likely tied to that
+  instruction and this question family. Twelve prompts is anecdotal. The test that would settle it trains on mixed
+  phrasings (with and without the instruction, prose refusals as well as the UNKNOWN keyword) and scores held-out
+  wordings and question types.
+
 ## Not established
 
 - Whether it helps a model that does not already lean cautious (Phi would be the test: its base refuses 5 of 100).
