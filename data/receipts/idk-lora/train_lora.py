@@ -8,7 +8,7 @@ LoRA r 16, alpha 32, dropout 0.05 on q/k/v/o/gate/up/down; AdamW lr 1e-4, cosine
 x accumulation 2 = effective 16; max length 384; LoRA weights in fp32 under bf16 autocast; seed 20261017.
 
 Usage: train_lora.py {lora|ctrl} OUTDIR     -> OUTDIR/adapter (PEFT) + OUTDIR/train_log.json"""
-import json, math, random, sys, time
+import json, math, os, random, sys, time
 from pathlib import Path
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -29,13 +29,14 @@ for r in lab: r["grade"] = regrade(pool[r["id"]], r)
 known = sorted([r for r in lab if r["grade"] == "CORRECT"], key=lambda r: r["id"])
 unknown = sorted([r for r in lab if r["grade"] != "CORRECT"], key=lambda r: r["id"])
 n = min(len(known), len(unknown))
-if n < 300: sys.exit(f"stop rule: smaller class has {n} < 300 items")
+if n < 300 and not os.environ.get("IDK_SMOKE"): sys.exit(f"stop rule: smaller class has {n} < 300 items")
 rng = random.Random(SEED)
 known_s, unknown_s = rng.sample(known, n), rng.sample(unknown, n)
 data = [(pool[r["id"]]["question"], r["content"].strip()) for r in known_s]
 if mode == "lora": data += [(pool[r["id"]]["question"], UNK_TARGET) for r in unknown_s]
 elif mode != "ctrl": sys.exit("mode must be lora or ctrl")
 rng.shuffle(data)
+if os.environ.get("IDK_SMOKE"): data, EPOCHS = data[:32], 1   # code smoke test only; never used for an arm
 
 tok = AutoTokenizer.from_pretrained(BASE)
 def encode(q, a):
