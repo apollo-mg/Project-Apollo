@@ -1,0 +1,198 @@
+We need produce SVG. Need generate vector graphic. Need answer final likely SVG code. Need ensure valid SVG. We can craft detailed pelican riding bicycle. Need maybe output in code block. Need think deeply. User asks "Generate an SVG of a pelican riding a bicycle." We need provide SVG. Could be simple but should be recognizable. Need likely final only SVG? We can include explanation? User likely wants graphic. We need produce valid SVG.
+
+Let's design pelican on bicycle. Pelican: large beak with pouch, white body, grey wings, legs. Bicycle: wheels, frame, handlebars, seat, pedals. Pelican riding. Need SVG. Could create with shapes, paths. Let's plan coordinates.
+
+We'll make SVG viewport 800x600 maybe. Bicycle centered. Pelican perched on seat, legs on pedals.
+
+Let's define bicycle geometry:
+- Rear wheel center (250,450), radius 70.
+- Front wheel center (550,450), radius 70.
+- Frame: rear axle to seat tube to head tube to front axle; top tube maybe.
+- Seat: (360,360) maybe.
+- Handlebars at head tube (500,360) with grips.
+- Pedals/crank at bottom bracket (390,450?) maybe.
+Pelican sitting above seat, legs reaching pedals.
+
+Let's choose bicycle more standard:
+Wheel centers y=470. Rear (240,470), front (560,470). Bottom bracket (390,470? no bottom bracket slightly above? Actually bottom bracket center at intersection of seat tube and down tube near lower, around (390,430)? Let's not overcomplicate.
+
+Maybe use simple "bike" shape:
+- Wheels circles.
+- Frame polygon: rear center to bottom bracket to head tube to front center, plus top tube from head to seat, seat tube from seat to bottom bracket.
+Let's set:
+Rear wheel center R=(220,430), radius 60.
+Front wheel center F=(520,430), radius 60.
+Bottom bracket B=(340,400)? Hmm seat tube vertical from seat (340,300) to bottom bracket (340,400). Head tube from handlebar (480,300?) to front axle? Actually front axle (520,430), head tube top (480,310). Bottom bracket to front axle down tube. Top tube from seat (340,300) to head (480,310). Chain stays rear to bottom bracket.
+
+Let's set seat height 300. Pelican body centered at (340,240?) on seat. Legs to pedals.
+
+Pelican:
+- Body oval white: cx 350 cy 230 rx 70 ry 50.
+- Head: circle cx 420 cy 170 r 35 maybe.
+- Beak: long polygon/triangle from head to (520,160) with pouch.
+- Eye.
+- Wing grey.
+- Legs: from body bottom to pedals.
+- Tail? maybe.
+
+Bicycle:
+- Wheels at rear/front.
+- Seat at (340,300) small.
+- Pedals: crank arms at bottom bracket; one pedal at (360,420), other (320,380) maybe. Pelican feet on pedals? Actually legs on pedals.
+
+Let's craft SVG with groups. Use fills/strokes. Need maybe not too intricate but good.
+
+Let's produce final SVG code. Need ensure no invalid XML. Use <svg xmlns... viewBox="0 0 800 600">. Background sky maybe.
+
+Let's design in detail with coordinates.
+
+Coordinate system:
+ViewBox 0 0 800 600. Ground line y=490.
+
+Bicycle:
+Rear wheel center (230,450), r=70.
+Front wheel center (560,450), r=70.
+Bottom bracket (370,410). Seat post top (370,300) seat. Head tube top (500,310), bottom (520,430?) Actually head tube connects top to front axle? Standard: head tube vertical-ish near front wheel top. Let's make head tube from (500,300) to (520,420). But front axle (560,450); fork from head bottom to front axle.
+
+Top tube: seat (360,300) to head top (500,300).
+Seat tube: (370,300) to bottom bracket (370,410). Wait seat position maybe (360,300) and seat tube x=370. okay.
+Down tube: bottom bracket (370,410) to head bottom (520,420)? or front axle? Usually down tube to head tube bottom. Let's have head bottom (520,420).
+Chain stays: bottom bracket to rear axle (230,450).
+Fork: head bottom (520,420) to front axle (560,450). Also maybe fork blades.
+
+Pedals/crank: circle at bottom bracket (370,410) r=18? Actually crankset. Pedal arms: one to (400,435) pedal; other to (340,385). Pedals small rects.
+
+Pelican:
+Seat at (365,300). Bird body center (350,245), facing right. Use ellipse.
+Head center (430,185). 
+Beak: upper mandible from head to tip (530,165?) lower with pouch down to (520,230). Need shape.
+Neck connection.
+
+Legs:
+Left leg from body bottom (320,280) to pedal (340,385)? Right leg to (400,435). But bird sitting; legs may be folded. Let's make simple: two legs with joints. Feet as small shapes on pedals.
+
+Wing: grey ellipse/shape on side.
+
+Tail: maybe small.
+
+Let's construct.
+
+Pelican body: ellipse cx=340 cy=240 rx=75 ry=55. Fill white stroke black.
+Head: circle cx=425 cy=180 r=40 fill white stroke.
+Neck: path between body and head maybe white filled. Could be ellipse rotated? Use polygon/quad.
+
+Beak:
+Upper: polygon points from head (425?140?) to tip (545,160) and base (425,160?) Actually beak extends horizontally. Let's define:
+Beak tip (545,170). Upper mandible top path: from head right point (455,150) to tip (545,160) then down? Lower mandible from tip (545,175?) to pouch. Need pouch hanging.
+
+Simple beak: polygon upper: (420,150) (540,160) (540,175) (420,170) fill orange. Lower pouch: polygon (420,170) (540,175) (500,235) (420,200) fill light orange/pink. Stroke.
+
+Eye: circle cx=435 cy=170 r=6 fill black; maybe white highlight.
+
+Wing: ellipse cx=300 cy=240 rx=55 ry=30 fill #b0b0b0 rotate -20. We can use transform.
+
+Legs:
+Pelican has short legs? Actually pelicans have short legs set back. We'll draw two legs: thigh from body (300,280) to knee (320,330), shin to pedal. Use strokes.
+
+Let's make bird facing right, sitting on seat; legs down to pedals.
+
+Seat: small rect at (355,290) width 40 height 8 rx 4 fill brown.
+
+Bicycle frame strokes thick gray/black.
+
+Wheels: circles with spokes maybe. Rims.
+
+Let's include spokes lines.
+
+Now let's write SVG.
+
+Need be careful with XML. Use <g>. We'll not use external.
+
+Let's draft code:
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+  <rect width="800" height="600" fill="#eef7fb"/>
+  <!-- ground -->
+  <line x1="0" y1="500" x2="800" y2="500" stroke="#7a9" stroke-width="3"/>
+  <!-- bicycle -->
+  <g id="bike" stroke="#333" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="230" cy="450" r="70" fill="white" stroke="#444" stroke-width="8"/>
+    <circle cx="560" cy="450" r="70" fill="white" stroke="#444" stroke-width="8"/>
+    <!-- spokes -->
+    ...
+  </g>
+  ...
+</svg>
+
+Spokes: lines from center to rim at angles. Could include 6 lines each. Use stroke-width 2.
+
+Frame:
+<g stroke="#555" stroke-width="8" fill="none">
+  <line x1="230" y1="450" x2="370" y2="410"/> chainstay? actually rear axle to bottom bracket.
+  <line x1="370" y1="410" x2="520" y2="420"/> down tube
+  <line x1="520" y1="420" x2="560" y2="450"/> fork
+  <line x1="360" y1="300" x2="500" y2="300"/> top tube
+  <line x1="370" y1="300" x2="370" y2="410"/> seat tube
+  <line x1="500" y1="300" x2="520" y2="420"/> head tube
+</g>
+Maybe seat tube should connect seat (360,300?) to bottom bracket (370,410); line x from 370 okay. Top tube from 360 to 500. Slight mismatch okay.
+
+Handlebars: path at head top: line from (500,300) to (520,280) and grip (520,280)-(560,285)? Need.
+
+Seat: rect.
+
+Pedals:
+<g fill="#666">
+  <circle cx="370" cy="410" r="15" fill="#444"/>
+  <line x1="370" y1="410" x2="405" y2="435" stroke="#444" stroke-width="5"/>
+  <rect x="398" y="428" width="22" height="8" rx="3" fill="#222"/>
+  <line x1="370" y1="410" x2="335" y2="385" stroke="#444" stroke-width="5"/>
+  <rect x="320" y="378" width="22" height="8" rx="3" fill="#222"/>
+</g>
+
+Pelican group after bike? Pelican should be on top maybe. Draw bike first then pelican. But legs behind? fine.
+
+Pelican:
+<g id="pelican">
+  <!-- neck -->
+  <path d="M320 200 Q360 180 410 160 L430 195 Q370 210 330 230 Z" fill="white" stroke="black" stroke-width="2"/>
+  Actually neck connects head to body; path.
+
+  <!-- body -->
+  <ellipse cx="335" cy="245" rx="78" ry="58" fill="white" stroke="black" stroke-width="2"/>
+  <!-- wing -->
+  <ellipse cx="300" cy="245" rx="58" ry="32" fill="#8e9baa" stroke="#556" stroke-width="2" transform="rotate(-25 300 245)"/>
+  <!-- head -->
+  <circle cx="425" cy="180" r="42" fill="white" stroke="black" stroke-width="2"/>
+  <!-- beak upper -->
+  <polygon points="425,150 545,160 545,178 425,170" fill="#f0a030" stroke="#c67a10" stroke-width="2"/>
+  <!-- beak pouch -->
+  <polygon points="425,170 545,178 510,235 435,205" fill="#f6b6c0" stroke="#c67a10" stroke-width="2"/>
+  <!-- eye -->
+  <circle cx="438" cy="165" r="7" fill="black"/>
+  <circle cx="440" cy="163" r="2" fill="white"/>
+  <!-- legs -->
+  <g stroke="#e0a030" stroke-width="7" stroke-linecap="round" fill="none">
+    <path d="M300 285 Q315 320 335 380"/>
+    <path d="M330 290 Q350 330 375 405"/>
+  </g>
+  <!-- feet on pedals -->
+  <g fill="#e0a030">
+    <ellipse cx="335" cy="382" rx="12" ry="5"/>
+    <ellipse cx="395" cy="432" rx="12" ry="5"/>
+  </g>
+  <!-- tail -->
+  <path d="M260 240 Q235 230 245 265 Q265 255 260 240" fill="#8e9baa" stroke="#556" stroke-width="2"/>
+</g>
+
+Need check neck path. It might look weird. Could use ellipse rotated for neck? Let's maybe create neck as polygon: points around connecting head and body. But fine.
+
+Body ellipse might cover legs? We can draw legs after body? If legs drawn after body, they overlay? We need legs visible. Currently legs after body within pelican group after body? In above order: neck, body, wing, head, beak, eye, legs, feet, tail. Body drawn before legs; legs visible. Wing maybe over body okay. Head covers neck. Fine.
+
+But body and head overlap? Head at (425,180), body (335,245); distance okay. Neck fills gap.
+
+Let's ensure pelican not too far. Body center x335, head x425; beak to 545. Bird facing right. Good.
+
+Potential issue: legs from body to pedals; coordinates. Body bottom around (300,300)? Actually ellipse bottom y=245+58=303. Legs start at y285/290 okay.
+
+Now final code. Could include title/desc. Let's output final with SVG. Ensure no markdown? User asks generate SVG. We can wrap in code block. Final answer should contain SVG code. Maybe include short text before/after. We'll provide code block.

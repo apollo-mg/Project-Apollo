@@ -1,0 +1,197 @@
+We need answer user request: Generate an SVG of a pelican riding a bicycle. Need produce SVG code. Need likely create valid SVG illustration. We can output SVG markup. Need ensure pelican riding bicycle recognizable. Need maybe detailed? We can craft SVG manually. Need final response likely contains code block. Need perhaps no extra explanation? User asks generate SVG. We'll provide SVG. Need make sure it renders.
+
+Let's design an SVG pelican riding bicycle. We need vector paths. Could use simple shapes. Pelican on bicycle: bicycle frame, wheels, pelican sitting on seat, beak, pouch, pedals maybe legs. Need be reasonably aesthetic.
+
+Let's plan SVG viewBox. We'll create with shapes and paths. Need avoid invalid. We can build using groups.
+
+Approach: Use hand-coded SVG with coordinates. Let's aim 600x400. Bicycle centered. Pelican above saddle.
+
+Bicycle basic:
+- Rear wheel at (180,320) r=55
+- Front wheel at (420,320) r=55
+- Frame: bottom bracket (290,320?) chainstays to rear hub, seat tube, top tube, down tube, fork to front. Handlebars.
+- Pedals: crank arm at bottom bracket, pedals.
+- Seat post + saddle.
+Pelican: body oval, head, beak long, pouch, wings, legs gripping pedals? Maybe pedals not necessary. Could show pelican perched on seat with feet on pedals.
+
+Let's design carefully.
+
+Coordinates:
+viewBox="0 0 640 420"
+
+Bicycle:
+Rear wheel center (190,310), front (450,310), radius 55.
+Bottom bracket (300,310?) Actually crank center near between wheels slightly lower? Chainstay from rear hub to BB. Let's set BB (295,315) maybe. Front fork lower (425,310? no front hub center). Seat tube from BB to seat (275,210). Top tube from seat to stem/head tube (370,205). Down tube from head tube to BB. Head tube (380,210?)? Need.
+
+Let's simplify stylized bicycle:
+- Wheels circles.
+- Frame lines:
+  rear hub (190,310) to BB (295,315)
+  BB to seat (280,205)
+  seat to head (380,200)
+  head to front hub? Actually down tube head to BB: (380,200)-(295,315)
+  fork: head (380,200) to front hub (450,310) maybe two lines.
+  seat post: seat (280,205) to saddle (270,180)
+  handlebar stem: head (380,200) to bars (395,170); bars horizontal.
+- Chain ring at BB radius 22.
+- Pedal crank horizontal-ish with pedals.
+- Saddle ellipse.
+
+Pelican:
+Body center around seat: (265,150) maybe? Sitting on saddle, body horizontal. Head/neck up to left? Pelican beak points downward? Actually pelican has long beak and large pouch; can face forward or left. Let's make pelican facing right? Bicycle direction right; pelican maybe riding looking forward (right). Body at saddle, head near handlebars? But pelican large; maybe seated with head up and beak forward.
+
+Let's make pelican facing right:
+- Body ellipse center (290,135), rx 70 ry 45.
+- Neck/head: head circle center (370,95), neck curve from body to head.
+- Beak: long upper mandible from head to (470,105?) lower? Pelican beak curved downward with pouch.
+- Pouch large yellow below beak.
+- Eye.
+- Wing: folded on body.
+- Legs: from body bottom to pedals, or just to BB? Pelican's feet on pedals. Let's have legs bent: hip (275,170) to knee (300,250) to pedal (315,300?) Actually pedals near BB. Could omit complex legs and have feet on pedals as simple.
+
+Maybe pelican sitting on saddle with legs dangling? Riding bicycle requires feet on pedals; but stylized can show legs reaching pedals.
+
+Let's define pedals:
+Bottom bracket at (295,315). Crank arm maybe angle -30 degrees: pedal1 at (320,295), pedal2 opposite (270,335). Pelican foot on front pedal (320,295). Good.
+
+Leg: from body underside (285,175) to knee (305,245) to pedal (320,295). Other leg maybe to rear pedal? Could be hidden behind.
+
+Let's craft SVG with groups: bicycle, pelican. Use colors:
+- Frame dark blue #1f3864 or black.
+- Wheels black tires, spokes light gray.
+- Pelican body white #f8f8f8, beak orange #f28c28, pouch yellow #f7c948, eye black.
+- Saddle brown.
+- Ground maybe none.
+
+Need ensure no clipping. viewBox 0 0 640 420.
+
+Let's manually write paths. Use basic shapes to reduce errors.
+
+SVG elements:
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" width="640" height="420">
+  <rect width="640" height="420" fill="#eaf4ff"/> maybe sky/ground? 
+  <g id="bicycle">
+    <!-- wheels -->
+    <circle cx="190" cy="310" r="55" fill="none" stroke="#222" stroke-width="8"/>
+    <circle cx="190" cy="310" r="3" fill="#222"/>
+    <circle cx="450" cy="310" r="55" fill="none" stroke="#222" stroke-width="8"/>
+    <circle cx="450" cy="310" r="3" fill="#222"/>
+    <!-- spokes -->
+    ...
+    <!-- frame -->
+    <path d="M190 310 L295 315 L280 205 L380 200 L295 315 M380 200 L450 310 M380 200 L? handlebars" stroke="#1d3557" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Actually path with M etc -->
+    <!-- seat post -->
+    <line x1="280" y1="205" x2="270" y2="185" stroke="#1d3557" stroke-width="6"/>
+    <!-- handlebar -->
+    <line x1="380" y1="200" x2="395" y2="170" stroke="#1d3557" stroke-width="6"/>
+    <line x1="395" y1="170" x2="430" y2="170" stroke="#1d3557" stroke-width="6"/>
+    <!-- saddle -->
+    <ellipse cx="265" cy="180" rx="28" ry="10" fill="#5a3e2b"/>
+    <!-- chainring -->
+    <circle cx="295" cy="315" r="20" fill="none" stroke="#444" stroke-width="4"/>
+    <!-- crank -->
+    <line x1="295" y1="315" x2="320" y2="295" stroke="#444" stroke-width="6"/>
+    <line x1="295" y1="315" x2="270" y2="335" stroke="#444" stroke-width="6"/>
+    <rect x="314" y="289" width="16" height="12" rx="3" fill="#666"/>
+    <rect x="264" y="329" width="16" height="12" rx="3" fill="#666"/>
+  </g>
+
+Spokes: maybe 6 lines from hub to rim at angles; optional. Use <line> with endpoints computed. For wheel center 190,310 radius 55. Spokes at angles. Could add 8 lines. Not necessary but nice. We'll add a few.
+
+Pelican group:
+Body:
+<ellipse cx="295" cy="135" rx="72" ry="46" fill="#ffffff" stroke="#d9d9d9" stroke-width="2"/>
+Wing:
+<path d="M250 120 Q290 95 340 125 Q300 145 250 120" fill="#e8e8e8" stroke="#c9c9c9"/>
+Tail? maybe small.
+
+Neck/head:
+<path d="M355 105 Q390 80 410 95" stroke="#ffffff" stroke-width="18" fill="none" stroke-linecap="round"/>? Need neck. Head circle center (415,85) radius 28.
+Beak: upper mandible path from head to point: "M435 85 Q485 75 500 95 Q475 85 435 95"? Hmm.
+Pouch: path below beak: "M435 98 Q490 140 500 95 Q465 92 435 98" fill yellow.
+
+Let's define beak more like pelican: long, slightly curved downward. Head at (415,85). Beak extends right and down to tip (515,115). Upper beak top line maybe from (440,80) to tip; lower pouch from head underside (440,95) through pouch bulge (470,125) to tip. Actually pelican beak tip is hooked? Let's do:
+
+upper: M440 78 Q495 70 518 98 Q495 82 440 88 Z fill orange
+pouch lower: M440 90 Q485 135 518 98 Q480 92 440 90 Z fill yellow/orange.
+
+Eye: circle (425,80) r 5 black, highlight.
+Neck: thick white path from body (345,105) to head (400,85).
+
+Legs:
+Path from body bottom (290,180) to knee (315,250) to pedal (320,295), stroke orange? Pelican legs dark gray. Use line with joints. Could use path stroke width 8.
+Other leg maybe to rear pedal (270,335): path from (280,180) to (260,260) to (270,335).
+
+Need pelican not overlapping too much? Fine.
+
+Let's also add a small "motion" maybe no.
+
+Let's ensure SVG valid and self-contained. Provide code in fenced block. final maybe include brief note? User asks generate SVG. We can output just SVG. Desired oververbosity 5, but likely final code. We'll include short intro and code.
+
+Need maybe test mentally for syntax. Let's construct full SVG carefully.
+
+Potential issue: paths with many. Let's write final.
+
+Let's refine coordinates to look better.
+
+Bicycle frame path:
+<line x1="190" y1="310" x2="295" y2="315"/> rear to BB
+<line x1="295" y1="315" x2="280" y2="205"/> seat tube
+<line x1="280" y1="205" x2="380" y2="200"/> top tube
+<line x1="380" y1="200" x2="295" y2="315"/> down tube
+<line x1="380" y1="200" x2="450" y2="310"/> fork (maybe two parallel but one okay)
+<line x1="280" y1="205" x2="270" y2="180"/> seat post
+<line x1="380" y1="200" x2="395" y2="170"/>
+<line x1="395" y1="170" x2="435" y2="170"/>
+
+Wheels spokes: For rear wheel center 190,310 radius 55. Add lines every 45 deg:
+angle 0: (245,310)
+45: (228.9,348.9?) Actually center+ (38.9,38.9)
+90: (190,365)
+135: (151.1,348.9)
+180: (135,310)
+225: (151.1,271.1)
+270: (190,255)
+315: (228.9,271.1)
+We'll include 4 spokes maybe. Not critical.
+
+Front wheel same at 450,310.
+
+Chainring at BB radius 20.
+
+Pedals positions:
+Crank angle front pedal at (320,295), rear (270,335). Actually from BB (295,315) to (320,295) vector (25,-20) length ~32; okay. Opposite vector (-25,20) to (270,335). Fine.
+
+Saddle ellipse cx=265? seat post top 270,180; saddle centered maybe 265,178. Fine.
+
+Pelican body center (295,135), rx 72 ry 46. This overlaps saddle? body bottom y=181, saddle y=178; okay sitting. Neck starts at (355,110)?? Body right/top. Head (415,82). Neck path.
+
+Let's set body center (300,140), rx 68, ry 42. Bottom at 182. Good.
+Neck from (358,118) to (400,90). Head center (420,85). Eye (432,78). Beak tip (520,105). Upper beak: M440 75 Q490 68 520 95? Need ensure fills. Let's just do polygons/paths:
+
+Upper mandible:
+<path d="M440 72 C485 62,525 80,522 98 C498 82,462 82,440 82 Z" fill="#f28c28" stroke="#c96b1a" stroke-width="1"/>
+Lower pouch:
+<path d="M440 88 C470 130,515 120,522 98 C490 90,462 88,440 88 Z" fill="#f7c948" stroke="#c96b1a" stroke-width="1"/>
+Head circle: <circle cx="420" cy="85" r="26" fill="#fff" stroke="#ddd"/>
+Eye: circle 430,78 r4 fill #222; highlight 431,76 r1.5 fill white.
+Neck: path M350 115 Q385 95 400 88 stroke white width 24 linecap round. But body white; okay.
+
+Wing folded:
+<path d="M255 125 Q300 95 345 125 Q300 150 255 125 Z" fill="#ebebeb" stroke="#ccc"/>
+
+Tail feathers maybe:
+<path d="M235 130 L205 115 L215 140 Z" fill="#ebebeb"/>
+
+Legs:
+<path d="M300 180 L320 255 L325 295" stroke="#555" stroke-width="9" fill="none" stroke-linecap="round"/>
+<path d="M290 180 L265 260 L272 335" stroke="#555" stroke-width="9" fill="none" stroke-linecap="round"/>
+Feet on pedals:
+<ellipse cx="325" cy="298" rx="12" ry="7" fill="#555"/>
+<ellipse cx="272" cy="338" rx="12" ry="7" fill="#555"/>
+
+Maybe pelican feet not necessary.
+
+Let's include all. final response with code.
