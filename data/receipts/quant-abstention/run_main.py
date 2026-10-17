@@ -48,13 +48,15 @@ def main():
     ap.add_argument("--template-kwargs", default="{}", help="2026-10-16: JSON merged into chat_template_kwargs for every request (e.g. Beam's reasoning_effort); default {} leaves earlier arms unchanged")
     ap.add_argument("--skip-slot", action="store_true", help="2026-10-16: skip R-slot (P_abs recorded as null) for templates where a forced Exact Answer: after the generation prompt is off-distribution (Harmony)")
     ap.add_argument("--no-think-check", action="store_true", help="2026-10-16: skip the closed-</think> render check (Harmony templates have no </think>)")
+    ap.add_argument("--usage", action="store_true", help="2026-10-17: record the generation's usage, timings and wall time per row (gen_usage, gen_tps, gen_elapsed_s); default off, so earlier arms are unchanged")
+    ap.add_argument("--timeout", type=float, default=600, help="2026-10-17: HTTP timeout in seconds (default 600 as before; long reasoning budgets need more)")
     ap.add_argument("--thinking", action="store_true", help="2026-10-16: R-gen with enable_thinking true (R-slot stays thinking-off); default off, so earlier arms are unchanged")
     a = ap.parse_args()
     items = [json.loads(l) for l in open(HERE / "corpus" / f"{a.corpus}.jsonl")]
     out = HERE / "raw" / (f"main_{a.arm}.jsonl" if a.corpus == "M1" else f"main_{a.arm}.{a.corpus}.jsonl")
     out.parent.mkdir(exist_ok=True)
     done = {json.loads(l).get("id") for l in open(out)} if out.exists() else set()
-    c = httpx.Client(timeout=600)
+    c = httpx.Client(timeout=a.timeout)
 
     # the answer-slot variants must be single tokens in THIS model's vocabulary, or P_abs is not what it claims
     vt = {v: c.post(f"{a.url}/tokenize", json={"content": "Exact Answer:" + v, "with_pieces": True}).json()["tokens"]
@@ -72,12 +74,18 @@ def main():
         return c.post(f"{a.url}/apply-template", json={"messages": msgs,
                       "chat_template_kwargs": {"enable_thinking": False, **json.loads(a.template_kwargs)}}).json()["prompt"]
 
+    last_gen = {}
+
     def rgen(q):
+        t0 = time.time()
         r = c.post(f"{a.url}/v1/chat/completions", json={
             "messages": [{"role": "user", "content": PROMPT.format(q=q)}], "temperature": 0, "max_tokens": a.max_tokens,
             "cache_prompt": False, "chat_template_kwargs": {"enable_thinking": bool(a.thinking), **json.loads(a.template_kwargs)}})
         r.raise_for_status()
-        ch = r.json()["choices"][0]
+        d = r.json()
+        last_gen.clear(); last_gen.update(usage=d.get("usage"), tps=(d.get("timings") or {}).get("predicted_per_second"),
+                                          elapsed=round(time.time() - t0, 2))
+        ch = d["choices"][0]
         return ch["message"].get("content") or "", ch["message"].get("reasoning_content") or "", ch["finish_reason"]
 
     tail0 = render("Q")[-60:]
@@ -92,7 +100,7 @@ def main():
     with open(out, "a") as f:
         if not done:
             p = render("Q")
-            hdr = {"header": True, "arm": a.arm, "corpus": a.corpus, "max_tokens": a.max_tokens, "thinking": bool(a.thinking), "template_kwargs": json.loads(a.template_kwargs), "skip_slot": bool(a.skip_slot),
+            hdr = {"header": True, "arm": a.arm, "corpus": a.corpus, "max_tokens": a.max_tokens, "thinking": bool(a.thinking), "template_kwargs": json.loads(a.template_kwargs), "skip_slot": bool(a.skip_slot), **({"usage": True, "timeout": a.timeout} if a.usage else {}),
                    "meta": json.loads(a.meta), "variant_ids": var_ids,
                    "render_tail": p[-60:], "props": c.get(f"{a.url}/props").json().get("default_generation_settings", {}),
                    "started": time.strftime("%Y-%m-%dT%H:%M:%S%z")}
@@ -119,6 +127,8 @@ def main():
                    "content": content, "reasoning": reasoning, "finish": fin, "got": got, "n_answer_lines": nmatch,
                    "answer_src": src, "grade": g, "grade_lenient": lenient(it, got, g),
                    "prose_refusal": bool(g == "WRONG" and PROSE.search(got or ""))}
+            if a.usage:
+                row.update(gen_usage=last_gen.get("usage"), gen_tps=last_gen.get("tps"), gen_elapsed_s=last_gen.get("elapsed"))
             f.write(json.dumps(row, ensure_ascii=False) + "\n"); f.flush(); os.fsync(f.fileno())
             pa = "  n/a" if row["P_abs"] is None else f"{row['P_abs']:.3f}"
             print(f"{it['id']}  P_abs={pa}  {g:10s} got={str(got)[:40]!r}  gold={it['gold']!r}", flush=True)
