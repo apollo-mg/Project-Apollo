@@ -55,3 +55,26 @@ else
     fi
   fi
 fi
+
+# Content capture + nightly digest (2026-10-17). Reported, never escalated to DRIFT_WARNING: a missing talk sheet is
+# not drift. But silence is a state here too -- the ledger's history is monitors that stayed green while broken.
+$ROOT/venv_cachyos/bin/python3 - "$ROOT" <<'PYEOF' || true
+import json, os, sys, time
+root = sys.argv[1]; c = f"{root}/data/dev_diaries/content"; now = time.time()
+def hb(name):
+    try: return json.loads(open(f"{c}/{name}").read())
+    except Exception: return None
+cap, dig = hb(".capture_heartbeat.json"), hb(".digest_heartbeat.json")
+try: lastok = int(open(f"{root}/data/dev_diaries/.ledger_last_ok").read().strip())
+except Exception: lastok = 0
+if not cap: print("⚠️  content capture: has never written a heartbeat")
+else:
+    age = (now - cap["ts"]) / 3600
+    if cap["status"] == "error": print(f"⚠️  content capture: error {age:.0f}h ago -- {cap.get('reason', '')}")
+    elif lastok - cap["ts"] > 2 * 3600:
+        print(f"⚠️  content capture: NOT RUNNING (ledger ok {(now - lastok) / 3600:.0f}h ago, capture {age:.0f}h ago)")
+    else: print(f"✅ content capture: {cap['status']}, {age:.0f}h ago")
+if not dig: print("⚠️  content digest: has never run (nightly, in daydream_nightly.sh)")
+elif (now - dig["ts"]) / 3600 > 30: print(f"⚠️  content digest: stale, last {dig['status']} {(now - dig['ts']) / 3600:.0f}h ago")
+else: print(f"✅ content digest: {dig['status']}, {dig.get('topics', 0)} topics from {dig.get('captures', 0)} captures")
+PYEOF

@@ -91,6 +91,10 @@ for H in $HOSTS; do
     # exit 2 = endpoint answered but its entry was malformed; exit 1 = the call itself failed.
     # Either way keep going down the list rather than giving up on the cycle.
     $PY $ROOT/tools/ledger_build.py "$TMP/ev.txt" --host "$H" --max-chars 120000 --out "$DIARY" >"$TMP/out" 2>&1; RC=$?
+    # Content capture (2026-10-17): same window and host, INSIDE the slot bracket so its chat is erased as well. It
+    # writes its own heartbeat (data/dev_diaries/content/.capture_heartbeat.json); its failure never changes this beat.
+    [ $RC -eq 0 ] && timeout 1200 $PY $ROOT/tools/content_capture.py "$TMP/ev.txt" --host "$H" --diary "$DIARY" \
+      >>"$ROOT/data/dev_diaries/.ledger_cron.log" 2>&1
     [ $PROXY = 1 ] && $PY $ROOT/tools/slot_erase.py erase-changed "$TMP/slots.json" \
       | sed "s/^/$(date '+%F %T') ledger /" >>"$ROOT/data/dev_diaries/.ledger_cron.log" 2>&1
     if [ $RC -eq 0 ]; then

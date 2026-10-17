@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Content capture for the weekly video (2026-10-17, Claude)
+- Mark is weighing a weekly ~10-minute "what I learned this week" video. A weekly look back misses what was obvious in
+  the moment, so material is now captured hourly and judged nightly, on the existing ledger and daydream schedule.
+- `tools/content_capture.py`: `tools/ledger_run.sh` runs it after each successful diary section, on the same events and
+  host, inside the .73 slot snapshot/erase bracket. One thinking-off call with a JSON schema returns 0-3 candidates
+  (finding / gotcha / story / opinion / howto). Long windows are chunked, not truncated. Numbers, quotes and evidence
+  must appear in the input or are removed; prose numbers that do not are flagged. Output:
+  `data/dev_diaries/content/candidates.jsonl`. It has its own heartbeat, and its failure never changes the ledger's.
+- `tools/content_digest.py`: `tools/daydream_nightly.sh` runs it before the brief stages. One call merges the last 7
+  days into topics and lets a later capture update an earlier hook (an outcome, a correction). It renders
+  `content/this_week.md`, with model text labelled, and copies it to `week_<date>.md` on Saturdays. If the model fails,
+  it writes the sheet ungrouped. The MOTD and notification carry a one-line summary.
+- **Privacy:** `data/dev_diaries/content/` is gitignored (its own `.gitignore`, as `morning/` has). Lines matching the
+  deny list (`content/private_terms.txt`, local only; the code names nothing) never reach the model, and matching
+  candidates are dropped after. Emails, phone numbers and key-shaped strings are built in.
+- `tools/ledger_health.sh` reports capture and digest heartbeats (never escalated). Tests:
+  `tools/test_content_capture.py` (15 cases). `tools/content_backfill.py` seeded 10-11..10-17 from the diary windows
+  with a throwaway extractor state, so the ledger's offset was not touched.
+
 ### CLAUDE.md: Starbuck separation updated (2026-10-16, Claude)
 - The "separate isolated system, do not modify from this workspace" rule is replaced. Per Mark, the separation was an
   engineering decision from when Gemini scaffolded Starbuck (keep its context and design choices out of Apollo's scope),

@@ -28,6 +28,11 @@ cd "$ROOT"
 SLOTSNAP=$(mktemp); "$PY" "$ROOT/tools/slot_erase.py" snapshot "$SLOTSNAP" >> "$LOG" 2>&1
 trap '"$PY" "$ROOT/tools/slot_erase.py" erase-changed "$SLOTSNAP" >> "$LOG" 2>&1; rm -f "$SLOTSNAP"' EXIT
 echo "== $(date '+%F %T') nightly daydream" >> "$LOG"
+# Content board (2026-10-17): merge the week's hourly captures (tools/content_capture.py, run by the ledger) into
+# data/dev_diaries/content/this_week.md, the talk sheet for the weekly video. It runs BEFORE the brief stages so a
+# brief failure cannot skip it, inside the slot-erase trap above, with its own heartbeat (content/.digest_heartbeat.json).
+CON=$("$PY" tools/content_digest.py 2>> "$LOG" | tail -1)
+CSUM=$(printf '%s' "$CON" | "$PY" -c 'import json,sys; d=json.loads(sys.stdin.read()); print("content %s: %d topics from %d captures" % (d["status"], d["topics"], d["captures"]))' 2>/dev/null || echo "content digest FAILED")
 "$PY" tools/daydream_harvest.py >> "$LOG" 2>&1 || { beat error "harvest failed"; notify "Daydream FAILED" "harvest stage; see $LOG"; exit 1; }
 "$PY" tools/daydream_links.py >> "$LOG" 2>&1 || { beat error "links failed"; notify "Daydream FAILED" "links stage; see $LOG"; exit 1; }
 OUT=$("$PY" tools/daydream_brief.py 2>> "$LOG" | tail -1)
@@ -35,5 +40,5 @@ ST=$(printf '%s' "$OUT" | "$PY" -c 'import json,sys; print(json.loads(sys.stdin.
 if [ ! -s "$M/$D.md" ]; then beat error "no brief written: $OUT"; notify "Daydream FAILED" "no brief; see $LOG"; exit 1; fi
 beat "$ST" "$OUT"
 SUM=$(printf '%s' "$OUT" | "$PY" -c 'import json,sys; d=json.loads(sys.stdin.read()); print("%d picks, %d closed, %d likely closed, %d to check, %d BACKLOG edits" % (d.get("picks", 0), d.get("closed", 0), d.get("likely", 0), d.get("suggested", 0) - d.get("likely", 0), d.get("backlog_close", 0)))' 2>/dev/null || echo "see brief")
-echo "Morning brief ($ST): $SUM -> data/dev_diaries/morning/$D.md" > "$ROOT/data/dev_diaries/.daydream_motd"
-notify "Morning brief ready ($ST)" "$SUM\ndata/dev_diaries/morning/$D.md"
+echo "Morning brief ($ST): $SUM -> data/dev_diaries/morning/$D.md | $CSUM -> data/dev_diaries/content/this_week.md" > "$ROOT/data/dev_diaries/.daydream_motd"
+notify "Morning brief ready ($ST)" "$SUM\ndata/dev_diaries/morning/$D.md\n$CSUM"
