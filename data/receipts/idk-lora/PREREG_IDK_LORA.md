@@ -92,3 +92,12 @@ seconds; b and tau as fitted.
   starve one side).
 - Any arm with more than 5 % unfinished answers is reported with that caveat and excluded from the predictions.
 - A server fault resumes on a fresh server (run_main skips written ids), recorded.
+
+**Deviation 1 (2026-10-17 ~18:45, before any M1 row): conversion toolchain.**
+- buun's `convert_hf_to_gguf.py` failed on Phi-4-mini (`Missing ROPE_FACTORS_LONG for MODEL_TENSORS of PHI3`), so PHI
+  was converted with llama_cpp_turboquant `c26cbdffc`'s converter. Both Granites were converted with buun's, as
+  registered (after installing `sentencepiece`, whose absence crashed buun's vocab fallback before it reached BPE).
+- buun's `build_rocm/bin/llama-quantize` is a stale build (`undefined symbol: llama_print_build_info`), so all three
+  Q8_0 files were made with llama_cpp_turboquant `build_rocm` `llama-quantize` (f27268914). Q8_0 is a fixed format;
+  serving stays on buun `build_rocm` 38ada0e1b. Sizes: G41 3,619,691,200 B, G42 3,892,652,160 B (IBM's own Q8_0 GGUF is
+  3.89 GB), PHI 4,084,610,880 B.
