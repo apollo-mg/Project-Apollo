@@ -50,3 +50,15 @@ decode speed.
 ## Stop rules
 
 As `PREREG_BOLT.md`; additionally the two smoke gates above. A server death resumes on a fresh server, recorded.
+
+**Deviation 1 (2026-10-17 ~00:40, before any Beam row): placement and `--no-op-offload`.**
+- Placement by the registered procedure: the smallest spill that loads is the last **28** MoE layers' routed experts
+  (all `ffn_*_exps` tensors, 76.4 GB) on CPU with `-ts 8,6,6,33`; loaded in 2 min 18 s, VRAM 13.5 / 14.2 / 15.8 / 13.9 GB.
+- Smoke gates passed: the render contains `Reasoning effort: 8`; "17*19" answered `323` in `content` with a ~60-token
+  analysis in `reasoning_content`.
+- With default op offload the first request read its prompt at 1.7 tok/s (decode 2.74 tok/s): llama.cpp copies
+  host-resident experts to the GPUs for prompt batches, ~76 GB over PCIe. Restarted with **`--no-op-offload`** (speed
+  only; CPU computes the spilled experts for prompt batches too): an M1 prompt (120 tokens) read at 3.7 tok/s cold and
+  8.8 tok/s on the next request, decode 4.1-5.0 tok/s, ~30 s per item; the answer was correct and identical across the
+  two requests. Cold-vs-warm confounds how much of this is the flag. The flag can change numerics of prompt processing
+  for the spilled layers, which matters only for comparisons with other runs of Beam, not with other models.
