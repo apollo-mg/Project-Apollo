@@ -15,14 +15,19 @@ QA = HERE.parent / "quant-abstention"
 SEED, NB = 20261021, 10000
 ARMS = ["IDK_B41", "IDK_B42", "IDK_BPHI", "IDK_BIAS", "IDK_IBM", "IDK_LORA", "IDK_CTRL"]
 REFUSE = "ABSTAINED"
-UNF = ("TRUNCATED", "INVALID")
+UNF = ("TRUNCATED", "INVALID", "NO-ANSWER")   # Deviation 2: no finished answer scores 0
+from bare_rule import regrade  # noqa: E402  (Deviation 2)
 
 
-def load(name, fmap):
+def load(name, fmap, items=None, strict=False):
     arm = fmap.get(name, name)
     for p in (QA / "raw" / f"main_{arm}.jsonl", HERE / "raw" / f"{arm}.jsonl"):
         if p.exists():
-            return {r["id"]: r for r in map(json.loads, open(p)) if "id" in r}
+            rows = {r["id"]: r for r in map(json.loads, open(p)) if "id" in r}
+            if items is not None and not strict:      # Deviation 2: bare-answer rule (stored rows unchanged)
+                for i, r in rows.items():
+                    if i in items and "content" in r: r["grade_strict"] = r["grade"]; r["grade"] = regrade(items[i], r)
+            return rows
     return None
 
 
@@ -49,10 +54,11 @@ def boot(d, rng):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--map", default=""); ap.add_argument("--out", default="RESULT_idk.json")
+    ap.add_argument("--strict", action="store_true", help="grade as originally registered (no bare-answer rule)")
     a = ap.parse_args()
     fmap = dict(kv.split("=") for kv in a.map.split(",") if kv)
     items = {x["id"]: x for x in map(json.loads, open(QA / "corpus" / "M1.jsonl"))}
-    R = {k: load(k, fmap) for k in ARMS}
+    R = {k: load(k, fmap, items, a.strict) for k in ARMS}
     missing = [k for k, v in R.items() if v is None]; R = {k: v for k, v in R.items() if v}
     ids = sorted(i for i in items if all(i in r for r in R.values()))
     grp = {g: [i for i in ids if items[i]["arm"] == g] for g in "EHU"}
