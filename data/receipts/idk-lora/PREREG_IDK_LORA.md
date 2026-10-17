@@ -101,3 +101,19 @@ seconds; b and tau as fitted.
   Q8_0 files were made with llama_cpp_turboquant `build_rocm` `llama-quantize` (f27268914). Q8_0 is a fixed format;
   serving stays on buun `build_rocm` 38ada0e1b. Sizes: G41 3,619,691,200 B, G42 3,892,652,160 B (IBM's own Q8_0 GGUF is
   3.89 GB), PHI 4,084,610,880 B.
+
+**Deviation 2 (2026-10-17 ~18:40, AFTER the Stage A rows were seen, before any Stage B row or training): a bare-answer
+rule, and NO-ANSWER scored as the registered text says.**
+- **What the Stage A rows showed:** the Granite models often answer with the bare word `UNKNOWN` (or a bare name)
+  and no `Exact Answer:` line. The CAL grader needs that line, so these grade NO-ANSWER: G41 119 rows (80 of its 100
+  invented items), G42 130. As graded, G41 "refuses" 0.01 of invented items while writing UNKNOWN to about 80.
+- **Rule:** a NO-ANSWER row whose stripped content is one line of at most 60 characters is re-graded with that content
+  (trailing period removed) as the answer, by the unchanged grader. It applies to every arm here, in analysis (stored
+  rows are unchanged), to the base answers IBM's adapter scores, and to the training labels before balancing. In the
+  earlier M1 arms the same pattern exists in 17 rows (BON1, BON2, BONB9, SWB9 4 each, CODER 1, all `UNKNOWN`); none in
+  the Nemotron, Super VL, Beam, Flash-Next or 27B arms.
+- **Net:** `analyze_idk.py` scored a remaining NO-ANSWER as -1. The registered text says "0 for a refusal on E/H or no
+  finished answer" and "-1 for any answer on U"; a NO-ANSWER is no finished answer, so it now scores 0 and counts as
+  unfinished for the 5 % rule.
+- **Reported both ways for Stage A:** P1 and the baselines as originally graded and with the rule. Stage B uses the
+  rule throughout.
