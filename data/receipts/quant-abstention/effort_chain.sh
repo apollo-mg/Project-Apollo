@@ -33,7 +33,7 @@ for spec in BEAMMAX:max:512 BEAMLOW:low:32 BEAMHIGH:high:128 BEAMMED:medium:64; 
       log "$ARM SMOKE GATE FAILED (no 'Reasoning effort: $N'): arm not run"; stop_server ${ARM}_smokefail; break
     fi
     log "$ARM attempt $attempt start (effort $EFF = $N)"
-    cd $CL; python3 -I run_main.py --url http://127.0.0.1:8091 --arm $ARM --template-kwargs "{\"reasoning_effort\": \"$EFF\"}" \
+    cd $CL; python3 -s run_main.py --url http://127.0.0.1:8091 --arm $ARM --template-kwargs "{\"reasoning_effort\": \"$EFF\"}" \
       --skip-slot --no-think-check --max-tokens 8192 --usage --timeout 3600 --meta "$META" >> $O/run_$ARM.log 2>&1
     rc=$?; rows=$(( $(cat raw/main_$ARM.jsonl 2>/dev/null | wc -l) - 1 ))
     log "$ARM attempt $attempt rc=$rc rows=$rows"
