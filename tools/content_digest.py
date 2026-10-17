@@ -4,10 +4,12 @@ capture update an earlier topic's hook (an outcome, a correction), rank them, an
 data/dev_diaries/content/this_week.md, the talk sheet for the weekly video. On Saturdays the sheet is also kept as
 week_<date>.md. Private and gitignored, like the captures it quotes.
 
-One model call over the whole window, not embeddings and thresholds: a week of captures is a few thousand tokens, and
+One model call over the whole window, not embeddings and thresholds (2026-10-17: the call returns only titles, hooks,
+ids and a status; per-topic talking points made 50 captures overrun a 4,000-token budget, and the captured timeline
+already carries the facts): a week of captures is a few thousand tokens, and
 "is this the same story, and did it get an ending?" is a judgement, not a similarity score. Facts on the sheet (dates,
-numbers, quotes, evidence) come from the captures, which were grounded against the session text; the model's hooks and
-talking points are labelled as model text. If the model fails, the sheet is still written, ungrouped, and the
+numbers, quotes, evidence) come from the captures, which were grounded against the session text; the model's hooks are labelled
+as model text. If the model fails, the sheet is still written, ungrouped, and the
 heartbeat says degraded.
 
 Prints one JSON summary line (status, topics, captures, path) for daydream_nightly.sh.
@@ -22,10 +24,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from content_capture import load_deny, denied  # noqa: E402
 
 SCHEMA = {"type": "object", "required": ["topics"], "properties": {"topics": {"type": "array", "items": {
-    "type": "object", "required": ["title", "hook", "ids", "talking_points", "status"],
+    "type": "object", "required": ["title", "hook", "ids", "status"],
     "properties": {"title": {"type": "string"}, "hook": {"type": "string"},
                    "ids": {"type": "array", "items": {"type": "string"}},
-                   "talking_points": {"type": "array", "maxItems": 4, "items": {"type": "string"}},
                    "status": {"type": "string", "enum": ["ready", "developing", "weak"]}}}}}}
 
 PROMPT = """Below are items captured during the past week of a hobbyist's local-LLM lab work, each with an id and a
@@ -37,8 +38,8 @@ one; put them in one topic. For each topic:
 - hook: one plain sentence for a stranger, reflecting the LATEST state of the story (use the outcome if a later item
   has one).
 - ids: every item id in the topic.
-- talking_points: 2-4 short points in story order, using only facts stated in the items. No new numbers.
 - status: ready (there is a result worth stating), developing (still open or running), weak (not worth airtime).
+For a weak topic, keep the hook to a few words.
 Order topics best first: what most local-LLM users would want to hear. Every id must appear in exactly one topic.
 Answer with JSON only.
 
@@ -58,7 +59,7 @@ def load_window(path, days, now):
     return sorted(rows.values(), key=lambda r: r["window"])
 
 def call_model(host, prompt, timeout=900):
-    body = {"messages": [{"role": "user", "content": prompt}], "max_tokens": 4000, "temperature": 0.3,
+    body = {"messages": [{"role": "user", "content": prompt}], "max_tokens": 12000, "temperature": 0.3,
             "chat_template_kwargs": {"enable_thinking": False},
             "response_format": {"type": "json_schema", "json_schema": {"name": "digest", "schema": SCHEMA}}}
     r = urllib.request.Request(host.rstrip("/") + "/v1/chat/completions", json.dumps(body).encode(),
@@ -98,7 +99,7 @@ def render(topics, rows, status, now, days):
     by = {r["id"]: r for r in rows}
     L = [f"# Content board -- {(now - timedelta(days=days)).strftime('%m-%d')} to {now.strftime('%m-%d')}", "",
          f"_{len(topics)} topics from {len(rows)} captures, digest {status}, generated {now.strftime('%Y-%m-%d %H:%M')} "
-         "by tools/content_digest.py. **Hooks and talking points are model-written: check them before saying them.** "
+         "by tools/content_digest.py. **Hooks are model-written: check them before saying them.** "
          "Dates, numbers, quotes and evidence come from the hourly captures and were checked against the session "
          "text; a capture's context line is model-written too._", ""]
     order = {"ready": 0, "developing": 1, "weak": 2}
