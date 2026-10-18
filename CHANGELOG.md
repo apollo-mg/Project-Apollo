@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   owner= [gpus=] [eta=] [note=]`) posted to `#lab` and logged to `data/ops/intents.jsonl` (local, gitignored) for
   dashboards and Starbuck; `intent.py open` lists open jobs, `intent.py parse` extracts them from any log; lab-ops now
   reports open intents.
+- `tools/clef_monitor.py` + `apollo-clef.service` / `apollo-clef-monitor.service` (2026-10-18): a **shadow-mode**
+  chat monitor. Clef-Flash Q8_0 (upstream llama.cpp `f74e2fa`, `/v1/systemone`, loopback :8187, ~10 GB VRAM on the
+  9070) scores every hearth channel message with the registered CLEFR policy + `chat-scanner/lab_rules.txt` (>= 0.70
+  SUSPICIOUS, <= 0.30 SAFE, else UNSURE); every verdict goes to `data/ops/monitor.jsonl` (local), flags to `#monitor`.
+  It never acts. Phone push is wired as a content-minimal `NTFY_URL` hook, off until configured. Stop with
+  `systemctl --user disable --now apollo-clef-monitor apollo-clef` to free the GPU.
 
 ### Content capture for the weekly video (2026-10-17, Claude)
 - Mark is weighing a weekly ~10-minute "what I learned this week" video. A weekly look back misses what was obvious in

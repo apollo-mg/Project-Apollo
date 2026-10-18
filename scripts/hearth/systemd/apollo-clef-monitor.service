@@ -1,0 +1,14 @@
+[Unit]
+Description=Apollo Clef chat monitor (shadow mode: scores hearth channels, posts flags to #monitor, never acts)
+After=apollo-hearth.service apollo-clef.service
+Wants=apollo-hearth.service apollo-clef.service
+
+[Service]
+Type=exec
+ExecStartPre=/bin/sh -c 'for i in $(seq 60); do curl -s 127.0.0.1:8187/health | grep -q ok && exit 0; sleep 2; done; exit 1'
+ExecStart=/mnt/TG_2TB/Projects/Apollo/venv_cachyos/bin/python3 /mnt/TG_2TB/Projects/Apollo/tools/clef_monitor.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target

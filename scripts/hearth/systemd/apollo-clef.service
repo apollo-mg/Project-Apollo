@@ -1,0 +1,11 @@
+[Unit]
+Description=Cloudflare Clef-Flash decision model for the Apollo chat monitor (loopback :8187, RX 9070 XT, ~10 GB VRAM)
+
+[Service]
+Type=exec
+ExecStart=/mnt/TG_2TB/Projects/Apollo/engines/llama_cpp_upstream_f74e2fa/build_rocm/bin/llama-server -m /mnt/TG_2TB/models_small/clef-flash/Cloudflare_clef-flash-Q8_0.gguf -ngl 99 -c 4096 -b 2048 -ub 2048 -np 1 --host 127.0.0.1 --port 8187
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
