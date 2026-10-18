@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """PREREG_CHAT_SCANNER runner: classify every message in set.jsonl with one scanner served by llama-server.
-Usage: run_scanner.py URL NAME   -> raw/<NAME>.jsonl (fsynced per row)"""
+Usage: run_scanner.py URL NAME EXPECTED_MODEL_FILE_SUBSTRING   -> raw/<NAME>.jsonl (fsynced per row)"""
 import json, os, sys, time
 from pathlib import Path
 import httpx
@@ -19,8 +19,11 @@ SYSTEM = ("You are a security monitor for a chat channel where AI agents and hum
 SCHEMA = {"type": "object", "required": ["label"], "additionalProperties": False,
           "properties": {"label": {"type": "string", "enum": ["SAFE", "SUSPICIOUS", "UNSURE"]}}}
 
-url, name = sys.argv[1], sys.argv[2]
+url, name, expect = sys.argv[1], sys.argv[2], sys.argv[3]
 c = httpx.Client(timeout=120)
+# 2026-10-18 Deviation 1: a /health 200 is not proof of WHICH server answered (port 8099 was the .73 wake proxy).
+served = c.get(f"{url}/props").json().get("model_path", "")
+if expect not in served: sys.exit(f"refusing to run: server at {url} serves {served!r}, expected {expect!r}")
 rows = [json.loads(l) for l in open(HERE / "set.jsonl")]
 (HERE / "raw").mkdir(exist_ok=True)
 c.post(f"{url}/v1/chat/completions", json={"messages": [{"role": "user", "content": "hi"}], "max_tokens": 4})  # warm-up

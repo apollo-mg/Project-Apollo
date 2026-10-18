@@ -52,3 +52,10 @@ table, and a fail-safe view that counts UNSURE as a flag.
 
 A scanner whose output fails the schema on more than 5 % of messages is reported with that caveat and excluded from
 K1-K3.
+
+**Deviation 1 (2026-10-18 ~21:30 UTC, before any valid row; no results were looked at).** The first run served each
+scanner on port 8099, which on this desktop belongs to the .73 wake proxy. llama-server could not bind, the readiness
+check got a 200 from the proxy, and 120 "G41" and 71 "G42" rows were answered by the 27B daily driver on .73. Those rows
+are moved to `raw/invalid_wake_proxy_20261018/` and never analysed (only their counts were seen). The one .73 slot they
+used was erased. Rerun on port 8197, and `run_scanner.py` now refuses to start unless `/props` reports the expected
+model file.
