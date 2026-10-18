@@ -36,6 +36,9 @@ def status_lines():
         except subprocess.TimeoutExpired:
             out = "unreachable (timeout)"
         lines.append(f"{j['name']}: {out}")
+    sys.path.insert(0, str(ROOT / "tools")); from intent import open_jobs   # intent lines (tools/intent.py)
+    oj = open_jobs()
+    lines.append("open intents: " + (", ".join(f"{r['id']} ({r['job']} on {r['host']})" for r in oj) if oj else "none"))
     dd = ROOT / "data" / "dev_diaries"
     lines.append("ledger: " + heartbeat(dd / ".ledger_heartbeat.json", []) + " | content capture: "
                  + heartbeat(dd / "content" / ".capture_heartbeat.json", ["items"]) + " | digest: "
