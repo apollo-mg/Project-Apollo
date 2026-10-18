@@ -1,0 +1,12 @@
+[Unit]
+Description=Hearth IRC server for Apollo agents (loopback only; spiritbuun/hearth-irc)
+
+[Service]
+Type=exec
+ExecStart=%h/.local/bin/hearth-ircd --listen 127.0.0.1:6667 --database %h/.local/share/hearth/history.sqlite3
+Restart=on-failure
+RestartSec=2
+UMask=0077
+
+[Install]
+WantedBy=default.target

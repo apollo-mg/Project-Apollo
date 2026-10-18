@@ -1,0 +1,8 @@
+[
+ {"name": "beam-effort (.194)",
+  "cmd": "ssh -o ConnectTimeout=8 -o BatchMode=yes 10.0.0.194 'cd ~/bench/beam-effort-1017 2>/dev/null || { echo no run dir; exit 0; }; for a in BEAMMAX BEAMLOW BEAMHIGH BEAMMED; do printf \"%s %s/240 \" ${a#BEAM} $(cat run_$a.log 2>/dev/null | grep -c M1-); done; grep -q EFFORT_CHAIN_DONE state.log && echo \"(chain done)\" || true'",
+  "timeout": 25},
+ {"name": ".73 wake proxy",
+  "cmd": "systemctl --user is-active apollo-wake-proxy",
+  "timeout": 10}
+]
