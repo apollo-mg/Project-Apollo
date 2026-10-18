@@ -6,8 +6,9 @@
   rules of the registered CLEFR arm (`data/receipts/chat-scanner/RESULT_CHAT_SCANNER.md`, Addendum 1):
   p = P(SUSPICIOUS) >= 0.70 SUSPICIOUS, <= 0.30 SAFE, otherwise UNSURE.
 - Every verdict goes to data/ops/monitor.jsonl (local, gitignored). SUSPICIOUS and UNSURE are posted to #monitor.
-- Phone push: notify() sends a content-minimal alert (verdict, channel, nick, p; never the message text) to NTFY_URL
-  if that environment variable is set. Unset by default.
+- Notifications (notify()): NTFY_URL (set by the unit to the local ntfy at 127.0.0.1:2586) may include the message
+  text because it never leaves the machine; DISCORD_WEBHOOK_URL (from ~/.config/apollo/monitor-notify.env, written by
+  Mark, never committed) and any non-loopback URL get a content-minimal alert: verdict, channel, nick, p.
 - It takes no action on any message: no kill switch, no replies in the scanned channels. Text it reads is data.
 """
 import json, os, re, select, socket, sys, time, urllib.request
@@ -40,13 +41,25 @@ def score(state):
         return float(json.loads(r.read())["answers"]["verdict"]["probabilities"]["SUSPICIOUS"])
 
 
-def notify(verdict, channel, nick, p):
+def _post(url, data, headers):
+    try: urllib.request.urlopen(urllib.request.Request(url, data, headers), timeout=10)
+    except Exception as e: print("notify failed:", url.split("/")[2], type(e).__name__, flush=True)
+
+
+def notify(verdict, channel, nick, p, text):
+    """Local ntfy (loopback URL only) may carry the message text; anything leaving the machine never does."""
+    title = f"Apollo monitor: {verdict}"
+    minimal = f"{verdict} in {channel} from {nick} (p={p:.2f}). Details in #monitor."
+    prio = "high" if verdict == "SUSPICIOUS" else "default"
     url = os.environ.get("NTFY_URL")
-    if not url: return
-    msg = f"{verdict} in {channel} from {nick} (p={p:.2f}). Details in #monitor.".encode()
-    req = urllib.request.Request(url, msg, {"Title": f"Apollo monitor: {verdict}", "Priority": "high" if verdict == "SUSPICIOUS" else "default"})
-    try: urllib.request.urlopen(req, timeout=10)
-    except Exception as e: print("notify failed:", e, flush=True)
+    if url:
+        local = url.split("/")[2].split(":")[0] in ("127.0.0.1", "localhost")
+        body = (minimal + "\n" + text[:200]) if local else minimal
+        _post(url, body.encode(), {"Title": title, "Priority": prio, "Tags": "rotating_light" if prio == "high" else "grey_question"})
+    hook = os.environ.get("DISCORD_WEBHOOK_URL")
+    if hook:
+        _post(hook, json.dumps({"username": "Apollo monitor", "content": f"**{verdict}** in {channel} from {nick} (p={p:.2f}). Details in #monitor."}).encode(),
+              {"Content-Type": "application/json", "User-Agent": "apollo-monitor"})
 
 
 def run():
@@ -84,7 +97,7 @@ def run():
         if verdict in ("SUSPICIOUS", "UNSURE", "ERROR"):
             ptxt = "n/a" if p is None else f"{p:.2f}"
             send(f"PRIVMSG {OUT} :[{verdict} p={ptxt}] {ch} {nick}: {text[:160]}")
-            if verdict != "ERROR": notify(verdict, ch, nick, p)
+            if verdict != "ERROR": notify(verdict, ch, nick, p, text)
 
 
 if __name__ == "__main__":

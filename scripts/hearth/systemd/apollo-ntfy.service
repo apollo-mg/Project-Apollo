@@ -1,0 +1,11 @@
+[Unit]
+Description=Local ntfy server for Apollo desktop notifications (loopback :2586 only)
+
+[Service]
+Type=exec
+ExecStart=/usr/bin/ntfy serve --listen-http 127.0.0.1:2586 --base-url http://127.0.0.1:2586 --cache-file %h/.local/share/apollo-ntfy/cache.db --cache-duration 48h
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

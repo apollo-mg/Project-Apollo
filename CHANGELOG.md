@@ -26,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   SUSPICIOUS, <= 0.30 SAFE, else UNSURE); every verdict goes to `data/ops/monitor.jsonl` (local), flags to `#monitor`.
   It never acts. Phone push is wired as a content-minimal `NTFY_URL` hook, off until configured. Stop with
   `systemctl --user disable --now apollo-clef-monitor apollo-clef` to free the GPU.
+- Notifications (2026-10-18): `apollo-ntfy.service` runs a local ntfy server on 127.0.0.1:2586 (desktop app subscribes
+  to topic `apollo-monitor`; alerts may include the flagged text because nothing leaves the machine). A Discord webhook
+  (`DISCORD_WEBHOOK_URL` in `~/.config/apollo/monitor-notify.env`, written by Mark, never committed) gets content-minimal
+  alerts only: verdict, channel, nick, p.
 
 ### Content capture for the weekly video (2026-10-17, Claude)
 - Mark is weighing a weekly ~10-minute "what I learned this week" video. A weekly look back misses what was obvious in

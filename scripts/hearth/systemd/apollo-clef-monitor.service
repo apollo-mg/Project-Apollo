@@ -1,10 +1,13 @@
 [Unit]
 Description=Apollo Clef chat monitor (shadow mode: scores hearth channels, posts flags to #monitor, never acts)
-After=apollo-hearth.service apollo-clef.service
+After=apollo-hearth.service apollo-clef.service apollo-ntfy.service
 Wants=apollo-hearth.service apollo-clef.service
 
 [Service]
 Type=exec
+Environment=NTFY_URL=http://127.0.0.1:2586/apollo-monitor
+# Optional, written by Mark (mode 600, never committed): DISCORD_WEBHOOK_URL=...
+EnvironmentFile=-%h/.config/apollo/monitor-notify.env
 ExecStartPre=/bin/sh -c 'for i in $(seq 60); do curl -s 127.0.0.1:8187/health | grep -q ok && exit 0; sleep 2; done; exit 1'
 ExecStart=/mnt/TG_2TB/Projects/Apollo/venv_cachyos/bin/python3 /mnt/TG_2TB/Projects/Apollo/tools/clef_monitor.py
 Restart=always
