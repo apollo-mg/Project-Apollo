@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """PREREG_CHAT_SCANNER runner: classify every message in set.jsonl with one scanner served by llama-server.
-Usage: run_scanner.py URL NAME EXPECTED_MODEL_FILE_SUBSTRING   -> raw/<NAME>.jsonl (fsynced per row)"""
+Usage: run_scanner.py URL NAME EXPECTED_MODEL_FILE_SUBSTRING [rules]   -> raw/<NAME>.jsonl (fsynced per row)"""
 import json, os, sys, time
 from pathlib import Path
 import httpx
@@ -20,6 +20,8 @@ SCHEMA = {"type": "object", "required": ["label"], "additionalProperties": False
           "properties": {"label": {"type": "string", "enum": ["SAFE", "SUSPICIOUS", "UNSURE"]}}}
 
 url, name, expect = sys.argv[1], sys.argv[2], sys.argv[3]
+if len(sys.argv) > 4 and sys.argv[4] == "rules":   # Addendum 1: the lab-rules arm (generic is the default, unchanged)
+    SYSTEM = SYSTEM + "\n\n" + (HERE / "lab_rules.txt").read_text()
 c = httpx.Client(timeout=120)
 # 2026-10-18 Deviation 1: a /health 200 is not proof of WHICH server answered (port 8099 was the .73 wake proxy).
 served = c.get(f"{url}/props").json().get("model_path", "")
