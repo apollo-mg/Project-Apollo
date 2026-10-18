@@ -32,21 +32,37 @@ n = min(len(known), len(unknown))
 if n < 300 and not os.environ.get("IDK_SMOKE"): sys.exit(f"stop rule: smaller class has {n} < 300 items")
 rng = random.Random(SEED)
 known_s, unknown_s = rng.sample(known, n), rng.sample(unknown, n)
-data = [(pool[r["id"]]["question"], r["content"].strip()) for r in known_s]
-if mode == "lora": data += [(pool[r["id"]]["question"], UNK_TARGET) for r in unknown_s]
-elif mode != "ctrl": sys.exit("mode must be lora or ctrl")
+F1 = lambda q: [{"role": "user", "content": PROMPT.format(q=q)}]
+data = [(F1(pool[r["id"]]["question"]), r["content"].strip()) for r in known_s]
+if mode in ("lora", "lora2"): data += [(F1(pool[r["id"]]["question"]), UNK_TARGET) for r in unknown_s]
+elif mode != "ctrl": sys.exit("mode must be lora, lora2 or ctrl")
+if mode == "lora2":   # PREREG_IDK_LORA2: the same items in F2 (plain) and F3 (alternative instruction) as well
+    sys.path.insert(0, str(HERE)); import round2_gen as r2
+    REFUSALS = ["I don't know.", "I'm not sure; I don't have reliable information about that.",
+                "I don't have information about that.", "I can't answer that reliably; I don't know."]
+    fm = {(x["id"], x["fmt"]): x for x in map(json.loads, open(HERE / "raw" / "formats_G41.jsonl"))}
+    drops = {}
+    for fmt in ("F2", "F3"):
+        keep = [r for r in known_s if fm.get((r["id"], fmt), {}).get("grade") == "CORRECT"
+                and fm[(r["id"], fmt)]["finish"] != "length"]
+        unk = random.Random(SEED + (2 if fmt == "F2" else 3)).sample(unknown_s, len(keep))
+        drops[fmt] = len(known_s) - len(keep)
+        data += [(r2.msgs(fmt, pool[r["id"]]), fm[(r["id"], fmt)]["content"].strip()) for r in keep]
+        data += [(r2.msgs(fmt, pool[r["id"]]),
+                  REFUSALS[random.Random(f"{SEED}-{r['id']}").randrange(4)] if fmt == "F2" else "I don't know.")
+                 for r in unk]
+    print("lora2 dropped known pairs:", drops, flush=True)
 rng.shuffle(data)
 if os.environ.get("IDK_SMOKE"): data, EPOCHS = data[:32], 1   # code smoke test only; never used for an arm
 
 tok = AutoTokenizer.from_pretrained(BASE)
-def encode(q, a):
-    msgs = [{"role": "user", "content": PROMPT.format(q=q)}]
+def encode(msgs, a):
     p = tok.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True)
     full = tok.apply_chat_template(msgs + [{"role": "assistant", "content": a}], tokenize=False)
     assert full.startswith(p), "chat template does not extend the generation prompt"
     pi = tok(p, add_special_tokens=False)["input_ids"]; fi = tok(full, add_special_tokens=False)["input_ids"][:MAXLEN]
     return fi, [-100] * len(pi) + fi[len(pi):]
-enc = [encode(q, a) for q, a in data]
+enc = [encode(m, a) for m, a in data]
 
 model = AutoModelForCausalLM.from_pretrained(BASE, dtype=torch.bfloat16).cuda()
 model.gradient_checkpointing_enable(); model.enable_input_require_grads()
@@ -79,7 +95,7 @@ for ep in range(EPOCHS):
         log.append({"step": step, "epoch": ep, "loss": tot, "lr": sched.get_last_lr()[0], "t": round(time.time() - t0, 1)})
         if step % 20 == 0 or step == steps: print(log[-1], flush=True)
 model.save_pretrained(outdir / "adapter")
-json.dump({"mode": mode, "n_per_class": n, "known_total": len(known), "unknown_total": len(unknown),
+json.dump({"mode": mode, "n_per_class": n, "lora2_dropped_known": locals().get("drops"), "known_total": len(known), "unknown_total": len(unknown),
            "examples": len(enc), "steps": steps, "seconds": round(time.time() - t0, 1), "log": log},
           open(outdir / "train_log.json", "w"), indent=1)
 print("saved", outdir / "adapter", "examples", len(enc), "seconds", round(time.time() - t0, 1))
