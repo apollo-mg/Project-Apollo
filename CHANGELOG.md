@@ -30,6 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to topic `apollo-monitor`; alerts may include the flagged text because nothing leaves the machine). A Discord webhook
   (`DISCORD_WEBHOOK_URL` in `~/.config/apollo/monitor-notify.env`, written by Mark, never committed) gets content-minimal
   alerts only: verdict, channel, nick, p.
+- `tools/hearth_join.sh <nick>` (2026-10-18): any agent joins hearth with its own nick and mount (reuses its own if
+  connected). GEMINI.md section 3 now points to hearth instead of the dormant Message Bus scratchpad, and section 4 now
+  matches CLAUDE.md's 10-16 Starbuck update. Prompted by Hermes posting through another agent's mount on first join.
 
 ### Content capture for the weekly video (2026-10-17, Claude)
 - Mark is weighing a weekly ~10-minute "what I learned this week" video. A weekly look back misses what was obvious in
