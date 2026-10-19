@@ -240,6 +240,42 @@ def cmd_score(a):
     for k_, v in sorted(res.items(), key=lambda kv: -kv[1]["recall"]): print(f"{k_:12s} recall {v['recall']:.3f}  chance {v['chance']:.3f}  n={v['n']}  {v['by_src']}")
 
 
+def cmd_analyze(a):
+    """Registered comparisons (P1-P5) by paired bootstrap over gold items, plus the leak listing for P6."""
+    import random
+    per = load(EVAL / "per_item.json"); res = load(EVAL / "results.json")
+    def vec(key): return {(r["k"], r["src"], r["id"]): r["ok"] for r in per.get(key, [])}
+    def diff(x, y, n=10000, seed=0):
+        X, Y = vec(x), vec(y)
+        ks = sorted(set(X) & set(Y)); rnd = random.Random(seed)
+        d = [X[k] - Y[k] for k in ks]
+        point = sum(d) / len(d)
+        boots = sorted(sum(d[rnd.randrange(len(d))] for _ in d) / len(d) for _ in range(n))
+        return {"a": x, "b": y, "n": len(ks), "diff": round(point, 3), "ci95": [round(boots[int(.025 * n)], 3), round(boots[int(.975 * n)], 3)]}
+    out = {"gate_G1_max_chance": max(v["chance"] for k, v in res.items() if k.endswith("@1.0")), "comparisons": []}
+    writers = [k for k in res if k.endswith("@1.0") and k.split("@")[0] not in ("INC", "EXT")]
+    out["comparisons"].append(diff("INC@1.0", "EXT@1.0"))
+    for w in writers: out["comparisons"].append(diff(w, "EXT@1.0"))
+    for w in writers: out["comparisons"].append(diff(w, "INC@1.0"))
+    if "HY4@1.0" in res:
+        for q in ("QW27a@1.0", "QW27b@1.0"):
+            if q in res: out["comparisons"].append(diff("HY4@1.0", q))
+        if "HY8@1.0" in res: out["comparisons"].append(diff("HY8@1.0", "HY4@1.0"))
+    # P6: every personal-category sentence in every arm's 1x text, for reading (kept local)
+    segs = {s_["k"]: s_ for s_ in load(EVAL / "segments.json")}
+    deny = [p for p in S.deny_patterns()]
+    hits = {}
+    for arm in ["INC", "EXT"] + [w.split("@")[0] for w in writers]:
+        for k in SEGS:
+            if arm not in ("INC", "EXT") and not (EVAL / arm / f"seg{k}" / "state.json").exists(): continue
+            for snt in S.SENT.split(" ".join(text_of(arm, k, segs[k]["summary_chars"]).split())):
+                if S.denied(snt, deny): hits.setdefault(arm, []).append({"k": k, "sentence": snt[:400]})
+    save(EVAL / "leak_hits.json", hits)
+    out["deny_hits_by_arm"] = {k: len(v) for k, v in hits.items()}
+    save(EVAL / "analysis.json", out)
+    print(json.dumps(out, indent=1))
+
+
 def cmd_agree(a):
     """Send the exact prompts arm A's writer saw to another server; compare outputs op by op."""
     rows = []
@@ -270,6 +306,7 @@ def main():
     q = sub.add_parser("agree"); q.add_argument("--a", required=True); q.add_argument("--b-host", required=True)
     q.add_argument("--b-name", required=True); q.add_argument("--template-kwargs", required=True); q.set_defaults(f=cmd_agree)
     sub.add_parser("score").set_defaults(f=cmd_score)
+    sub.add_parser("analyze").set_defaults(f=cmd_analyze)
     a = p.parse_args(); a.f(a)
 
 
