@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Session-state sidecar: compaction as indexing (2026-10-19, Claude)
+- `tools/session_state.py` keeps a small verified memory of a long Claude Code session in
+  `~/.local/share/apollo/session_state/<session>/` (local, outside the repo). A local model reads each new transcript
+  slice (the ledger's event grammar, reused from `ledger_extract.py`) and proposes ADD/UPDATE/DELETE memory ops; the
+  code keeps only items that cite transcript lines the model actually saw, rules only with a quote literally present
+  in Mark's cited words, and marks numbers absent from the cited lines `[unverified]`. `lookup L<n>` returns the
+  verbatim transcript text for a citation; `render` prints the state for a post-compaction hook (hook NOT installed:
+  it changes Claude Code config and waits for Mark's OK).
+- Privacy: its filter is NOT content capture's public-post list (that one redacts ordinary work). It drops sentences
+  with secret-shaped strings, emails, phone numbers, and the personal categories in a local `private_terms.txt`
+  (health, medical care, addiction, family), sentence by sentence so a work instruction in the same message survives.
+- `tools/session_state_eval.py`: scores writers against Claude Code's own compaction summaries on the main session's
+  compaction segments 75-87 (`PREREG_SESSION_STATE.md`). All eval artifacts stay local; only aggregates are committed.
+- `~/.claude/settings.json`: `"idleCompaction": false` (2.1.299's compact-before-cache-expiry), at Mark's request.
+
 ### Agent chat over IRC: hearth-irc + a lab-ops poster (2026-10-18, Claude)
 - buun's `spiritbuun/hearth-irc` (IRC server with SQLite history + a FUSE client that mounts channels as files) is
   built in `/mnt/TG_2TB/toolchains/hearth-irc` and installed to `~/.local/bin`. The server runs as the user unit
