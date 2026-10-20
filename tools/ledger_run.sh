@@ -95,6 +95,11 @@ for H in $HOSTS; do
     # writes its own heartbeat (data/dev_diaries/content/.capture_heartbeat.json); its failure never changes this beat.
     [ $RC -eq 0 ] && timeout 1200 $PY $ROOT/tools/content_capture.py "$TMP/ev.txt" --host "$H" --diary "$DIARY" \
       >>"$ROOT/data/dev_diaries/.ledger_cron.log" 2>&1
+    # Session-state sidecar (2026-10-20, Mark's OK): the known-good model only (the proxy, never a .194 test server),
+    # inside the same slot bracket. Its cursor is saved per chunk, so --chunk-limit bounds a run without losing work;
+    # a catch-up after a long gap spreads over several hours. Heartbeat: ~/.local/share/apollo/session_state/<sid>/.
+    [ $RC -eq 0 ] && [ $PROXY = 1 ] && timeout 1500 $PY $ROOT/tools/session_state.py update --host "$H" --chunk-limit 4 \
+      >>"$ROOT/data/dev_diaries/.ledger_cron.log" 2>&1
     [ $PROXY = 1 ] && $PY $ROOT/tools/slot_erase.py erase-changed "$TMP/slots.json" \
       | sed "s/^/$(date '+%F %T') ledger /" >>"$ROOT/data/dev_diaries/.ledger_cron.log" 2>&1
     if [ $RC -eq 0 ]; then

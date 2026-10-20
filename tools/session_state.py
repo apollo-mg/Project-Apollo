@@ -42,6 +42,7 @@ BASE = Path.home() / ".local/share/apollo/session_state"
 PRIVATE_TERMS = BASE / "private_terms.txt"
 KINDS = ["rule", "decision", "result", "task", "correction", "fact"]
 NUM = re.compile(r"\d+(?:[.,]\d+)*")
+STANDALONE_NUM = re.compile(r"(?<![A-Za-z0-9_.])\d+(?:[.,]\d+)*(?![A-Za-z0-9_])")
 
 SCHEMA = {"type": "object", "required": ["ops"], "properties": {"ops": {"type": "array", "maxItems": 24, "items": {
     "type": "object", "required": ["op", "kind", "text", "refs"], "properties": {
@@ -203,6 +204,9 @@ def apply_ops(state, ops, chunk_text_by_line, deny, log):
     items, kept, dropped = state["items"], 0, 0
     for op in ops:
         why = None
+        m = re.fullmatch(r"\s*[mM]?(\d+)\s*", str(op.get("id") or ""))
+        if m: op["id"] = "m" + m.group(1)        # "12" / "M12" -> "m12" (2026-10-20: every Hy UPDATE used a bare number)
+        if op.get("op") == "UPDATE" and not op.get("id"): op["op"] = "ADD"   # names no item: keep the fact as new
         kind, text = op.get("kind"), " ".join((op.get("text") or "").split())
         refs = []
         for r in op.get("refs") or []:
@@ -221,7 +225,8 @@ def apply_ops(state, ops, chunk_text_by_line, deny, log):
         if why is None and kind == "rule" and not quote: why = "rule without a verified quote"
         log.append({"op": op, "kept": why is None, "why": why, "refs_valid": refs})
         if why: dropped += 1; continue
-        unverified = [n for n in NUM.findall(text) if len(n) > 1 and n not in cited]
+        # standalone numbers only: the 3.8 in "Qwen3.8" or the 30 in "30B" is part of a name, not a claim
+        unverified = [n for n in STANDALONE_NUM.findall(text) if len(n) > 1 and n not in cited]
         rec = {"kind": kind, "text": text, "quote": quote, "refs": refs, "status": op.get("status") or "none",
                "unverified": unverified, "t": int(time.time())}
         if op["op"] == "ADD":
@@ -290,8 +295,14 @@ def save_json(p, obj):
     os.replace(tmp, p)
 
 
-def run_slice(transcript, sdir, start_byte, start_line, end_byte, a):
-    """Process one slice into the state in sdir, chunk by chunk, persisting after every chunk."""
+def line_end(transcript, byte):
+    with open(transcript, "rb") as f:
+        f.seek(byte); return byte + len(f.readline())
+
+
+def run_slice(transcript, sdir, start_byte, start_line, end_byte, a, on_chunk=None):
+    """Process one slice into the state in sdir, chunk by chunk, persisting after every chunk. With on_chunk, call it
+    with (byte, line) of a safe resume point after each chunk, and stop after a.chunk_limit chunks (0 = all)."""
     sdir.mkdir(parents=True, exist_ok=True)
     deny = deny_patterns()
     state = load_json(sdir / "state.json", {"items": {}, "next_id": 1})
@@ -301,6 +312,8 @@ def run_slice(transcript, sdir, start_byte, start_line, end_byte, a):
     for L, here, _, _ in evs: index[str(L)] = here
     cks = chunks(lines, a.chunk_chars)
     if a.max_chunks and len(cks) > a.max_chunks: cks = cks[-a.max_chunks:]
+    limit = getattr(a, "chunk_limit", 0) or 0
+    first_byte = {L: here for L, here, _, _ in evs}
     tk = json.loads(a.template_kwargs)
     stats = {"events": len(evs), "denied": n_denied, "chunks": len(cks), "kept": 0, "dropped": 0, "calls": []}
     with open(sdir / "ops.jsonl", "a") as oplog:
@@ -319,6 +332,16 @@ def run_slice(transcript, sdir, start_byte, start_line, end_byte, a):
             for rec in log: oplog.write(json.dumps({"t": int(time.time()), **rec}) + "\n")
             oplog.flush()
             save_json(sdir / "state.json", state); save_json(sdir / "lines.json", index)
+            ci = cks.index(ck)
+            if on_chunk and ci < len(cks) - 1:
+                last = max(seen); nxt = {int(x.split(" ", 1)[0][1:]) for x in cks[ci + 1]}
+                # resume after the last line of this chunk, or AT it if its message continues in the next chunk
+                if last in nxt: on_chunk(first_byte[last], last)
+                else: on_chunk(line_end(transcript, first_byte[last]), last + 1)
+                if limit and ci + 1 >= limit:
+                    (sdir / "state.md").write_text(render(state, a.budget))
+                    stats["stopped_at_limit"] = True
+                    return stats, None, None
     (sdir / "state.md").write_text(render(state, a.budget))
     return stats, off, ln
 
@@ -349,10 +372,11 @@ def cmd_update(a):
         cur = {"byte": last_boundary(t), "line": None}
     if cur["line"] is None:
         cur["line"] = count_lines(t, cur["byte"])
-    out = run_slice(t, sdir, cur["byte"], cur["line"], None, a)
+    def on_chunk(byte, line): save_json(sdir / "cursor.json", {"byte": byte, "line": line, "transcript": t})
+    out = run_slice(t, sdir, cur["byte"], cur["line"], None, a, on_chunk=on_chunk)
     if a.dry_run: return
     stats, off, ln = out
-    save_json(sdir / "cursor.json", {"byte": off, "line": ln, "transcript": t})
+    if off is not None: save_json(sdir / "cursor.json", {"byte": off, "line": ln, "transcript": t})
     beat = {"ts": int(time.time()), "status": "ok", **{k: v for k, v in stats.items() if k != "calls"},
             "secs": sum(c["s"] for c in stats["calls"]), "host": a.host}
     save_json(sdir / "heartbeat.json", beat)
@@ -391,6 +415,10 @@ def count_lines(t, byte):
 
 
 def cmd_render(a):
+    if a.from_hook:      # SessionStart(compact) hook: stdin JSON names the session; print nothing if there is no state
+        try: a.transcript = json.load(sys.stdin).get("transcript_path") or None
+        except Exception: return
+        if not a.transcript: return
     sdir = BASE / Path(a.transcript or latest_transcript()).stem
     st = load_json(sdir / "state.json", None)
     if st is None: return
@@ -425,11 +453,13 @@ def main():
         q.add_argument("--budget", type=int, default=24000)
         q.add_argument("--dry-run", action="store_true")
     q = sub.add_parser("update"); common(q); q.set_defaults(f=cmd_update)
+    q.add_argument("--chunk-limit", type=int, default=0, help="process at most N chunks this run (cursor saved per chunk)")
     q = sub.add_parser("replay"); common(q); q.set_defaults(f=cmd_replay)
     q.add_argument("--start-byte", type=int, required=True); q.add_argument("--end-byte", type=int, required=True)
     q.add_argument("--out", required=True); q.add_argument("--resume", action="store_true")
     q.add_argument("--save-io", action="store_true", help="also write io.jsonl: every prompt and parsed response")
     q = sub.add_parser("render"); q.add_argument("--transcript"); q.add_argument("--budget", type=int, default=24000)
+    q.add_argument("--from-hook", action="store_true", help="read the session's transcript_path from hook JSON on stdin")
     q.set_defaults(f=cmd_render)
     q = sub.add_parser("lookup"); q.add_argument("refs", nargs="+"); q.add_argument("--transcript")
     q.add_argument("--state-dir"); q.set_defaults(f=cmd_lookup)

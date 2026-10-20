@@ -21,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `tools/session_state_eval.py`: scores writers against Claude Code's own compaction summaries on the main session's
   compaction segments 75-87 (`PREREG_SESSION_STATE.md`). All eval artifacts stay local; only aggregates are committed.
 - `~/.claude/settings.json`: `"idleCompaction": false` (2.1.299's compact-before-cache-expiry), at Mark's request.
+- 2026-10-20, Mark's OK: the sidecar runs inside `ledger_run.sh` (hourly at :05) when the ledger reached the wake proxy,
+  `--chunk-limit 4` with the cursor saved per chunk; a `SessionStart` hook (matcher `compact`) in the project's
+  `.claude/settings.local.json` prints `session_state.py render --from-hook` after every compaction. Fixes from the
+  eval: update ids `12`/`M12` -> `m12`, an UPDATE without an id is kept as an ADD, numbers inside names (Qwen3.8,
+  30B) are no longer flagged `[unverified]`.
 
 ### Agent chat over IRC: hearth-irc + a lab-ops poster (2026-10-18, Claude)
 - buun's `spiritbuun/hearth-irc` (IRC server with SQLite history + a FUSE client that mounts channels as files) is
