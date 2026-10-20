@@ -1,4 +1,4 @@
-# Result -- a 3B-active memory writer carries a session's facts about as well as Claude Code's own compaction summary, in 57 % of the space; the chance gate failed, so this is descriptive
+# Result -- a 3B-active memory writer carries a session's facts about as well as Claude Code's own compaction summary at the same length; its lead over the 27B is volume, not selection; the chance gate failed, so this is descriptive
 
 **Prereg:** `PREREG_SESSION_STATE.md` (`ed3ef807`, before any arm was scored; code frozen at `67328fda`, analysis
 `2fa436cf`). **Run:** `run_chain_hy.sh`, `run_chain_qw.sh` (2026-10-19 19:19 -> 23:44). **Aggregates:**
@@ -31,8 +31,10 @@
 | QW27b (second run) | 0.590 | **0.597** | 0.597 | 0.086 | 0.33 | 368 | 168 |
 | EXT newest lines, no model | 0.180 | **0.324** | 0.475 | 0.108 | 0.92 | | |
 
-"Space used" is the rendered text's length as a share of the 1x budget (INC's length, per segment): no writer filled
-it, so the 27B's 1x and 2x rows are the same text.
+"Space used" is the rendered text's length as a share of the 1x budget (INC's length, per segment), pooled over all
+13 segments. **The pool is misleading:** in the four segments that hold 116 of the 139 items (75, 78, 86, 87) Hy fills
+0.90-1.00 of the budget; the low pooled figure comes from small segments with almost no gold. The 27B fills 0.26-0.76
+even there, so its 1x and 2x rows are the same text.
 
 Paired differences at 1x (bootstrap over the 139 items, 95 % CI):
 
@@ -60,12 +62,14 @@ Paired differences at 1x (bootstrap over the 139 items, 95 % CI):
 
 ## Reading
 
-- **Hy-Memory keeps up with Claude Code's own summary while using 57 % of its space.** At the summary's length its
-  state carries 0.78 of the gold items against the summary's 0.73. The difference is inside the noise; the space is
-  not. Given twice the room it reaches 0.84-0.86.
-- **The specialist beats the generalist that is already serving.** Hy-Memory carries 0.13-0.19 more than Qwen3.8-27B
-  on the same prompts, at 2.5x the speed per chunk (~65 s against ~165 s). The 27B writes shorter items and fewer of
-  them, and it fills only a third of the budget.
+- **Hy-Memory keeps up with Claude Code's own summary at the same length.** In the segments that carry the gold it
+  fills the summary's length, and there it carries 0.78 of the items against the summary's 0.73: inside the noise.
+  Given twice the room it reaches 0.84-0.86.
+- **Hy's lead over the 27B is volume, not better selection** (exploratory, below). Hy carries 0.13-0.19 more than
+  Qwen3.8-27B on the same transcript slices, but the 27B writes far less text. Cut to the 27B's own length in each
+  segment, Hy carries the same share (0.61-0.66 against 0.60-0.66). So the specialist is not a better judge per
+  character; it is more generous, and faster: ~65 s per chunk against ~165 s, though on different nodes and settings
+  (Hy on .194's 4x P100 at np 1, the 27B on .73's 2x P100 daily with VBR, np 2 and MTP).
 - **The two 27B runs differ by 0.06** on identical inputs (the daily's known bistability). That run-to-run spread is
   as large as the gap between Hy and the summary, which is a reason not to read that gap as a ranking.
 - **Quant does not matter here, but every token changes.** Q4 and Q8 carry the same share (difference -0.014), yet
@@ -80,10 +84,20 @@ Paired differences at 1x (bootstrap over the 139 items, 95 % CI):
 - **Privacy.** The writers never carried excluded personal content: it was redacted before they saw it. Claude Code's
   summaries had 25 deny-list hits. Read by hand: 3 sentences in 2 segments carry personal details of the kind the
   standing rules exclude (one quotes such a detail while instructing that it not be stored); 5 are the rules
-  themselves naming the categories; 17 are false alarms (email-shaped commit trailers, a handle containing a listed
-  word).
+  themselves naming the categories; 17 are false alarms (email-shaped commit trailers, a username).
 - **Post hoc, not registered:** recall minus chance at 1x is HY8 0.58, HY4 0.57, QW27a 0.53, INC 0.51, QW27b 0.51,
   EXT 0.22. The order of the writers and the summary holds; the margins shrink.
+
+## Exploratory (after seeing the results, not registered)
+
+Hy's state rendered at the 27B's actual length in each segment (the same gold, the same scorer):
+
+| budget = each segment's length of | HY4 | HY8 | that 27B run |
+|---|---:|---:|---:|
+| QW27a | 0.612 (chance 0.180) | 0.655 (0.180) | 0.655 (0.129) |
+| QW27b | 0.612 (0.165) | 0.626 (0.165) | 0.597 (0.086) |
+
+At matched length the 0.13-0.19 gap disappears; Hy still matches more of the wrong segment's gold.
 
 ## Deviations
 
@@ -97,8 +111,8 @@ Paired differences at 1x (bootstrap over the 139 items, 95 % CI):
 ## Not established
 
 - **G1 failed:** the key-token match is loose enough that a text carries ~20 % of another segment's gold. Part of that
-  is real (neighbouring segments share live topics, and INC carries older material by design), but that explanation
-  is post hoc. A tighter instrument would score against a non-adjacent segment, or with a judge.
+  may be real (each segment is scored against the next one's gold, and neighbouring segments share live topics),
+  but that explanation is post hoc. A tighter instrument would score against a non-adjacent segment, or with a judge.
 - Gold is 73 % commit subjects: it rewards keeping specifics verbatim, which is the sidecar's design goal.
 - One session, one author, 139 items; 83 of them in two segments.
 - Writers started each segment empty; a live sidecar carries state forward, and Hy's add-only habit is untested there.

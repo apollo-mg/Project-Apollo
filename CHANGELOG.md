@@ -16,8 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   verbatim transcript text for a citation; `render` prints the state for a post-compaction hook (hook NOT installed:
   it changes Claude Code config and waits for Mark's OK).
 - Privacy: its filter is NOT content capture's public-post list (that one redacts ordinary work). It drops sentences
-  with secret-shaped strings, emails, phone numbers, and the personal categories in a local `private_terms.txt`
-  (health, medical care, addiction, family), sentence by sentence so a work instruction in the same message survives.
+  with secret-shaped strings, emails, phone numbers, and personal categories from a local `private_terms.txt`,
+  sentence by sentence so a work instruction in the same message survives.
 - `tools/session_state_eval.py`: scores writers against Claude Code's own compaction summaries on the main session's
   compaction segments 75-87 (`PREREG_SESSION_STATE.md`). All eval artifacts stay local; only aggregates are committed.
 - `~/.claude/settings.json`: `"idleCompaction": false` (2.1.299's compact-before-cache-expiry), at Mark's request.

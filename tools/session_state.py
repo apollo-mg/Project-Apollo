@@ -37,8 +37,8 @@ PROJ = Path.home() / ".claude/projects/-mnt-TG-2TB-Projects-Apollo"
 BASE = Path.home() / ".local/share/apollo/session_state"
 # Privacy filter. NOT content capture's list: that one is for PUBLIC posts and redacts ordinary work (engagement
 # names, maintainers' names, personal projects), which a local state file needs. Here: secret-shaped strings, emails
-# and phone numbers (content capture's first three built-ins), plus the personal categories Mark asked never to be
-# stored (health, medical care, addiction, family), from a local list outside the repo.
+# and phone numbers (content capture's first three built-ins), plus a list of personal categories that lives locally,
+# outside the repo.
 PRIVATE_TERMS = BASE / "private_terms.txt"
 KINDS = ["rule", "decision", "result", "task", "correction", "fact"]
 NUM = re.compile(r"\d+(?:[.,]\d+)*")
@@ -73,8 +73,8 @@ Return JSON operations against the existing memory:
   A rule without such a quote is discarded. Optional for other kinds.
 - refs: the L-numbers of the lines that support the item (1 to 6). Never invent a citation.
 - Skip chit-chat, greetings, and anything already in memory unchanged. Fewer, denser items are better.
-- Never record anything about health, medical care, addiction, family members, relationships, money or personal life,
-  even if it appears. Never record passwords, keys or tokens.
+- Never record anything about health, family members, relationships, money or personal life, even if it appears.
+  Never record passwords, keys or tokens.
 
 EXISTING MEMORY (id | kind | text):
 {memory}
