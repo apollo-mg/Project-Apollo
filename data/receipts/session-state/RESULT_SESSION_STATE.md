@@ -1,0 +1,105 @@
+# Result -- a 3B-active memory writer carries a session's facts about as well as Claude Code's own compaction summary, in 57 % of the space; the chance gate failed, so this is descriptive
+
+**Prereg:** `PREREG_SESSION_STATE.md` (`ed3ef807`, before any arm was scored; code frozen at `67328fda`, analysis
+`2fa436cf`). **Run:** `run_chain_hy.sh`, `run_chain_qw.sh` (2026-10-19 19:19 -> 23:44). **Aggregates:**
+`RESULT_session_state.json`. Gold, arm texts and per-item scores contain private session content and stay local
+(`~/.local/share/apollo/session_state_eval/`), as registered.
+
+**Setup as run.**
+- HY4/HY8: Tencent Hy-Memory-30B-A3B, Q4_K_M imatrix and Q8_0, both sha256-verified against Tencent's listing, on
+  .194 with 4x P100 at 150 W, llama.cpp `f74e2fa`, `-sm layer -np 1 -c 32768`, F16 KV, `reasoning_effort: no_think`.
+- QW27a/b: Qwen3.8-27B, the .73 daily driver, through the wake proxy with `enable_thinking: false`, under the
+  benchmark lock.
+- 13 segments, 48 chunks per writer, 139 scored gold items.
+
+## Gates
+
+| gate | outcome |
+|---|---|
+| G1 chance <= 0.15 for every arm at 1x | **fails**: max 0.223 (INC); HY4 0.216, HY8 0.194, QW27a 0.129, QW27b 0.086, EXT 0.108. **Every comparison below is descriptive only.** |
+| G2 HY8 is the same checkpoint as HY4 | **passes**: metadata agrees apart from name, file type and imatrix fields; all 287 F32 tensors are byte-identical |
+| G3 HY determinism | **passes**: segment 80 re-run gives identical items (and the dev slice twice gave byte-identical states) |
+
+## Results (share of gold items carried)
+
+| arm | 0.5x | **1x** | 2x | chance at 1x | space used at 1x | items | s / chunk |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| HY4 Hy-Memory Q4 | 0.604 | **0.784** | 0.835 | 0.216 | 0.57 | 456 | 69 |
+| HY8 Hy-Memory Q8 | 0.626 | **0.770** | 0.863 | 0.194 | 0.59 | 407 | 63 |
+| INC Claude Code summary | | **0.734** | | 0.223 | 1.00 | | |
+| QW27a Qwen3.8-27B | 0.619 | **0.655** | 0.655 | 0.129 | 0.33 | 364 | 164 |
+| QW27b (second run) | 0.590 | **0.597** | 0.597 | 0.086 | 0.33 | 368 | 168 |
+| EXT newest lines, no model | 0.180 | **0.324** | 0.475 | 0.108 | 0.92 | | |
+
+"Space used" is the rendered text's length as a share of the 1x budget (INC's length, per segment): no writer filled
+it, so the 27B's 1x and 2x rows are the same text.
+
+Paired differences at 1x (bootstrap over the 139 items, 95 % CI):
+
+| comparison | diff | CI |
+|---|---:|---|
+| INC - EXT | +0.410 | [+0.317, +0.504] |
+| HY4 - EXT / HY8 - EXT | +0.460 / +0.446 | [+0.374, +0.547] / [+0.360, +0.532] |
+| QW27a - EXT / QW27b - EXT | +0.331 / +0.273 | [+0.237, +0.424] / [+0.180, +0.367] |
+| HY4 - INC | +0.050 | [-0.036, +0.137] |
+| HY8 - INC | +0.036 | [-0.058, +0.129] |
+| QW27a - INC / QW27b - INC | -0.079 / -0.137 | [-0.180, +0.022] / [-0.237, -0.043] |
+| HY4 - QW27a / HY4 - QW27b | +0.129 / +0.187 | [+0.058, +0.201] / [+0.108, +0.266] |
+| HY8 - HY4 | -0.014 | [-0.072, +0.043] |
+
+## Predictions (descriptive, because G1 failed)
+
+| # | prediction | outcome |
+|---|---|---|
+| P1 | INC carries more than EXT | holds: +0.41 |
+| P2 | every writer carries more than EXT | holds: +0.27 to +0.46 |
+| P3 | best writer within 0.05 of INC, or above | holds: HY4 +0.05 [-0.04, +0.14] |
+| P4 | HY4 >= QW27 | holds: +0.13 and +0.19 against the two runs |
+| P5 | HY8 and HY4 within 0.05; identical ops on < half of shared prompts; word Jaccard >= 0.5 | partly: recall -0.014 and 0/48 identical hold; Jaccard 0.427 fails |
+| P6 | no personal-category content in any writer's output | holds: 0 deny-list hits in HY4, HY8, QW27a, QW27b |
+
+## Reading
+
+- **Hy-Memory keeps up with Claude Code's own summary while using 57 % of its space.** At the summary's length its
+  state carries 0.78 of the gold items against the summary's 0.73. The difference is inside the noise; the space is
+  not. Given twice the room it reaches 0.84-0.86.
+- **The specialist beats the generalist that is already serving.** Hy-Memory carries 0.13-0.19 more than Qwen3.8-27B
+  on the same prompts, at 2.5x the speed per chunk (~65 s against ~165 s). The 27B writes shorter items and fewer of
+  them, and it fills only a third of the budget.
+- **The two 27B runs differ by 0.06** on identical inputs (the daily's known bistability). That run-to-run spread is
+  as large as the gap between Hy and the summary, which is a reason not to read that gap as a ranking.
+- **Quant does not matter here, but every token changes.** Q4 and Q8 carry the same share (difference -0.014), yet
+  they produced the same ops on 0 of 48 identical prompts and share only 43 % of their words. They write different
+  memories of equal quality.
+- **Hy never managed an update.** It proposed 15-16 UPDATEs per run and every one named an item id that does not
+  exist, so all were dropped; the 27B proposed ~50, and about a third landed. No writer deleted anything. Over a long
+  session Hy's state would grow without consolidating, which matters for a live sidecar more than for this
+  per-segment test (accepting `12` for `m12` is the obvious fix to try).
+- **Verification drops 8-10 % of proposed ops** in every writer: for Hy mostly rules without a quote that matches
+  the cited human line (24 of 40 in Q4) plus the bad update ids; for the 27B mostly bad update ids (32 of 35).
+- **Privacy.** The writers never carried excluded personal content: it was redacted before they saw it. Claude Code's
+  summaries had 25 deny-list hits. Read by hand: 3 sentences in 2 segments carry personal details of the kind the
+  standing rules exclude (one quotes such a detail while instructing that it not be stored); 5 are the rules
+  themselves naming the categories; 17 are false alarms (email-shaped commit trailers, a handle containing a listed
+  word).
+- **Post hoc, not registered:** recall minus chance at 1x is HY8 0.58, HY4 0.57, QW27a 0.53, INC 0.51, QW27b 0.51,
+  EXT 0.22. The order of the writers and the summary holds; the margins shrink.
+
+## Deviations
+
+1. **Pairing key (after the first `analyze` output, before any reading).** `analyze` paired items on
+   (segment, source, id), which is not unique: repeated memory appends and several directives on one line collapsed
+   139 items into 113. The key now numbers repeats. Recall figures (from `score`) are unaffected; the paired
+   differences above use all 139 items.
+2. An interim `score` ran while QW27b was still in progress (its partial directory excluded); no code changed between
+   that and the final scoring.
+
+## Not established
+
+- **G1 failed:** the key-token match is loose enough that a text carries ~20 % of another segment's gold. Part of that
+  is real (neighbouring segments share live topics, and INC carries older material by design), but that explanation
+  is post hoc. A tighter instrument would score against a non-adjacent segment, or with a judge.
+- Gold is 73 % commit subjects: it rewards keeping specifics verbatim, which is the sidecar's design goal.
+- One session, one author, 139 items; 83 of them in two segments.
+- Writers started each segment empty; a live sidecar carries state forward, and Hy's add-only habit is untested there.
+- Whether the state helps after a real compaction (the actual use) is not measured here.

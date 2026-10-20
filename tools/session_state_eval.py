@@ -244,7 +244,13 @@ def cmd_analyze(a):
     """Registered comparisons (P1-P5) by paired bootstrap over gold items, plus the leak listing for P6."""
     import random
     per = load(EVAL / "per_item.json"); res = load(EVAL / "results.json")
-    def vec(key): return {(r["k"], r["src"], r["id"]): r["ok"] for r in per.get(key, [])}
+    def vec(key):
+        # (k, src, id) is not unique (repeated memory appends, several directives on one line): number repeats.
+        out, seen = {}, {}
+        for r in per.get(key, []):
+            t = (r["k"], r["src"], r["id"]); seen[t] = seen.get(t, 0) + 1
+            out[t + (seen[t],)] = r["ok"]
+        return out
     def diff(x, y, n=10000, seed=0):
         X, Y = vec(x), vec(y)
         ks = sorted(set(X) & set(Y)); rnd = random.Random(seed)
