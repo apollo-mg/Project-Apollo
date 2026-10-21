@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Boot diagnostics: SMVP check skipped while the orchestration layer is dormant (2026-10-21, Claude, Mark's OK)
+- `run_diagnostics.sh` no longer runs the SMVP suite unless `APOLLO_SMVP=1` or `run/smvp.enable` exists. It called
+  `.73:8082` directly (gone since llama-swap's retirement; .73 also sleeps behind the wake proxy) and truncated its
+  error at 100 characters before `EHOSTUNREACH`, so the "fleet offline" branch never matched: 54 of 54 logged runs
+  wrote a meaningless `DRIFT_WARNING.md`. The ledger-health half of the script is unchanged and still writes the
+  warning when the ledger is stale.
+
 ### Session-state sidecar: compaction as indexing (2026-10-19, Claude)
 - `tools/session_state.py` keeps a small verified memory of a long Claude Code session in
   `~/.local/share/apollo/session_state/<session>/` (local, outside the repo). A local model reads each new transcript
