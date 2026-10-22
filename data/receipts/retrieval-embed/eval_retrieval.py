@@ -62,7 +62,8 @@ def embed(name, texts, is_query, cache):
     if cache.exists(): return np.load(cache)
     from sentence_transformers import SentenceTransformer
     if name == "eg2":
-        m = SentenceTransformer(EG2, model_kwargs={}, config_kwargs={"vision_config": None, "audio_config": None})
+        import torch   # float32: the checkpoint loads as bfloat16, which is slow on CPU (decided before any scoring)
+        m = SentenceTransformer(EG2, model_kwargs={"dtype": torch.float32}, config_kwargs={"vision_config": None, "audio_config": None})
         texts = [("task: search result | query: " + t) if is_query else t for t in texts]
     else:
         m = SentenceTransformer(MINI)
