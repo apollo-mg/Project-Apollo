@@ -1,4 +1,5 @@
 import os
+import re
 import sqlite3
 import logging
 from modules.vdb import get_vector_store
@@ -43,6 +44,17 @@ def index_document(file_path: str, content: str):
             logger.error(f"Failed to add to FTS5: {e}")
         finally:
             conn.close()
+
+def fts_or_query(text: str) -> str:
+    """Plain text -> an FTS5 expression that cannot fail: OR of quoted word tokens.
+
+    Raw text in MATCH is an implicit AND of every word, and any '.', '-' or ':' is a syntax error that search_bm25
+    swallows (returns []). Measured 2026-10-22 (data/receipts/retrieval-embed/RESULT_RETRIEVAL.md): 86 % of
+    plain-English queries got nothing from BM25; this form lifted hybrid recall@6 0.76 -> 0.88. Callers that build
+    their own FTS expression (tools/daydream_links.py) keep passing it to search_bm25 directly."""
+    toks = re.findall(r"[A-Za-z0-9_]+", text)
+    return " OR ".join('"%s"' % t for t in toks)
+
 
 def search_bm25(query: str, n_results: int = 10):
     """Executes a BM25 exact keyword search using SQLite FTS5."""
@@ -141,9 +153,8 @@ def sovereign_search(query: str, n_results: int = 5):
     vector_results = search_vector(query, n_results=10)
     
     # 2. Fetch from BM25 FTS5
-    # FTS5 matches can use simple quote escaping for robustness
-    escaped_query = '"{}"'.format(query.replace('"', '""'))
-    bm25_results = search_bm25(escaped_query, n_results=10)
+    # 2026-10-22: OR of quoted tokens. The old whole-query phrase ('"<query>"') only matched verbatim phrases.
+    bm25_results = search_bm25(fts_or_query(query), n_results=10)
     
     if not vector_results and not bm25_results:
         return "No results found in Sovereign memory."

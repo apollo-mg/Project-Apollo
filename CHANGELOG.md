@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Search: the BM25 half of hybrid retrieval works again (2026-10-22, Claude, Mark's OK)
+- `modules/sovereign_search.py` gains `fts_or_query(text)`: plain text -> an FTS5 OR of quoted word tokens. Used by
+  `tools/ledger_precheck.py --deep` (it passed raw text to `MATCH`: an implicit AND of every word, and any `.`/`-`/`:`/`?`
+  a syntax error that `search_bm25` swallowed) and by `sovereign_search()` (it quoted the whole query as one exact
+  phrase). Measured in `data/receipts/retrieval-embed/RESULT_RETRIEVAL.md`: 86 % of plain-English queries got nothing
+  from BM25; with the fix hybrid recall@6 goes 0.76 -> 0.88. `search_bm25` itself is unchanged, so callers that build
+  their own expression (`tools/daydream_links.py`) are unaffected.
+- EmbeddingGemma 2 as the vector half is measured (+0.02 recall, +0.07 MRR on top of the fix) but NOT adopted: it needs
+  sentence-transformers >= 6.1 (the project venv has 5.3) and a 42-minute CPU re-embed; it lives in
+  `/mnt/TG_2TB/toolchains/embed-venv` for now.
+
 ### Boot diagnostics: SMVP check skipped while the orchestration layer is dormant (2026-10-21, Claude, Mark's OK)
 - `run_diagnostics.sh` no longer runs the SMVP suite unless `APOLLO_SMVP=1` or `run/smvp.enable` exists. It called
   `.73:8082` directly (gone since llama-swap's retirement; .73 also sleeps behind the wake proxy) and truncated its

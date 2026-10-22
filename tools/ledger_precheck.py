@@ -95,9 +95,9 @@ def main(a):
         try:
             r = subprocess.run([str(ROOT / "venv_cachyos/bin/python3"), "-c", f"""
 import sys; sys.path.insert(0, {str(ROOT)!r})
-from modules.sovereign_search import search_bm25, search_vector, rrf_fusion_weighted
+from modules.sovereign_search import search_bm25, search_vector, rrf_fusion_weighted, fts_or_query
 q = {a.query!r}
-b = search_bm25(q, 12)
+b = search_bm25(fts_or_query(q), 12)   # raw text in MATCH failed on 86 % of plain-English queries (retrieval-embed)
 v = search_vector(q, 12)
 fused = rrf_fusion_weighted([b, v], k=60)
 items = sorted(fused.values(), key=lambda r: -r['score']) if isinstance(fused, dict) else fused
