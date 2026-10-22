@@ -49,7 +49,10 @@ def scan(path, words, label):
     for n, line in enumerate(path.read_text(errors="replace").splitlines(), 1):
         low = line.lower()
         matched = {w for w in words if w in low}
-        if len(matched) >= 2 or (len(matched) == 1 and len(next(iter(matched))) >= 7):
+        # A one-word query asked for exactly that word: count it at any length >= 4. (2026-10-22: "Ornith", 6
+        # letters, returned "No prior art" while INDEX.md named it 8 times.) Multi-word queries keep the >= 7 rule.
+        rare = 4 if len(words) == 1 else 7
+        if len(matched) >= 2 or (len(matched) == 1 and len(next(iter(matched))) >= rare):
             if line.strip() and not line.strip().startswith(("#", "---", "**Why", "| finding")):
                 hits.append((label, n, line.strip(), len(matched)))
     hits.sort(key=lambda h: -h[3])
