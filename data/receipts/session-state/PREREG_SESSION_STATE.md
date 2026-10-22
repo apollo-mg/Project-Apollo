@@ -75,3 +75,27 @@ Budgets: every arm except INC is rendered at 0.5x, 1x and 2x INC's length for th
 
 Gold, arm texts and per-item scores contain private session content and stay in
 `~/.local/share/apollo/session_state_eval/` (local). Only aggregate numbers are committed.
+
+## Addendum 1 -- Recursive Flint as a writer (registered 2026-10-21, before any Flint row)
+
+**Prior art checked:** `ledger_precheck.py "Flint session state memory writer instruction following"` -> this
+instrument's own result (`RESULT_SESSION_STATE.md`); nothing on Flint. **What this adds:** a fourth writer, chosen
+because its published strength is instruction following (IFBench 89.2), the failure seen in the registered arms (Hy
+ignored "one fact per item" and never landed an UPDATE; the 27B misread one item).
+
+- **Arm FL8:** Recursive Flint (40B total, 2.5B active, `FlintForCausalLM`, Apache-2.0, released 2026-10-21),
+  Unsloth `flint-Q8_0.gguf` (sha256 `5df42b56859c7b51...`, verified before use), on .194 4x P100 at the HY arms'
+  placement (`-sm layer -np 1 -c 32768`, F16 KV), fresh upstream llama.cpp build (the registered `f74e2fa` predates
+  Flint support; the build commit is recorded in the result). Thinking off by whatever switch its template exposes
+  (recorded); greedy, as all arms.
+- **Same writer code as the registered arms:** `session_state.py` at `67328fda`, pinned via `SESSION_STATE_PY`
+  (later fixes to update ids and number marking are NOT used, so FL8 is comparable to HY4/HY8/QW27).
+- **Same gold, scorer, budgets and analysis** (`analyze` at `2fa436cf` + Deviation 1's pairing key). G1 already failed
+  for the registered arms, so FL8's comparisons are descriptive too. G3-style determinism: segment 80 run twice.
+
+| # | prediction (descriptive) |
+|---|---|
+| F1 | FL8 carries at least as much as HY4 at 1x (within -0.05) |
+| F2 | FL8 lands more UPDATEs than Hy's zero (instruction following) |
+| F3 | FL8 at the 27B's length per segment carries more than the 27B (selection, not volume) |
+| F4 | no personal-category content in FL8's output |

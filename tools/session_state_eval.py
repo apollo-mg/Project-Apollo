@@ -182,7 +182,9 @@ def cmd_arm_writer(a):
         out = EVAL / a.name / f"seg{k}"
         if (out / "replay.json").exists(): print(k, "done"); continue
         if out.exists(): subprocess.run(["rm", "-rf", str(out)])   # a partial state from an interrupted run
-        cmd = [sys.executable, str(ROOT / "tools/session_state.py"), "replay", "--transcript", T,
+        # SESSION_STATE_PY pins a frozen writer (an addendum arm must run the code the registered arms ran)
+        ss = os.environ.get("SESSION_STATE_PY", str(ROOT / "tools/session_state.py"))
+        cmd = [sys.executable, ss, "replay", "--transcript", T,
                "--start-byte", str(segs[k]["start"]), "--end-byte", str(segs[k]["end"]), "--out", str(out),
                "--host", a.host, "--template-kwargs", a.template_kwargs, "--save-io"]
         t0 = time.time()
