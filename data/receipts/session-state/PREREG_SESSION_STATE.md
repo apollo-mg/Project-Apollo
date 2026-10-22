@@ -99,3 +99,12 @@ ignored "one fact per item" and never landed an UPDATE; the 27B misread one item
 | F2 | FL8 lands more UPDATEs than Hy's zero (instruction following) |
 | F3 | FL8 at the 27B's length per segment carries more than the 27B (selection, not volume) |
 | F4 | no personal-category content in FL8's output |
+
+**Addendum 1, Deviation 1 (before any test-segment row): the thinking switch is a server flag.** Flint's template has
+no thinking switch (generation starts at `<|assistant|>`). With the writer's JSON grammar it still reasoned first
+(1,033 reasoning characters on a smoke request), and on the dev slice the frozen writer's 3,000-token cap ran out
+before the JSON finished. An empty `<think></think>` assistant prefill (the Qwen-style off switch) is rejected together
+with a JSON grammar (`Failed to initialize samplers`). The server runs with `--reasoning-budget 0` instead (the
+sampler ends thinking immediately); verified: reasoning_content empty, 48 tokens on the smoke request, and the dev
+slice completed (1 chunk, 33 s, 1,076 completion tokens). Server build: upstream llama.cpp `c7fc509` (2026-10-21).
+`flint-Q8_0.gguf` sha256 verified (`5df42b56859c7b51...`). Template kwargs `{}`.
