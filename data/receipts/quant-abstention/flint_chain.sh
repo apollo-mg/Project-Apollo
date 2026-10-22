@@ -28,6 +28,7 @@ if [ ! -f $Q/raw/FLINT_STOP ]; then
   if smoke 1 >> $LOG 2>&1; then log "FLTK smoke OK"; run_arm FLTK 8192 3600; else log "FLTK SMOKE GATE FAILED: arm not run"; fi
 fi
 cd $Q; $PY -s analyze_flint.py >> $LOG 2>&1; log "analysis rc=$?"
-ssh mark@10.0.0.194 'P=$(cat ~/bench/hymem-1019/server.pid); [ "$(readlink /proc/$P/exe)" = "$HOME/llama.cpp-flint/build_sm60/bin/llama-server" ] && kill $P'
+# wait for the server to EXIT before powering off: s194.sh refuses while any llama-server runs (10-22: it raced the kill)
+ssh mark@10.0.0.194 'P=$(cat ~/bench/hymem-1019/server.pid); [ "$(readlink /proc/$P/exe)" = "$HOME/llama.cpp-flint/build_sm60/bin/llama-server" ] && kill $P && timeout 60 tail --pid=$P -f /dev/null'
 timeout 120 $R/tools/s194.sh off >> $LOG 2>&1
 log "DONE"
