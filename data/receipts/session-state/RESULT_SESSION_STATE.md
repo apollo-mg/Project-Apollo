@@ -117,3 +117,39 @@ At matched length the 0.13-0.19 gap disappears; Hy still matches more of the wro
 - One session, one author, 139 items; 83 of them in two segments.
 - Writers started each segment empty; a live sidecar carries state forward, and Hy's add-only habit is untested there.
 - Whether the state helps after a real compaction (the actual use) is not measured here.
+
+## Addendum 1 result -- Recursive Flint (FL8): follows the format, carries less
+
+**Run (2026-10-21 22:39 -> 23:26):** Flint Q8_0 (sha256 verified) on .194 4x P100, upstream llama.cpp `c7fc509`,
+`--reasoning-budget 0` (Addendum 1 Deviation 1), the frozen writer `67328fda`. 48 chunks, **58 s per chunk** (Hy
+~65, the 27B ~165). G3: segment 80 re-run identical.
+
+| arm | 0.5x | **1x** | 2x | chance at 1x | items | UPDATEs landed | ops dropped |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| FL8 Flint Q8 | 0.410 | **0.597** | 0.612 | 0.151 | 724 | 13 | 19 % (165 of them uncited) |
+| HY4 (registered) | 0.604 | 0.784 | 0.835 | 0.216 | 456 | 0 | 8 % |
+| QW27a / QW27b | | 0.655 / 0.597 | | 0.129 / 0.086 | 364 / 368 | ~17 each | 8-10 % |
+| INC Claude summary | | 0.734 | | 0.223 | | | |
+
+Paired at 1x: FL8 - HY4 **-0.187 [-0.266, -0.108]**; FL8 - INC -0.137 [-0.237, -0.036]; FL8 - QW27a -0.058
+[-0.137, +0.029]; FL8 - QW27b 0.000 [-0.086, +0.086].
+
+| # | prediction | outcome (descriptive: G1 failed for the registered arms) |
+|---|---|---|
+| F1 | FL8 within 0.05 of HY4 or above | **does not hold**: -0.19 |
+| F2 | FL8 lands UPDATEs (Hy landed 0) | **holds**: 13 landed, 10 dropped (unknown ids); it also tried 33 DELETEs, all on unknown ids |
+| F3 | at the 27B's length, FL8 carries more than the 27B | **does not hold**: 0.468 vs 0.655 (QW27a length), 0.511 vs 0.597 (QW27b) |
+| F4 | no personal-category content | **holds**: 0 deny-list hits |
+
+**Reading.**
+- **Flint follows the format and does the bookkeeping:** one fact per item (Hy packed several), and it is the only
+  writer besides the 27B that landed updates.
+- **But it carries the fewest specifics per character of any writer.** It writes the most items (724) and fills the
+  budget in the gold-heavy segments, yet at every matched length it trails Hy and the 27B. Its items are wordier
+  ("Mark approved ...") and keep fewer of the numbers, paths and names the gold is made of.
+- **It cites badly:** 165 proposed items (19 %) were dropped for citing lines it had not been shown, twice the other
+  writers' rate.
+- **IFBench-style instruction following is not extraction fidelity.** Its published strength (format compliance)
+  shows here; the skill this instrument rewards (keeping exact specifics, citing correctly) does not.
+- **Caveat that matters:** Flint ran with thinking OFF, as every arm did, while its published scores average five
+  sampled runs with thinking. It may do better as the reasoning model it is; that is a different, slower arm.
