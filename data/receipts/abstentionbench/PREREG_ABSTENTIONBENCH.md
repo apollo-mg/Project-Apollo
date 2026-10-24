@@ -48,3 +48,60 @@ text with the `[GROUND TRUTH ABSTENTION LABEL]: {abstention_label}` line and its
 
 New-model arms (the .73 Qwen3.8-27B with thinking off vs on, quant pairs) are registered in an addendum after the gate
 result, with the judge variant chosen here.
+
+## Addendum 1 -- a reference-free judge and a blinded adjudication (registered 2026-10-24, after the gate, before any norefs verdict or adjudication label)
+
+**Observed so far (Arm 1, Llama 3.1 8B Instruct Q8_0, 2,004 items, 0 errors):** gate G passes (mean |dF1| 0.069,
+Spearman 0.922 over the 18 unsplit datasets). J1-J3 hold: exact and blind differ on 204 items (0.102), 198 of them
+toward the label, mean F1 exact minus blind 0.119.
+
+**What J2/J3 do and do not show.** The flips are symmetric (100 should-answer items moved to "not an abstention", 98
+should-abstain items to "abstention"), which is what a label-following judge produces. Because F1 here is agreement
+with the label, J3 follows almost mechanically from J2. Neither says which judge is RIGHT; the prompt itself calls the
+label noisy, and it could be correcting a noisy blind judge. That is what this addendum tests.
+
+**Finding while reading the items after the gate (no verdicts involved): blind is not blind.** On 12 of the 21
+datasets (ALCUNA, BBQ, BB/Disambiguate, BB/Known unknowns, KUQ, MediQ, MoralChoice, QASPER, SelfAware, SituatedQA/Geo,
+SQuAD 2.0, UMWP; 1,146 items) an empty reference list marks exactly the should-abstain items, and the prompt tells the
+judge to "mostly rely on the [QUESTION] and [REFERENCE ANSWERS] to determine the label". So 0.119 is a lower bound
+on what the answer key does to the verdicts there. (The datasets are computed mechanically in `analyze_abench.py`.)
+
+**Deviation 1 (operational).** Attempt 1 was killed at 411 subject rows by systemd-oomd (2026-10-23 22:32): the
+server's default 8 GiB host-RAM prompt cache filled even with `cache_prompt: false`, on a desktop already deep in
+swap. Rerun from row 1 with `--cache-ram 0`, launched with `systemd-run` outside the session's cgroup. The 411 rows
+were discarded, not merged (kept locally in `raw/attempt1_oom/`). Outputs should be unaffected; the cache only stores
+states and no request asked for reuse.
+
+### Arm 1c: norefs judge
+
+Same server, same stored responses, Meta's prompt with the label AND the references removed (exact edits in
+`judge_abench.py --variant norefs`; the run aborts if either is still named).
+
+| # | prediction |
+|---|---|
+| N1 | mean F1 over datasets: blind minus norefs >= 0.03 (the reference cue carries label information the judge uses) |
+| N2 | blind minus norefs is larger on the 12 ref-leaky datasets than on the other 9 |
+
+### Blinded adjudication: which judge is right where they disagree
+
+- **Frame:** items where the exact, blind and norefs verdicts are not unanimous. 40 per label stratum
+  (should-abstain, should-answer), at most 4 per dataset per stratum, plus 10 unanimous controls per stratum (at most 2
+  per dataset); seed 20261024; drawn once by `adjudicate.py sample`.
+- **Adjudicator:** Claude Opus 5.5 (the model running this session), shown only the question and the model's answer (over
+  3,000 characters: first 1,800 + last 1,000), in shuffled order, with no label, references, verdicts or dataset name.
+  It decides by Meta's own definition of abstention (the norefs prompt text) and may mark an item unclear. Labels are
+  written to `raw/LLAMA8.adj_labels.jsonl` before the key is opened. It is a stronger model than the judge, not a human;
+  that is a stated limit.
+
+| # | prediction |
+|---|---|
+| A1 | on disagreement items, the norefs verdict agrees with the adjudicator at least as often as the exact verdict |
+| A2 | on unanimous controls, the adjudicator agrees with the unanimous verdict on >= 0.9 of items |
+
+**Decision rule for later arms (registered now):** the primary judge is norefs, unless exact's agreement with the
+adjudicator on disagreement items exceeds norefs' by >= 0.10 (a label-aware judge pulls every arm toward the key, which
+compresses differences between arms). Exact is always reported second, for comparability with Meta's tables. If more
+than 20 % of the sample is marked unclear, norefs is primary and the adjudication is reported as inconclusive.
+
+**Public repo:** `raw/` stays local (item text; GPQA's terms forbid publishing its examples). Committed: scripts,
+aggregates, and a per-item verdict table with no question or answer text.

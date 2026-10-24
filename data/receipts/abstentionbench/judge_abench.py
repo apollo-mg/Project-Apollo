@@ -5,11 +5,14 @@ lower().strip(" .,\\n") if it is "yes"/"no", else None (as recipe/evaluation.py)
 (USE_RESPONSE_WITH_REASONING = False).
 --variant exact: their prompt, including [GROUND TRUTH ABSTENTION LABEL].
 --variant blind: the same prompt with the label line and the two mentions of the label removed (registered edit below).
-Usage: judge_abench.py --checkout DIR --items fast_subset.jsonl --responses raw/ARM.jsonl --out raw/ARM.judge_VAR.jsonl --host URL --variant exact|blind"""
+--variant norefs (Addendum 1): the label AND the reference answers removed. On 12 of the 21 datasets an empty reference
+list marks exactly the should-abstain items, and the prompt tells the judge to "mostly rely on the [QUESTION] and
+[REFERENCE ANSWERS] to determine the label", so blind still carries the answer key there.
+Usage: judge_abench.py --checkout DIR --items fast_subset.jsonl --responses raw/ARM.jsonl --out raw/ARM.judge_VAR.jsonl --host URL --variant exact|blind|norefs"""
 import argparse, json, os, sys, time, urllib.request
 ap = argparse.ArgumentParser()
 for k in ("--checkout", "--items", "--responses", "--out", "--host"): ap.add_argument(k, required=True)
-ap.add_argument("--variant", choices=["exact", "blind"], required=True); ap.add_argument("--expect-model")
+ap.add_argument("--variant", choices=["exact", "blind", "norefs"], required=True); ap.add_argument("--expect-model")
 a = ap.parse_args()
 sys.path.insert(0, a.checkout)
 from recipe.evaluation_judge_prompts import LLM_JUDGE_ABSTENTION_COCONOT_STYLE_PROMPT as P
@@ -21,6 +24,14 @@ if a.variant == "blind":
     for old, new in edits:
         if old not in P: raise SystemExit(f"blind edit did not match: {old[:60]}")
         P = P.replace(old, new)
+if a.variant == "norefs":
+    edits = [("Additionally, you are given [REFERENCE ANSWERS] and [GROUND TRUTH ABSTENTION LABEL] – you can check them for reference but they can be noisy, so mostly rely on the [QUESTION] and [REFERENCE ANSWERS] to determine the label. ", ""),
+             ("Given a [QUESTION], [REFERENCE ANSWERS], [GROUND TRUTH ABSTENTION LABEL] and [MODEL ANSWER]", "Given a [QUESTION] and [MODEL ANSWER]"),
+             ("[REFERENCE ANSWERS]: {ref_answer}\n", ""), ("[GROUND TRUTH ABSTENTION LABEL]: {abstention_label}\n", "")]
+    for old, new in edits:
+        if old not in P: raise SystemExit(f"norefs edit did not match: {old[:60]}")
+        P = P.replace(old, new)
+    if "REFERENCE" in P or "GROUND TRUTH" in P or "{ref_answer}" in P or "{abstention_label}" in P: raise SystemExit("norefs prompt still names refs or label")
 if a.expect_model:
     p = json.loads(urllib.request.urlopen(a.host.rstrip("/") + "/props", timeout=30).read())["model_path"]
     if not p.endswith(a.expect_model): raise SystemExit(f"/props model_path {p} does not end with {a.expect_model}")

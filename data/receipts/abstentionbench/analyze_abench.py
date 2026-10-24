@@ -2,6 +2,8 @@
 """PREREG_ABSTENTIONBENCH analysis. Per dataset: precision / recall / F1 with abstention as the positive class
 (sklearn semantics, as analysis/tables.py), judge verdict None dropped and counted. Gate: our Llama 3.1 8B Instruct
 (exact judge) vs Meta's published rows on the 18 datasets reported unsplit. Judge leakage: exact vs blind verdicts.
+Addendum 1: norefs variant; every pair of variants compared, overall and split into the datasets whose empty
+reference list marks exactly the should-abstain items ("ref-leaky") and the rest.
 Usage: analyze_abench.py --checkout DIR --arm ARM [--out RESULT_ARM.json]"""
 import argparse, csv, json, statistics as st
 from pathlib import Path
@@ -25,7 +27,8 @@ ap = argparse.ArgumentParser(); ap.add_argument("--checkout", required=True); ap
 ap.add_argument("--out"); ap.add_argument("--published-model", default="Llama 3.1 8B Instruct")
 a = ap.parse_args()
 out = {"arm": a.arm}
-for var in ("exact", "blind"):
+VARS = ("exact", "blind", "norefs")
+for var in VARS:
     p = HERE / "raw" / f"{a.arm}.judge_{var}.jsonl"
     if not p.exists(): continue
     J = load(p); none = sum(1 for r in J.values() if r["verdict"] is None)
@@ -51,7 +54,25 @@ if "exact" in out and "blind" in out:
     out["leakage"] = {"n": len(keys), "flips": len(flips), "flip_rate": round(len(flips) / max(1, len(keys)), 3),
                       "flips_where_exact_agrees_with_label": toward,
                       "mean_f1_exact_minus_blind": round(out["exact"]["mean_f1_over_datasets"] - out["blind"]["mean_f1_over_datasets"], 3)}
+items = [json.loads(l) for l in open(Path(a.checkout) / "fast_subset.jsonl")]
+dsets = sorted({r["dataset"] for r in items})
+leaky = [ds for ds in dsets if all(bool(r["should_abstain"]) == (not r.get("reference_answers")) for r in items if r["dataset"] == ds)]
+out["ref_leaky_datasets"] = leaky
+J = {v: load(HERE / "raw" / f"{a.arm}.judge_{v}.jsonl") for v in VARS if (HERE / "raw" / f"{a.arm}.judge_{v}.jsonl").exists()}
+def mean_f1(v, subset):
+    return st.mean(prf([(bool(r["should_abstain"]), bool(r["verdict"])) for (ds, i), r in J[v].items() if ds == d and r["verdict"] is not None])[2] for d in subset)
+out["pairs"] = {}
+for x, y in (("exact", "blind"), ("exact", "norefs"), ("blind", "norefs")):
+    if x not in J or y not in J: continue
+    res = {}
+    for name, subset in (("all", dsets), ("ref_leaky", leaky), ("other", [d for d in dsets if d not in leaky])):
+        keys = [k for k in J[x] if k[0] in subset and k in J[y] and J[x][k]["verdict"] is not None and J[y][k]["verdict"] is not None]
+        fl = [k for k in keys if J[x][k]["verdict"] != J[y][k]["verdict"]]
+        res[name] = {"n_datasets": len(subset), "n": len(keys), "flips": len(fl), "flip_rate": round(len(fl) / max(1, len(keys)), 3),
+                     f"flips_where_{x}_agrees_with_label": sum(1 for k in fl if J[x][k]["verdict"] == bool(J[x][k]["should_abstain"])),
+                     f"mean_f1_{x}_minus_{y}": round(mean_f1(x, subset) - mean_f1(y, subset), 3)}
+    out["pairs"][f"{x}_vs_{y}"] = res
 json.dump(out, open(a.out or HERE / f"RESULT_{a.arm}.json", "w"), indent=1)
-print(json.dumps({k: v for k, v in out.items() if k not in ("exact", "blind")}, indent=1)[:3000])
-for var in ("exact", "blind"):
+print(json.dumps({k: v for k, v in out.items() if k not in VARS + ("gate",)}, indent=1)[:4000])
+for var in VARS:
     if var in out: print(var, "pooled", out[var]["pooled"], "mean F1", out[var]["mean_f1_over_datasets"], "None", out[var]["none_verdicts"])
