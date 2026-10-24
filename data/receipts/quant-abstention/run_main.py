@@ -51,7 +51,9 @@ def main():
     ap.add_argument("--usage", action="store_true", help="2026-10-17: record the generation's usage, timings and wall time per row (gen_usage, gen_tps, gen_elapsed_s); default off, so earlier arms are unchanged")
     ap.add_argument("--timeout", type=float, default=600, help="2026-10-17: HTTP timeout in seconds (default 600 as before; long reasoning budgets need more)")
     ap.add_argument("--thinking", action="store_true", help="2026-10-16: R-gen with enable_thinking true (R-slot stays thinking-off); default off, so earlier arms are unchanged")
+    ap.add_argument("--system", default=None, help="2026-10-24: a system message sent before the CAL prompt in R-slot and R-gen (Sage's verification flag requires one); default none, so earlier arms are unchanged")
     a = ap.parse_args()
+    SYS = [{"role": "system", "content": a.system}] if a.system else []
     items = [json.loads(l) for l in open(HERE / "corpus" / f"{a.corpus}.jsonl")]
     out = HERE / "raw" / (f"main_{a.arm}.jsonl" if a.corpus == "M1" else f"main_{a.arm}.{a.corpus}.jsonl")
     out.parent.mkdir(exist_ok=True)
@@ -70,7 +72,7 @@ def main():
         print("WARNING: a variant is not a single token after 'Exact Answer:':", var_ids, flush=True)
 
     def render(q):
-        msgs = [{"role": "user", "content": PROMPT.format(q=q)}]
+        msgs = SYS + [{"role": "user", "content": PROMPT.format(q=q)}]
         return c.post(f"{a.url}/apply-template", json={"messages": msgs,
                       "chat_template_kwargs": {"enable_thinking": False, **json.loads(a.template_kwargs)}}).json()["prompt"]
 
@@ -79,7 +81,7 @@ def main():
     def rgen(q):
         t0 = time.time()
         r = c.post(f"{a.url}/v1/chat/completions", json={
-            "messages": [{"role": "user", "content": PROMPT.format(q=q)}], "temperature": 0, "max_tokens": a.max_tokens,
+            "messages": SYS + [{"role": "user", "content": PROMPT.format(q=q)}], "temperature": 0, "max_tokens": a.max_tokens,
             "cache_prompt": False, "chat_template_kwargs": {"enable_thinking": bool(a.thinking), **json.loads(a.template_kwargs)}})
         r.raise_for_status()
         d = r.json()
@@ -100,7 +102,7 @@ def main():
     with open(out, "a") as f:
         if not done:
             p = render("Q")
-            hdr = {"header": True, "arm": a.arm, "corpus": a.corpus, "max_tokens": a.max_tokens, "thinking": bool(a.thinking), "template_kwargs": json.loads(a.template_kwargs), "skip_slot": bool(a.skip_slot), **({"usage": True, "timeout": a.timeout} if a.usage else {}),
+            hdr = {"header": True, "arm": a.arm, "corpus": a.corpus, "max_tokens": a.max_tokens, "thinking": bool(a.thinking), "template_kwargs": json.loads(a.template_kwargs), "skip_slot": bool(a.skip_slot), **({"system": a.system} if a.system else {}), **({"usage": True, "timeout": a.timeout} if a.usage else {}),
                    "meta": json.loads(a.meta), "variant_ids": var_ids,
                    "render_tail": p[-60:], "props": c.get(f"{a.url}/props").json().get("default_generation_settings", {}),
                    "started": time.strftime("%Y-%m-%dT%H:%M:%S%z")}
