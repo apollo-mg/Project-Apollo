@@ -105,3 +105,42 @@ than 20 % of the sample is marked unclear, norefs is primary and the adjudicatio
 
 **Public repo:** `raw/` stays local (item text; GPQA's terms forbid publishing its examples). Committed: scripts,
 aggregates, and a per-item verdict table with no question or answer text.
+
+## Addendum 2 -- Qwen3.8-27B with thinking off vs on (registered 2026-10-24, before any 27B answer on a benchmark item)
+
+**Prior art checked:** `ledger_precheck.py "thinking reasoning abstention refusal 27B"` -> on the M1 instrument, thinking on
+lifted Bolt's refusal of invented items 0.16 -> 0.52 (`quant-abstention/RESULT_BOLT_THINK*`), moved Flint's 0.45 -> 0.39
+(n.s.), and Beam's reasoning effort bought nothing. Meta's README states: "reasoning fine-tuning hurts abstention,
+resulting in reasoning models that respond over-confidently and rarely abstain." That claim compares fine-tuned reasoning
+models with their instruct bases. **What this adds:** the other intervention, thinking switched on and off inside ONE
+hybrid model on the same weights, on Meta's benchmark, judged by the instrument Addendum 1 selected.
+
+**Subject:** Qwen3.8-27B Q6_K as served daily on .73 (buun `510cbbbfa`, VBR KV, MTP draft 3, `-np 2`), reached through
+the wake proxy (one stream, so Hermes keeps the other slot; requests marked `x-apollo-guest`). Not seed-reproducible in
+general (VBR np 2 is bistable); sampling is at T 0.8 anyway.
+
+| arm | how |
+|---|---|
+| Q27OFF | chat endpoint, `enable_thinking: false`, max_tokens 4,000 (Meta's non-reasoning settings) |
+| Q27ON | Meta's reasoning protocol (`VLLMReasoningChatModelBase`): reasoning up to 4,000 tokens, stopped at `</think>` or cut and closed; then the answer up to 4,000 tokens. `reasoning_effort: "medium"`, the only value verified (via `/apply-template`, 2026-10-24) to add no system text; `xhigh`/`high` inject "validate key assumptions..." |
+
+Both: T 0.8, top_p 0.95, no system prompt, `cache_prompt: false`. **Deviation from Meta, stated now:** no `Final Answer: `
+prefix on Q27ON's judged text, so the judge sees the same kind of input from both arms. Plumbing checked on two
+non-benchmark questions only (`run_q27_pairs.py`).
+
+**Order and stopping rule:** each item runs OFF then ON back to back, items in a seeded random order (20261024), so both
+arms share server state and a stopped run leaves a random sample. Stop at all 2,004 pairs or 2026-10-26 12:00 EDT,
+whichever comes first. Analysis uses completed pairs only (both arms answered, both verdicts parse). Estimated ~50 h at
+~21 tok/s.
+
+**Judges:** norefs (primary, per Addendum 1's rule) and exact (second): Llama 3.1 8B Instruct Q8_0 on the 9070, the same
+build and flags. **Analysis:** `compare_arms.py`, paired bootstrap over items within datasets (10,000 resamples).
+
+| # | prediction |
+|---|---|
+| R1 | Meta's direction applied to the toggle: under norefs, thinking ON lowers pooled recall (abstention on should-abstain items) by >= 0.05, CI excluding 0. Our own Bolt result points the other way. |
+| R2 | the key-reading judge compresses the arm difference: \|ON - OFF mean F1\| under exact < under norefs |
+| R3 | median reasoning tokens are higher on should-abstain items than on should-answer items (Bolt: refusals thought ~4x longer) |
+
+Reported regardless: forced reasoning cuts by label, Q27OFF rows carrying any reasoning (more than 1 % invalidates that
+arm), errors, and per-dataset F1 for both arms. `raw/` stays local as before.
