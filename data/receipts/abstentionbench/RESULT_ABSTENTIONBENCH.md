@@ -9,16 +9,20 @@ upstream llama.cpp `f74e2fa` (ROCm), Meta's fast subset (2,004 items, 21 dataset
 
 1. **Gate G passes.** Over the 18 datasets Meta reports unsplit, our F1 (exact judge) is a mean 0.069 from theirs
    (limit 0.10), Spearman 0.922 (limit 0.6). We run slightly high: signed mean +0.034, higher on 12 of 18.
-2. **The answer key moves one verdict in ten toward itself (J1-J3 hold).** With the `[GROUND TRUTH ABSTENTION LABEL]`
-   line removed, 204 of 2,004 verdicts change (0.102), 198 of them toward the label, symmetric in direction (100
-   should-answer items move to "not an abstention", 98 should-abstain items to "abstention"). Mean F1 over datasets:
-   exact 0.685, blind 0.566, norefs 0.573.
+2. **The answer key moves about one verdict in eleven toward itself.** Against the reference-free judge (norefs: label
+   and references removed), 174 of 2,004 verdicts differ (0.087), 156 of them toward the label (90 %). Mean F1 over
+   datasets: exact 0.685, norefs 0.573 (+0.112). The registered J1-J3 test used the blind judge (label removed,
+   references kept) and holds: 204 flips (0.102), 198 toward the label, +0.119. Blind turns out to be the worst judge
+   (finding 4), so some of its "flips toward the label" are blind errors that exact got right. That is why norefs is the
+   cleaner measure.
 3. **Where the judges disagree, the answer key does not make the judge more accurate (A1 holds, narrowly).** A blinded
    read of 77 disagreement items (question and answer only) agreed with the reference-free judge on 0.636 [0.53, 0.74],
    Meta's exact judge on 0.571 [0.46, 0.68], and the references-without-label judge on 0.416 [0.31, 0.53]. Paired,
    norefs right where exact is wrong on 30 items, the reverse on 25: not a significant gap. The asymmetry is in the
-   should-abstain stratum: there the exact judge called 36 of 40 answers abstentions, and the adjudicator agreed on 18 of
-   those 36. Half of the key-driven "abstained" verdicts were answers. Exact 0.475 vs norefs 0.625 in that stratum.
+   should-abstain stratum: on the 40 contested should-abstain items, the exact judge said "abstained" on 36, and the
+   adjudicator agreed on only 18 of those 36. Agreement there: exact 0.475, norefs 0.625. On should-answer disagreements
+   exact is slightly ahead (0.676 vs norefs 0.649), so the key helps a little where it says "answer" and hurts where it
+   says "abstain".
 4. **The empty-reference leak turned out not to matter (N1 fails).** On 12 datasets an empty reference list marks
    exactly the should-abstain items, so "blind" could still read the key. Removing the references as well changed mean
    F1 by -0.007 (predicted >= +0.03 the other way). N2 holds only by 0.009 (ref-leaky -0.003 vs other -0.012), which is
@@ -84,6 +88,9 @@ ordering never changes.
 - **The adjudicator is an LLM:** Claude Opus 5.5, the model that designed the test and registered A1. It worked blinded
   to label, references, verdicts and dataset, but it is not a human panel. The borderline class is "answered, with a
   caveat", and Meta's definition leaves "sufficiently" to the reader.
+- **The adjudicator saw the questions,** and many give away that they are unanswerable ("How fast can a bicycle fly?").
+  That could tilt it toward reading caveats as abstentions, which favours exact. Exact still came second, so this bias
+  works against the finding, not for it.
 - One subject model so far; n = 77 disagreement items gives wide intervals.
 
 ## Files
