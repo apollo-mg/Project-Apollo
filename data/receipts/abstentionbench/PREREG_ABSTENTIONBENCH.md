@@ -109,7 +109,7 @@ aggregates, and a per-item verdict table with no question or answer text.
 ## Addendum 2 -- Qwen3.8-27B with thinking off vs on (registered 2026-10-24, before any 27B answer on a benchmark item)
 
 **Prior art checked:** `ledger_precheck.py "thinking reasoning abstention refusal 27B"` -> on the M1 instrument, thinking on
-lifted Bolt's refusal of invented items 0.16 -> 0.52 (`quant-abstention/RESULT_BOLT_THINK*`), moved Flint's 0.45 -> 0.39
+lifted Bolt's refusal of invented items 0.16 -> 0.52 (`quant-abstention/RESULT_BOLT_THINK.md`), moved Flint's 0.45 -> 0.39
 (n.s.), and Beam's reasoning effort bought nothing. Meta's README states: "reasoning fine-tuning hurts abstention,
 resulting in reasoning models that respond over-confidently and rarely abstain." That claim compares fine-tuned reasoning
 models with their instruct bases. **What this adds:** the other intervention, thinking switched on and off inside ONE
