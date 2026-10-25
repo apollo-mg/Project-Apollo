@@ -1,4 +1,4 @@
-# RESULT: Sage-A1.5 knows more than the dense 27B but confabulates more, and its fine-tune lineage is what cost the honesty
+# RESULT: Sage-A1.5 recalls more obscure facts than the dense 27B but confabulates more, and its fine-tune lineage is what cost the honesty
 
 **Prereg:** `PREREG_SAGE.md` (`8ba98077`), Addendum 1 (`0db665b6`, sampled thinking arms; results appended when they land).
 **Host:** .194 4x P100 at the default 1,063 MHz, 150 W, upstream llama.cpp `c7fc509` build_sm60, `-sm layer`, F16 KV,
