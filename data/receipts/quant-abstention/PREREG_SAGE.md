@@ -57,3 +57,30 @@ speed.
 
 A server death resumes on a fresh server (run_main.py skips written ids), recorded. A failed template check or smoke
 gate stops that arm.
+
+## Addendum 1 -- Verification Mode under Sage's recommended sampling (registered 2026-10-25, before any sampled row)
+
+**Why.** Under the instrument's greedy decoding, Sage's thinking loops: SGTHK finished with 175 of 240 answers at the
+8,192-token cap, repeating "Wait, I'll check if the prompt requires me to output the thought process. No. Okay." (P5
+fails). The SGVER arm, about a quarter done, is looping too, so the registered P4 comparison will be dominated by
+runaways. Qwen's guidance warns against greedy decoding in thinking mode, and Sage's card recommends T 1.0, top_p 0.95,
+top_k 20, min_p 0, presence_penalty 1.5. The greedy arms are finishing as registered, and these two arms repeat the
+verification test under the vendor's sampling.
+
+| arm | as | sampling |
+|---|---|---|
+| SGTHK1 | SGTHK (thinking on, system "You are a helpful assistant.", `{"verification": false}`, 8,192 tokens) | `{"temperature": 1.0, "top_p": 0.95, "top_k": 20, "min_p": 0.0, "presence_penalty": 1.5}`, per-item seed `(20261025 + crc32(id)) mod 2^31` |
+| SGVER1 | SGVER (`{"verification": true}`) | the same, the same seeds |
+
+One sample per item and arm (K=1, so per-item outcomes are noisy; the rates are compared by paired bootstrap over items).
+The R-slot readout stays greedy. Same server, build and placement as the registered arms; the chain starts after the
+registered chain has finished and powered .194 off. `run_main.py --sampling` (default none = greedy, so earlier arms
+are unchanged).
+
+| # | claim | rule | confidence |
+|---|---|---|---|
+| P6 | **Sampling ends the loops** | unfinished <= 5 % in SGTHK1 and SGVER1 | 0.6 |
+| P7 | **Verification makes it admit not knowing** (P4 under sampling) | U refusal SGVER1 - SGTHK1 >= +0.05, CI lower > 0 | 0.4 |
+
+Reported without prediction: H accuracy and timidity SGVER1 vs SGTHK1, the greedy runaway shares SGTHK vs SGVER (the
+second was partly seen when this was written), SGTHK1 vs SGOFF, median reasoning length. `analyze_sage_t1.py`.
