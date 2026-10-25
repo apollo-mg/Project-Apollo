@@ -7,7 +7,8 @@ LOG=$Q/raw/nanbeige_state.log; S194=mark@10.0.0.194; D=/mnt/HDD/Models/Nanbeige4
 SHA=8523452a975fa67d84a926c9a1bbdbb32b78b2a516dbf14d9360271fc53cd7f1; SAMP='{"temperature": 0.6, "top_p": 0.95}'
 log () { echo "$(date '+%F %T') $*" >> $LOG; }
 log "waiting for the download and sage-t1-chain"
-until [ -f $D/Q8_0.got ] || ! systemctl --user is-active -q dl-nanbeige; do sleep 60; done
+# wait for the download unit to EXIT: its sha256sum creates Q8_0.got empty before hashing (2026-10-25 false abort)
+while systemctl --user is-active -q dl-nanbeige; do sleep 60; done
 [ "$(cut -d' ' -f1 $D/Q8_0.got 2>/dev/null)" = $SHA ] || { log "ABORT: download sha256 mismatch or missing"; exit 1; }
 log "download verified"
 while systemctl --user is-active -q sage-t1-chain; do sleep 60; done
