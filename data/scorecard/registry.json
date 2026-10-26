@@ -1,0 +1,622 @@
+{
+ "models": {
+  "qwen3.8-27b": {
+   "display": "Qwen3.8-27B",
+   "developer": "Alibaba Qwen",
+   "arch": "dense",
+   "total_b": 27,
+   "active_b": 27,
+   "lineage": null
+  },
+  "qwen3.8-27b-uncensored": {
+   "display": "Qwen3.8-27B Uncensored (OrcaRouter abliteration)",
+   "developer": "OrcaRouter",
+   "arch": "dense",
+   "total_b": 27,
+   "active_b": 27,
+   "lineage": "qwen3.8-27b"
+  },
+  "orcasaq-2-27b": {
+   "display": "OrcaSAQ-2-27B Uncensored",
+   "developer": "OrcaRouter",
+   "arch": "dense",
+   "total_b": 27,
+   "active_b": 27,
+   "lineage": "qwen3.8-27b"
+  },
+  "qwen3.8-flash-next": {
+   "display": "Qwen3.8-Flash-Next",
+   "developer": "Alibaba Qwen",
+   "arch": "MoE",
+   "total_b": 180,
+   "active_b": 6,
+   "lineage": null
+  },
+  "swift-flash-next": {
+   "display": "Swift 1.5 (Flash-Next fine-tune)",
+   "developer": null,
+   "arch": "MoE",
+   "total_b": 180,
+   "active_b": 6,
+   "lineage": "qwen3.8-flash-next"
+  },
+  "nemotron-3.5-super-vl": {
+   "display": "Nemotron 3.5 Super VL 120B-A12B",
+   "developer": "NVIDIA",
+   "arch": "MoE",
+   "total_b": 120,
+   "active_b": 12,
+   "lineage": null
+  },
+  "nemotron-3.5-bolt": {
+   "display": "Nemotron 3.5 Bolt 74B-A9B",
+   "developer": "NVIDIA",
+   "arch": "MoE",
+   "total_b": 74,
+   "active_b": 9,
+   "lineage": "nemotron-3.5-super-vl"
+  },
+  "reflection-beam-1.0": {
+   "display": "Reflection Beam 1.0 501B-A23B",
+   "developer": "Reflection",
+   "arch": "MoE",
+   "total_b": 501,
+   "active_b": 23,
+   "lineage": null
+  },
+  "recursive-flint": {
+   "display": "Recursive Flint 40B-A2.5B",
+   "developer": "Recursive",
+   "arch": "MoE",
+   "total_b": 40,
+   "active_b": 2.5,
+   "lineage": null
+  },
+  "ornith-1.5-122b": {
+   "display": "Ornith-1.5-122B",
+   "developer": "Ornith AI",
+   "arch": "MoE",
+   "total_b": 122,
+   "active_b": 10,
+   "lineage": null
+  },
+  "sage-a1.5": {
+   "display": "Sage-A1.5",
+   "developer": "InternScience (Shanghai AI Lab)",
+   "arch": "MoE",
+   "total_b": 35,
+   "active_b": 3,
+   "lineage": "qwen3.6-35b-a3b"
+  },
+  "qwen3.6-35b-a3b": {
+   "display": "Qwen3.6-35B-A3B",
+   "developer": "Alibaba Qwen",
+   "arch": "MoE",
+   "total_b": 35,
+   "active_b": 3,
+   "lineage": null
+  },
+  "nanbeige4.3-33b": {
+   "display": "Nanbeige4.3-33B",
+   "developer": "Kanzhun (Nanbeige)",
+   "arch": "dense",
+   "total_b": 33.1,
+   "active_b": 33.1,
+   "lineage": null
+  },
+  "ternary-bonsai-2-27b": {
+   "display": "Ternary-Bonsai-2-27B",
+   "developer": null,
+   "arch": "dense",
+   "total_b": 27,
+   "active_b": 27,
+   "lineage": null
+  },
+  "swift-bonsai-2": {
+   "display": "Swift-Bonsai-2",
+   "developer": null,
+   "arch": "dense",
+   "total_b": 27,
+   "active_b": 27,
+   "lineage": null
+  },
+  "granite-4.1-3b": {
+   "display": "Granite 4.1 3B",
+   "developer": "IBM",
+   "arch": "dense",
+   "total_b": 3,
+   "active_b": 3,
+   "lineage": null
+  },
+  "granite-4.2-3b": {
+   "display": "Granite 4.2 3B",
+   "developer": "IBM",
+   "arch": "dense",
+   "total_b": 3,
+   "active_b": 3,
+   "lineage": null
+  },
+  "phi-4-mini": {
+   "display": "Phi-4-mini-instruct",
+   "developer": "Microsoft",
+   "arch": "dense",
+   "total_b": 3.8,
+   "active_b": 3.8,
+   "lineage": null
+  },
+  "llama-3.1-8b-instruct": {
+   "display": "Llama 3.1 8B Instruct",
+   "developer": "Meta",
+   "arch": "dense",
+   "total_b": 8,
+   "active_b": 8,
+   "lineage": null
+  }
+ },
+ "m1_arms": {
+  "C.A": {
+   "model": "qwen3.8-27b",
+   "quant": "Q8_0",
+   "thinking": "off",
+   "primary": true,
+   "note": "ceiling, lane A"
+  },
+  "C.B": {
+   "model": "qwen3.8-27b",
+   "quant": "Q8_0",
+   "thinking": "off",
+   "primary": false,
+   "note": "ceiling, lane B (replicate)"
+  },
+  "ABL_S6": {
+   "model": "qwen3.8-27b",
+   "quant": "Q6_K",
+   "thinking": "off",
+   "primary": false,
+   "note": "stock, abliteration study"
+  },
+  "AD2XS": {
+   "model": "qwen3.8-27b",
+   "quant": "AD-IQ2_XS",
+   "thinking": "off",
+   "primary": false,
+   "note": "quant campaign"
+  },
+  "AD3S": {
+   "model": "qwen3.8-27b",
+   "quant": "AD-IQ3_S",
+   "thinking": "off",
+   "primary": false,
+   "note": "quant campaign"
+  },
+  "AD3XXS": {
+   "model": "qwen3.8-27b",
+   "quant": "AD-IQ3_XXS",
+   "thinking": "off",
+   "primary": false,
+   "note": "quant campaign"
+  },
+  "AP2S": {
+   "model": "qwen3.8-27b",
+   "quant": "AP-IQ2_S",
+   "thinking": "off",
+   "primary": false,
+   "note": "quant campaign"
+  },
+  "AP3S": {
+   "model": "qwen3.8-27b",
+   "quant": "AP-IQ3_S",
+   "thinking": "off",
+   "primary": false,
+   "note": "quant campaign"
+  },
+  "AP3XS": {
+   "model": "qwen3.8-27b",
+   "quant": "AP-IQ3_XS",
+   "thinking": "off",
+   "primary": false,
+   "note": "quant campaign"
+  },
+  "AP3XXS": {
+   "model": "qwen3.8-27b",
+   "quant": "AP-IQ3_XXS",
+   "thinking": "off",
+   "primary": false,
+   "note": "quant campaign"
+  },
+  "APEXM": {
+   "model": "qwen3.8-27b",
+   "quant": "APEX I-Mini",
+   "thinking": "off",
+   "primary": false,
+   "note": "quant campaign"
+  },
+  "APEXN": {
+   "model": "qwen3.8-27b",
+   "quant": "APEX I-Nano",
+   "thinking": "off",
+   "primary": false,
+   "note": "quant campaign"
+  },
+  "EXL25": {
+   "model": "qwen3.8-27b",
+   "quant": "EXL3 2.50bpw",
+   "thinking": "off",
+   "primary": false,
+   "note": "quant campaign"
+  },
+  "EXL30": {
+   "model": "qwen3.8-27b",
+   "quant": "EXL3 3.00bpw",
+   "thinking": "off",
+   "primary": false,
+   "note": "quant campaign"
+  },
+  "EXL35": {
+   "model": "qwen3.8-27b",
+   "quant": "EXL3 3.50bpw",
+   "thinking": "off",
+   "primary": false,
+   "note": "quant campaign"
+  },
+  "GSQ2S": {
+   "model": "qwen3.8-27b",
+   "quant": "GSQ-RCO IQ2_S",
+   "thinking": "off",
+   "primary": false,
+   "note": "quant campaign"
+  },
+  "GSQ2XS": {
+   "model": "qwen3.8-27b",
+   "quant": "GSQ-RCO IQ2_XS",
+   "thinking": "off",
+   "primary": false,
+   "note": "quant campaign"
+  },
+  "GSQ3S": {
+   "model": "qwen3.8-27b",
+   "quant": "GSQ-RCO IQ3_S",
+   "thinking": "off",
+   "primary": false,
+   "note": "quant campaign"
+  },
+  "GSQ3XXS": {
+   "model": "qwen3.8-27b",
+   "quant": "GSQ-RCO IQ3_XXS",
+   "thinking": "off",
+   "primary": false,
+   "note": "quant campaign"
+  },
+  "UD2M": {
+   "model": "qwen3.8-27b",
+   "quant": "UD-IQ2_M",
+   "thinking": "off",
+   "primary": false,
+   "note": "quant campaign"
+  },
+  "UD3XXS": {
+   "model": "qwen3.8-27b",
+   "quant": "UD-IQ3_XXS",
+   "thinking": "off",
+   "primary": false,
+   "note": "quant campaign"
+  },
+  "UD4XS": {
+   "model": "qwen3.8-27b",
+   "quant": "UD-IQ4_XS",
+   "thinking": "off",
+   "primary": false,
+   "note": "quant campaign"
+  },
+  "UDQ2KXL": {
+   "model": "qwen3.8-27b",
+   "quant": "UD-Q2_K_XL",
+   "thinking": "off",
+   "primary": false,
+   "note": "quant campaign"
+  },
+  "ABL_U6": {
+   "model": "qwen3.8-27b-uncensored",
+   "quant": "Q6_K",
+   "thinking": "off",
+   "primary": true,
+   "note": ""
+  },
+  "ABL_U4x": {
+   "model": "qwen3.8-27b-uncensored",
+   "quant": "IQ4_XS",
+   "thinking": "off",
+   "primary": false,
+   "note": ""
+  },
+  "ABL_U4s": {
+   "model": "orcasaq-2-27b",
+   "quant": "OrcaSAQ (IQ4_XS-sized)",
+   "thinking": "off",
+   "primary": true,
+   "note": ""
+  },
+  "FNQ2": {
+   "model": "qwen3.8-flash-next",
+   "quant": "UD-Q2_K_XL",
+   "thinking": "off",
+   "primary": true,
+   "note": ""
+  },
+  "FNQ2X": {
+   "model": "qwen3.8-flash-next",
+   "quant": "UD-Q2_K_XL",
+   "thinking": "off",
+   "primary": false,
+   "note": "placement control"
+  },
+  "FNIQ4": {
+   "model": "qwen3.8-flash-next",
+   "quant": "UD-IQ4_XS",
+   "thinking": "off",
+   "primary": false,
+   "note": ""
+  },
+  "FNGB": {
+   "model": "qwen3.8-flash-next",
+   "quant": "GSQ-RCO IQ3_XXS",
+   "thinking": "off",
+   "primary": false,
+   "note": ""
+  },
+  "CODER": {
+   "model": "qwen3.8-flash-next",
+   "quant": "GSQ-RCO IQ1_M",
+   "thinking": "off",
+   "primary": false,
+   "note": "file labelled CODER"
+  },
+  "FNGS": {
+   "model": "swift-flash-next",
+   "quant": "GSQ-RCO IQ3_XXS",
+   "thinking": "off",
+   "primary": true,
+   "note": ""
+  },
+  "SVNV": {
+   "model": "nemotron-3.5-super-vl",
+   "quant": "NVFP4",
+   "thinking": "off",
+   "primary": true,
+   "note": ""
+  },
+  "BOLT": {
+   "model": "nemotron-3.5-bolt",
+   "quant": "NVIDIA 2-bit QAT (24 GB)",
+   "thinking": "off",
+   "primary": true,
+   "note": ""
+  },
+  "BOLTTHINK": {
+   "model": "nemotron-3.5-bolt",
+   "quant": "NVIDIA 2-bit QAT (24 GB)",
+   "thinking": "on",
+   "primary": false,
+   "note": ""
+  },
+  "BOLTQ8": {
+   "model": "nemotron-3.5-bolt",
+   "quant": "AD-Q8_0",
+   "thinking": "off",
+   "primary": false,
+   "note": ""
+  },
+  "BOLTPQ2": {
+   "model": "nemotron-3.5-bolt",
+   "quant": "AD-IQ1_M",
+   "thinking": "off",
+   "primary": false,
+   "note": ""
+  },
+  "BEAM": {
+   "model": "reflection-beam-1.0",
+   "quant": "AD-IQ2_XXS",
+   "thinking": "effort minimal",
+   "primary": true,
+   "note": ""
+  },
+  "BEAMLOW": {
+   "model": "reflection-beam-1.0",
+   "quant": "AD-IQ2_XXS",
+   "thinking": "effort low",
+   "primary": false,
+   "note": ""
+  },
+  "BEAMMED": {
+   "model": "reflection-beam-1.0",
+   "quant": "AD-IQ2_XXS",
+   "thinking": "effort med",
+   "primary": false,
+   "note": ""
+  },
+  "BEAMHIGH": {
+   "model": "reflection-beam-1.0",
+   "quant": "AD-IQ2_XXS",
+   "thinking": "effort high",
+   "primary": false,
+   "note": ""
+  },
+  "BEAMMAX": {
+   "model": "reflection-beam-1.0",
+   "quant": "AD-IQ2_XXS",
+   "thinking": "effort max",
+   "primary": false,
+   "note": ""
+  },
+  "FLNT": {
+   "model": "recursive-flint",
+   "quant": "Q8_0",
+   "thinking": "off",
+   "primary": true,
+   "note": "--reasoning-budget 0"
+  },
+  "FLTK": {
+   "model": "recursive-flint",
+   "quant": "Q8_0",
+   "thinking": "on",
+   "primary": false,
+   "note": "no reasoning budget"
+  },
+  "ORN": {
+   "model": "ornith-1.5-122b",
+   "quant": "UD-Q3_K_XL",
+   "thinking": "off",
+   "primary": true,
+   "note": ""
+  },
+  "SGOFF": {
+   "model": "sage-a1.5",
+   "quant": "Q8_0",
+   "thinking": "off",
+   "primary": true,
+   "note": ""
+  },
+  "SGTHK": {
+   "model": "sage-a1.5",
+   "quant": "Q8_0",
+   "thinking": "on (greedy, loops)",
+   "primary": false,
+   "note": ""
+  },
+  "SGVER": {
+   "model": "sage-a1.5",
+   "quant": "Q8_0",
+   "thinking": "on + verification (greedy, loops)",
+   "primary": false,
+   "note": ""
+  },
+  "SGTHK1": {
+   "model": "sage-a1.5",
+   "quant": "Q8_0",
+   "thinking": "on (vendor sampling)",
+   "primary": false,
+   "note": ""
+  },
+  "SGVER1": {
+   "model": "sage-a1.5",
+   "quant": "Q8_0",
+   "thinking": "on + verification (vendor sampling)",
+   "primary": false,
+   "note": ""
+  },
+  "Q36B": {
+   "model": "qwen3.6-35b-a3b",
+   "quant": "Q6_K",
+   "thinking": "off",
+   "primary": true,
+   "note": ""
+  },
+  "N33OFF": {
+   "model": "nanbeige4.3-33b",
+   "quant": "Q8_0",
+   "thinking": "off",
+   "primary": true,
+   "note": ""
+  },
+  "N33THK": {
+   "model": "nanbeige4.3-33b",
+   "quant": "Q8_0",
+   "thinking": "on (T 0.6)",
+   "primary": false,
+   "note": ""
+  },
+  "BON1": {
+   "model": "ternary-bonsai-2-27b",
+   "quant": "PTQ1_0",
+   "thinking": "off",
+   "primary": false,
+   "note": ""
+  },
+  "BON2": {
+   "model": "ternary-bonsai-2-27b",
+   "quant": "PQ2_0",
+   "thinking": "off",
+   "primary": true,
+   "note": ""
+  },
+  "BONB9": {
+   "model": "ternary-bonsai-2-27b",
+   "quant": "PQ2_0",
+   "thinking": "off",
+   "primary": false,
+   "note": "9070 run"
+  },
+  "SWB9": {
+   "model": "swift-bonsai-2",
+   "quant": "PQ2_0",
+   "thinking": "off",
+   "primary": true,
+   "note": ""
+  },
+  "IDK_B41": {
+   "model": "granite-4.1-3b",
+   "quant": "Q8_0",
+   "thinking": "off",
+   "primary": true,
+   "note": ""
+  },
+  "IDK_CTRL": {
+   "model": "granite-4.1-3b",
+   "quant": "Q8_0 + control adapter",
+   "thinking": "off",
+   "primary": false,
+   "note": "IDK training study"
+  },
+  "IDK_LORA": {
+   "model": "granite-4.1-3b",
+   "quant": "Q8_0 + IDK LoRA",
+   "thinking": "off",
+   "primary": false,
+   "note": "IDK training study"
+  },
+  "IDK_LORA2": {
+   "model": "granite-4.1-3b",
+   "quant": "Q8_0 + IDK LoRA v2",
+   "thinking": "off",
+   "primary": false,
+   "note": "IDK training study"
+  },
+  "IDK_B42": {
+   "model": "granite-4.2-3b",
+   "quant": "Q8_0",
+   "thinking": "off",
+   "primary": true,
+   "note": ""
+  },
+  "IDK_BPHI": {
+   "model": "phi-4-mini",
+   "quant": "Q8_0",
+   "thinking": "off",
+   "primary": true,
+   "note": ""
+  }
+ },
+ "abench_arms": {
+  "LLAMA8": {
+   "model": "llama-3.1-8b-instruct",
+   "quant": "Q8_0",
+   "thinking": "n/a",
+   "primary": true,
+   "note": "RX 9070 XT, upstream f74e2fa"
+  },
+  "Q27OFF": {
+   "model": "qwen3.8-27b",
+   "quant": "Q6_K (.73 daily: VBR KV, MTP)",
+   "thinking": "off",
+   "primary": true,
+   "note": ""
+  },
+  "Q27ON": {
+   "model": "qwen3.8-27b",
+   "quant": "Q6_K (.73 daily: VBR KV, MTP)",
+   "thinking": "on (effort medium, Meta two-phase)",
+   "primary": false,
+   "note": ""
+  }
+ }
+}
