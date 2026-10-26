@@ -98,3 +98,51 @@ ordering never changes.
 `verdicts_LLAMA8.csv` (all 2,004 items: label and three verdicts, no text), `adjudication_LLAMA8.csv` (the 100 sampled
 items, no text), `RESULT_LLAMA8.json`, `RESULT_LLAMA8_adjudication.json`, scripts. Responses, judge replies and the
 adjudication sheet stay local (`raw/`): they hold item text, and GPQA's terms forbid publishing its examples.
+
+---
+
+# Addendum 2 results: Qwen3.8-27B with thinking off vs on
+
+**Run:** all 2,004 pairs, 0 errors, 2026-10-24 13:58 to 10-25 19:36 (29.6 h, well inside the deadline), .73 daily driver
+through the wake proxy. Thinking-off rows carrying reasoning: 0 (the off arm is valid). Forced reasoning cuts in the on
+arm: 14 (0.7 %). Judged by norefs (primary) and exact, Llama 3.1 8B Q8_0 on the 9070.
+
+| judge | arm | precision | recall | F1 | mean F1 over datasets |
+|---|---|---|---|---|---|
+| norefs | thinking off | 0.796 | 0.520 | 0.629 | 0.584 |
+| norefs | thinking on | 0.781 | 0.476 | 0.591 | 0.525 |
+| exact | thinking off | 0.861 | 0.721 | 0.785 | 0.761 |
+| exact | thinking on | 0.864 | 0.606 | 0.712 | 0.659 |
+
+## Findings
+
+1. **Thinking makes the 27B abstain less, by less than registered (R1 fails narrowly).** Under norefs, recall falls
+   0.044 [0.012, 0.075] and mean F1 0.059 [0.028, 0.088]; precision does not move (-0.015 [-0.048, 0.018]). The
+   direction is Meta's and the interval excludes zero, but the registered magnitude was >= 0.05.
+2. **The effect splits by problem type.** Thinking hurts on underspecified problems the model can "solve" by assuming
+   (norefs F1: MMLU Math 0.611 -> 0.078, GPQA 0.459 -> 0.091, Musique -0.29, ALCUNA -0.21, UMWP -0.16). It helps on false
+   premises, logic and known-unknowns (WorldSense +0.20, SelfAware +0.14, QAQA +0.10, FalseQA +0.10, BB Known Unknowns
+   +0.09). GSM8K, the third underspecified set Meta built, does not move (0.93 / 0.94).
+3. **The model notices, then hides it.** On MMLU Math's 47 should-abstain items, abstentions fall from 22 (off) to 2 (on).
+   Of the on-arm non-abstentions, 17 have reasoning that names the missing information; 0 of their final answers do
+   (GPQA 16 vs 3, UMWP 20 vs 2, Musique 9 vs 0; a keyword screen, so these are pattern hits, not adjudicated). Three
+   MMLU Math cases read in full: the reasoning says "we need to know what f is", "the problem doesn't specify the
+   number of actors", "doesn't specify what the two numbers are", then works backwards from the answer options or
+   invents the missing setup, and the final answer states the invention as given ("We are casting from a pool of 8
+   actors (4 female, 4 male)"). Meta's protocol judges the final answer only, which is right from a user's view: the
+   caveat never reaches them.
+4. **The key-reading judge AMPLIFIES the difference (R2 fails).** Mean F1 on - off: exact -0.102 vs norefs -0.059.
+   Thinking-off answers are twice as long (median 1,037 vs 535 characters) and carry their hedges in the answer, so the
+   label tips more of them to "abstention" (exact recall +0.20 over norefs for off, +0.13 for on). Addendum 1's
+   rationale that a key-reading judge compresses arm differences was wrong here: it moves arms by different amounts
+   depending on answer style. Norefs stays primary on the adjudication result (accuracy), which this does not touch.
+5. **Reasoning runs longer on should-abstain items (R3 holds):** median reasoning-phase tokens 318.5 vs 243.
+
+## Limits
+
+One judge (Llama 3.1 8B, ~64 % agreement with a careful reading on hard cases), and the arms differ in answer style,
+which could interact with it. One sample per item at T 0.8 on a server that is bistable even at temperature 0. The
+mechanism counts in finding 3 come from a keyword screen plus three cases read, not an adjudication.
+
+**Files:** `verdicts_Q27.csv` (2,004 items: label, four verdicts, forced cut, reasoning tokens; no text),
+`RESULT_Q27OFF_vs_Q27ON_norefs.json`, `RESULT_Q27OFF_vs_Q27ON_exact.json`.
