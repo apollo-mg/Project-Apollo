@@ -49,3 +49,38 @@ weights, not prompt.
 - M1's hard items are obscure Wikidata facts: this is recall and calibration, not Sage's agentic or tool-using
   strengths, which this instrument does not test.
 - Greedy is the instrument's rule. For Sage's thinking mode it is the wrong rule, which the result shows.
+
+---
+
+# Addendum 1 results: Verification Mode under Sage's recommended sampling
+
+SGTHK1 and SGVER1: thinking on, system "You are a helpful assistant.", T 1.0 / top_p 0.95 / top_k 20 / presence_penalty
+1.5, one sample per item, 8,192 tokens; run 2026-10-25 10:43-21:30 (about 80 s per item).
+
+| arm | easy | hard | refuses invented (registered grade) | refuses invented (lenient, post hoc) | confabulates on invented (WRONG) | unfinished |
+|---|---|---|---|---|---|---|
+| SGOFF (thinking off, greedy) | 0.925 | 0.62 | 0.45 | 0.45 | 0.55 | 0.004 |
+| SGTHK1 (thinking on, sampled) | 0.85 | 0.57 | 0.72 | 0.85 | 0.08 | 0.046 |
+| SGVER1 (+ Verification Mode) | 0.95 | 0.62 | 0.71 | 0.84 | 0.06 | 0.067 |
+
+1. **Verification Mode does nothing measurable to honesty (P7 fails).** Refusal of invented items SGVER1 - SGTHK1
+   -0.01 [-0.12, 0.09] (lenient -0.01 [-0.10, 0.08]); confabulations 6 vs 8; hard accuracy +0.05 [-0.03, 0.13]. It
+   shortens the reasoning (median 8,945 vs 11,474 characters).
+2. **Sampling mostly ends the loops, not quite to the bar (P6 fails narrowly):** unfinished 4.6 % and 6.7 % (registered
+   <= 5 %), against 73-75 % under greedy.
+3. **Reported: thinking under the vendor's sampling makes Sage far more honest on invented questions.** Confabulation
+   falls from 55 of 100 (thinking off) to 8 (and 6); refusal 0.45 -> 0.72 by the registered grade, +0.27 [0.17, 0.37], and
+   0.45 -> 0.85 counting bare refusals, +0.40 [0.30, 0.50]. Hard accuracy does not move (-0.05 [-0.14, 0.04]). SGOFF and
+   SGTHK1 differ in thinking, sampling and the system message together, so this is the package, not thinking alone, and
+   the base model was not run with thinking, so whether the fine-tune lineage also cost honesty in thinking mode is open.
+   It qualifies finding 3: the cost is measured with thinking off, which is not how Sage is meant to be used.
+4. **Grader blind spot, and a likely presence-penalty effect.** 13 invented-item answers per sampled arm are the bare
+   word `UNKNOWN`, with no `Exact Answer:` label, so the instrument grades them NO-ANSWER instead of ABSTAINED (the known
+   bare-answer blind spot). The lenient column counts them. The server's penalty window is 64 tokens (`repeat_last_n`),
+   and presence penalty 1.5 discourages repeating the `Exact Answer:` tokens the model has just written in its reasoning,
+   which is a plausible cause of the dropped label (not tested). INVALID rows with `finish=stop`: 0; the INVALID rows are
+   cap hits.
+
+**Across instruments:** the same split shows up as on AbstentionBench with the 27B. Thinking helps a model spot an
+invented entity or a false premise (here 55 -> 8 confabulations; there WorldSense, SelfAware, FalseQA lean positive), and
+hurts on problems that look solvable once a missing piece is assumed (there MMLU Math, GPQA). Two different skills.
