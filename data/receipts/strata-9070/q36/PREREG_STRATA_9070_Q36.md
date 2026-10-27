@@ -40,3 +40,20 @@ adds:** the RX 9000 hybrid-mode case those tables lack, on Strata's current rele
 
 Reported: TTFT, prompt tokens, start-to-start spread (two S_code starts), VRAM/RAM at load, the full llama.cpp sweep,
 and whether both arms' text stays sensible (capture).
+
+## Addendum 1 -- the MTP variant of the file, and an MTP pair (registered 2026-10-27, before any timed run)
+
+**Launch 1 aborted before any measurement:** Strata's Qwen3.6 engine path requires the MTP metadata
+(`strata-q36: missing qwen35moe.nextn_predict_layers`), so it cannot run the plain file at all. The chain was stopped
+before the llama.cpp sweep produced a number. **Both engines now use the file Strata pins:** Unsloth
+`unsloth/Qwen3.6-35B-A3B-MTP-GGUF` rev `5bc3e238`, `Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf`, 22,853,663,008 B, sha256
+`55983c5a75a1...` (verified before use). The plain file is retired.
+
+**Added arms (same file, same harness):** S_mtp_code and S_mtp_reason (setup's config as written, `--mtp 2`);
+L_mtp_code and L_mtp_reason (llama.cpp best split plus `--spec-type draft-mtp`; if the draft head does not fit at the
+best split, the next split up, recorded). The no-MTP arms and P1-P3 are unchanged and stay primary.
+
+| # | claim | rule |
+|---|---|---|
+| P4 | Strata's MTP drafts pay off on this card | median S_mtp / median S (no MTP) >= 1.2 on code-v1 |
+| P5 | Strata's lead holds with speculation on both sides | median S_mtp / median L_mtp >= 1.4 on code-v1 |

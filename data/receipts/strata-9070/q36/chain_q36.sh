@@ -5,7 +5,7 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"; OUT="$HERE/runs"; mkdir -p "$OUT"; LOG="$OUT/run.log"
 P="$HERE/../../gemma4-9070-spec"; CODE="$P/canonical_code-v1.txt"; REASON="$P/canonical_reasoning-v1.txt"
 BIN=/mnt/TG_2TB/Projects/Apollo/engines/llama_cpp_upstream_f74e2fa/build_rocm/bin/llama-server
-MODEL=/mnt/TG_2TB/AI/Models/Qwen3.6-35B-A3B-base-GGUF/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf
+MODEL=/mnt/TG_2TB/AI/Models/Qwen3.6-35B-A3B-MTP-GGUF/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf
 log() { echo "$(date '+%F %T') $*" | tee -a "$LOG"; }
 fits() {   # does llama.cpp load with K CPU expert layers and answer a smoke request?
   "$BIN" -m "$MODEL" -ngl 99 -fa on -c 32768 -ctk f16 -ctv f16 -np 1 -t 8 -fit off --n-cpu-moe "$1" \
@@ -20,10 +20,12 @@ fits() {   # does llama.cpp load with K CPU expert layers and answer a smoke req
   return $ok
 }
 med() { python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('tokSOut') or 0)" "$OUT/lmx_$1.json" 2>/dev/null || echo 0; }
-log "chain start (MemoryMax 26G); Clef stopping"; systemctl --user stop apollo-clef-monitor.service apollo-clef.service; sleep 3
+log "chain start (MemoryMax 26G, MTP-variant file); Clef stopping"; systemctl --user stop apollo-clef-monitor.service apollo-clef.service; sleep 3
 bash "$HERE/run_q36.sh" strata S_code_r1 "$CODE"
 bash "$HERE/run_q36.sh" strata S_code_r2 "$CODE"
 bash "$HERE/run_q36.sh" strata S_reason "$REASON"
+STRATA_CFG=/mnt/TG_2TB/Projects/strata/strata-qwen36-ud-q4_k_xl.json bash "$HERE/run_q36.sh" strata S_mtp_code "$CODE"
+STRATA_CFG=/mnt/TG_2TB/Projects/strata/strata-qwen36-ud-q4_k_xl.json bash "$HERE/run_q36.sh" strata S_mtp_reason "$REASON"
 KMIN=""; for K in 12 14 16 18 20 22 24 26 28 30 32; do if fits $K; then KMIN=$K; break; else log "llama ncmoe $K: does not fit"; fi; done
 [ -n "$KMIN" ] || { log "ABORT: no ncmoe up to 32 fits"; exit 1; }
 log "llama K_min = $KMIN"
@@ -35,6 +37,9 @@ done
 log "llama best ncmoe = $best ($bv tok/s on code-v1)"
 bash "$HERE/run_q36.sh" llama L_best_code_r2 "$CODE" $best
 bash "$HERE/run_q36.sh" llama L_best_reason "$REASON" $best
-log "strata hit rates: $(grep -hioE 'decode expert[^0-9]*hit rate[^0-9]*[0-9.]+ ?%?' /mnt/TG_2TB/Projects/strata/strata-qwen36-ud-q4_k_xl-nomtp.log "$OUT"/server_S_*.log 2>/dev/null | tail -6 | tr '\n' ';')"
+MK=$best; bash "$HERE/run_q36.sh" llama L_mtp_code "$CODE" $MK "--spec-type draft-mtp" || true
+if ! grep -q "L_mtp_code: lmx" "$LOG"; then MK=$((best+2)); log "L_mtp did not run at $best, trying $MK"; bash "$HERE/run_q36.sh" llama L_mtp_code_k$MK "$CODE" $MK "--spec-type draft-mtp"; fi
+bash "$HERE/run_q36.sh" llama L_mtp_reason "$REASON" $MK "--spec-type draft-mtp"
+log "strata hit rates: $(grep -hioE 'decode expert[^0-9]*hit rate[^0-9]*[0-9.]+ ?%?' /mnt/TG_2TB/Projects/strata/strata-qwen36-ud-q4_k_xl-nomtp.log /mnt/TG_2TB/Projects/strata/strata-qwen36-ud-q4_k_xl.log "$OUT"/server_S_*.log 2>/dev/null | tail -6 | tr '\n' ';')"
 log "unit memory peak: $(cat /sys/fs/cgroup$(systemctl --user show -p ControlGroup --value strata-q36)/memory.peak 2>/dev/null)"
 log "DONE"

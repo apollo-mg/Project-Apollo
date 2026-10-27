@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# PREREG_STRATA_9070_Q36.md runner. usage: run_q36.sh strata ARM PROMPT_FILE | run_q36.sh llama ARM PROMPT_FILE NCMOE
+# PREREG_STRATA_9070_Q36.md runner. usage: [STRATA_CFG=cfg.json] run_q36.sh strata ARM PROMPT_FILE |
+#   run_q36.sh llama ARM PROMPT_FILE NCMOE ["extra llama-server flags"]
 # Fresh server per arm (PID recorded, killed by PID) -> loaded/health -> capture proxy -> lmx custom remote
 # (1 warm-up + 3 timed, median), the same client for both engines.
 set -uo pipefail
@@ -7,9 +8,9 @@ HERE="$(cd "$(dirname "$0")" && pwd)"; OUT="$HERE/runs"; mkdir -p "$OUT"; LOG="$
 ST=/mnt/TG_2TB/Projects/strata; PY=/mnt/TG_2TB/Projects/Apollo/venv_cachyos/bin/python3
 G4="$HERE/../../gemma4-9070-spec"; PROXY="$G4/g4_proxy.py"; HW="$G4/hw_9070xt.json"
 BIN=/mnt/TG_2TB/Projects/Apollo/engines/llama_cpp_upstream_f74e2fa/build_rocm/bin/llama-server
-MODEL=/mnt/TG_2TB/AI/Models/Qwen3.6-35B-A3B-base-GGUF/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf
-CFG=$ST/strata-qwen36-ud-q4_k_xl-nomtp.json
-ENG=$1; ARM=$2; PFILE=$3; K=${4:-}
+MODEL=/mnt/TG_2TB/AI/Models/Qwen3.6-35B-A3B-MTP-GGUF/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf
+CFG=${STRATA_CFG:-$ST/strata-qwen36-ud-q4_k_xl-nomtp.json}
+ENG=$1; ARM=$2; PFILE=$3; K=${4:-}; EXTRA=${5:-}
 log() { echo "$(date '+%F %T') $*" | tee -a "$LOG"; }
 if [ "$ENG" = strata ]; then
   echo '{"reasoning_effort": "none"}' > "${CFG%.json}.shared-settings.json"
@@ -17,7 +18,7 @@ if [ "$ENG" = strata ]; then
   SP=$!; PORT=8080
 else
   "$BIN" -m "$MODEL" -ngl 99 -fa on -c 32768 -ctk f16 -ctv f16 -np 1 -t 8 -fit off --n-cpu-moe "$K" \
-    --chat-template-kwargs '{"enable_thinking":false}' --host 127.0.0.1 --port 8095 > "$OUT/server_$ARM.log" 2>&1 < /dev/null &
+    --chat-template-kwargs '{"enable_thinking":false}' --host 127.0.0.1 --port 8095 $EXTRA > "$OUT/server_$ARM.log" 2>&1 < /dev/null &
   SP=$!; PORT=8095
 fi
 echo $SP > "$OUT/server.pid"
@@ -33,7 +34,7 @@ for i in $(seq 1 900); do
 done
 [ $up = 1 ] || { log "$ARM: not up after $(( $(date +%s) - t0 ))s: $(grep -iE 'error|fail|out of memory' "$OUT/server_$ARM.log" | tail -2 | tr '\n' ' ' | cut -c1-300)"; exit 1; }
 ram=$(free -g | awk '/^Mem:/{print "used "$3" avail "$7" GB"}'); vram=$(rocm-smi --showmeminfo vram 2>/dev/null | awk -F': ' '/Total Used/{printf "%.2f", $NF/1e9}')
-log "$ARM: up in $(( $(date +%s) - t0 ))s; RAM $ram; VRAM used $vram GB; ${K:+ncmoe $K}"
+log "$ARM: up in $(( $(date +%s) - t0 ))s; RAM $ram; VRAM used $vram GB; ${K:+ncmoe $K} ${EXTRA} cfg $(basename "$CFG")"
 $PY "$PROXY" 8097 $PORT "$OUT/capture_$ARM.jsonl" & PP=$!
 for i in $(seq 1 20); do curl -sf -m 2 http://127.0.0.1:8097/health >/dev/null && break; sleep 0.5; done
 "$HOME/.local/bin/lmx" speed-test run custom --mode remote --base-url http://127.0.0.1:8097 --hf-id unsloth/Qwen3.6-35B-A3B-GGUF \
