@@ -57,3 +57,31 @@ best split, the next split up, recorded). The no-MTP arms and P1-P3 are unchange
 |---|---|---|
 | P4 | Strata's MTP drafts pay off on this card | median S_mtp / median S (no MTP) >= 1.2 on code-v1 |
 | P5 | Strata's lead holds with speculation on both sides | median S_mtp / median L_mtp >= 1.4 on code-v1 |
+
+## Addendum 2 -- launch 2 was confounded; matched decoding, VRAM headroom, more samples (registered 2026-10-27, before launch 3)
+
+**Launch 2 (2026-10-27 14:53-15:43, `runs_launch2_confounded/`) is not scored.** Three problems, found after it ran:
+1. **Unequal decoding.** Strata's server fills in the model card's sampling for keys a request leaves unset
+   (`MODEL_CARD_SAMPLING`, qwen35moe instruct: presence_penalty 1.5). lmx sends `temperature: 0` and no penalty, so
+   Strata decoded greedy *with* presence penalty 1.5, which puts the engine on its host-logits path and switches MTP
+   drafting off (`spec = mtp_d > 0 && !needs_logits()`; every S_mtp request logged "drafts accepted 0 of 0").
+   llama.cpp decoded plain greedy and drafted at 85 % acceptance.
+2. **Desktop memory contention.** Both engines filled the 9070 to ~16.9 of 17.1 GB; Strata also pins all 18.75 GiB of
+   experts in host RAM. The kernel logged page-allocation failures for plasmashell and the DP-2 display at 15:10, 15:39
+   and 15:41 (plus 69 suppressed), coinciding with the erratic samples (Strata 44-87 within one arm, llama.cpp 3.7-56).
+3. Three timed samples could not separate stalls from speed.
+
+Exploratory, from the steady arms only (not a test): Strata 85.8 tok/s (code, r1) and llama.cpp 52.5-55.8 (ncmoe 14-16)
+plain; llama.cpp + MTP 88.3 (code) / 70.6 (reasoning). Strata's cache served 74.5 % of routed expert entries from VRAM.
+
+**Launch 3 changes:**
+- **Matched decoding:** both engines plain greedy with no penalties. Strata configs gain
+  `"sampling": {"presence_penalty": 0, "repetition_penalty": 1, "frequency_penalty": 0}`; llama-server gets
+  `--presence-penalty 0 --repeat-penalty 1` (its defaults, stated). Requests stay lmx's `temperature: 0`.
+- **VRAM headroom:** Strata `--vram-reserve-mib 1024`. llama.cpp sweeps `--n-cpu-moe` 16, 18, 20; its primary split is
+  the fastest one whose VRAM use is at most Strata's measured use + 0.10 GB (matched budget); all reported.
+- **Samples:** two lmx invocations per arm (2 x (1 warm-up + 3 timed)), median of the 6 timed samples.
+- **Interference recorded:** kernel `warn_alloc` lines counted per arm. An arm with any is reported but flagged.
+- **Order:** S_code first (its VRAM use sets the matched budget), then the llama.cpp sweep, then interleaved pairs:
+  L_code (the chosen split), S_mtp_code, L_mtp_code, S_reason, L_reason, S_mtp_reason, L_mtp_reason. Fresh server per arm, same memory-capped unit, Clef paused.
+- P1-P5 unchanged, scored on launch 3.

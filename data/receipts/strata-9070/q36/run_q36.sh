@@ -18,13 +18,13 @@ if [ "$ENG" = strata ]; then
   SP=$!; PORT=8080
 else
   "$BIN" -m "$MODEL" -ngl 99 -fa on -c 32768 -ctk f16 -ctv f16 -np 1 -t 8 -fit off --n-cpu-moe "$K" \
-    --chat-template-kwargs '{"enable_thinking":false}' --host 127.0.0.1 --port 8095 $EXTRA > "$OUT/server_$ARM.log" 2>&1 < /dev/null &
+    --chat-template-kwargs '{"enable_thinking":false}' --presence-penalty 0 --repeat-penalty 1 --host 127.0.0.1 --port 8095 $EXTRA > "$OUT/server_$ARM.log" 2>&1 < /dev/null &
   SP=$!; PORT=8095
 fi
 echo $SP > "$OUT/server.pid"
 cleanup() { kill ${PP:-} 2>/dev/null; kill $SP 2>/dev/null; for i in $(seq 1 60); do kill -0 $SP 2>/dev/null || break; sleep 1; done; }
 trap cleanup EXIT
-t0=$(date +%s); up=0
+T0=$(date '+%F %T'); t0=$(date +%s); up=0
 for i in $(seq 1 900); do
   kill -0 $SP 2>/dev/null || break
   h=$(curl -s -m 2 http://127.0.0.1:$PORT/health)
@@ -37,16 +37,23 @@ ram=$(free -g | awk '/^Mem:/{print "used "$3" avail "$7" GB"}'); vram=$(rocm-smi
 log "$ARM: up in $(( $(date +%s) - t0 ))s; RAM $ram; VRAM used $vram GB; ${K:+ncmoe $K} ${EXTRA} cfg $(basename "$CFG")"
 $PY "$PROXY" 8097 $PORT "$OUT/capture_$ARM.jsonl" & PP=$!
 for i in $(seq 1 20); do curl -sf -m 2 http://127.0.0.1:8097/health >/dev/null && break; sleep 0.5; done
-"$HOME/.local/bin/lmx" speed-test run custom --mode remote --base-url http://127.0.0.1:8097 --hf-id unsloth/Qwen3.6-35B-A3B-GGUF \
-  --quantization UD-Q4_K_XL --hardware "$HW" --max-tokens 256 --prompt-file "$PFILE" --out "$OUT/lmx_$ARM.json" --quiet > "$OUT/lmx_$ARM.stdout" 2>&1
-rc=$?
-summ=$($PY - "$OUT/lmx_$ARM.json" "$OUT/capture_$ARM.jsonl" <<'PYEOF'
-import json, sys
-try: d = json.load(open(sys.argv[1]))
-except Exception as e: print("no json", e); sys.exit()
-caps = [json.loads(l) for l in open(sys.argv[2])] if sys.argv[2] else []
-print({k: d.get(k) for k in ("tokSOut", "ttftMs", "promptTokens", "outputTokens")}, "samples:", [s.get("tokSOut") for s in d.get("samples", [])],
-      "| content chars:", [len(c.get("text", "")) for c in caps[1:]], "| head:", repr(caps[-1].get("text", "")[:60]) if caps else "")
+for pass in a b; do
+  "$HOME/.local/bin/lmx" speed-test run custom --mode remote --base-url http://127.0.0.1:8097 --hf-id unsloth/Qwen3.6-35B-A3B-GGUF \
+    --quantization UD-Q4_K_XL --hardware "$HW" --max-tokens 256 --prompt-file "$PFILE" --out "$OUT/lmx_${ARM}_$pass.json" --quiet > "$OUT/lmx_${ARM}_$pass.stdout" 2>&1
+  rc=$?
+done
+WA=$(journalctl -k --since "$T0" --no-pager 2>/dev/null | grep -c "warn_alloc\|page allocation failure")
+summ=$($PY - "$OUT/lmx_${ARM}_a.json" "$OUT/lmx_${ARM}_b.json" "$OUT/capture_$ARM.jsonl" <<'PYEOF'
+import json, sys, statistics as st
+smp, meta = [], {}
+for f in sys.argv[1:3]:
+    try: d = json.load(open(f))
+    except Exception as e: print("no json", f, e); continue
+    smp += [s.get("tokSOut") for s in d.get("samples", []) if s.get("tokSOut") is not None]
+    meta = {k: d.get(k) for k in ("ttftMs", "promptTokens", "outputTokens")}
+caps = [json.loads(l) for l in open(sys.argv[3])] if sys.argv[3] else []
+print({"median6": round(st.median(smp), 1) if smp else None, **meta}, "samples:", smp,
+      "| content chars:", [len(c.get("text", "")) for c in caps[-3:]], "| head:", repr(caps[-1].get("text", "")[:50]) if caps else "")
 PYEOF
 )
-log "$ARM: lmx rc=$rc $summ"
+log "$ARM: lmx rc=$rc warn_alloc=$WA $summ"
