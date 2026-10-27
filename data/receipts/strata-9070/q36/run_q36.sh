@@ -36,7 +36,7 @@ ram=$(free -g | awk '/^Mem:/{print "used "$3" avail "$7" GB"}'); vram=$(rocm-smi
 log "$ARM: up in $(( $(date +%s) - t0 ))s; RAM $ram; VRAM used $vram GB; ${K:+ncmoe $K}"
 $PY "$PROXY" 8097 $PORT "$OUT/capture_$ARM.jsonl" & PP=$!
 for i in $(seq 1 20); do curl -sf -m 2 http://127.0.0.1:8097/health >/dev/null && break; sleep 0.5; done
-lmx speed-test run custom --mode remote --base-url http://127.0.0.1:8097 --hf-id unsloth/Qwen3.6-35B-A3B-GGUF \
+"$HOME/.local/bin/lmx" speed-test run custom --mode remote --base-url http://127.0.0.1:8097 --hf-id unsloth/Qwen3.6-35B-A3B-GGUF \
   --quantization UD-Q4_K_XL --hardware "$HW" --max-tokens 256 --prompt-file "$PFILE" --out "$OUT/lmx_$ARM.json" --quiet > "$OUT/lmx_$ARM.stdout" 2>&1
 rc=$?
 summ=$($PY - "$OUT/lmx_$ARM.json" "$OUT/capture_$ARM.jsonl" <<'PYEOF'
