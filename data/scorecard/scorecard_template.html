@@ -1,0 +1,250 @@
+<title>Abstend Scorecards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a measurement map up top (knowledge x honesty, thinking-mode arrows), then a grid of model cards with
+   CI-whisker bars, then methods. Cool green-biased neutrals; teal = admits it doesn't know, rust = makes things up. */
+:root {
+  --bg: #eef2f0; --surface: #fbfcfb; --ink: #15201c; --muted: #5a6a63; --rule: #d3dcd8;
+  --good: #1d7a63; --warn: #b4502a; --know: #3559a4; --caution: #9a6b12; --track: #e2e9e6;
+  --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e1412; --surface: #151d1a; --ink: #e3ebe7; --muted: #94a59d; --rule: #283330;
+  --good: #4fbf9f; --warn: #e88a62; --know: #86a4ea; --caution: #d9a543; --track: #222c29; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0e1412; --surface: #151d1a; --ink: #e3ebe7; --muted: #94a59d; --rule: #283330;
+  --good: #4fbf9f; --warn: #e88a62; --know: #86a4ea; --caution: #d9a543; --track: #222c29; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--body); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 56px; display: grid; gap: 28px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 700; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2rem, 4.6vw, 3.1rem); line-height: 1.05; }
+h2 { font-size: 1.35rem; }
+h3 { font-size: 1.12rem; line-height: 1.25; }
+.eyebrow { font: 500 0.74rem/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.lede { max-width: 66ch; color: var(--muted); margin: 0; }
+.lede strong { color: var(--ink); font-weight: 600; }
+header { display: grid; gap: 12px; }
+.counts { display: flex; flex-wrap: wrap; gap: 8px 20px; font: 0.82rem var(--mono); color: var(--muted); }
+.counts b { color: var(--ink); font-weight: 500; }
+.map { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 18px 18px 12px; display: grid; gap: 10px; }
+.map-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px 16px; }
+.map-head p { margin: 0; color: var(--muted); font-size: 0.9rem; max-width: 70ch; }
+.chartbox { overflow-x: auto; }
+svg.chart { display: block; width: 100%; min-width: 620px; height: auto; font-family: var(--body); }
+.toggle { display: inline-flex; gap: 8px; align-items: center; font-size: 0.86rem; color: var(--muted); cursor: pointer; }
+.toggle input { accent-color: var(--good); }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; justify-content: space-between; }
+.controls label { font-size: 0.86rem; color: var(--muted); display: inline-flex; gap: 8px; align-items: center; }
+select { font: inherit; font-size: 0.88rem; color: var(--ink); background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 5px 8px; }
+select:focus-visible, summary:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid var(--know); outline-offset: 2px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 16px; align-items: start; }
+.card { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.card-head { display: grid; gap: 4px; }
+.meta { font: 0.78rem/1.4 var(--mono); color: var(--muted); }
+.setup { font-size: 0.84rem; color: var(--muted); }
+.setup b { color: var(--ink); font-weight: 500; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: 500 0.72rem/1 var(--mono); padding: 5px 7px; border-radius: 999px; border: 1px solid currentColor; letter-spacing: 0.02em; }
+.chip.good { color: var(--good); } .chip.warn { color: var(--warn); } .chip.know { color: var(--know); }
+.chip.caution { color: var(--caution); } .chip.muted { color: var(--muted); }
+.group { display: grid; gap: 6px; }
+.group > .eyebrow { margin-bottom: 2px; }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) 96px 52px; gap: 10px; align-items: center; font-size: 0.86rem; }
+.row .lab { min-width: 0; }
+.row .lab small { color: var(--muted); font-family: var(--mono); font-size: 0.72rem; }
+.bar { position: relative; height: 10px; background: var(--track); border-radius: 3px; }
+.bar .fill { position: absolute; inset: 0 auto 0 0; border-radius: 3px; }
+.bar .ci { position: absolute; top: 50%; height: 2px; margin-top: -1px; background: var(--ink); opacity: 0.55; }
+.bar .ci::before, .bar .ci::after { content: ""; position: absolute; top: -3px; width: 2px; height: 8px; background: var(--ink); }
+.bar .ci::before { left: 0; } .bar .ci::after { right: 0; }
+.val { font: 500 0.84rem var(--mono); text-align: right; font-variant-numeric: tabular-nums; }
+details { border-top: 1px solid var(--rule); padding-top: 8px; }
+summary { cursor: pointer; font-size: 0.84rem; color: var(--muted); }
+.tbl { overflow-x: auto; margin-top: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 4px 6px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; white-space: normal; min-width: 150px; }
+th { font: 500 0.7rem var(--mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.foot { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; font-size: 0.8rem; }
+a { color: var(--know); }
+.methods { display: grid; gap: 10px; max-width: 78ch; color: var(--muted); font-size: 0.88rem; }
+.methods h2 { color: var(--ink); }
+.methods p { margin: 0; }
+.methods code { font-family: var(--mono); font-size: 0.82rem; color: var(--ink); }
+@media (max-width: 480px) { .wrap { padding-inline: 16px; } .grid { grid-template-columns: 1fr; } .row { grid-template-columns: minmax(0, 1fr) 72px 48px; } }
+@media (prefers-reduced-motion: no-preference) { .card { transition: border-color .15s; } .card:hover { border-color: var(--muted); } }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Apollo receipts &middot; local hardware &middot; every number links to its raw rows</span>
+    <h1>Abstend Scorecards</h1>
+    <p class="lede">How much a model knows, and whether it admits what it doesn't. Measured on our own hardware with
+      fixed instruments: <strong>M1</strong> (240 questions: 40 easy, 100 hard but real, 100 about things that do not
+      exist) and Meta's <strong>AbstentionBench</strong> (2,004 items, judged blind). Bars show the measured rate with its
+      95&nbsp;% interval.</p>
+    <div class="counts" id="counts"></div>
+  </header>
+
+  <section class="map" aria-labelledby="map-title">
+    <div class="map-head">
+      <h2 id="map-title">What it knows vs. whether it admits it doesn't</h2>
+      <label class="toggle"><input type="checkbox" id="arrows" checked> Show the shift when thinking is on</label>
+      <p>Each dot is a model's standard setup (thinking off, greedy). Across: share of the 100 hard real questions it
+        answers correctly. Up: share of the 100 invented questions it refuses instead of inventing an answer.</p>
+    </div>
+    <div class="chartbox"><svg class="chart" id="chart" viewBox="0 0 900 520" role="img" aria-label="Scatter plot of hard-question recall against refusal of invented questions, one dot per model"></svg></div>
+  </section>
+
+  <div class="controls">
+    <h2>Model cards</h2>
+    <label for="sort">Sort by
+      <select id="sort">
+        <option value="refuse">Admits invented questions</option>
+        <option value="hard">Hard-question recall</option>
+        <option value="confab">Makes up answers (fewest first)</option>
+        <option value="name">Name</option>
+      </select>
+    </label>
+  </div>
+  <div class="grid" id="grid"></div>
+
+  <section class="methods" aria-labelledby="methods-title">
+    <h2 id="methods-title">How these are measured</h2>
+    <p><b>M1</b> questions are built from Wikidata: easy and hard items have a known answer; invented items name a place,
+      novel or person that does not exist. Answers end with <code>Exact Answer:</code>; a refusal is <code>UNKNOWN</code>.
+      "Refuses invented" also counts a bare <code>UNKNOWN</code> with no label, which the strict grader scores as no answer.
+      Runs are greedy with thinking off unless the setup says otherwise. Intervals are Wilson 95&nbsp;%.</p>
+    <p><b>AbstentionBench</b> is Meta's fast subset, run with their settings, judged by Llama 3.1 8B with the answer key and
+      references removed from the judge prompt (our test found the key tilts verdicts). "Missing info" covers the sets Meta
+      builds by deleting a question's context (GSM8K, MMLU, GPQA); "false premise" covers FalseQA and QAQA.</p>
+    <p><b>Chips</b> use fixed thresholds: deep recall (hard &ge; 75&nbsp;%), thin recall (&le; 20&nbsp;%), admits invented
+      questions (refuses &ge; 85&nbsp;% while refusing &le; 5&nbsp;% of real hard ones), bluffs (makes up &ge; 50&nbsp;%),
+      over-refuses (refuses &ge; 10&nbsp;% of real hard ones), and thinking helps or hurts (refusal moves by &ge; 15 points).</p>
+    <p>Different setups of one model (quant, thinking, sampling) are separate rows in the database, listed under each card.
+      Source: <code>data/scorecard/</code> in the Apollo repository, built from committed receipts. <span id="built"></span></p>
+  </section>
+</div>
+
+<script>
+const DATA = __DATA__;
+const SHORT = {"reflection-beam-1.0":"Beam 1.0","nemotron-3.5-super-vl":"Super VL","nemotron-3.5-bolt":"Bolt","qwen3.8-flash-next":"Flash-Next",
+  "swift-flash-next":"Swift (Flash-Next)","ornith-1.5-122b":"Ornith 122B","qwen3.6-35b-a3b":"Qwen3.6 35B","sage-a1.5":"Sage-A1.5","qwen3.8-27b":"Qwen3.8 27B",
+  "qwen3.8-27b-uncensored":"27B uncensored","orcasaq-2-27b":"OrcaSAQ-2","recursive-flint":"Flint","ternary-bonsai-2-27b":"Bonsai 27B","swift-bonsai-2":"Swift-Bonsai",
+  "phi-4-mini":"Phi-4-mini","nanbeige4.3-33b":"Nanbeige 33B","granite-4.1-3b":"Granite 4.1","granite-4.2-3b":"Granite 4.2","llama-3.1-8b-instruct":"Llama 3.1 8B"};
+const K = { easy:"M1-v1|knowledge.easy_acc", hard:"M1-v1|knowledge.hard_acc", refuse:"M1-v1|honesty.invented_refusal_lenient",
+  confab:"M1-v1|honesty.invented_confabulation", over:"M1-v1|honesty.overabstain_hard", unf:"M1-v1|reliability.unfinished",
+  rec:"AbstentionBench-fast/norefs|honesty.abstention_recall", prec:"AbstentionBench-fast/norefs|honesty.abstention_precision",
+  miss:"AbstentionBench-fast/norefs|honesty.missing_info_recall", fp:"AbstentionBench-fast/norefs|honesty.false_premise_recall" };
+const pct = v => v == null ? "–" : Math.round(v * 100) + "%";
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const m1cfgs = c => c.configs.filter(x => x.config_id.startsWith("m1:"));
+const abcfgs = c => c.configs.filter(x => x.config_id.startsWith("abench:"));
+const primary = list => list.find(x => x.primary) || list[0];
+const val = (cfg, k) => cfg && cfg.metrics[k] ? cfg.metrics[k].v : null;
+function thinkCfg(c) {
+  const on = m1cfgs(c).filter(x => x.thinking.startsWith("on") && !x.thinking.includes("loops") && !x.thinking.includes("verification"));
+  return on.find(x => x.thinking.includes("sampling")) || on[0] || null;
+}
+function decShort(d) { return d === "greedy" ? "greedy" : d.startsWith("sampled") ? "sampled" : d; }
+function setupText(x) { return `${x.quant} · thinking ${x.thinking} · ${decShort(x.decoding)}${x.note ? " · " + x.note : ""}`; }
+
+const cards = Object.values(DATA.cards);
+const nCfg = cards.reduce((a, c) => a + c.configs.length, 0);
+document.getElementById("counts").innerHTML = `<span><b>${cards.length}</b> models</span><span><b>${nCfg}</b> measured setups</span>` +
+  `<span><b>${cards.reduce((a, c) => a + c.configs.reduce((b, x) => b + Object.keys(x.metrics).length, 0), 0)}</b> results</span><span>built <b>${DATA.built}</b></span>`;
+document.getElementById("built").textContent = `Built ${DATA.built}.`;
+
+function bar(cfg, key, label, n, color) {
+  const m = cfg && cfg.metrics[key]; if (!m) return "";
+  const w = Math.max(0, Math.min(1, m.v)) * 100, lo = (m.lo ?? m.v) * 100, hi = (m.hi ?? m.v) * 100;
+  return `<div class="row"><span class="lab">${label}${n ? ` <small>n=${m.n}</small>` : ""}</span>
+    <span class="bar" role="img" aria-label="${esc(label)} ${pct(m.v)}, interval ${pct(m.lo)} to ${pct(m.hi)}"><span class="fill" style="width:${w}%;background:var(${color})"></span>
+    <span class="ci" style="left:${lo}%;width:${Math.max(0.6, hi - lo)}%"></span></span><span class="val">${pct(m.v)}</span></div>`;
+}
+function chips(c) {
+  const p = primary(m1cfgs(c)); if (!p) return "";
+  const out = [], h = val(p, K.hard), r = val(p, K.refuse), cf = val(p, K.confab), o = val(p, K.over);
+  if (h >= 0.75) out.push(["know", "Deep recall"]); if (h != null && h <= 0.2) out.push(["muted", "Thin recall"]);
+  if (r >= 0.85 && o <= 0.05) out.push(["good", "Admits invented questions"]);
+  if (cf >= 0.5) out.push(["warn", "Bluffs on invented questions"]);
+  if (o >= 0.10) out.push(["caution", "Over-refuses real questions"]);
+  const t = thinkCfg(c);
+  if (t) { const d = val(t, K.refuse) - r; if (d >= 0.15) out.push(["good", `Thinking helps (+${Math.round(d * 100)} pts)`]); if (d <= -0.15) out.push(["warn", `Thinking hurts (${Math.round(d * 100)} pts)`]); }
+  return out.length ? `<div class="chips">${out.map(([k, t]) => `<span class="chip ${k}">${esc(t)}</span>`).join("")}</div>` : "";
+}
+function otherTable(c) {
+  const m1 = m1cfgs(c), p = primary(m1), ab = abcfgs(c), pa = primary(ab);
+  const restM1 = m1.filter(x => x !== p), restAb = ab.filter(x => x !== pa);
+  if (!restM1.length && !restAb.length) return "";
+  let h = `<details><summary>Other setups (${restM1.length + restAb.length})</summary>`;
+  if (restM1.length) h += `<div class="tbl"><table><thead><tr><th>M1 setup</th><th>Hard</th><th>Refuses invented</th><th>Makes up</th><th>Unfinished</th></tr></thead><tbody>` +
+    restM1.map(x => `<tr><td>${esc(setupText(x))}</td><td>${pct(val(x, K.hard))}</td><td>${pct(val(x, K.refuse))}</td><td>${pct(val(x, K.confab))}</td><td>${pct(val(x, K.unf))}</td></tr>`).join("") + `</tbody></table></div>`;
+  if (restAb.length) h += `<div class="tbl"><table><thead><tr><th>AbstentionBench setup</th><th>Abstains</th><th>Missing info</th><th>False premise</th><th>Precision</th></tr></thead><tbody>` +
+    restAb.map(x => `<tr><td>${esc(setupText(x))}</td><td>${pct(val(x, K.rec))}</td><td>${pct(val(x, K.miss))}</td><td>${pct(val(x, K.fp))}</td><td>${pct(val(x, K.prec))}</td></tr>`).join("") + `</tbody></table></div>`;
+  return h + `</details>`;
+}
+function card(c) {
+  const p = primary(m1cfgs(c)), pa = primary(abcfgs(c));
+  const size = c.arch === "dense" ? `dense ${c.total_b}B` : `MoE ${c.total_b}B total, ${c.active_b}B active`;
+  const lin = c.lineage && DATA.cards[c.lineage] ? ` · fine-tune of ${esc(DATA.cards[c.lineage].display)}` : "";
+  let h = `<article class="card"><div class="card-head"><h3>${esc(c.display)}</h3><span class="meta">${esc(c.developer || "developer not recorded")} · ${size}${lin}</span></div>`;
+  if (p) h += `<span class="setup">Standard setup: <b>${esc(setupText(p))}</b></span>`;
+  h += chips(c);
+  if (p) h += `<div class="group"><span class="eyebrow">Knowledge</span>${bar(p, K.easy, "Easy questions", 1, "--know")}${bar(p, K.hard, "Hard real questions", 1, "--know")}</div>
+    <div class="group"><span class="eyebrow">Honesty</span>${bar(p, K.refuse, "Refuses invented questions", 1, "--good")}${bar(p, K.confab, "Makes up an answer instead", 0, "--warn")}${bar(p, K.over, "Refuses real hard questions", 0, "--caution")}</div>
+    <div class="group"><span class="eyebrow">Reliability</span>${bar(p, K.unf, "Unfinished answers", 1, "--muted")}</div>`;
+  if (pa) h += `<div class="group"><span class="eyebrow">AbstentionBench · ${esc(pa.quant)} · thinking ${esc(pa.thinking)}</span>${bar(pa, K.rec, "Abstains when it should", 1, "--good")}${bar(pa, K.miss, "Catches missing information", 1, "--good")}${bar(pa, K.fp, "Catches false premises", 1, "--good")}${bar(pa, K.prec, "Its abstentions are warranted", 0, "--know")}</div>`;
+  h += otherTable(c);
+  h += `<div class="foot"><a href="${esc(c.receipt)}" target="_blank" rel="noopener">Receipt</a>${p ? `<a href="${esc(DATA.repo + p.source)}" target="_blank" rel="noopener">Raw rows</a>` : ""}</div></article>`;
+  return h;
+}
+function renderGrid() {
+  const s = document.getElementById("sort").value;
+  const key = c => { const p = primary(m1cfgs(c)); if (!p) return -9; return s === "refuse" ? val(p, K.refuse) : s === "hard" ? val(p, K.hard) : s === "confab" ? -val(p, K.confab) : 0; };
+  const list = [...cards].sort((a, b) => s === "name" ? a.display.localeCompare(b.display) : key(b) - key(a) || a.display.localeCompare(b.display));
+  document.getElementById("grid").innerHTML = list.map(card).join("");
+}
+function renderChart() {
+  const svg = document.getElementById("chart"), W = 900, H = 520, L = 64, R = 30, T = 24, B = 54;
+  const x = v => L + v * (W - L - R), y = v => H - B - v * (H - T - B);
+  const showArrows = document.getElementById("arrows").checked;
+  let g = `<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"></path></marker></defs>`;
+  g += `<rect x="${x(0.5)}" y="${y(1)}" width="${x(1) - x(0.5)}" height="${y(0.5) - y(1)}" fill="var(--good)" opacity="0.07"></rect>`;
+  g += `<rect x="${x(0)}" y="${y(0.5)}" width="${x(0.5) - x(0)}" height="${y(0) - y(0.5)}" fill="var(--warn)" opacity="0.07"></rect>`;
+  for (let t = 0; t <= 1.0001; t += 0.25) {
+    g += `<line x1="${x(t)}" x2="${x(t)}" y1="${y(0)}" y2="${y(1)}" stroke="var(--rule)" stroke-width="1"></line><line x1="${x(0)}" x2="${x(1)}" y1="${y(t)}" y2="${y(t)}" stroke="var(--rule)" stroke-width="1"></line>`;
+    g += `<text x="${x(t)}" y="${y(0) + 18}" text-anchor="middle" font-size="12" fill="var(--muted)">${Math.round(t * 100)}%</text><text x="${x(0) - 8}" y="${y(t) + 4}" text-anchor="end" font-size="12" fill="var(--muted)">${Math.round(t * 100)}%</text>`;
+  }
+  g += `<text x="${(x(0) + x(1)) / 2}" y="${H - 10}" text-anchor="middle" font-size="13" fill="var(--ink)">Answers hard real questions correctly</text>`;
+  g += `<text transform="translate(16 ${(y(0) + y(1)) / 2}) rotate(-90)" text-anchor="middle" font-size="13" fill="var(--ink)">Refuses invented questions</text>`;
+  const q = [[x(0.98), y(0.97), "end", "Knows, and admits what it doesn't", "--good"], [x(0.02), y(0.03) - 6, "start", "Knows little, and bluffs", "--warn"],
+             [x(0.98), y(0.03) - 6, "end", "Knows, but bluffs on fakes", "--muted"], [x(0.02), y(0.97), "start", "Knows little, says so", "--muted"]];
+  q.forEach(([qx, qy, a, t, c]) => g += `<text x="${qx}" y="${qy + 12}" text-anchor="${a}" font-size="12" font-weight="600" fill="var(${c})">${t}</text>`);
+  const pts = cards.map(c => { const p = primary(m1cfgs(c)); return p ? { c, p, t: thinkCfg(c), hx: val(p, K.hard), ry: val(p, K.refuse) } : null; }).filter(Boolean);
+  if (showArrows) pts.forEach(o => { if (!o.t) return; const tx = val(o.t, K.hard), ty = val(o.t, K.refuse);
+    g += `<line x1="${x(o.hx)}" y1="${y(o.ry)}" x2="${x(tx)}" y2="${y(ty)}" stroke="var(--muted)" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ah)"></line>`; });
+  const placed = [];
+  pts.sort((a, b) => b.ry - a.ry).forEach(o => {
+    const px = x(o.hx), py = y(o.ry), lab = SHORT[o.c.model_id] || o.c.display, w = lab.length * 6.6 + 4;
+    const conf = val(o.p, K.confab), over = val(o.p, K.over);
+    const col = over >= 0.10 ? "--caution" : conf >= 0.5 ? "--warn" : o.ry >= 0.85 ? "--good" : "--know";
+    g += `<circle cx="${px}" cy="${py}" r="6" fill="var(${col})" stroke="var(--surface)" stroke-width="1.5"><title>${esc(o.c.display)}: hard ${pct(o.hx)}, refuses invented ${pct(o.ry)}</title></circle>`;
+    const cands = [[10, 4, "start"], [-10, 4, "end"], [10, -10, "start"], [10, 16, "start"], [-10, -10, "end"], [-10, 16, "end"], [10, -22, "start"], [10, 28, "start"]];
+    let chosen = cands[0];
+    for (const cd of cands) {
+      const bx = cd[2] === "start" ? px + cd[0] : px + cd[0] - w, by = py + cd[1] - 11;
+      if (bx < L || bx + w > W - 4 || by < T - 6 || by + 13 > H - B + 4) continue;
+      if (!placed.some(b => bx < b.x + b.w && bx + w > b.x && by < b.y + b.h && by + 13 > b.y)) { chosen = cd; placed.push({ x: bx, y: by, w, h: 13 }); break; }
+    }
+    g += `<text x="${px + chosen[0]}" y="${py + chosen[1]}" text-anchor="${chosen[2]}" font-size="12" fill="var(--ink)">${esc(lab)}</text>`;
+  });
+  svg.innerHTML = g;
+}
+document.getElementById("sort").addEventListener("change", renderGrid);
+document.getElementById("arrows").addEventListener("change", renderChart);
+renderChart(); renderGrid();
+</script>
