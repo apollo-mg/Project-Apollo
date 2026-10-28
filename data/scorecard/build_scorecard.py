@@ -2,13 +2,15 @@
 """Model scorecard: a long-format results database DERIVED from committed receipts (the receipts stay the source of
 truth). One row per (model config, instrument, metric). New instruments add rows, never columns.
 Sources: M1 raw rows (data/receipts/quant-abstention/raw/main_*.jsonl, graded by run_main.py) and AbstentionBench
-text-free verdict tables (data/receipts/abstentionbench/verdicts_*.csv). Identity comes from registry.json.
+text-free verdict tables (data/receipts/abstentionbench/verdicts_*.csv). Identity comes from registry.json (hand-run
+models) and recipes/*.json (models run through the pipeline, abstend.py).
 Outputs: scorecard.db (SQLite, gitignored), scorecard.csv (committed, diffable), cards.json (one card per model).
 Usage: build_scorecard.py"""
 import csv, json, math, re, sqlite3
 from pathlib import Path
 HERE = Path(__file__).resolve().parent; R = HERE.parent / "receipts"
 REG = json.load(open(HERE / "registry.json"))
+from abstend import load_recipes; load_recipes(REG)   # recipes/*.json: models run through the pipeline
 
 def wilson(k, n, z=1.96):
     if not n: return (None, None, None)

@@ -31,12 +31,15 @@ VARIANTS = (" UNKNOWN", " Unknown", " unknown")
 PROSE = re.compile(r"no such|does not exist|doesn't exist|not exist|fictional|no record|not a real|no known|not aware of",
                    re.I)
 YEAR = re.compile(r"(?<!\d)(\d{3,4})(?!\d)")
+# 2026-10-28: sent with --neutral-penalties so R-gen never inherits an engine's injected defaults (Strata adds the model
+# card's presence_penalty to requests that omit it); repetition_penalty is the vLLM/Strata spelling, ignored by llama.cpp
+NEUTRAL = {"presence_penalty": 0, "frequency_penalty": 0, "repeat_penalty": 1, "repetition_penalty": 1, "dry_multiplier": 0}
 
 
 from run_pilot import fold, surname, last_answer, grade, lenient  # noqa: E402  (grading unchanged)
 
 
-def main():
+def build_parser():
     ap = argparse.ArgumentParser()
     ap.add_argument("--url", required=True)
     ap.add_argument("--arm", required=True)
@@ -54,7 +57,18 @@ def main():
     ap.add_argument("--system", default=None, help="2026-10-24: a system message sent before the CAL prompt in R-slot and R-gen (Sage's verification flag requires one); default none, so earlier arms are unchanged")
     ap.add_argument("--sampling", default=None, help="2026-10-25: JSON of sampling fields for R-gen (e.g. Sage's recommended temperature/top_k/presence_penalty) plus a per-item seed; default none = greedy, so earlier arms are unchanged. R-slot stays greedy")
     ap.add_argument("--seed-base", type=int, default=20261025)
-    a = ap.parse_args()
+    ap.add_argument("--neutral-penalties", action="store_true", help="2026-10-28: R-gen sends NEUTRAL penalties, applied before --sampling so vendor values still win; default off, so earlier arms are unchanged")
+    return ap
+
+
+def header_fields(a):
+    """The header-row fields that come from the arguments alone (the pipeline compares these against stored runs)."""
+    return {"arm": a.arm, "corpus": a.corpus, "max_tokens": a.max_tokens, "thinking": bool(a.thinking), "template_kwargs": json.loads(a.template_kwargs), "skip_slot": bool(a.skip_slot), **({"system": a.system} if a.system else {}), **({"sampling": json.loads(a.sampling), "seed_base": a.seed_base} if a.sampling else {}), **({"usage": True, "timeout": a.timeout} if a.usage else {}),
+            **({"neutral_penalties": True} if a.neutral_penalties else {}), "meta": json.loads(a.meta)}
+
+
+def main():
+    a = build_parser().parse_args()
     SYS = [{"role": "system", "content": a.system}] if a.system else []
     items = [json.loads(l) for l in open(HERE / "corpus" / f"{a.corpus}.jsonl")]
     out = HERE / "raw" / (f"main_{a.arm}.jsonl" if a.corpus == "M1" else f"main_{a.arm}.{a.corpus}.jsonl")
@@ -84,6 +98,8 @@ def main():
         t0 = time.time()
         body = {"messages": SYS + [{"role": "user", "content": PROMPT.format(q=q)}], "temperature": 0, "max_tokens": a.max_tokens,
                 "cache_prompt": False, "chat_template_kwargs": {"enable_thinking": bool(a.thinking), **json.loads(a.template_kwargs)}}
+        if a.neutral_penalties:
+            body.update(NEUTRAL)
         if a.sampling:
             body.update(json.loads(a.sampling)); body["seed"] = (a.seed_base + zlib.crc32(str(sid).encode())) % (2**31)
         r = c.post(f"{a.url}/v1/chat/completions", json=body)
@@ -106,8 +122,7 @@ def main():
     with open(out, "a") as f:
         if not done:
             p = render("Q")
-            hdr = {"header": True, "arm": a.arm, "corpus": a.corpus, "max_tokens": a.max_tokens, "thinking": bool(a.thinking), "template_kwargs": json.loads(a.template_kwargs), "skip_slot": bool(a.skip_slot), **({"system": a.system} if a.system else {}), **({"sampling": json.loads(a.sampling), "seed_base": a.seed_base} if a.sampling else {}), **({"usage": True, "timeout": a.timeout} if a.usage else {}),
-                   "meta": json.loads(a.meta), "variant_ids": var_ids,
+            hdr = {"header": True, **header_fields(a), "variant_ids": var_ids,
                    "render_tail": p[-60:], "props": c.get(f"{a.url}/props").json().get("default_generation_settings", {}),
                    "started": time.strftime("%Y-%m-%dT%H:%M:%S%z")}
             f.write(json.dumps(hdr, ensure_ascii=False) + "\n"); f.flush(); os.fsync(f.fileno())

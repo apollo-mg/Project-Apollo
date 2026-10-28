@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Abstend pipeline, step one: model recipes (Claude, 2026-10-28):** `data/scorecard/recipes/<model_id>.json` records a
+  model's identity, exact file (repo, revision, full sha256), host (`data/scorecard/hosts.json`), engine and flags, and
+  its two run modes (greedy, plus the vendor's recommended sampling). `data/scorecard/abstend.py` validates recipes,
+  derives `run_main.py` arguments, renders a measurement-plan prereg (with the precheck line), and guards launches on a
+  committed, unmodified prereg that names the recipe's hash. `build_scorecard.py` merges recipes after `registry.json`.
+  Nanbeige4.3-33B moved from the registry to the first recipe as the acceptance test: `scorecard.csv` rebuilds
+  byte-identical, and `abstend.py check` matches both stored run headers field by field (planted errors are caught).
+  `run_main.py` gains `--neutral-penalties` (default off, so earlier arms are unchanged; the pipeline always sends it) so
+  no engine-injected penalty reaches R-gen, and `build_parser()` / `header_fields()` for the pipeline to reuse.
 - **Argus now runs pinned upstream Hermes Agent (Claude, 2026-10-28):** a dedicated clone of `NousResearch/hermes-agent`
   v0.22.5 (`bf0203a7`) at `/mnt/TG_2TB/AI/hermes-agent-argus`, Python 3.14. `argus/sandboxed_agent.sh` now binds the
   tree that its interpreter belongs to (or `HERMES_TREE`) and binds uv's interpreter root only when the venv uses one.

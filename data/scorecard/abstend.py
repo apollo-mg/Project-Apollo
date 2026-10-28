@@ -1,0 +1,202 @@
+#!/usr/bin/env python3
+"""Abstend pipeline, step one: a recipe (recipes/<model_id>.json) is the single record of a model's identity, the exact
+file, the host and engine it is served on, and its run modes (greedy, plus the vendor's recommended sampling).
+build_scorecard.py merges recipes through load_recipes(), so a recipe's model and arms must not also be in registry.json.
+
+  check  RECIPE...    validate; derive each mode's run_main.py arguments and compare the header they would write with the
+                      stored run's header, field by field (KNOWN_NEW fields allowed). Needs the project venv (httpx).
+  args   RECIPE MODE  print the run_main.py command for one mode; refuses unless the launch guard passes
+  prereg RECIPE       write the measurement-plan prereg to data/receipts/abstend/<model_id>/PREREG_<model_id>.md
+                      (--stdout renders it without writing)
+  guard  RECIPE       exit 0 only if the recipe and its prereg are committed, unmodified, and the prereg names this
+                      recipe's hash"""
+import argparse, datetime, hashlib, json, re, shlex, subprocess, sys
+from pathlib import Path
+HERE = Path(__file__).resolve().parent; ROOT = HERE.parents[1]; QA = ROOT / "data" / "receipts" / "quant-abstention"
+HOSTS = json.load(open(HERE / "hosts.json"))
+SCHEMA = "abstend-recipe/1"
+KNOWN_NEW = {"neutral_penalties", "meta.recipe"}    # fields the pipeline adds that hand-run arms never wrote
+HDR_RUNTIME = {"header", "variant_ids", "render_tail", "props", "started"}   # written by the server, not the arguments
+
+
+def sha(p): return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+def rel(p): return str(Path(p).resolve().relative_to(ROOT))
+
+
+def validate(rc, path):
+    err = []
+    if rc.get("schema") != SCHEMA: err.append(f"schema is not {SCHEMA}")
+    for k in ("model_id", "model", "file", "host", "engine", "modes", "instruments"):
+        if k not in rc: err.append(f"missing {k}")
+    if err: raise SystemExit(f"{path}: " + "; ".join(err))
+    if Path(path).stem != rc["model_id"]: err.append("file name must be <model_id>.json")
+    if not re.fullmatch(r"[0-9a-f]{64}", rc["file"].get("sha256", "")): err.append("file.sha256 must be the full 64-hex hash")
+    if rc["host"] not in HOSTS: err.append(f"host {rc['host']} not in hosts.json")
+    if "greedy" not in rc["modes"]: err.append("a greedy mode is required")
+    if rc["modes"].get("greedy", {}).get("sampling"): err.append("the greedy mode cannot carry sampling")
+    if set(rc["modes"]) - {"greedy", "vendor"}: err.append("modes are greedy and vendor only")
+    if sum(bool(m.get("primary")) for m in rc["modes"].values()) != 1: err.append("exactly one mode is primary")
+    if "/home/" in json.dumps(rc): err.append("no /home paths in a recipe (public repo)")
+    if err: raise SystemExit(f"{path}: " + "; ".join(err))
+    return rc
+
+
+def recipes(paths=None):
+    for p in paths or sorted((HERE / "recipes").glob("*.json")):
+        yield Path(p), validate(json.load(open(p)), p)
+
+
+def label(m):
+    return m.get("label") or ("off" if not m["thinking"] else "on (vendor sampling)" if m.get("sampling") else "on")
+
+
+def load_recipes(reg):
+    """Merge every recipe's model and M1 arms into a registry dict (build_scorecard.py); duplicates are an error."""
+    for p, rc in recipes():
+        mid = rc["model_id"]
+        if mid in reg["models"]: raise SystemExit(f"{p}: model {mid} is also in registry.json")
+        reg["models"][mid] = rc["model"]
+        if "M1-v1" not in rc["instruments"]: continue
+        for m in rc["modes"].values():
+            if m["arm"] in reg["m1_arms"]: raise SystemExit(f"{p}: arm {m['arm']} is already registered")
+            reg["m1_arms"][m["arm"]] = {"model": mid, "quant": rc["file"]["quant"], "thinking": label(m), "primary": bool(m["primary"]), "note": m.get("note", "")}
+    return reg
+
+
+def meta(rc, path):
+    f, e = rc["file"], rc["engine"]
+    return {"model": f"{f['repo'].split('/')[0]} {f['name']} (sha256 {f['sha256'][:8]}..., rev {f['revision']})",
+            "build": f"{e['name']} {e['commit']} {e['build']}", "placement": f"{e['flags']}, {e['weights']}",
+            "recipe": f"{rel(path)} sha256:{sha(path)[:12]}"}
+
+
+def run_argv(rc, path, mode):
+    m = rc["modes"][mode]
+    av = ["--url", HOSTS[rc["host"]]["url"] or "URL", "--arm", m["arm"], "--usage", "--neutral-penalties",
+          "--max-tokens", str(m["max_tokens"]), "--timeout", str(m["timeout"]), "--meta", json.dumps(meta(rc, path))]
+    if m["thinking"]: av.append("--thinking")
+    if m.get("sampling"): av += ["--sampling", json.dumps(m["sampling"])]
+    if m.get("system"): av += ["--system", m["system"]]
+    if m.get("template_kwargs"): av += ["--template-kwargs", json.dumps(m["template_kwargs"])]
+    return av
+
+
+def flat(h):
+    out = {k: v for k, v in h.items() if k not in HDR_RUNTIME and k != "meta"}
+    out.update({f"meta.{k}": v for k, v in h.get("meta", {}).items()})
+    return out
+
+
+def check(paths):
+    sys.path.insert(0, str(QA)); import run_main   # noqa: E402  (the runner's own parser and header mapping)
+    bad = 0
+    for p, rc in recipes(paths):
+        for mode, m in rc["modes"].items():
+            raw = QA / "raw" / f"main_{m['arm']}.jsonl"
+            if not raw.exists(): print(f"{rc['model_id']} {mode} {m['arm']}: no stored run, nothing to compare"); continue
+            got = flat(json.loads(open(raw).readline()))
+            want = flat(run_main.header_fields(run_main.build_parser().parse_args(run_argv(rc, p, mode))))
+            new = sorted(k for k in set(want) - set(got) if k in KNOWN_NEW)
+            diff = sorted(k for k in set(want) | set(got) if k not in new and want.get(k, "<absent>") != got.get(k, "<absent>"))
+            for k in diff: print(f"  MISMATCH {m['arm']} {k}: recipe {want.get(k, '<absent>')!r} != stored {got.get(k, '<absent>')!r}")
+            bad += len(diff)
+            print(f"{rc['model_id']} {mode} {m['arm']}: {len(got)} stored fields, {len(diff)} mismatches, new (allowed): {', '.join(new) or 'none'}")
+    sys.exit(1 if bad else 0)
+
+
+def prereg_path(rc): return ROOT / "data" / "receipts" / "abstend" / rc["model_id"] / f"PREREG_{rc['model_id']}.md"
+
+
+def git(*a): return subprocess.run(["git", "-C", str(ROOT), *a], capture_output=True, text=True)
+
+
+def guard(path, rc, quiet=False):
+    pp = prereg_path(rc); why = []
+    for f in (Path(path), pp):
+        if not f.exists(): why.append(f"{rel(f) if f.is_relative_to(ROOT) else f} missing"); continue
+        if git("ls-files", "--error-unmatch", rel(f)).returncode: why.append(f"{rel(f)} not committed")
+        elif git("diff", "--quiet", "HEAD", "--", rel(f)).returncode: why.append(f"{rel(f)} modified since commit")
+    if pp.exists() and f"sha256:{sha(path)}" not in pp.read_text(): why.append("prereg does not name this recipe's hash (recipe changed after the prereg)")
+    if not quiet: print("guard " + ("OK" if not why else "REFUSED: " + "; ".join(why)))
+    return not why
+
+
+def precheck(q):
+    r = subprocess.run([str(ROOT / "tools" / "ledger_precheck.py"), q], capture_output=True, text=True)
+    hits = [l.strip() for l in r.stdout.splitlines() if l.strip().startswith("[")]
+    if not hits: return "nothing found."
+    lines = "\n".join(f"  - {h[:160]}" for h in hits[:5])
+    return f"{len(hits)} prior index line(s) found; this run adds the standard card for this exact file and recipe.\n{lines}"
+
+
+def prereg(path, rc, force=False, stdout=False):
+    pp = prereg_path(rc)
+    if pp.exists() and not force and not stdout: raise SystemExit(f"{rel(pp)} exists (a prereg is never rewritten; --force only before any run)")
+    f, e, h = rc["file"], rc["engine"], HOSTS[rc["host"]]
+    modes = []
+    for name, m in rc["modes"].items():
+        dec = (f"sampled {json.dumps(m['sampling'])} ({m.get('sampling_source', 'vendor')}), per-item seed (20261025 + crc32(id)) mod 2^31"
+               if m.get("sampling") else "greedy (temperature 0)")
+        extra = "".join(f", {k} {json.dumps(m[k])}" for k in ("system", "template_kwargs") if m.get(k))
+        modes.append(f"- **{name}** (arm `{m['arm']}`{', primary' if m['primary'] else ''}): thinking {'on' if m['thinking'] else 'off'}, "
+                     f"{dec}, max_tokens {m['max_tokens']}, timeout {m['timeout']} s{extra}.")
+    txt = f"""# Pre-registration -- {rc['model']['display']} {f['quant']}: Abstend standard card
+
+**Registered {datetime.date.today().isoformat()}, before any row of this run.** Generated by `data/scorecard/abstend.py prereg` from
+`{rel(path)}` (sha256:{sha(path)}). This is a measurement plan with a fixed analysis and no per-model predictions:
+the standard card is the same for every model, and the launch guard refuses to run unless this file and the recipe
+are committed unmodified.
+
+**Prior art checked:** `ledger_precheck.py "{rc['model']['display']}"` -> {precheck(rc['model']['display'])}
+
+## Artifact
+
+- **File:** `{f['repo']}` rev `{f['revision']}`, `{f['name']}`, sha256 `{f['sha256']}`, verified at the store and again
+  where it is served.
+- **Host:** {h['desc']}.
+- **Engine:** {e['name']} `{e['commit']}` {e['build']}; `{e['flags']}`; weights from {e['weights']}.
+
+## Modes
+
+{chr(10).join(modes)}
+
+Every request sends `cache_prompt: false` and explicit neutral penalties (presence 0, frequency 0, repeat 1, DRY off),
+so no engine default enters; a vendor's own sampling values override them. A smoke gate ("What is 17*19?" must
+return 323, and thinking-off reasoning must be empty) runs before each mode.
+
+## Instruments and fixed analysis
+
+**Instruments:** {', '.join(rc['instruments'])}.
+
+M1-v1 is 240 items (40 easy, 100 hard real, 100 invented), graded by `run_main.py`'s CAL
+grader unchanged. The card (`build_scorecard.py`, Wilson 95 % intervals) reports per mode: easy and hard accuracy,
+over-abstention on hard items, refusal of invented items (registered and lenient), confabulation on invented items,
+and unfinished answers. Unfinished answers (cap hits, runaways) are a reliability metric, reported separately, and
+never folded into a capability claim.
+
+## Stop rules
+
+A hash mismatch or a failed smoke gate stops the mode. A server death resumes on a fresh server (`run_main.py` skips
+written ids), and is recorded in the result.
+"""
+    if stdout: return print(txt)
+    pp.parent.mkdir(parents=True, exist_ok=True); pp.write_text(txt); print("wrote", rel(pp))
+
+
+def main():
+    ap = argparse.ArgumentParser(); sp = ap.add_subparsers(dest="cmd", required=True)
+    sp.add_parser("check").add_argument("recipes", nargs="*")
+    x = sp.add_parser("args"); x.add_argument("recipe"); x.add_argument("mode")
+    x = sp.add_parser("prereg"); x.add_argument("recipe"); x.add_argument("--force", action="store_true"); x.add_argument("--stdout", action="store_true")
+    sp.add_parser("guard").add_argument("recipe")
+    a = ap.parse_args()
+    if a.cmd == "check": return check(a.recipes or None)
+    p, rc = next(recipes([a.recipe]))
+    if a.cmd == "guard": sys.exit(0 if guard(p, rc) else 1)
+    if a.cmd == "prereg": return prereg(p, rc, a.force, a.stdout)
+    if not guard(p, rc, quiet=True): guard(p, rc); sys.exit(1)
+    print(shlex.join([str(QA / "run_main.py"), *run_argv(rc, p, a.mode)]))
+
+
+if __name__ == "__main__":
+    main()
