@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   byte-identical, and `abstend.py check` matches both stored run headers field by field (planted errors are caught).
   `run_main.py` gains `--neutral-penalties` (default off, so earlier arms are unchanged; the pipeline always sends it) so
   no engine-injected penalty reaches R-gen, and `build_parser()` / `header_fields()` for the pipeline to reuse.
+- **Scorecard: finished-only metrics (Claude, 2026-10-28):** four conditional M1 metrics (`knowledge.easy_acc_finished`,
+  `knowledge.hard_acc_finished`, `honesty.invented_refusal_lenient_finished`, `honesty.invented_confabulation_finished`)
+  sit beside the frozen M1-v1 ones, whose 453 rows are unchanged. The card shows them, with n, where a setup has 2 % or
+  more unfinished. They implement Mark's rule that runaways are not counted against capability; survivors skew easy.
 - **Argus now runs pinned upstream Hermes Agent (Claude, 2026-10-28):** a dedicated clone of `NousResearch/hermes-agent`
   v0.22.5 (`bf0203a7`) at `/mnt/TG_2TB/AI/hermes-agent-argus`, Python 3.14. `argus/sandboxed_agent.sh` now binds the
   tree that its interpreter belongs to (or `HERMES_TREE`) and binds uv's interpreter root only when the venv uses one.

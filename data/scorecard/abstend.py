@@ -123,10 +123,12 @@ def guard(path, rc, quiet=False):
 
 def precheck(q):
     r = subprocess.run([str(ROOT / "tools" / "ledger_precheck.py"), q], capture_output=True, text=True)
-    hits = [l.strip() for l in r.stdout.splitlines() if l.strip().startswith("[")]
-    if not hits: return "nothing found."
+    if r.returncode == 0: return "nothing found."   # the tool's exit code decides (2 = prior art), never the parsing
+    if r.returncode != 2: raise SystemExit(f"ledger_precheck.py failed (rc {r.returncode}): {r.stderr.strip()[-200:]}")
+    hits = [l.strip() for l in r.stdout.splitlines() if l.startswith("  ") and l.strip()]   # index lines, filenames, search hits
+    hits = hits or [l.strip() for l in r.stdout.splitlines() if l.strip()][:8]
     lines = "\n".join(f"  - {h[:160]}" for h in hits[:5])
-    return f"{len(hits)} prior index line(s) found; this run adds the standard card for this exact file and recipe.\n{lines}"
+    return f"{len(hits)} prior-art line(s) found; this run adds the standard card for this exact file and recipe.\n{lines}"
 
 
 def prereg(path, rc, force=False, stdout=False):
@@ -160,8 +162,9 @@ are committed unmodified.
 
 {chr(10).join(modes)}
 
-Every request sends `cache_prompt: false` and explicit neutral penalties (presence 0, frequency 0, repeat 1, DRY off),
-so no engine default enters; a vendor's own sampling values override them. A smoke gate ("What is 17*19?" must
+Every request sends `cache_prompt: false`. The generation request (R-gen) also sends explicit neutral penalties
+(presence 0, frequency 0, repeat 1, DRY off), so no engine default enters; a vendor's own sampling values override them.
+The answer-slot readout (R-slot) reads pre-sampling probabilities, which penalties cannot reach on llama.cpp. A smoke gate ("What is 17*19?" must
 return 323, and thinking-off reasoning must be empty) runs before each mode.
 
 ## Instruments and fixed analysis
@@ -169,10 +172,12 @@ return 323, and thinking-off reasoning must be empty) runs before each mode.
 **Instruments:** {', '.join(rc['instruments'])}.
 
 M1-v1 is 240 items (40 easy, 100 hard real, 100 invented), graded by `run_main.py`'s CAL
-grader unchanged. The card (`build_scorecard.py`, Wilson 95 % intervals) reports per mode: easy and hard accuracy,
-over-abstention on hard items, refusal of invented items (registered and lenient), confabulation on invented items,
-and unfinished answers. Unfinished answers (cap hits, runaways) are a reliability metric, reported separately, and
-never folded into a capability claim.
+grader unchanged. The card (`build_scorecard.py`, Wilson 95 % intervals) reports per mode, over all items as frozen in
+M1-v1: easy and hard accuracy, over-abstention on hard items, refusal of invented items (registered and lenient),
+confabulation on invented items, and unfinished answers (cap hits and runaways; in these headline rates a runaway
+counts as not answered). Beside them, the same easy, hard, lenient-refusal and confabulation rates among finished
+answers only (`*_finished`, with n): the reading that does not count runaways against capability. Survivors skew
+toward easier items, so these read high. Unfinished is also reported as its own reliability metric.
 
 ## Stop rules
 
@@ -195,6 +200,7 @@ def main():
     if a.cmd == "guard": sys.exit(0 if guard(p, rc) else 1)
     if a.cmd == "prereg": return prereg(p, rc, a.force, a.stdout)
     if not guard(p, rc, quiet=True): guard(p, rc); sys.exit(1)
+    if not HOSTS[rc["host"]]["url"]: sys.exit(f"host {rc['host']} has no fixed test URL in hosts.json; set one for this run")
     print(shlex.join([str(QA / "run_main.py"), *run_argv(rc, p, a.mode)]))
 
 

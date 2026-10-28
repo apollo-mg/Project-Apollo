@@ -24,6 +24,8 @@ settings, not the lab's full-precision API. The scorecard is the dyno sheet, not
   1. A chain generator per host. Check it by rendering the .194 chain from the Nanbeige recipe and diffing it against
      `nanbeige_chain.sh`.
   2. One real end-to-end run on the 9070, preferably reproducing a stored desktop arm.
+     - It also measures `--neutral-penalties`, which has never reached a live server: one temperature-0 request
+       with the flag and one without, compared as text, plus a server-log check that no field was rejected.
   3. The frozen AbstentionBench subset, checked against the stored LLAMA8 and Q27 verdicts.
   4. Speed.
 
