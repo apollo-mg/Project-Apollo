@@ -22,14 +22,21 @@ set -eu
 : "${HERMES_HOME:?driver must set HERMES_HOME}"
 FX=$(dirname "$HERMES_HOME")
 SB=$PWD
-HG=/mnt/TG_2TB/AI/hermes-go
-# The venv's python symlinks through .../uv/python/cpython-3.11-<plat> (itself a symlink)
-# to .../cpython-3.11.15-<plat>. Bind the whole uv python root so the whole chain resolves.
-# It holds interpreters only.
-PYHOME=$(sed -n 's/^home *= *//p' "$HG/.venv/pyvenv.cfg")          # .../uv/python/cpython-3.11-*/bin
-PYHOME=$(dirname "$(dirname "$PYHOME")")                            # .../uv/python
-case "$(readlink -f "$HG/.venv/bin/python")" in "$PYHOME"/*) ;; *)
-    echo "sandboxed_agent: venv python resolves outside $PYHOME" >&2; exit 91;; esac
+# The Hermes tree is the one the interpreter belongs to (2026-10-28): `<tree>/.venv/bin/python` -> <tree>. HERMES_TREE
+# overrides. Runs before 2026-10-28 used TheTom/hermes-go 0.20.4 (1524739b, a fork of upstream Hermes Agent); from then
+# on, a pinned upstream Hermes Agent (see HERMES_VERSIONS.md).
+case "${1:-}" in */.venv/bin/python*) HG_FROM_ARG=$(dirname "$(dirname "$(dirname "$1")")");; *) HG_FROM_ARG=;; esac
+HG=${HERMES_TREE:-${HG_FROM_ARG:-/mnt/TG_2TB/AI/hermes-go}}
+[ -x "$HG/.venv/bin/python" ] || { echo "sandboxed_agent: no venv python under $HG" >&2; exit 92; }
+# A uv-managed interpreter lives under ~/.local (hidden by the empty /home), so bind its whole uv python root, which holds
+# interpreters only. A system interpreter (/usr) is already visible through the read-only /.
+PYREAL=$(readlink -f "$HG/.venv/bin/python"); PYBIND=()
+case "$PYREAL" in
+  /usr/*) ;;
+  *) PYHOME=$(sed -n 's/^home *= *//p' "$HG/.venv/pyvenv.cfg"); PYHOME=$(dirname "$(dirname "$PYHOME")")
+     case "$PYREAL" in "$PYHOME"/*) PYBIND=(--ro-bind "$PYHOME" "$PYHOME");; *)
+         echo "sandboxed_agent: venv python resolves outside $PYHOME" >&2; exit 91;; esac;;
+esac
 [ -d "$FX/fake-google" ] || { echo "sandboxed_agent: no fake-google under $FX" >&2; exit 90; }
 # Strip every credential-named variable (2026-09-22). The driver passes the caller's whole
 # environment, which carried a Claude Code session token, and the network is shared. The
@@ -46,7 +53,7 @@ exec bwrap \
     --tmpfs /home --dir "$HOME" \
     --tmpfs /mnt \
     --ro-bind "$HG" "$HG" \
-    --ro-bind "$PYHOME" "$PYHOME" \
+    "${PYBIND[@]}" \
     --bind "$FX/agent-home" "$FX/agent-home" \
     --bind "$FX/fake-google" "$FX/fake-google" \
     --tmpfs "$FX/fake-google/fixtures" \

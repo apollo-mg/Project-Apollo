@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Argus now runs pinned upstream Hermes Agent (Claude, 2026-10-28):** a dedicated clone of `NousResearch/hermes-agent`
+  v0.22.5 (`bf0203a7`) at `/mnt/TG_2TB/AI/hermes-agent-argus`, Python 3.14. `argus/sandboxed_agent.sh` now binds the
+  tree that its interpreter belongs to (or `HERMES_TREE`) and binds uv's interpreter root only when the venv uses one.
+  Old run scripts still resolve to `/mnt/TG_2TB/AI/hermes-go`, which turned out to be **TheTom/hermes-go 0.20.4, a fork**:
+  every earlier Argus result ran on that fork, not stock Hermes. Monthly stable-release pins; see
+  `argus/HERMES_VERSIONS.md`.
+
 ### Search: the BM25 half of hybrid retrieval works again (2026-10-22, Claude, Mark's OK)
 - `modules/sovereign_search.py` gains `fts_or_query(text)`: plain text -> an FTS5 OR of quoted word tokens. Used by
   `tools/ledger_precheck.py --deep` (it passed raw text to `MATCH`: an implicit AND of every word, and any `.`/`-`/`:`/`?`
