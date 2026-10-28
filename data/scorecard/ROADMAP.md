@@ -47,3 +47,22 @@ scope for this compute and this lab.
    answer key (after checking how Meta validated its judge), and thinking that notices missing information then hides it.
 4. **Outreach with something in hand.** Each write-up goes to the people it concerns (Meta's AbstentionBench authors,
    Strata's maintainer, eval teams such as Cohere's), as findings and questions, never as claims of safety.
+
+## Pipeline decisions (Mark, 2026-10-28)
+
+- **AbstentionBench as an anchor:** a stratified subset on release day, kept running alongside our own private dataset
+  even once that exists. Running a well-known outside benchmark next to ours shows good faith and anchors our numbers.
+- **Two modes per model:** greedy (thinking off where the template allows) AND the vendor's recommended sampling (thinking
+  on where the model has it). Runaways and other sampling-induced failures are reported as a separate reliability
+  metric, never counted against capability.
+- **Hosts:** the 9070 for small models and the judge, .194 for big models, .73 only when nothing else fits.
+- **Engines are part of the artifact.** The primary card uses a pinned reference engine (upstream llama.cpp). An engine
+  conformance track (see below) covers the engines people actually run, starting with spill engines such as Strata.
+
+## Engine conformance track (proposed)
+
+For each popular engine, a small fixed panel on one or two reference models: (a) numerics, meaning greedy text identity
+or KLD against the reference engine, with the path-noise control; (b) a defaults audit, meaning what the server silently
+adds (sampling, penalties, templates, thinking switches); (c) speed on the shared harness; (d) an M1 subset, to see
+whether honesty moves on that engine. Prior art: the Pascal FAST_FP16 KV bug (an engine bug that changed quality) and
+Strata's hidden presence penalty (2026-10-27).
