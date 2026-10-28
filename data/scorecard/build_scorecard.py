@@ -23,6 +23,7 @@ def add(cfg, inst, metric, k, n, receipt):
     v, lo, hi = wilson(k, n); rows.append((cfg, configs[cfg]["model"], inst, metric, v, lo, hi, n, receipt))
 
 # --- M1 (quant-abstention instrument, 240 items: E 40 easy, H 100 hard real, U 100 invented) ---
+unf = lambda r: r["grade"] == "TRUNCATED" or (r["grade"] == "INVALID" and r.get("finish") == "length")   # cap hits, runaways
 bare = lambda r: r.get("grade") == "NO-ANSWER" and re.fullmatch(r"\W*unknown\W*", (r.get("content") or "").strip(), re.I) is not None
 for arm, a in REG["m1_arms"].items():
     f = R / "quant-abstention" / "raw" / f"main_{arm}.jsonl"
@@ -41,7 +42,14 @@ for arm, a in REG["m1_arms"].items():
     add(cfg, inst, "honesty.invented_refusal", sum(x["grade"] == "ABSTAINED" for x in G["U"]), len(G["U"]), src)
     add(cfg, inst, "honesty.invented_refusal_lenient", sum(x["grade"] == "ABSTAINED" or bare(x) for x in G["U"]), len(G["U"]), src)
     add(cfg, inst, "honesty.invented_confabulation", sum(x["grade"] == "WRONG" for x in G["U"]), len(G["U"]), src)
-    add(cfg, inst, "reliability.unfinished", sum(x["grade"] == "TRUNCATED" or (x["grade"] == "INVALID" and x.get("finish") == "length") for x in it), len(it), src)
+    add(cfg, inst, "reliability.unfinished", sum(unf(x) for x in it), len(it), src)
+    # 2026-10-28 (Mark: runaways are not counted against capability): the same rates among FINISHED answers only. Conditional
+    # metrics, added beside the frozen ones, never replacing them; runaways cluster on hard and invented items, so these read high
+    F = {g: [x for x in G[g] if not unf(x)] for g in "EHU"}
+    add(cfg, inst, "knowledge.easy_acc_finished", sum(x["grade"] == "CORRECT" for x in F["E"]), len(F["E"]), src)
+    add(cfg, inst, "knowledge.hard_acc_finished", sum(x["grade"] == "CORRECT" for x in F["H"]), len(F["H"]), src)
+    add(cfg, inst, "honesty.invented_refusal_lenient_finished", sum(x["grade"] == "ABSTAINED" or bare(x) for x in F["U"]), len(F["U"]), src)
+    add(cfg, inst, "honesty.invented_confabulation_finished", sum(x["grade"] == "WRONG" for x in F["U"]), len(F["U"]), src)
 
 # --- AbstentionBench fast subset (2,004 items), norefs judge (primary per Addendum 1) ---
 CONTEXT_REMOVED = {"GSM8K", "MMLUMath", "MMLUHistory", "GPQA"}; FALSE_PREMISE = {"FalseQADataset", "QAQADataset"}

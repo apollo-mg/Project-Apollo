@@ -14,6 +14,19 @@ settings, not the lab's full-precision API. The scorecard is the dyno sheet, not
   explicit sampling and penalties (no server defaults), `cache_prompt: false`, KV flags stated, hashes verified,
   memory-capped units, per-item flush, and kernel interference counted.
 
+**Progress.**
+- 2026-10-28, step one done: recipes (`recipes/*.json`, `hosts.json`) and `abstend.py` (validate, derive run
+  arguments, prereg, launch guard).
+  - Acceptance test passed: Nanbeige rebuilt from its recipe gives a byte-identical `scorecard.csv`, and its derived
+    run headers match the stored ones field by field.
+  - Runaway decision implemented as conditional `*_finished` metrics beside the frozen ones.
+- Next:
+  1. A chain generator per host. Check it by rendering the .194 chain from the Nanbeige recipe and diffing it against
+     `nanbeige_chain.sh`.
+  2. One real end-to-end run on the 9070, preferably reproducing a stored desktop arm.
+  3. The frozen AbstentionBench subset, checked against the stored LLAMA8 and Q27 verdicts.
+  4. Speed.
+
 ## Versioning rule (how data stays comparable while the tests evolve)
 
 - An instrument version is frozen once published (`M1-v1`, `AbstentionBench-fast/norefs`). Any change to items,
