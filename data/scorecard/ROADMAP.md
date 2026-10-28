@@ -30,3 +30,20 @@ settings, not the lab's full-precision API. The scorecard is the dyno sheet, not
 - Which hosts are byte-deterministic at temperature 0 and which are not (Pascal kernels, VBR with parallel slots).
 - What each instrument cannot see: M1 is cold recall without tools; AbstentionBench is judged by an 8B model.
 - That the corpus is not a gold standard yet, and will change as testing finds its errors.
+
+## Before Qwen 4 (plan agreed 2026-10-28)
+
+Focus where the damage is immediate and irreversible: agents. Knowledge-domain hazards (bio above all) are out of
+scope for this compute and this lab.
+
+1. **Pipeline ready for release day.** A Qwen 4 scorecard (M1, AbstentionBench subset, speed per host) within 48 hours
+   of the weights appearing. Everyone will publish speed; few will publish honesty.
+2. **Agentic instrument v0.** A sandboxed shell with outbound network blocked but logged (DNS and connect attempts),
+   preregistered task sets: (a) security-flavoured tasks, as a cheap screen for unprompted egress (a screen, not a rate:
+   one-in-100,000 behaviours are beyond this scale); (b) agentic abstention, meaning stop, ask or hand off when
+   information is missing instead of acting on an assumption (the 27B's "fill in the missing setup" finding, with an
+   irreversible action at stake).
+3. **Two public write-ups** (fact sheets from the receipts; Mark writes the prose): the AbstentionBench judge reading the
+   answer key (after checking how Meta validated its judge), and thinking that notices missing information then hides it.
+4. **Outreach with something in hand.** Each write-up goes to the people it concerns (Meta's AbstentionBench authors,
+   Strata's maintainer, eval teams such as Cohere's), as findings and questions, never as claims of safety.
