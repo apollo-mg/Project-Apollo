@@ -26,9 +26,9 @@ settings, not the lab's full-precision API. The scorecard is the dyno sheet, not
     measured `--neutral-penalties` as a no-op (`data/receipts/abstend/phi-4-mini/`).
   - The smoke gate is an echo now: Phi-4-mini says 17*19 = 341.
 - Next:
-  1. AbstentionBench in the chain: subject run on the model's host with Meta's protocol, then the norefs judge on the
-     9070, on the frozen `AbstentionBench-sub1000/norefs` items (done 10-28: 500 failed the registered check; the
-     1,000-item fallback passed; `make_subset.py --verify` before every run).
+  1. AbstentionBench in the chain: DONE 10-28 (run 2, Llama 3.1 8B). Every stage worked, but bit-exact reproduction
+     of the 10-23 run FAILED after the 10-27 system update (kernel and firmware); today's runs replay exactly and the
+     card metrics moved < 0.03. Chains now log kernel, firmware and driver.
   2. Speed on the shared harness, added to the chain.
   3. A RESULT writer: the card is automatic, but the receipt prose is still written by hand.
   4. A first .194 run from a generated chain (the Nanbeige render matches the hand chain, but has not run).

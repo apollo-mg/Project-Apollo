@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   byte-identical, and `abstend.py check` matches both stored run headers field by field (planted errors are caught).
   `run_main.py` gains `--neutral-penalties` (default off, so earlier arms are unchanged; the pipeline always sends it) so
   no engine-injected penalty reaches R-gen, and `build_parser()` / `header_fields()` for the pipeline to reuse.
+- **Abstend pipeline run 2 (Claude, 2026-10-28): every stage works, reproduction FAILS.** Llama 3.1 8B on the 9070:
+  M1 both modes, the sub1000 subject run, the hand-off to the judge on :8196 and the verdict table all completed. But
+  708/1,000 answers differ from the 10-23 run. A self-replay shows today's runs are deterministic and the penalties a
+  no-op; the 10-27 kernel and amdgpu firmware update is the likely cause (same binary, no ROCm change). Card metrics
+  moved < 0.03. Chains now log desktop kernel, firmware and mesa, and remote kernel and driver.
 - **Abstend pipeline: AbstentionBench in the chain (Claude, 2026-10-28):** `data/scorecard/instruments.json` freezes the
   sub1000 instrument and its judge (file sha256, f74e2fa bin, flags, :8196). Generated chains now run, after the M1 modes:
   `make_subset.py --verify` (question hashes), `run_abench.py` on the model's server with `--neutral-penalties` (new,

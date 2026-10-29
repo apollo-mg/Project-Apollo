@@ -289,6 +289,7 @@ JBIN=@JBIN@; JP=
 stop_judge () { [ -n "$JP" ] && [ "$(readlink /proc/$JP/exe 2>/dev/null)" = "$(readlink -f $JBIN)" ] && kill $JP && timeout 60 tail --pid=$JP -f /dev/null; JP=; }
 cleanup () { stop_judge; stop_model; restore_clef; }
 log "chain start"
+log "desktop: kernel $(uname -r); $(pacman -Q linux-firmware-amdgpu mesa 2>/dev/null | tr '\n' ' ')"
 [ "$(sha256sum $RC | cut -d' ' -f1)" = @RHASH@ ] || { log "ABORT: recipe changed since this chain was generated"; exit 1; }
 $PY $A guard $RC >> $LOG 2>&1 || { log "ABORT: launch guard refused"; exit 1; }
 got=$(sha256sum $F | cut -d' ' -f1); [ "$got" = $SHA ] || { log "ABORT: model sha256 mismatch at the store (${got:-none})"; exit 1; }
@@ -314,6 +315,7 @@ timeout 300 $R/@POWER@ on >> $LOG 2>&1; UP=1
 for i in $(seq 1 60); do ssh -o ConnectTimeout=5 -o BatchMode=yes $S true 2>/dev/null && break; sleep 10; done
 rsync -a $F $S:/dev/shm/ && got=$(ssh $S "sha256sum /dev/shm/$N" | cut -d' ' -f1)
 [ "${got:-}" = $SHA ] || { log "ABORT: staged sha256 mismatch (${got:-none})"; exit 1; }
+log "$S: kernel $(ssh $S uname -r); driver $(ssh $S 'nvidia-smi --query-gpu=driver_version --format=csv,noheader | head -1')"
 log "staged, sha256 ok; clocks $(ssh $S 'nvidia-smi --query-gpu=clocks.applications.graphics,power.limit --format=csv,noheader | tr "\n" " "')"
 ssh $S "@ENV@nohup @BIN@ -m /dev/shm/$N @FLAGS@ --host 0.0.0.0 --port @PORT@ > ~/abstend_server.log 2>&1 < /dev/null & echo \$! > ~/abstend_server.pid"
 ok=0; for i in $(seq 1 120); do sleep 5; curl -s -m 3 $H/health | grep -q '"ok"' && { ok=1; break; }; done
