@@ -299,7 +299,7 @@ def chain(path, rc, stdout=False):
     if not stdout and not guard(path, rc): sys.exit(1)
     cp = chain_path(rc); unit = f"abstend-{rc['model_id']}"
     launch = (f"systemd-run --user --unit={unit} --collect -p MemoryMax={h['memory_max']} -p ExecStopPost=\"systemctl --user start "
-              f"{' '.join(h['pause'])}\" bash {rel(cp)}" if h["kind"] == "local" else f"systemd-run --user --unit={unit} --collect bash {rel(cp)}")
+              f"{' '.join(h['pause'])}\" bash {cp}" if h["kind"] == "local" else f"systemd-run --user --unit={unit} --collect bash {cp}")   # absolute: systemd-run starts in ~
     sub = {"RECIPE": rel(path), "RHASH": sha(path), "HOST": rc["host"], "LAUNCH": launch, "ROOT": str(ROOT), "RUNDIR": rel(cp.parent),
            "STORE": f["store"], "NAME": f["name"], "SHA": f["sha256"], "URL": h["url"], "BIN": e["bin"], "FLAGS": e["flags"],
            "ENV": "".join(f"{k}={v} " for k, v in (e.get("env") or {}).items()), "PORT": h["url"].rsplit(":", 1)[1],
