@@ -141,6 +141,8 @@ const K = { easy:"M1-v1|knowledge.easy_acc", hard:"M1-v1|knowledge.hard_acc", re
   rec:"AbstentionBench-fast/norefs|honesty.abstention_recall", prec:"AbstentionBench-fast/norefs|honesty.abstention_precision",
   miss:"AbstentionBench-fast/norefs|honesty.missing_info_recall", fp:"AbstentionBench-fast/norefs|honesty.false_premise_recall" };
 const pct = v => v == null ? "–" : Math.round(v * 100) + "%";
+// AbstentionBench: the fast-subset key when the setup has one, else the frozen sub1000 instrument (release-day runs)
+const AB = (cfg, k) => cfg && cfg.metrics[K[k]] ? K[k] : K[k].replace("-fast/", "-sub1000/");
 // among finished answers only (runaways excluded); shown when a setup has >= 2 % unfinished. Survivors skew easy, so n matters
 const KF = { hard:"M1-v1|knowledge.hard_acc_finished", refuse:"M1-v1|honesty.invented_refusal_lenient_finished", confab:"M1-v1|honesty.invented_confabulation_finished" };
 const finNote = (x, k) => { const m = x.metrics[KF[k]]; return (x.metrics[K.unf]?.v ?? 0) >= 0.02 && m ? `<small class="fin">${pct(m.v)} of finished (n=${m.n})</small>` : ""; };
@@ -188,7 +190,7 @@ function otherTable(c) {
   if (restM1.length) h += `<div class="tbl"><table><thead><tr><th>M1 setup</th><th>Hard</th><th>Refuses invented</th><th>Makes up</th><th>Unfinished</th></tr></thead><tbody>` +
     restM1.map(x => `<tr><td>${esc(setupText(x))}</td><td>${pct(val(x, K.hard))}${finNote(x, "hard")}</td><td>${pct(val(x, K.refuse))}${finNote(x, "refuse")}</td><td>${pct(val(x, K.confab))}${finNote(x, "confab")}</td><td>${pct(val(x, K.unf))}</td></tr>`).join("") + `</tbody></table></div>`;
   if (restAb.length) h += `<div class="tbl"><table><thead><tr><th>AbstentionBench setup</th><th>Abstains</th><th>Missing info</th><th>False premise</th><th>Precision</th></tr></thead><tbody>` +
-    restAb.map(x => `<tr><td>${esc(setupText(x))}</td><td>${pct(val(x, K.rec))}</td><td>${pct(val(x, K.miss))}</td><td>${pct(val(x, K.fp))}</td><td>${pct(val(x, K.prec))}</td></tr>`).join("") + `</tbody></table></div>`;
+    restAb.map(x => `<tr><td>${esc(setupText(x))}</td><td>${pct(val(x, AB(x, "rec")))}</td><td>${pct(val(x, AB(x, "miss")))}</td><td>${pct(val(x, AB(x, "fp")))}</td><td>${pct(val(x, AB(x, "prec")))}</td></tr>`).join("") + `</tbody></table></div>`;
   return h + `</details>`;
 }
 function card(c) {
@@ -202,7 +204,7 @@ function card(c) {
     <div class="group"><span class="eyebrow">Honesty</span>${bar(p, K.refuse, "Refuses invented questions", 1, "--good")}${bar(p, K.confab, "Makes up an answer instead", 0, "--warn")}${bar(p, K.over, "Refuses real hard questions", 0, "--caution")}</div>
     <div class="group"><span class="eyebrow">Reliability</span>${bar(p, K.unf, "Unfinished answers", 1, "--muted")}${(val(p, K.unf) ?? 0) >= 0.02 && p.metrics[KF.hard] ?
       `<span class="fin">Among finished answers only: hard ${pct(val(p, KF.hard))} (n=${p.metrics[KF.hard].n}), refuses invented ${pct(val(p, KF.refuse))} (n=${p.metrics[KF.refuse].n}). Runaways tend to be the hardest items, so these read high.</span>` : ""}</div>`;
-  if (pa) h += `<div class="group"><span class="eyebrow">AbstentionBench · ${esc(pa.quant)} · thinking ${esc(pa.thinking)}</span>${bar(pa, K.rec, "Abstains when it should", 1, "--good")}${bar(pa, K.miss, "Catches missing information", 1, "--good")}${bar(pa, K.fp, "Catches false premises", 1, "--good")}${bar(pa, K.prec, "Its abstentions are warranted", 0, "--know")}</div>`;
+  if (pa) h += `<div class="group"><span class="eyebrow">AbstentionBench${pa.metrics[K.rec] ? "" : " (sub1000)"} · ${esc(pa.quant)} · thinking ${esc(pa.thinking)}</span>${bar(pa, AB(pa, "rec"), "Abstains when it should", 1, "--good")}${bar(pa, AB(pa, "miss"), "Catches missing information", 1, "--good")}${bar(pa, AB(pa, "fp"), "Catches false premises", 1, "--good")}${bar(pa, AB(pa, "prec"), "Its abstentions are warranted", 0, "--know")}</div>`;
   h += otherTable(c);
   h += `<div class="foot"><a href="${esc(c.receipt)}" target="_blank" rel="noopener">Receipt</a>${p ? `<a href="${esc(DATA.repo + p.source)}" target="_blank" rel="noopener">Raw rows</a>` : ""}</div></article>`;
   return h;

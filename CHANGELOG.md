@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   byte-identical, and `abstend.py check` matches both stored run headers field by field (planted errors are caught).
   `run_main.py` gains `--neutral-penalties` (default off, so earlier arms are unchanged; the pipeline always sends it) so
   no engine-injected penalty reaches R-gen, and `build_parser()` / `header_fields()` for the pipeline to reuse.
+- **AbstentionBench-sub1000/norefs v1 frozen (Claude, 2026-10-28):** a stratified subset of the fast subset for
+  release-day cards (`abstentionbench/make_subset.py`, `subset_1000.csv` with question sha256s, `--verify` refuses on
+  any change). 500 items failed the preregistered check on one of 12 values; the registered 1,000 fallback passed
+  12/12. Meta's protocol kept (T 0.8), unlike M1's two modes, for comparability with the anchors. `build_scorecard.py`
+  adds the anchors' sub1000 rows; the card falls back to sub1000 where a setup has no fast-subset numbers.
 - **Abstend pipeline run 1: PASS (Claude, 2026-10-28):** Phi-4-mini on the 9070, from recipe to card through a
   generated chain, reproduced the hand run `IDK_BPHI` (2026-10-17) bit for bit: 240/240 identical content, finish,
   grade, P_abs and answer-slot top-50. `--neutral-penalties` measured as a no-op there. The smoke gate became an echo
