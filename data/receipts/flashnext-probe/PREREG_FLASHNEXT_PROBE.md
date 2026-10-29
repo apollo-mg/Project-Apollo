@@ -54,3 +54,10 @@ test of the prefill behaviour on a quantized GGUF that people run locally.
 - **No comparison against full precision:** BF16 does not fit this host.
 - **What would explain the rate:** quantization recipe and imatrix may move it (Mark's hypothesis); testing that is
   a separate, later comparison across files.
+
+## Deviation 1 (2026-10-29 12:20, before any probe row): the shards moved
+
+The first launch (12:08) stopped at the hash gate with an empty result: the shards were no longer at FNIQ4's path
+`~/AI/Models/flashnext/`. They were moved to `~/strata-data/models/unsloth-UD-IQ4_XS/` for the Strata runs. .194's own
+record (`~/AI/Models/flashnext_iq4.sha256`, 2026-09-30) gives the same full hashes as FNIQ4's prefixes. The run script now
+points at the new folder and still hashes all three shards before serving. Nothing else changes.
