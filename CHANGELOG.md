@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   byte-identical, and `abstend.py check` matches both stored run headers field by field (planted errors are caught).
   `run_main.py` gains `--neutral-penalties` (default off, so earlier arms are unchanged; the pipeline always sends it) so
   no engine-injected penalty reaches R-gen, and `build_parser()` / `header_fields()` for the pipeline to reuse.
+- **Abstend pipeline run 1: PASS (Claude, 2026-10-28):** Phi-4-mini on the 9070, from recipe to card through a
+  generated chain, reproduced the hand run `IDK_BPHI` (2026-10-17) bit for bit: 240/240 identical content, finish,
+  grade, P_abs and answer-slot top-50. `--neutral-penalties` measured as a no-op there. The smoke gate became an echo
+  after Phi-4-mini answered 17*19 with 341. `abstend.py compare` added. Receipt `data/receipts/abstend/phi-4-mini/`.
 - **Abstend pipeline: chain generator (Claude, 2026-10-28):** `abstend.py chain` writes a host's run chain from a recipe
   (local 9070: Clef paused and restored, MemAvailable floor, `--cache-ram 0` required; ssh .194: power, `/dev/shm`
   staging with hash check, PID-verified kill, power-off on every exit), plus `smoke` and a per-run defaults `audit`

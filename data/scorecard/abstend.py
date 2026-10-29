@@ -13,7 +13,8 @@ build_scorecard.py merges recipes through load_recipes(), so a recipe's model an
   chain  RECIPE       write the host's run chain to data/receipts/abstend/<model_id>/chain_<host>.sh and print the
                       systemd-run launch line (refuses unless the guard passes; --stdout renders it for review)
   smoke  RECIPE MODE  the pre-mode plumbing gate: the model echoes a number; thinking off -> no reasoning
-  audit  RECIPE       defaults audit: one greedy request with and one without explicit neutral penalties, compared"""
+  audit  RECIPE       defaults audit: one greedy request with and one without explicit neutral penalties, compared
+  compare ARM ARM     item-by-item reproduction check of two stored M1 arms (content, finish, grade; P_abs to 1e-6)"""
 import argparse, datetime, hashlib, json, re, shlex, subprocess, sys, urllib.request
 from pathlib import Path
 HERE = Path(__file__).resolve().parent; ROOT = HERE.parents[1]; QA = ROOT / "data" / "receipts" / "quant-abstention"
@@ -318,6 +319,19 @@ def chain(path, rc, stdout=False):
     print("wrote", rel(cp)); print("launch:", launch)
 
 
+def compare(arm_a, arm_b, tol=1e-6):
+    """Item-by-item reproduction check between two stored M1 arms (pipeline acceptance, engine conformance)."""
+    load = lambda arm: {r["id"]: r for r in map(json.loads, open(QA / "raw" / f"main_{arm}.jsonl")) if "id" in r}
+    A, B = load(arm_a), load(arm_b); ids = sorted(set(A) & set(B)); bad = {}
+    for f in ("content", "finish", "grade"):
+        bad[f] = [i for i in ids if A[i].get(f) != B[i].get(f)]
+    bad["P_abs"] = [i for i in ids if (A[i]["P_abs"] is None) != (B[i]["P_abs"] is None) or
+                    (A[i]["P_abs"] is not None and abs(A[i]["P_abs"] - B[i]["P_abs"]) > tol)]
+    print(f"{arm_a} vs {arm_b}: {len(ids)} shared items ({len(A)} / {len(B)})")
+    for f, v in bad.items(): print(f"  {f}: {len(v)} differ" + (f" (first: {', '.join(v[:5])})" if v else ""))
+    return len(ids) == len(A) == len(B) and not any(bad.values())
+
+
 def main():
     ap = argparse.ArgumentParser(); sp = ap.add_subparsers(dest="cmd", required=True)
     sp.add_parser("check").add_argument("recipes", nargs="*")
@@ -327,8 +341,10 @@ def main():
     x = sp.add_parser("chain"); x.add_argument("recipe"); x.add_argument("--stdout", action="store_true")
     x = sp.add_parser("smoke"); x.add_argument("recipe"); x.add_argument("mode")
     sp.add_parser("audit").add_argument("recipe")
+    x = sp.add_parser("compare"); x.add_argument("arm_a"); x.add_argument("arm_b")
     a = ap.parse_args()
     if a.cmd == "check": return check(a.recipes or None)
+    if a.cmd == "compare": sys.exit(0 if compare(a.arm_a, a.arm_b) else 1)
     p, rc = next(recipes([a.recipe]))
     if a.cmd == "guard": sys.exit(0 if guard(p, rc) else 1)
     if a.cmd == "prereg": return prereg(p, rc, a.force, a.stdout)

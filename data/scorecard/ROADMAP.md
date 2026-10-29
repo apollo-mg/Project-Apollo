@@ -20,14 +20,16 @@ settings, not the lab's full-precision API. The scorecard is the dyno sheet, not
   - Acceptance test passed: Nanbeige rebuilt from its recipe gives a byte-identical `scorecard.csv`, and its derived
     run headers match the stored ones field by field.
   - Runaway decision implemented as conditional `*_finished` metrics beside the frozen ones.
+- 2026-10-28, step two done: `abstend.py chain` generates host chains (9070 local, .194 over ssh), with a smoke gate
+  and a per-run defaults audit.
+  - Pipeline run 1 (Phi-4-mini on the 9070) reproduced the hand run `IDK_BPHI` bit for bit on all 240 items, and
+    measured `--neutral-penalties` as a no-op (`data/receipts/abstend/phi-4-mini/`).
+  - The smoke gate is an echo now: Phi-4-mini says 17*19 = 341.
 - Next:
-  1. A chain generator per host. Check it by rendering the .194 chain from the Nanbeige recipe and diffing it against
-     `nanbeige_chain.sh`.
-  2. One real end-to-end run on the 9070, preferably reproducing a stored desktop arm.
-     - It also measures `--neutral-penalties`, which has never reached a live server: one temperature-0 request
-       with the flag and one without, compared as text, plus a server-log check that no field was rejected.
-  3. The frozen AbstentionBench subset, checked against the stored LLAMA8 and Q27 verdicts.
-  4. Speed.
+  1. The frozen AbstentionBench subset, checked against the stored LLAMA8 and Q27 verdicts, then added to the chain.
+  2. Speed on the shared harness, added to the chain.
+  3. A RESULT writer: the card is automatic, but the receipt prose is still written by hand.
+  4. A first .194 run from a generated chain (the Nanbeige render matches the hand chain, but has not run).
 
 ## Versioning rule (how data stays comparable while the tests evolve)
 
