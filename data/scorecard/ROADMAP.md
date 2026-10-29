@@ -33,6 +33,26 @@ settings, not the lab's full-precision API. The scorecard is the dyno sheet, not
   3. A RESULT writer: the card is automatic, but the receipt prose is still written by hand.
   4. A first .194 run from a generated chain (the Nanbeige render matches the hand chain, but has not run).
 
+## Resource broker (proposed 2026-10-29, Mark)
+
+Agents from different vendors (Claude Code, cloud sessions, Gemini CLI, Hermes) share the 9070, .194, .73 and their
+ports. Today that runs on convention. The cost so far:
+- Clef pauses and restores are hand-coded in every chain;
+- .194 power is toggled per run (booted three times on 10-29);
+- ports are picked by hand (8197 for models, 8196 for the judge, never 8099);
+- Chrome was OOM-killed under a Strata run.
+
+The smallest useful version:
+- **An MCP server**, so any agent can discover and call it: `status`, `lease(resource, duration, purpose)`, `renew`,
+  `release`.
+- **Leases that expire**, so a crashed agent frees its resources by itself.
+- **Enforcement at the edge:** generated chains refuse to start without a valid lease, as they refuse without a committed
+  prereg.
+- **A usage log:** who held what, how long, and why. That is also cheap utilization telemetry.
+- **First resources:** the 9070 (with the Clef pause), .194's power and GPUs, and the test ports.
+- **Prior art in this repo:** the dormant Message Bus (`fleet_status`, heartbeats, atomic claims with hardware
+  requirements).
+
 ## Versioning rule (how data stays comparable while the tests evolve)
 
 - An instrument version is frozen once published (`M1-v1`, `AbstentionBench-fast/norefs`). Any change to items,
