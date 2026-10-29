@@ -63,6 +63,9 @@ def validate(rc, path):
         if "arm" not in ab or set(ab) - {"arm", "template_kwargs", "primary", "label", "note"}: err.append("abench needs an arm (fields: arm, template_kwargs, primary, label, note)")
         if (ab.get("template_kwargs") or {}).get("enable_thinking"): err.append("thinking-on AbstentionBench needs Meta's two-phase protocol, not in the pipeline yet")
     if err: raise SystemExit(f"{path}: " + "; ".join(err))
+    for m in rc["modes"].values():   # llama.cpp fills an unset top_k with 40 and min_p with 0.05 (2026-10-29: Spark's card says off)
+        if m.get("sampling") and not {"top_k", "min_p"} <= set(m["sampling"]):
+            print(f"note: {path}: mode {m['arm']} leaves {', '.join(sorted({'top_k', 'min_p'} - set(m['sampling'])))} to the engine's defaults", file=sys.stderr)
     return rc
 
 
@@ -250,7 +253,9 @@ def post(url, body, timeout=1800):
 def smoke(rc, mode):
     m = rc["modes"][mode]; url = HOSTS[rc["host"]]["url"]
     # plumbing, not capability: Phi-4-mini answers 17*19 with 341 (pipeline run 1, 2026-10-28), so the gate is an echo
-    body = {"messages": [{"role": "user", "content": "Reply with exactly this number and nothing else: 4721"}], "max_tokens": 4096, "temperature": 0,
+    # a thinking mode gets its own budget: Spark-X2.5 has thought for 30,000 characters on an "ONLY" instruction
+    body = {"messages": [{"role": "user", "content": "Reply with exactly this number and nothing else: 4721"}],
+            "max_tokens": max(4096, m["max_tokens"]) if m["thinking"] else 4096, "temperature": 0,
             "cache_prompt": False, "chat_template_kwargs": {"enable_thinking": bool(m["thinking"])}, **(m.get("sampling") or {})}
     if m.get("sampling"): body["seed"] = 1
     msg = post(f"{url}/v1/chat/completions", body); c, r = msg.get("content") or "", msg.get("reasoning_content") or ""
@@ -268,6 +273,11 @@ def audit(rc):
     a, b = (post(f"{url}/v1/chat/completions", x).get("content") or "" for x in (base, {**base, **NEUTRAL}))
     print("defaults audit: " + ("identical with and without explicit neutral penalties" if a == b else
                                 f"DIFFERS (an injected default, or nondeterminism): {a[:60]!r} vs {b[:60]!r}"))
+    try:   # what a request that names no sampler gets (llama.cpp /props; other engines may not answer)
+        d = json.loads(urllib.request.urlopen(f"{url}/props", timeout=30).read()).get("default_generation_settings", {})
+        d = d.get("params", d)
+        print("server sampler defaults: " + ", ".join(f"{k} {d[k]}" for k in ("temperature", "top_k", "top_p", "min_p", "typical_p", "top_n_sigma", "xtc_probability", "repeat_penalty", "presence_penalty", "dry_multiplier") if k in d))
+    except Exception as e: print(f"server sampler defaults: not available ({type(e).__name__})")
 
 
 def chain_path(rc): return prereg_path(rc).parent / f"chain_{rc['host']}.sh"
@@ -351,7 +361,7 @@ if $AP -I $AB/make_subset.py @EXPORT@ --verify $AB/subset_1000.csv --emit @ITEMS
   $PY $A verdicts @ABARM@ >> $LOG 2>&1; log "verdicts rc=$?"
 else log "AbstentionBench SKIPPED: sub1000 failed its hash verification (raw/@ABARM@.chain.log)"; fi
 """
-TAIL = r"""(cd $R/data/scorecard && $PY build_scorecard.py && $PY render_cards.py) >> $LOG 2>&1; log "scorecard rc=$?"
+TAIL = r"""(cd $R/data/scorecard && $PY build_scorecard.py && $PY render_cards.py && $PY render_badges.py) >> $LOG 2>&1; log "scorecard rc=$?"
 log "DONE"
 """
 

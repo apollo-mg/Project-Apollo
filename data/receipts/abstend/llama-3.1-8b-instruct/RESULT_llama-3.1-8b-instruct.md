@@ -66,3 +66,8 @@ not reasoning or tools.
 - Reproduction criteria name the host state they hold on.
 - A failed bit-exact check after a system update is diagnosed by a self-replay, as here, before anything is called
   broken.
+
+**Note added 2026-10-29: two samplers came from the engine, not the vendor.** The request set only temperature 0.6 and top_p 0.9. llama.cpp filled the
+rest with its defaults, top_k 40 and min_p 0.05 (recorded in the run's header `props`). Meta's published config sets neither.
+So this arm is the vendor's settings plus llama.cpp's cut-offs, not the vendor's settings alone. New recipes set top_k and min_p
+explicitly, and `abstend.py` warns when a sampled mode leaves them to the engine.

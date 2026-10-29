@@ -29,6 +29,7 @@ def test_header_fields(p, mode):
 @pytest.mark.parametrize("p, mode", MODES, ids=[f"{p.stem}:{m}" for p, m in MODES])
 def test_header_matches_stored_run(p, mode):
     rc = json.load(open(p)); arm = rc["modes"][mode]["arm"]
+    if not (QA / "raw" / f"main_{arm}.jsonl").exists(): pytest.skip(f"{arm} has not run yet")   # as abstend.py check
     got = abstend.flat(json.loads(open(QA / "raw" / f"main_{arm}.jsonl").readline())); want = abstend.flat(header(p, rc, mode))
     new = set(want) - set(got)
     assert new <= abstend.KNOWN_NEW

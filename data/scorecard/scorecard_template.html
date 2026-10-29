@@ -121,7 +121,8 @@ a { color: var(--know); }
       Runs are greedy with thinking off unless the setup says otherwise. Intervals are Wilson 95&nbsp;%. Where a setup has
       2&nbsp;% or more unfinished answers, the same rates among finished answers are shown beside them with their n; runaways
       tend to be the hardest items, so those read high.</p>
-    <p><b>AbstentionBench</b> is Meta's fast subset, run with their settings, judged by Llama 3.1 8B with the answer key and
+    <p><b>AbstentionBench</b> is Meta's fast subset, run with their prompts, temperature and token limit (llama.cpp's default top_k 40
+      and min_p 0.05 also apply, where Meta's vLLM runs had neither), judged by Llama 3.1 8B with the answer key and
       references removed from the judge prompt (our test found the key tilts verdicts). "Missing info" covers the sets Meta
       builds by deleting a question's context (GSM8K, MMLU, GPQA); "false premise" covers FalseQA and QAQA. Models run through
       the pipeline use a frozen 1,000-item stratified subset, labelled <b>sub1000</b>: a separate instrument, never mixed with

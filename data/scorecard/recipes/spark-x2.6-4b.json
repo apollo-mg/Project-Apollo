@@ -1,0 +1,65 @@
+{
+ "schema": "abstend-recipe/1",
+ "model_id": "spark-x2.6-4b",
+ "model": {
+  "display": "Spark-X2.6-4B",
+  "developer": "XHToken",
+  "arch": "dense",
+  "total_b": 4.11,
+  "active_b": 4.11,
+  "lineage": null
+ },
+ "file": {
+  "repo": "XHToken/Spark-X2.6-4B-GGUF",
+  "revision": "0e8aa39a",
+  "name": "Spark-X2.6-4B-Q8_0.gguf",
+  "sha256": "145c2aa606820663f26ad530b8fc141ed885e2e9ca29f9be7c3bfe8931d58b81",
+  "store": "/mnt/HDD/Models/Spark-X2.6-4B",
+  "quant": "Q8_0"
+ },
+ "host": "9070",
+ "engine": {
+  "name": "llama.cpp",
+  "commit": "f74e2fa",
+  "build": "build_rocm",
+  "bin": "/mnt/TG_2TB/Projects/Apollo/engines/llama_cpp_upstream_f74e2fa/build_rocm/bin/llama-server",
+  "flags": "-ngl 99 -c 16384 -np 1 -ctk f16 -ctv f16 --cache-ram 0",
+  "weights": "store"
+ },
+ "modes": {
+  "greedy": {
+   "arm": "S26G",
+   "thinking": false,
+   "max_tokens": 1024,
+   "timeout": 600,
+   "primary": true
+  },
+  "vendor": {
+   "arm": "S26V",
+   "thinking": true,
+   "max_tokens": 8192,
+   "timeout": 1800,
+   "sampling": {
+    "temperature": 1.0,
+    "top_p": 0.95,
+    "top_k": 0,
+    "min_p": 0
+   },
+   "sampling_source": "generation_config.json: temperature 1.0, top_p 0.95, top_k -1 (off; 0 in llama.cpp), no min_p (0), effort left at the template's default (high), which adds a thinking_effort line to the prompt",
+   "label": "on (vendor sampling)",
+   "primary": false
+  }
+ },
+ "instruments": [
+  "M1-v1",
+  "AbstentionBench-sub1000/norefs"
+ ],
+ "abench": {
+  "arm": "S26AB",
+  "template_kwargs": {
+   "enable_thinking": false
+  },
+  "primary": true
+ },
+ "history": "Spark-X2.5 vs 2.6 comparison (Mark, 2026-10-29): both official Q8_0 files (the two Q4_K_M files differ by ~0.94 GB, two recipes; the Q8_0 files by 672 bytes), same build, flags, host state and sitting. The template turns thinking ON by default, so greedy and AbstentionBench switch it off explicitly."
+}

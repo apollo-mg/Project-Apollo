@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Spark-X2.5 vs 2.6 set up; sampler defaults closed (Claude, 2026-10-29):** recipes for both official Q8_0 files
+  (sha256-verified on the NAS), per-model preregs, and `abstend/PREREG_SPARK_25_vs_26.md` with `analyze_spark.py` (four
+  primary metrics, the rest exploratory). llama.cpp fills an unset top_k/min_p with 40/0.05. `abstend.py` now warns on
+  sampled modes that leave them unset, the audit logs the server's sampler defaults, and the L31V and N33THK receipts
+  are annotated. The AbstentionBench instrument text now says those defaults apply (behaviour unchanged, as for the
+  anchors). The smoke gate gives thinking modes their own token budget. Chains re-render badges. The recipe tests
+  accept new recipes.
 - **Abstend: four bugs found by the new test suite, fixed (Claude, 2026-10-29):** `make_subset.select()` no longer gives a
   floor-raised cell an extra remainder seat (the frozen subsets are unchanged: every real cell's share is >= 1.75, and a
   test reselects them); `chain()` catches unfilled placeholders with underscores and refuses a judge on the model's port
