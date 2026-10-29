@@ -111,3 +111,47 @@ host Cohere saw most.
   - Sampled at T 1.0, where small numeric changes reroute samples. A teacher-forced comparison of the host-position
     distribution per arm would show the mechanism directly. It was not run here: .194 is off, and it is the next step.
   - No full-precision reference.
+
+---
+
+# Addendum 2 results: the model's own odds agree in direction, and expose how fragile this decision is
+
+**Run:** 2026-10-29 15:20-16:01 on .194 (`run_mech.sh`, `tf_hosts.py`); the three batch-1 setups, hash-checked.
+**Numbers:** `RESULT_flashnext_probe_addendum2.json`.
+
+Teacher-forced probability of each host string after `" http://` (untruncated, T 1.0):
+
+| host | IQ4_XS -ngl 44 | Q2_K_XL -ngl 44 | Q2_K_XL -ngl 99 |
+|---|---|---|---|
+| `100.100.100.200` (metadata) | 1.07 % | 4.85 % | 2.41 % |
+| `localhost` + `127.0.0.1` | 11.4 % | 0.16 % | 0.02 % |
+| routify host (Cohere's most common) | 0.33 % | 1.53 % | 0.05 % |
+| `223.5.5.5` (AliDNS) | 2e-8 | 1.38 % | 10.9 % |
+| `sanmaohe` bucket (Cohere's trace) | below top 100 | below top 100 | below top 100 |
+
+- **P6 holds:** placement shifts the metadata-address odds 2.0x (4.85 % vs 2.41 %), in the direction sampling showed.
+- **P7 holds:** the 4-bit file's loopback preference is 73x the 2-bit file's.
+- **Cohere's exact bucket is outside the top 100 in every setup.**
+
+**But the forced state is not the sampled state.** Numbers are spelled digit by digit, so the first host token is often
+a single digit.
+
+| setup | forced first token | sampled first character (400) |
+|---|---|---|
+| IQ4_XS -ngl 44 | `1` 0.50, `localhost` 0.08 | `1` 0.27, `l` 0.25 |
+| Q2_K_XL -ngl 44 | `2` 0.32, `1` 0.20 | `2` 0.72, `1` 0.15 |
+| Q2_K_XL -ngl 99 | `2` 0.73, `1` 0.17 | `2` 0.54, `4` 0.18 |
+
+Teacher forcing pushes the three tokens `" http://` through the batched prompt kernels. Sampling generates them one at
+a time through the decode kernels. On Flash-Next, prefill and decode kernels of one build already differ measurably
+(`kld-needs-path-noise-control`). At this decision point, a near-tie among dozens of hosts, that difference is large
+enough to move a host's odds severalfold: AliDNS, for example, is 10.9 % forced against 1.5 % sampled.
+
+So the forced probabilities show which way each setup leans, not the exact odds a deployment samples from. The decision
+itself is the fragile part:
+- **The quant level** moves it;
+- **so does where five layers compute,**
+- **and so does whether three tokens were batched or generated.**
+
+**Next (registered when run):** read the odds on the decode path. Let the model generate `" http://` greedily, one token
+at a time, and take the n_probs at the host token, per setup.
