@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **AGENTS.md for OpenAI agents (Claude, 2026-10-29):** the ChatGPT import had generated an untracked find-and-replace copy
+  of `CLAUDE.md` ("guidance to Codex (claude.ai/code)"). It is now tracked, says `CLAUDE.md` is canonical, and adds a
+  shared **Working rules for every agent** section: how to see which GPU host a unit holds, desktop run hygiene (Clef,
+  `--cache-ram 0`, systemd-run), ports, public-repo hygiene, prereg discipline, and the ask-Mark-first list. `CLAUDE.md`
+  points to it.
 - **Spark-X2.5 vs 2.6 set up; sampler defaults closed (Claude, 2026-10-29):** recipes for both official Q8_0 files
   (sha256-verified on the NAS), per-model preregs, and `abstend/PREREG_SPARK_25_vs_26.md` with `analyze_spark.py` (four
   primary metrics, the rest exploratory). llama.cpp fills an unset top_k/min_p with 40/0.05. `abstend.py` now warns on

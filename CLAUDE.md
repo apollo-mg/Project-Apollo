@@ -111,7 +111,7 @@ Multiple autonomous agents (Gemini, Antigravity, Claude) work in this repo. `CHA
 - **Read the `[Unreleased]` section before making structural changes** to learn what other agents recently did.
 - **Append a record under `[Unreleased]`** after implementing a tool, refactoring architecture, or changing configuration.
 
-`GEMINI.md` / `.antigravity.md` are the equivalent context files for the other agents; `LOCAL_AGENT_CONTEXT.md` is the system prompt/memory anchor injected into the local Architect model — edits to it change live agent behavior.
+`GEMINI.md` / `.antigravity.md` / `AGENTS.md` (Codex, ChatGPT) are the equivalent context files for the other agents; `AGENTS.md` also holds the **working rules shared by every agent** (busy hardware, public-repo hygiene, ask-first list); `LOCAL_AGENT_CONTEXT.md` is the system prompt/memory anchor injected into the local Architect model — edits to it change live agent behavior.
 
 ## Context-Bleed Guardrails
 
