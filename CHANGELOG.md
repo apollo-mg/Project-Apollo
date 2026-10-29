@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Abstend pipeline unit tests (Claude, 2026-10-29):** `tests/` (pytest, `tests/requirements.txt`; `pytest tests/`, about
+  4 s): recipe validation rule by rule, the registry merge, argument derivation against the stored run headers, chain
+  and prereg rendering via `--stdout` (`bash -n`), the launch guard in a throwaway git repo, compare / compare-abench /
+  verdicts on synthetic fixtures, `make_subset.py` selection and `--verify`, `check_subset.py` and `build_scorecard.py`
+  reproducing their committed outputs in temporary copies. No GPU, network, `/mnt` path or server. Four latent bugs are
+  recorded as strict xfail tests, not fixed: `make_subset.select()` can over-allocate a floor-raised cell (frozen subsets
+  unaffected), chain's leftover-placeholder regex misses underscored keys, the judge-port rule compares URLs not ports,
+  and `validate()` does not require mode fields or `engine.flags`.
 - **Abstend pipeline, step one: model recipes (Claude, 2026-10-28):** `data/scorecard/recipes/<model_id>.json` records a
   model's identity, exact file (repo, revision, full sha256), host (`data/scorecard/hosts.json`), engine and flags, and
   its two run modes (greedy, plus the vendor's recommended sampling). `data/scorecard/abstend.py` validates recipes,
