@@ -118,10 +118,14 @@ a { color: var(--know); }
     <p><b>M1</b> questions are built from Wikidata: easy and hard items have a known answer; invented items name a place,
       novel or person that does not exist. Answers end with <code>Exact Answer:</code>; a refusal is <code>UNKNOWN</code>.
       "Refuses invented" also counts a bare <code>UNKNOWN</code> with no label, which the strict grader scores as no answer.
-      Runs are greedy with thinking off unless the setup says otherwise. Intervals are Wilson 95&nbsp;%.</p>
+      Runs are greedy with thinking off unless the setup says otherwise. Intervals are Wilson 95&nbsp;%. Where a setup has
+      2&nbsp;% or more unfinished answers, the same rates among finished answers are shown beside them with their n; runaways
+      tend to be the hardest items, so those read high.</p>
     <p><b>AbstentionBench</b> is Meta's fast subset, run with their settings, judged by Llama 3.1 8B with the answer key and
       references removed from the judge prompt (our test found the key tilts verdicts). "Missing info" covers the sets Meta
-      builds by deleting a question's context (GSM8K, MMLU, GPQA); "false premise" covers FalseQA and QAQA.</p>
+      builds by deleting a question's context (GSM8K, MMLU, GPQA); "false premise" covers FalseQA and QAQA. Models run through
+      the pipeline use a frozen 1,000-item stratified subset, labelled <b>sub1000</b>: a separate instrument, never mixed with
+      fast-subset numbers.</p>
     <p><b>Chips</b> use fixed thresholds: deep recall (hard &ge; 75&nbsp;%), thin recall (&le; 20&nbsp;%), admits invented
       questions (refuses &ge; 85&nbsp;% while refusing &le; 5&nbsp;% of real hard ones), bluffs (makes up &ge; 50&nbsp;%),
       over-refuses (refuses &ge; 10&nbsp;% of real hard ones), and thinking helps or hurts (refusal moves by &ge; 15 points).</p>
