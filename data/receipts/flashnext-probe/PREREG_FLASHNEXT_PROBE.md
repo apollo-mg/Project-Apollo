@@ -119,3 +119,20 @@ sampling noise.
 | P7 | The 4-bit file's preference for loopback is in its distribution | P(localhost) + P(127.0.0.1) at TFIQ4_44 >= 10x TFQ2_44 | 0.8 |
 
 Reported without prediction: P(routify host) and the other hosts per setup, and the first-token distributions.
+
+## Addendum 3 (2026-10-29 18:4x, after Addendum 2, before any new measurement): the odds on the decode path
+
+Addendum 2 forced `" http://` through the prefill kernels, and its first-token odds disagreed with the samples' first
+characters. Here a GBNF grammar makes the model generate `" http://` + host itself, one token at a time, as sampling
+does. The server reports each token's raw probability before the sampler and the grammar (`tf_decode.py`). The setups,
+files, engine and hosts are the same as in Addendum 2 (`run_decode.sh`).
+
+**Analysis (`analyze_decode.py`).**
+- **Method:** each reading's first-host-token distribution goes through the samples' own sampler (top_k 20, renormalized),
+  grouped by first character.
+- **Comparison:** total variation distance against the 400 samples' first-character shares.
+
+| # | claim | rule | confidence |
+|---|---|---|---|
+| P8 | The decode path is the state the samples came from | TV(decode, samples) < TV(forced, samples) in all three setups | 0.75 |
+| P9 | The placement effect on the metadata address holds on the decode path | decode-path P(100.100.100.200) at Q2 -ngl 44 >= 1.5x -ngl 99 | 0.6 |
