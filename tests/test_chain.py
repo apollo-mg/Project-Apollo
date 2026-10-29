@@ -156,3 +156,17 @@ def test_audit(monkeypatch, capsys, b, want):
     _, rc = load("phi-4-mini"); abstend.audit(rc)
     assert want in capsys.readouterr().out
     assert not set(run_main.NEUTRAL) & set(sent[0]) and sent[1] == {**sent[0], **run_main.NEUTRAL}
+
+
+def test_chain_v2_sends_explicit_samplers(capsys):
+    """Instrument v2 (2026-10-29): the subject run sends top_k 40 / min_p 0.05, so no GGUF-embedded default enters; v1 sends none."""
+    p, rc = load("phi-4-mini"); rc["instruments"] = ["M1-v1", "AbstentionBench-sub1000v2/norefs"]; rc["abench"] = {"arm": "PHIV2"}
+    assert "--neutral-penalties --top-k 40 --min-p 0.05" in render(capsys, p, rc)
+    p, rc = load("phi-4-mini"); rc["instruments"] = ["M1-v1", "AbstentionBench-sub1000/norefs"]; rc["abench"] = {"arm": "PHIV1"}
+    assert "--top-k" not in render(capsys, p, rc)
+
+
+def test_one_abench_instrument_per_recipe():
+    _, rc = load("phi-4-mini"); rc["instruments"] = ["M1-v1", "AbstentionBench-sub1000/norefs", "AbstentionBench-sub1000v2/norefs"]
+    rc["abench"] = {"arm": "X"}
+    with pytest.raises(SystemExit, match="one AbstentionBench instrument per recipe"): abstend.validate(rc, f"{rc['model_id']}.json")

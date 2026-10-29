@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **AbstentionBench-sub1000v2/norefs (Claude, 2026-10-29):** v1's items, judge and Meta settings, plus top_k 40 / min_p 0.05
+  sent explicitly (`run_abench.py --top-k/--min-p`, passed by generated chains from `instruments.json`). The reason:
+  llama.cpp now takes sampler defaults from GGUF metadata when present, so v1 gave Spark top_k off and the Llama anchors
+  40. Recipes choose one AbstentionBench instrument. LLAMA8 carries over as the v2 anchor (no sampling metadata in its
+  file); the Qwen anchors stay v1-only. The card shows "sub1000 v2". 129 tests.
 - **AGENTS.md for OpenAI agents (Claude, 2026-10-29):** the ChatGPT import had generated an untracked find-and-replace copy
   of `CLAUDE.md` ("guidance to Codex (claude.ai/code)"). It is now tracked, says `CLAUDE.md` is canonical, and adds a
   shared **Working rules for every agent** section: how to see which GPU host a unit holds, desktop run hygiene (Clef,

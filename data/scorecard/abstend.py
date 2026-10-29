@@ -21,7 +21,7 @@ import argparse, csv, datetime, hashlib, json, re, shlex, subprocess, sys, urlli
 from pathlib import Path
 HERE = Path(__file__).resolve().parent; ROOT = HERE.parents[1]; QA = ROOT / "data" / "receipts" / "quant-abstention"
 HOSTS = json.load(open(HERE / "hosts.json")); INSTRUMENTS = json.load(open(HERE / "instruments.json"))
-AB_INST = "AbstentionBench-sub1000/norefs"; AB = ROOT / "data" / "receipts" / "abstentionbench"; JUDGE_HOST = INSTRUMENTS[AB_INST]["judge"]["host"]
+AB_INST = "AbstentionBench-sub1000/norefs"; AB_INSTS = [k for k in INSTRUMENTS if k.startswith("AbstentionBench-")]; AB = ROOT / "data" / "receipts" / "abstentionbench"; JUDGE_HOST = INSTRUMENTS[AB_INST]["judge"]["host"]
 SCHEMA = "abstend-recipe/1"
 KNOWN_NEW = {"neutral_penalties", "meta.recipe"}    # fields the pipeline adds that hand-run arms never wrote
 HDR_RUNTIME = {"header", "variant_ids", "render_tail", "props", "started"}   # written by the server, not the arguments
@@ -57,8 +57,9 @@ def validate(rc, path):
     for m in rc["modes"].values():
         if set(m) - {"arm", "thinking", "max_tokens", "timeout", "primary", "sampling", "sampling_source", "label", "note", "system", "template_kwargs", "no_think_check"}:
             err.append(f"unknown mode fields in {m.get('arm')}")
-    if set(rc["instruments"]) - {"M1-v1", AB_INST}: err.append(f"instruments are M1-v1 and {AB_INST}")
-    if AB_INST in rc["instruments"]:
+    if set(rc["instruments"]) - {"M1-v1", *AB_INSTS}: err.append(f"instruments are M1-v1 and one of {', '.join(AB_INSTS)}")
+    if sum(i in AB_INSTS for i in rc["instruments"]) > 1: err.append("one AbstentionBench instrument per recipe")
+    if ab_inst(rc):
         ab = rc.get("abench") or {}
         if "arm" not in ab or set(ab) - {"arm", "template_kwargs", "primary", "label", "note"}: err.append("abench needs an arm (fields: arm, template_kwargs, primary, label, note)")
         if (ab.get("template_kwargs") or {}).get("enable_thinking"): err.append("thinking-on AbstentionBench needs Meta's two-phase protocol, not in the pipeline yet")
@@ -72,6 +73,9 @@ def validate(rc, path):
 def recipes(paths=None):
     for p in paths or sorted((HERE / "recipes").glob("*.json")):
         yield Path(p), validate(json.load(open(p)), p)
+
+
+def ab_inst(rc): return next((i for i in rc.get("instruments", []) if i in AB_INSTS), None)
 
 
 def label(m):
@@ -88,12 +92,12 @@ def load_recipes(reg):
         for m in rc["modes"].values() if "M1-v1" in rc["instruments"] else ():
             if m["arm"] in reg["m1_arms"]: raise SystemExit(f"{p}: arm {m['arm']} is already registered")
             reg["m1_arms"][m["arm"]] = {"model": mid, "quant": rc["file"]["quant"], "thinking": label(m), "primary": bool(m["primary"]), "note": m.get("note", "")}
-        if AB_INST in rc["instruments"]:
+        if ab_inst(rc):
             ab = rc["abench"]; tk = ab.get("template_kwargs") or {}
             if ab["arm"] in reg["abench_arms"]: raise SystemExit(f"{p}: AbstentionBench arm {ab['arm']} is already registered")
             reg["abench_arms"][ab["arm"]] = {"model": mid, "quant": rc["file"]["quant"], "primary": bool(ab.get("primary", True)), "note": ab.get("note", ""),
                                              "thinking": ab.get("label") or ("off" if tk.get("enable_thinking") is False else "n/a"),
-                                             "verdicts": f"verdicts_{ab['arm']}.csv", "col": "norefs", "sub1000_only": True}
+                                             "verdicts": f"verdicts_{ab['arm']}.csv", "col": "norefs", "sub1000_only": True, "instrument": ab_inst(rc)}
     return reg
 
 
@@ -174,10 +178,11 @@ def prior(name):
 
 
 def abench_section(rc):
-    if AB_INST not in rc["instruments"]: return ""
-    ins, ab = INSTRUMENTS[AB_INST], rc["abench"]; j = ins["judge"]; tk = ab.get("template_kwargs")
+    inst = ab_inst(rc)
+    if not inst: return ""
+    ins, ab = INSTRUMENTS[inst], rc["abench"]; j = ins["judge"]; tk = ab.get("template_kwargs")
     return f"""
-{AB_INST} v{ins['version']} (arm `{ab['arm']}`): the frozen 1,000 items (`subset_1000.csv`), re-hashed against their
+{inst} v{ins['version']} (arm `{ab['arm']}`): the frozen 1,000 items (`subset_1000.csv`), re-hashed against their
 frozen question hashes before the run (a mismatch skips the instrument). {ins['subject']}; template kwargs
 {json.dumps(tk) if tk else 'none'}; explicit neutral penalties. This is Meta's protocol, not the modes above, on purpose: the
 row stays comparable with the anchors and with Meta's method. After the model's server has stopped, the frozen norefs
@@ -346,7 +351,7 @@ ABENCH = r"""# AbstentionBench-sub1000/norefs v1: Meta's protocol on this model'
 AP=@APY@; AB=$R/data/receipts/abstentionbench; ABLOG=$AB/raw/@ABARM@.chain.log; mkdir -p $AB/raw
 if $AP -I $AB/make_subset.py @EXPORT@ --verify $AB/subset_1000.csv --emit @ITEMS@ >> $ABLOG 2>&1; then
   log "sub1000 verified against its frozen question hashes"
-  $AP -s $AB/run_abench.py --items @ITEMS@ --out $AB/raw/@ABARM@.jsonl --host $H --neutral-penalties@ABTK@ --expect-model $N >> $ABLOG 2>&1
+  $AP -s $AB/run_abench.py --items @ITEMS@ --out $AB/raw/@ABARM@.jsonl --host $H --neutral-penalties@ABSAMP@@ABTK@ --expect-model $N >> $ABLOG 2>&1
   log "@ABARM@ subject rc=$? rows=$(wc -l < $AB/raw/@ABARM@.jsonl) errors=$(grep -c '"error"' $AB/raw/@ABARM@.jsonl)"
   stop_model || { log "ABORT: the model server is still up; the judge would not start clean"; exit 1; }
   memcheck; pause_clef
@@ -371,7 +376,7 @@ def chain(path, rc, stdout=False):
     if not h.get("url"): raise SystemExit(f"host {rc['host']} has no fixed test URL in hosts.json")
     if h["kind"] == "ssh" and e["weights"] != "/dev/shm": raise SystemExit("ssh hosts serve from /dev/shm in this version")
     if not stdout and not guard(path, rc): sys.exit(1)
-    cp = chain_path(rc); unit = f"abstend-{rc['model_id']}"; ins = INSTRUMENTS[AB_INST]; j = ins["judge"]
+    cp = chain_path(rc); unit = f"abstend-{rc['model_id']}"; ins = INSTRUMENTS[ab_inst(rc) or AB_INST]; j = ins["judge"]
     # absolute path: systemd-run starts in ~; the restore runs even if the unit is killed
     launch = (f"systemd-run --user --unit={unit} --collect -p MemoryMax={desk['memory_max']} -p ExecStopPost=\"systemctl --user start "
               f"{' '.join(reversed(desk['pause']))}\" bash {cp}")
@@ -383,6 +388,7 @@ def chain(path, rc, stdout=False):
            "SSH": h.get("ssh", ""), "POWER": h.get("power", ""), "RBIN": e["bin"].replace("~", "\\$HOME", 1),
            "JBIN": j["bin"], "JFILE": j["file"], "JSHA": j["sha256"], "JFLAGS": j["flags"], "JURL": j["url"], "JPORT": j["url"].rsplit(":", 1)[1],
            "JNAME": Path(j["file"]).name, "APY": ins["python"], "EXPORT": ins["export"], "ITEMS": ins["items"], "CHECKOUT": ins["checkout"],
+           "ABSAMP": "".join(f" --{k.replace('_', '-')} {v}" for k, v in (ins.get("sampler") or {}).items()),
            "ABARM": (rc.get("abench") or {}).get("arm", "none"), "ABTK": f" --template-kwargs {shlex.quote(json.dumps(tk))}" if tk else ""}
     # ports, not URL strings: localhost:8196 and 127.0.0.1:8196 are the same socket on the desktop (cloud test suite, 2026-10-29)
     if j["url"] == h["url"] or (h["kind"] == "local" and urllib.parse.urlparse(h["url"]).port == urllib.parse.urlparse(j["url"]).port):
@@ -390,7 +396,7 @@ def chain(path, rc, stdout=False):
     txt = HEAD + (LOCAL if h["kind"] == "local" else SSH) + "$PY $A audit $RC >> $LOG 2>&1\ncd $Q\n"
     for mode, m in rc["modes"].items():
         txt += MODE.replace("@MODE@", mode).replace("@ARM@", m["arm"]).replace("@ARGS@", shlex.join(run_argv(rc, path, mode)))
-    if AB_INST in rc["instruments"]: txt += ABENCH
+    if ab_inst(rc): txt += ABENCH
     txt += TAIL
     for k, v in sub.items(): txt = txt.replace(f"@{k}@", v)
     left = re.search(r"@[A-Z_]+@", txt)   # keys contain underscores (@PAUSE_START@)

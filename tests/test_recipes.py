@@ -38,7 +38,7 @@ def _abench_no_arm(rc): del rc["abench"]["arm"]
 BAD = [(_drop_greedy, "a greedy mode is required"), (_greedy_sampling, "the greedy mode cannot carry sampling"),
        (_two_primaries, "exactly one mode is primary"), (_short_sha, "file.sha256 must be the full 64-hex hash"),
        (_home_path, "no /home paths in a recipe (public repo)"),
-       (_unknown_instrument, "instruments are M1-v1 and AbstentionBench-sub1000/norefs"),
+       (_unknown_instrument, "instruments are M1-v1 and one of AbstentionBench-sub1000/norefs, AbstentionBench-sub1000v2/norefs"),
        (_thinking_abench, "thinking-on AbstentionBench needs Meta's two-phase protocol, not in the pipeline yet"),
        (_no_cache_ram, "host 9070 requires --cache-ram 0 in engine.flags"), (_bad_schema, "schema is not abstend-recipe/1"),
        (_unknown_host, "host 42 not in hosts.json"), (_third_mode, "modes are greedy and vendor only"),
@@ -84,7 +84,8 @@ def test_load_recipes_merges():
     assert reg["m1_arms"]["N33THK"] == {"model": "nanbeige4.3-33b", "quant": "Q8_0", "thinking": "on (T 0.6)", "primary": False, "note": ""}
     assert reg["m1_arms"]["L31G"]["thinking"] == "off" and reg["m1_arms"]["L31G"]["primary"]
     assert reg["abench_arms"]["L31AB"] == {"model": "llama-3.1-8b-instruct", "quant": "Q8_0", "primary": False, "note": "pipeline run 2; reproduces LLAMA8 on sub1000",
-                                           "thinking": "n/a", "verdicts": "verdicts_L31AB.csv", "col": "norefs", "sub1000_only": True}
+                                           "thinking": "n/a", "verdicts": "verdicts_L31AB.csv", "col": "norefs", "sub1000_only": True,
+                                           "instrument": "AbstentionBench-sub1000/norefs"}
 
 
 def test_load_recipes_with_committed_registry():   # what build_scorecard.py does

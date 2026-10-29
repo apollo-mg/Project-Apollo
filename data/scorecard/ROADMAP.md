@@ -29,10 +29,9 @@ settings, not the lab's full-precision API. The scorecard is the dyno sheet, not
   1. AbstentionBench in the chain: DONE 10-28 (run 2, Llama 3.1 8B). Every stage worked, but bit-exact reproduction
      of the 10-23 run FAILED after the 10-27 system update (kernel and firmware); today's runs replay exactly and the
      card metrics moved < 0.03. Chains now log kernel, firmware and driver.
-  2. **AbstentionBench samplers:** `run_abench.py` leaves top_k/min_p to the server, and llama.cpp now takes them from
-     the GGUF when present (Spark: top_k off), else 40/0.05 (the anchors). Decide with Mark: send the anchors'
-     effective 40/0.05 explicitly (a new instrument version, since Spark's S25AB/S26AB ran with top_k off), or keep v1
-     and record each run's effective values.
+  2. **AbstentionBench samplers: DONE 10-29 (Mark agreed).** `AbstentionBench-sub1000v2/norefs` sends top_k 40 / min_p
+     0.05 explicitly. New recipes use v2. LLAMA8 anchors v2 by equivalence (its GGUF has no sampling metadata). The Qwen
+     27B anchors stay v1-only until their file's metadata is checked. The Spark runs (S25AB/S26AB) are v1 with top_k off.
   3. Speed on the shared harness, added to the chain.
   3. A RESULT writer: the card is automatic, but the receipt prose is still written by hand.
   4. A first .194 run from a generated chain (the Nanbeige render matches the hand chain, but has not run).

@@ -18,5 +18,30 @@
    "bin": "/mnt/TG_2TB/Projects/Apollo/engines/llama_cpp_upstream_f74e2fa/build_rocm/bin/llama-server",
    "flags": "-ngl 99 -c 32768 -np 1 -ctk f16 -ctv f16 --cache-ram 0"
   }
+ },
+ "AbstentionBench-sub1000v2/norefs": {
+  "version": 2,
+  "frozen": "2026-10-29: v1's items, judge and Meta settings, with top_k 40 and min_p 0.05 sent explicitly",
+  "subset": "data/receipts/abstentionbench/subset_1000.csv",
+  "n_items": 1000,
+  "checkout": "/mnt/TG_2TB/toolchains/AbstentionBench",
+  "export": "/mnt/TG_2TB/toolchains/AbstentionBench/fast_subset.jsonl",
+  "items": "/mnt/TG_2TB/toolchains/AbstentionBench/sub1000_items.jsonl",
+  "python": "/mnt/TG_2TB/toolchains/abench-venv/bin/python",
+  "subject": "Meta's prompts and settings via run_abench.py: the question as the only message, T 0.8, top_p 0.95, 4,000 tokens, per-item seed (123456789 + crc32(dataset:index)) mod 2^31, and top_k 40 and min_p 0.05 sent explicitly, so no file's or engine's embedded defaults enter",
+  "sampler": {
+   "top_k": 40,
+   "min_p": 0.05
+  },
+  "anchors": "LLAMA8 and L31AB carry over unchanged: the Llama 3.1 8B GGUF has no sampling metadata, so llama.cpp gave them exactly 40/0.05. The Qwen3.8-27B anchors (Q27OFF/Q27ON) stay v1-only until their file's metadata is checked.",
+  "judge": {
+   "variant": "norefs",
+   "host": "9070",
+   "url": "http://127.0.0.1:8196",
+   "file": "/mnt/TG_2TB/models_small/gguf/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf",
+   "sha256": "9da71c45c90a821809821244d4971e5e5dfad7eb091f0b8ff0546392393b6283",
+   "bin": "/mnt/TG_2TB/Projects/Apollo/engines/llama_cpp_upstream_f74e2fa/build_rocm/bin/llama-server",
+   "flags": "-ngl 99 -c 32768 -np 1 -ctk f16 -ctv f16 --cache-ram 0"
+  }
  }
 }

@@ -56,4 +56,8 @@ def test_finished_metrics_never_alter_frozen_rows(built, tmp_path):
 def test_pipeline_arm_rows_are_sub1000_only(built):
     R = rows((built / "scorecard.csv").read_text())
     assert {r["instrument"] for r in R if r["config_id"] == "abench:L31AB"} == {"AbstentionBench-sub1000/norefs"}
-    assert {r["instrument"] for r in R if r["config_id"] == "abench:LLAMA8"} == {"AbstentionBench-fast/norefs", "AbstentionBench-sub1000/norefs"}
+    assert {r["instrument"] for r in R if r["config_id"] == "abench:LLAMA8"} == {"AbstentionBench-fast/norefs", "AbstentionBench-sub1000/norefs",
+                                                                                "AbstentionBench-sub1000v2/norefs"}   # v2 anchor by equivalence
+    v1 = {r["metric"]: r["value"] for r in R if r["config_id"] == "abench:LLAMA8" and r["instrument"] == "AbstentionBench-sub1000/norefs"}
+    v2 = {r["metric"]: r["value"] for r in R if r["config_id"] == "abench:LLAMA8" and r["instrument"] == "AbstentionBench-sub1000v2/norefs"}
+    assert v1 == v2   # the same verdicts: the anchor carries over, it is not re-run
