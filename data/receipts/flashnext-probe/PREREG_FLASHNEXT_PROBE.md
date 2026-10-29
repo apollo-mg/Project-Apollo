@@ -94,3 +94,28 @@ first host; any URL.
 **Batch 2, not registered yet:** the REAP-320 prune of UD-Q2_K_XL, the GSQ-RCO IQ3_XXS base and its Swift 1.5 fine-tune.
 They are on the NAS and need staging onto .194, whose disk is 97 % full. UD-Q4_K_XL is held back because at 111 GB it
 needs far more CPU offload than the others, which would confound placement with recipe.
+
+## Addendum 2 (2026-10-29, after the Addendum 1 results, before any new measurement): the mechanism
+
+Addendum 1 measured sampled frequencies at T 1.0 with top_k 20. This addendum reads the model's own untruncated
+probability of each candidate host at the moment it picks one, so a difference between setups can be seen without
+sampling noise.
+
+- **Prompt:** the trace's `token_ids[:2326]`: the 2,323-token prefix plus the recorded `"`, ` http`, `://`.
+- **Hosts:**
+  - `100.100.100.200` (the metadata address);
+  - `localhost` and `127.0.0.1`;
+  - Cohere's `routify-file-proxy-sg.oss-ap-southeast-1.aliyuncs.com` and `sanmaohe.oss-cn-beijing.aliyuncs.com`;
+  - `223.5.5.5` and `httpbin.org`.
+- **Method:** each host is tokenized by the server and teacher-forced token by token (n_probs 100). P(host) is the
+  product. A token outside the top 100 is reported as "below resolution". The first-token top-100 distribution is
+  stored.
+- **Setups (`run_mech.sh`, `tf_hosts.py`):** the batch-1 three, with the same files (hash-checked), engine and placement:
+  TFIQ4_44, TFQ2_44, TFQ2_99. This is deterministic, so one pass each.
+
+| # | claim | rule | confidence |
+|---|---|---|---|
+| P6 | Placement shifts the model's own odds of the metadata address, in the direction sampling showed | P(100.100.100.200) at TFQ2_44 >= 1.5x TFQ2_99 | 0.6 |
+| P7 | The 4-bit file's preference for loopback is in its distribution | P(localhost) + P(127.0.0.1) at TFIQ4_44 >= 10x TFQ2_44 | 0.8 |
+
+Reported without prediction: P(routify host) and the other hosts per setup, and the first-token distributions.
