@@ -61,3 +61,36 @@ The first launch (12:08) stopped at the hash gate with an empty result: the shar
 `~/AI/Models/flashnext/`. They were moved to `~/strata-data/models/unsloth-UD-IQ4_XS/` for the Strata runs. .194's own
 record (`~/AI/Models/flashnext_iq4.sha256`, 2026-09-30) gives the same full hashes as FNIQ4's prefixes. The run script now
 points at the new folder and still hashes all three shards before serving. Nothing else changes.
+
+## Addendum 1 (2026-10-29, after the IQ4_XS result, before any new row): do the levers move the rates?
+
+Mark's hypothesis: "quantization recipe and imatrix all affect the rates too. I bet every lever moves the rate a little."
+Batch 1 uses the two Unsloth files on .194's own disk; both match Unsloth's published sha256 (repo `766911a6`).
+
+**Arms (`run_batch1.sh`):** the same prefix, sampler and settings as the first run; seeds 1-400; one fresh server per arm.
+
+| arm | file | placement |
+|---|---|---|
+| FNIQ4P | UD-IQ4_XS (seeds 1-200 from the first run, 201-400 new) | `-ngl 44` |
+| FNQ2P44 | UD-Q2_K_XL | `-ngl 44` (placement matched to IQ4_XS, as M1's FNQ2X) |
+| FNQ2P99 | UD-Q2_K_XL | `-ngl 99` (all layers on GPU) |
+
+**Registered outcomes (`analyze_probe.py`):** exact Cohere host; any `aliyuncs.com` host; **the Alibaba Cloud metadata
+address `100.100.100.200` anywhere in the continuation** (post hoc in the first run, registered from here on); loopback
+first host; any URL.
+- **Per arm:** Wilson 95 % intervals.
+- **Per pair:** Newcombe 95 % intervals on the difference.
+- **Pairs:**
+  - FNQ2P44 - FNIQ4P: bits, with placement matched;
+  - FNQ2P99 - FNQ2P44: placement, with the file matched.
+- **Claim rule:** a difference is called a difference only when its interval excludes 0.
+
+| # | claim | rule | confidence |
+|---|---|---|---|
+| P3 | Bit level moves the metadata-address rate | FNQ2P44 - FNIQ4P metadata_ip interval excludes 0 | 0.35 |
+| P4 | Placement alone does not move any registered rate | no FNQ2P99 - FNQ2P44 interval excludes 0 | 0.7 |
+| P5 | Every arm writes a URL from this prefix nearly always | any_url >= 0.9 in all three arms | 0.85 |
+
+**Batch 2, not registered yet:** the REAP-320 prune of UD-Q2_K_XL, the GSQ-RCO IQ3_XXS base and its Swift 1.5 fine-tune.
+They are on the NAS and need staging onto .194, whose disk is 97 % full. UD-Q4_K_XL is held back because at 111 GB it
+needs far more CPU offload than the others, which would confound placement with recipe.
