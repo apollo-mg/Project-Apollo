@@ -1,0 +1,43 @@
+{
+ "schema": "abstend-recipe/1",
+ "model_id": "phi-4-mini",
+ "model": {
+  "display": "Phi-4-mini-instruct",
+  "developer": "Microsoft",
+  "arch": "dense",
+  "total_b": 3.8,
+  "active_b": 3.8,
+  "lineage": null
+ },
+ "file": {
+  "repo": "microsoft/Phi-4-mini-instruct",
+  "revision": "cfbefacb",
+  "name": "Phi-4-mini-instruct-Q8_0.gguf",
+  "sha256": "0289c46e0e7df172f6ad4c257a67ade8daa266871bf81b150b1b10f49718ecf9",
+  "store": "/mnt/TG_2TB/models_small/gguf",
+  "quant": "Q8_0",
+  "packager": "Apollo (converted with llama_cpp_turboquant c26cbdffc, quantized with llama-quantize f27268914, 2026-10-17)"
+ },
+ "host": "9070",
+ "engine": {
+  "name": "buun",
+  "commit": "38ada0e1b",
+  "build": "build_rocm",
+  "bin": "/mnt/TG_2TB/Projects/Apollo/engines/buun-llama-cpp/build_rocm/bin/llama-server",
+  "flags": "-ngl 99 -c 4096 -np 1 -ctk f16 -ctv f16 --cache-ram 0",
+  "weights": "store"
+ },
+ "modes": {
+  "greedy": {
+   "arm": "PHI4MG",
+   "thinking": false,
+   "max_tokens": 1024,
+   "timeout": 600,
+   "no_think_check": true,
+   "primary": true,
+   "note": "pipeline run 1; reproduces IDK_BPHI"
+  }
+ },
+ "instruments": ["M1-v1"],
+ "history": "No vendor mode: the model has no thinking mode and Microsoft's card generates greedily (do_sample False), so the vendor's setting is the greedy mode. Engine and flags repeat the hand run IDK_BPHI (2026-10-17, PREREG_IDK_LORA.md) on purpose, plus --cache-ram 0, so this first pipeline run on the 9070 is a reproduction: byte-identical answers are the pass."
+}

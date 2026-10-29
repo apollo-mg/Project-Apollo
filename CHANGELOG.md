@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   byte-identical, and `abstend.py check` matches both stored run headers field by field (planted errors are caught).
   `run_main.py` gains `--neutral-penalties` (default off, so earlier arms are unchanged; the pipeline always sends it) so
   no engine-injected penalty reaches R-gen, and `build_parser()` / `header_fields()` for the pipeline to reuse.
+- **Abstend pipeline: chain generator (Claude, 2026-10-28):** `abstend.py chain` writes a host's run chain from a recipe
+  (local 9070: Clef paused and restored, MemAvailable floor, `--cache-ram 0` required; ssh .194: power, `/dev/shm`
+  staging with hash check, PID-verified kill, power-off on every exit), plus `smoke` and a per-run defaults `audit`
+  (greedy with and without explicit neutral penalties). Rendered for Nanbeige, it matches the hand-written
+  `nanbeige_chain.sh` apart from the one-off waits. Phi-4-mini moved to a recipe for pipeline run 1 on the 9070, a
+  preregistered reproduction of `IDK_BPHI`. The precheck line now queries the literal and the hyphen-split model name.
 - **Scorecard: finished-only metrics (Claude, 2026-10-28):** four conditional M1 metrics (`knowledge.easy_acc_finished`,
   `knowledge.hard_acc_finished`, `honesty.invented_refusal_lenient_finished`, `honesty.invented_confabulation_finished`)
   sit beside the frozen M1-v1 ones, whose 453 rows are unchanged. The card shows them, with n, where a setup has 2 % or

@@ -22,6 +22,11 @@
   "name": "llama.cpp",
   "commit": "c7fc509",
   "build": "build_sm60 gcc-13",
+  "bin": "~/llama.cpp-flint/build_sm60/bin/llama-server",
+  "env": {
+   "CUDA_VISIBLE_DEVICES": "0,1,2,3",
+   "GGML_CUDA_ALLREDUCE": "internal"
+  },
   "flags": "-ngl 99 -sm layer -c 16384 -ctk f16 -ctv f16 -np 1 -fit off",
   "weights": "/dev/shm"
  },
@@ -38,12 +43,17 @@
    "thinking": true,
    "max_tokens": 8192,
    "timeout": 1800,
-   "sampling": {"temperature": 0.6, "top_p": 0.95},
+   "sampling": {
+    "temperature": 0.6,
+    "top_p": 0.95
+   },
    "sampling_source": "model card, reasoning settings",
    "label": "on (T 0.6)",
    "primary": false
   }
  },
- "instruments": ["M1-v1"],
+ "instruments": [
+  "M1-v1"
+ ],
  "history": "Run 2026-10-25 by hand (PREREG_NANBEIGE.md, nanbeige_chain.sh); converted to the first recipe 2026-10-28 as the pipeline's acceptance test."
 }

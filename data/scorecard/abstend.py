@@ -9,8 +9,12 @@ build_scorecard.py merges recipes through load_recipes(), so a recipe's model an
   prereg RECIPE       write the measurement-plan prereg to data/receipts/abstend/<model_id>/PREREG_<model_id>.md
                       (--stdout renders it without writing)
   guard  RECIPE       exit 0 only if the recipe and its prereg are committed, unmodified, and the prereg names this
-                      recipe's hash"""
-import argparse, datetime, hashlib, json, re, shlex, subprocess, sys
+                      recipe's hash
+  chain  RECIPE       write the host's run chain to data/receipts/abstend/<model_id>/chain_<host>.sh and print the
+                      systemd-run launch line (refuses unless the guard passes; --stdout renders it for review)
+  smoke  RECIPE MODE  the pre-mode gate against the live server ("What is 17*19?" -> 323; thinking off -> no reasoning)
+  audit  RECIPE       defaults audit: one greedy request with and one without explicit neutral penalties, compared"""
+import argparse, datetime, hashlib, json, re, shlex, subprocess, sys, urllib.request
 from pathlib import Path
 HERE = Path(__file__).resolve().parent; ROOT = HERE.parents[1]; QA = ROOT / "data" / "receipts" / "quant-abstention"
 HOSTS = json.load(open(HERE / "hosts.json"))
@@ -37,6 +41,13 @@ def validate(rc, path):
     if set(rc["modes"]) - {"greedy", "vendor"}: err.append("modes are greedy and vendor only")
     if sum(bool(m.get("primary")) for m in rc["modes"].values()) != 1: err.append("exactly one mode is primary")
     if "/home/" in json.dumps(rc): err.append("no /home paths in a recipe (public repo)")
+    if "bin" not in rc["engine"]: err.append("engine.bin (the server binary on the host) is required")
+    if rc["engine"].get("weights") not in ("/dev/shm", "store"): err.append("engine.weights is /dev/shm (staged) or store")
+    for f in HOSTS.get(rc["host"], {}).get("require_flags", []):
+        if f not in rc["engine"]["flags"]: err.append(f"host {rc['host']} requires {f} in engine.flags")
+    for m in rc["modes"].values():
+        if set(m) - {"arm", "thinking", "max_tokens", "timeout", "primary", "sampling", "sampling_source", "label", "note", "system", "template_kwargs", "no_think_check"}:
+            err.append(f"unknown mode fields in {m.get('arm')}")
     if err: raise SystemExit(f"{path}: " + "; ".join(err))
     return rc
 
@@ -65,7 +76,7 @@ def load_recipes(reg):
 
 def meta(rc, path):
     f, e = rc["file"], rc["engine"]
-    return {"model": f"{f['repo'].split('/')[0]} {f['name']} (sha256 {f['sha256'][:8]}..., rev {f['revision']})",
+    return {"model": f"{f.get('packager') or f['repo'].split('/')[0]} {f['name']} (sha256 {f['sha256'][:8]}..., rev {f['revision']})",
             "build": f"{e['name']} {e['commit']} {e['build']}", "placement": f"{e['flags']}, {e['weights']}",
             "recipe": f"{rel(path)} sha256:{sha(path)[:12]}"}
 
@@ -75,6 +86,7 @@ def run_argv(rc, path, mode):
     av = ["--url", HOSTS[rc["host"]]["url"] or "URL", "--arm", m["arm"], "--usage", "--neutral-penalties",
           "--max-tokens", str(m["max_tokens"]), "--timeout", str(m["timeout"]), "--meta", json.dumps(meta(rc, path))]
     if m["thinking"]: av.append("--thinking")
+    if m.get("no_think_check"): av.append("--no-think-check")   # templates with no think block (Phi, Granite)
     if m.get("sampling"): av += ["--sampling", json.dumps(m["sampling"])]
     if m.get("system"): av += ["--system", m["system"]]
     if m.get("template_kwargs"): av += ["--template-kwargs", json.dumps(m["template_kwargs"])]
@@ -131,6 +143,13 @@ def precheck(q):
     return f"{len(hits)} prior-art line(s) found; this run adds the standard card for this exact file and recipe.\n{lines}"
 
 
+def prior(name):
+    """The precheck tool takes a hyphenated name as ONE term (Phi-4-mini-instruct found nothing, 2026-10-28), so query
+    the literal name and the name split on - and _, and report both."""
+    qs = list(dict.fromkeys([name, re.sub(r"[-_]+", " ", name)]))
+    return "\n".join(f"{'' if i == 0 else '- '}`ledger_precheck.py \"{q}\"` -> {precheck(q)}" for i, q in enumerate(qs))
+
+
 def prereg(path, rc, force=False, stdout=False):
     pp = prereg_path(rc)
     if pp.exists() and not force and not stdout: raise SystemExit(f"{rel(pp)} exists (a prereg is never rewritten; --force only before any run)")
@@ -149,7 +168,7 @@ def prereg(path, rc, force=False, stdout=False):
 the standard card is the same for every model, and the launch guard refuses to run unless this file and the recipe
 are committed unmodified.
 
-**Prior art checked:** `ledger_precheck.py "{rc['model']['display']}"` -> {precheck(rc['model']['display'])}
+**Prior art checked:** {prior(rc['model']['display'])}
 
 ## Artifact
 
@@ -188,17 +207,133 @@ written ids), and is recorded in the result.
     pp.parent.mkdir(parents=True, exist_ok=True); pp.write_text(txt); print("wrote", rel(pp))
 
 
+def post(url, body, timeout=1800):
+    rq = urllib.request.Request(url, data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
+    return json.loads(urllib.request.urlopen(rq, timeout=timeout).read())["choices"][0]["message"]
+
+
+def smoke(rc, mode):
+    m = rc["modes"][mode]; url = HOSTS[rc["host"]]["url"]
+    body = {"messages": [{"role": "user", "content": "What is 17*19? Answer briefly."}], "max_tokens": 4096, "temperature": 0,
+            "cache_prompt": False, "chat_template_kwargs": {"enable_thinking": bool(m["thinking"])}, **(m.get("sampling") or {})}
+    if m.get("sampling"): body["seed"] = 1
+    msg = post(f"{url}/v1/chat/completions", body); c, r = msg.get("content") or "", msg.get("reasoning_content") or ""
+    ok = "323" in c and (m["thinking"] or not r)
+    print(f"{m['arm']} smoke {'OK' if ok else 'FAILED'}: content {c[:80]!r}, reasoning {len(r)} chars"); return ok
+
+
+def audit(rc):
+    """What does the server add when a request omits penalties? Two greedy requests, identical but for explicit neutral
+    penalties; different text means the engine injects a default (Strata, 2026-10-27) or is not deterministic."""
+    sys.path.insert(0, str(QA)); from run_main import NEUTRAL   # noqa: E402
+    url = HOSTS[rc["host"]]["url"]
+    base = {"messages": [{"role": "user", "content": "Name three primary colors and one fact about each."}], "max_tokens": 96,
+            "temperature": 0, "cache_prompt": False, "chat_template_kwargs": {"enable_thinking": False}}
+    a, b = (post(f"{url}/v1/chat/completions", x).get("content") or "" for x in (base, {**base, **NEUTRAL}))
+    print("defaults audit: " + ("identical with and without explicit neutral penalties" if a == b else
+                                f"DIFFERS (an injected default, or nondeterminism): {a[:60]!r} vs {b[:60]!r}"))
+
+
+def chain_path(rc): return prereg_path(rc).parent / f"chain_{rc['host']}.sh"
+
+
+# Chain templates: @KEY@ placeholders, filled by chain(). The ssh variant follows nanbeige_chain.sh (2026-10-25).
+HEAD = r"""#!/bin/bash
+# Abstend chain: @RECIPE@ (sha256:@RHASH@) on host @HOST@. Generated by data/scorecard/abstend.py chain; regenerate it,
+# never edit it. Launch:
+#   @LAUNCH@
+set -u
+R=@ROOT@; PY=$R/venv_cachyos/bin/python3; Q=$R/data/receipts/quant-abstention; A=$R/data/scorecard/abstend.py
+RC=$R/@RECIPE@; D=$R/@RUNDIR@; LOG=$D/state.log; F=@STORE@/@NAME@; N=@NAME@; SHA=@SHA@; H=@URL@
+log () { echo "$(date '+%F %T') $*" >> $LOG; }
+log "chain start"
+[ "$(sha256sum $RC | cut -d' ' -f1)" = @RHASH@ ] || { log "ABORT: recipe changed since this chain was generated"; exit 1; }
+$PY $A guard $RC >> $LOG 2>&1 || { log "ABORT: launch guard refused"; exit 1; }
+got=$(sha256sum $F | cut -d' ' -f1); [ "$got" = $SHA ] || { log "ABORT: model sha256 mismatch at the store (${got:-none})"; exit 1; }
+log "model sha256 ok at the store"
+"""
+LOCAL = r"""BIN=@BIN@
+avail=$(awk '/MemAvailable/ {print int($2/1048576)}' /proc/meminfo)
+[ "$avail" -ge @MINMEM@ ] || { log "ABORT: MemAvailable $avail GiB < @MINMEM@"; exit 1; }
+log "MemAvailable $avail GiB, SwapFree $(awk '/SwapFree/ {print int($2/1048576)}' /proc/meminfo) GiB"
+cleanup () {
+  [ -n "${SP:-}" ] && [ "$(readlink /proc/$SP/exe 2>/dev/null)" = "$(readlink -f $BIN)" ] && kill $SP && timeout 60 tail --pid=$SP -f /dev/null
+  systemctl --user start @PAUSE@; log "restored: $(systemctl --user is-active @PAUSE@ | tr '\n' ' ')"
+}
+trap cleanup EXIT
+systemctl --user stop @PAUSE@; sleep 3
+@ENV@$BIN -m $F @FLAGS@ --host 127.0.0.1 --port @PORT@ > $D/server.log 2>&1 < /dev/null & SP=$!
+ok=0; for i in $(seq 1 120); do sleep 3; curl -s -m 3 $H/health | grep -q '"ok"' && { ok=1; break; }; done
+[ $ok = 1 ] || { log "ABORT: server did not come up"; exit 1; }
+log "server up pid $SP: $(curl -s $H/props | python3 -c 'import sys,json; print(json.load(sys.stdin)["model_path"])')"
+"""
+SSH = r"""S=@SSH@
+cleanup () {
+  ssh $S "P=\$(cat ~/abstend_server.pid 2>/dev/null); [ -n \"\$P\" ] && [ \"\$(readlink /proc/\$P/exe)\" = \"@RBIN@\" ] && kill \$P && timeout 60 tail --pid=\$P -f /dev/null; rm -f /dev/shm/$N"
+  timeout 120 $R/@POWER@ off >> $LOG 2>&1; log "host powered off"
+}
+timeout 300 $R/@POWER@ on >> $LOG 2>&1
+for i in $(seq 1 60); do ssh -o ConnectTimeout=5 -o BatchMode=yes $S true 2>/dev/null && break; sleep 10; done
+trap cleanup EXIT
+rsync -a $F $S:/dev/shm/ && got=$(ssh $S "sha256sum /dev/shm/$N" | cut -d' ' -f1)
+[ "${got:-}" = $SHA ] || { log "ABORT: staged sha256 mismatch (${got:-none})"; exit 1; }
+log "staged, sha256 ok; clocks $(ssh $S 'nvidia-smi --query-gpu=clocks.applications.graphics,power.limit --format=csv,noheader | tr "\n" " "')"
+ssh $S "@ENV@nohup @BIN@ -m /dev/shm/$N @FLAGS@ --host 0.0.0.0 --port @PORT@ > ~/abstend_server.log 2>&1 < /dev/null & echo \$! > ~/abstend_server.pid"
+ok=0; for i in $(seq 1 120); do sleep 5; curl -s -m 3 $H/health | grep -q '"ok"' && { ok=1; break; }; done
+[ $ok = 1 ] || { log "ABORT: server did not come up"; exit 1; }
+log "server up: $(ssh $S 'nvidia-smi --query-gpu=memory.used --format=csv,noheader | tr "\n" " "')"
+"""
+MODE = r"""if $PY $A smoke $RC @MODE@ >> $LOG 2>&1; then
+  $PY -s run_main.py @ARGS@ >> $D/run_@ARM@.log 2>&1
+  log "@ARM@ rc=$? rows=$(( $(wc -l < raw/main_@ARM@.jsonl) - 1 ))"; else log "@ARM@ SMOKE FAILED"; fi
+"""
+TAIL = r"""(cd $R/data/scorecard && $PY build_scorecard.py && $PY render_cards.py) >> $LOG 2>&1; log "scorecard rc=$?"
+log "DONE"
+"""
+
+
+def chain(path, rc, stdout=False):
+    h = HOSTS[rc["host"]]; e, f = rc["engine"], rc["file"]
+    if not h.get("url"): raise SystemExit(f"host {rc['host']} has no fixed test URL in hosts.json")
+    if h["kind"] == "ssh" and e["weights"] != "/dev/shm": raise SystemExit("ssh hosts serve from /dev/shm in this version")
+    if not stdout and not guard(path, rc): sys.exit(1)
+    cp = chain_path(rc); unit = f"abstend-{rc['model_id']}"
+    launch = (f"systemd-run --user --unit={unit} --collect -p MemoryMax={h['memory_max']} -p ExecStopPost=\"systemctl --user start "
+              f"{' '.join(h['pause'])}\" bash {rel(cp)}" if h["kind"] == "local" else f"systemd-run --user --unit={unit} --collect bash {rel(cp)}")
+    sub = {"RECIPE": rel(path), "RHASH": sha(path), "HOST": rc["host"], "LAUNCH": launch, "ROOT": str(ROOT), "RUNDIR": rel(cp.parent),
+           "STORE": f["store"], "NAME": f["name"], "SHA": f["sha256"], "URL": h["url"], "BIN": e["bin"], "FLAGS": e["flags"],
+           "ENV": "".join(f"{k}={v} " for k, v in (e.get("env") or {}).items()), "PORT": h["url"].rsplit(":", 1)[1],
+           "MINMEM": str(h.get("min_mem_avail_gib", 0)), "PAUSE": " ".join(h.get("pause", [])), "SSH": h.get("ssh", ""),
+           "POWER": h.get("power", ""), "RBIN": e["bin"].replace("~", "\\$HOME", 1)}
+    txt = HEAD + (LOCAL if h["kind"] == "local" else SSH) + "$PY $A audit $RC >> $LOG 2>&1\ncd $Q\n"
+    for mode, m in rc["modes"].items():
+        txt += MODE.replace("@MODE@", mode).replace("@ARM@", m["arm"]).replace("@ARGS@", shlex.join(run_argv(rc, path, mode)))
+    txt += TAIL
+    for k, v in sub.items(): txt = txt.replace(f"@{k}@", v)
+    left = re.search(r"@[A-Z]+@", txt)
+    if left: raise SystemExit(f"unfilled placeholder {left.group()}")
+    if stdout: return print(txt)
+    cp.parent.mkdir(parents=True, exist_ok=True); cp.write_text(txt); cp.chmod(0o755)
+    print("wrote", rel(cp)); print("launch:", launch)
+
+
 def main():
     ap = argparse.ArgumentParser(); sp = ap.add_subparsers(dest="cmd", required=True)
     sp.add_parser("check").add_argument("recipes", nargs="*")
     x = sp.add_parser("args"); x.add_argument("recipe"); x.add_argument("mode")
     x = sp.add_parser("prereg"); x.add_argument("recipe"); x.add_argument("--force", action="store_true"); x.add_argument("--stdout", action="store_true")
     sp.add_parser("guard").add_argument("recipe")
+    x = sp.add_parser("chain"); x.add_argument("recipe"); x.add_argument("--stdout", action="store_true")
+    x = sp.add_parser("smoke"); x.add_argument("recipe"); x.add_argument("mode")
+    sp.add_parser("audit").add_argument("recipe")
     a = ap.parse_args()
     if a.cmd == "check": return check(a.recipes or None)
     p, rc = next(recipes([a.recipe]))
     if a.cmd == "guard": sys.exit(0 if guard(p, rc) else 1)
     if a.cmd == "prereg": return prereg(p, rc, a.force, a.stdout)
+    if a.cmd == "chain": return chain(p, rc, a.stdout)
+    if a.cmd == "smoke": sys.exit(0 if smoke(rc, a.mode) else 1)
+    if a.cmd == "audit": return audit(rc)
     if not guard(p, rc, quiet=True): guard(p, rc); sys.exit(1)
     if not HOSTS[rc["host"]]["url"]: sys.exit(f"host {rc['host']} has no fixed test URL in hosts.json; set one for this run")
     print(shlex.join([str(QA / "run_main.py"), *run_argv(rc, p, a.mode)]))

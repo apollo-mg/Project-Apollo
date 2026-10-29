@@ -2,17 +2,31 @@
  "194": {
   "desc": ".194: 4x Tesla P100 16 GB (sm_60, CUDA 12.4), 2x Xeon E5-2650v3, 128 GB DDR4-2133; default 1,063 MHz application clock, 150 W cap",
   "url": "http://10.0.0.194:8190",
-  "role": "big models"
+  "role": "big models",
+  "kind": "ssh",
+  "ssh": "mark@10.0.0.194",
+  "power": "tools/s194.sh"
  },
  "9070": {
   "desc": "desktop: RX 9070 XT 16 GB (gfx1201, ROCm/HIP), Ryzen 7 5700X3D, 32 GB DDR4",
   "url": "http://127.0.0.1:8197",
-  "role": "small models and the AbstentionBench judge"
+  "role": "small models and the AbstentionBench judge",
+  "kind": "local",
+  "pause": [
+   "apollo-clef-monitor.service",
+   "apollo-clef.service"
+  ],
+  "memory_max": "26G",
+  "min_mem_avail_gib": 8,
+  "require_flags": [
+   "--cache-ram 0"
+  ]
  },
  "73": {
   "desc": ".73: 2x Tesla P100 16 GB (sm_60, CUDA 12.4), i7-8600K, 16 GB",
   "url": null,
   "role": "only when nothing else fits",
-  "note": "no fixed test port: never :8099 (the wake proxy); stop the proxy before testing"
+  "note": "no fixed test port: never :8099 (the wake proxy); stop the proxy before testing",
+  "kind": "ssh"
  }
 }
