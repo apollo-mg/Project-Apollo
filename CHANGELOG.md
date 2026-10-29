@@ -16,6 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   byte-identical, and `abstend.py check` matches both stored run headers field by field (planted errors are caught).
   `run_main.py` gains `--neutral-penalties` (default off, so earlier arms are unchanged; the pipeline always sends it) so
   no engine-injected penalty reaches R-gen, and `build_parser()` / `header_fields()` for the pipeline to reuse.
+- **Abstend pipeline: AbstentionBench in the chain (Claude, 2026-10-28):** `data/scorecard/instruments.json` freezes the
+  sub1000 instrument and its judge (file sha256, f74e2fa bin, flags, :8196). Generated chains now run, after the M1 modes:
+  `make_subset.py --verify` (question hashes), `run_abench.py` on the model's server with `--neutral-penalties` (new,
+  default off), the model server stopped and confirmed gone, the hash-checked judge on its own port, then `abstend.py
+  verdicts`. Subject and judge output stay in the gitignored `abstentionbench/raw/`. `build_scorecard.py` computes only
+  sub1000 rows for pipeline arms, with a coverage check. `abstend.py compare-abench`. Llama 3.1 8B moved to a recipe for
+  pipeline run 2, a preregistered reproduction of `LLAMA8` on sub1000 (plus its first M1 card).
 - **AbstentionBench-sub1000/norefs v1 frozen (Claude, 2026-10-28):** a stratified subset of the fast subset for
   release-day cards (`abstentionbench/make_subset.py`, `subset_1000.csv` with question sha256s, `--verify` refuses on
   any change). 500 items failed the preregistered check on one of 12 values; the registered 1,000 fallback passed

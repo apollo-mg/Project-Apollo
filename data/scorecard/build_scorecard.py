@@ -54,14 +54,18 @@ for arm, a in REG["m1_arms"].items():
 # --- AbstentionBench fast subset (2,004 items), norefs judge (primary per Addendum 1) ---
 CONTEXT_REMOVED = {"GSM8K", "MMLUMath", "MMLUHistory", "GPQA"}; FALSE_PREMISE = {"FalseQADataset", "QAQADataset"}
 SUB1000 = {(r["dataset"], r["index"]) for r in csv.DictReader(open(R / "abstentionbench" / "subset_1000.csv"))}
-def abench(arm, path, col):
+def abench(arm, path, col, sub_only=False):
     cfg = f"abench:{arm}"; a = REG["abench_arms"][arm]
     configs[cfg] = {"config_id": cfg, "model": a["model"], "quant": a["quant"], "thinking": a["thinking"], "primary": a["primary"], "note": a["note"],
                     "decoding": "T 0.8, top_p 0.95 (Meta)", "template_kwargs": "", "system": "", "started": "", "source": f"abstentionbench/{path.name}"}
     V = [r for r in csv.DictReader(open(path)) if r[col] != ""]; src = configs[cfg]["source"]
     # 2026-10-28: the same verdicts on the frozen sub1000 items (RESULT_ABENCH_SUBSET.md) -- the anchors' values for the
     # release-day instrument; a separate instrument, never compared with fast/norefs
-    for inst, rows in (("AbstentionBench-fast/norefs", V), ("AbstentionBench-sub1000/norefs", [r for r in V if (r["dataset"], r["index"]) in SUB1000])):
+    if sub_only:   # a pipeline arm's table holds sub1000 items only: never computed as fast/norefs
+        keys = {(r["dataset"], r["index"]) for r in V}
+        if not keys <= SUB1000: raise SystemExit(f"{path.name}: {len(keys - SUB1000)} rows outside sub1000")
+        if len(keys) < len(SUB1000): print(f"note: {path.name} covers {len(keys)} of {len(SUB1000)} sub1000 items")
+    for inst, rows in ((("AbstentionBench-fast/norefs", V),) if not sub_only else ()) + (("AbstentionBench-sub1000/norefs", [r for r in V if (r["dataset"], r["index"]) in SUB1000]),):
         sa = [r for r in rows if r["should_abstain"] == "1"]; called = [r for r in rows if r[col] == "1"]
         add(cfg, inst, "honesty.abstention_recall", sum(r[col] == "1" for r in sa), len(sa), src)
         add(cfg, inst, "honesty.abstention_precision", sum(r["should_abstain"] == "1" for r in called), len(called), src)
@@ -70,6 +74,9 @@ def abench(arm, path, col):
 abench("LLAMA8", R / "abstentionbench" / "verdicts_LLAMA8.csv", "norefs")
 abench("Q27OFF", R / "abstentionbench" / "verdicts_Q27.csv", "off_norefs")
 abench("Q27ON", R / "abstentionbench" / "verdicts_Q27.csv", "on_norefs")
+for arm, a in REG["abench_arms"].items():   # pipeline arms (recipes): sub1000 only, once their verdict table exists
+    if a.get("sub1000_only") and (R / "abstentionbench" / a["verdicts"]).exists():
+        abench(arm, R / "abstentionbench" / a["verdicts"], a["col"], sub_only=True)
 
 # --- write ---
 db = HERE / "scorecard.db"; db.unlink(missing_ok=True); con = sqlite3.connect(db)

@@ -1,0 +1,63 @@
+{
+ "schema": "abstend-recipe/1",
+ "model_id": "llama-3.1-8b-instruct",
+ "model": {
+  "display": "Llama 3.1 8B Instruct",
+  "developer": "Meta",
+  "arch": "dense",
+  "total_b": 8,
+  "active_b": 8,
+  "lineage": null
+ },
+ "file": {
+  "repo": "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
+  "revision": "unrecorded",
+  "name": "Meta-Llama-3.1-8B-Instruct-Q8_0.gguf",
+  "sha256": "9da71c45c90a821809821244d4971e5e5dfad7eb091f0b8ff0546392393b6283",
+  "store": "/mnt/TG_2TB/models_small/gguf",
+  "quant": "Q8_0"
+ },
+ "host": "9070",
+ "engine": {
+  "name": "llama.cpp",
+  "commit": "f74e2fa",
+  "build": "build_rocm",
+  "bin": "/mnt/TG_2TB/Projects/Apollo/engines/llama_cpp_upstream_f74e2fa/build_rocm/bin/llama-server",
+  "flags": "-ngl 99 -c 32768 -np 1 -ctk f16 -ctv f16 --cache-ram 0",
+  "weights": "store"
+ },
+ "modes": {
+  "greedy": {
+   "arm": "L31G",
+   "thinking": false,
+   "max_tokens": 1024,
+   "timeout": 600,
+   "no_think_check": true,
+   "primary": true
+  },
+  "vendor": {
+   "arm": "L31V",
+   "thinking": false,
+   "max_tokens": 1024,
+   "timeout": 600,
+   "no_think_check": true,
+   "sampling": {
+    "temperature": 0.6,
+    "top_p": 0.9
+   },
+   "sampling_source": "Meta's generation_config.json, read from the ungated unsloth mirror",
+   "label": "off (vendor sampling)",
+   "primary": false
+  }
+ },
+ "instruments": [
+  "M1-v1",
+  "AbstentionBench-sub1000/norefs"
+ ],
+ "abench": {
+  "arm": "L31AB",
+  "primary": false,
+  "note": "pipeline run 2; reproduces LLAMA8 on sub1000"
+ },
+ "history": "Pipeline run 2 (2026-10-28): the first run with AbstentionBench in the chain. Engine, flags and file repeat the stored AbstentionBench gate run LLAMA8 (2026-10-23/24, PREREG_ABSTENTIONBENCH.md), so the AbstentionBench half is a reproduction. Llama 3.1 8B is also the frozen judge, which is why the judge runs on its own port after the subject server has stopped. M1 is new for this model. The GGUF repo revision was not recorded at download; the sha256 is."
+}

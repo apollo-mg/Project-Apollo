@@ -14,11 +14,14 @@ build_scorecard.py merges recipes through load_recipes(), so a recipe's model an
                       systemd-run launch line (refuses unless the guard passes; --stdout renders it for review)
   smoke  RECIPE MODE  the pre-mode plumbing gate: the model echoes a number; thinking off -> no reasoning
   audit  RECIPE       defaults audit: one greedy request with and one without explicit neutral penalties, compared
-  compare ARM ARM     item-by-item reproduction check of two stored M1 arms (content, finish, grade; P_abs to 1e-6)"""
-import argparse, datetime, hashlib, json, re, shlex, subprocess, sys, urllib.request
+  compare ARM ARM     item-by-item reproduction check of two stored M1 arms (content, finish, grade; P_abs to 1e-6)
+  compare-abench A B  the same for two AbstentionBench arms on sub1000 (subject content and finish, norefs verdicts)
+  verdicts ARM        judge output -> the committed, text-free abstentionbench/verdicts_<ARM>.csv"""
+import argparse, csv, datetime, hashlib, json, re, shlex, subprocess, sys, urllib.request
 from pathlib import Path
 HERE = Path(__file__).resolve().parent; ROOT = HERE.parents[1]; QA = ROOT / "data" / "receipts" / "quant-abstention"
-HOSTS = json.load(open(HERE / "hosts.json"))
+HOSTS = json.load(open(HERE / "hosts.json")); INSTRUMENTS = json.load(open(HERE / "instruments.json"))
+AB_INST = "AbstentionBench-sub1000/norefs"; AB = ROOT / "data" / "receipts" / "abstentionbench"; JUDGE_HOST = INSTRUMENTS[AB_INST]["judge"]["host"]
 SCHEMA = "abstend-recipe/1"
 KNOWN_NEW = {"neutral_penalties", "meta.recipe"}    # fields the pipeline adds that hand-run arms never wrote
 HDR_RUNTIME = {"header", "variant_ids", "render_tail", "props", "started"}   # written by the server, not the arguments
@@ -49,6 +52,11 @@ def validate(rc, path):
     for m in rc["modes"].values():
         if set(m) - {"arm", "thinking", "max_tokens", "timeout", "primary", "sampling", "sampling_source", "label", "note", "system", "template_kwargs", "no_think_check"}:
             err.append(f"unknown mode fields in {m.get('arm')}")
+    if set(rc["instruments"]) - {"M1-v1", AB_INST}: err.append(f"instruments are M1-v1 and {AB_INST}")
+    if AB_INST in rc["instruments"]:
+        ab = rc.get("abench") or {}
+        if "arm" not in ab or set(ab) - {"arm", "template_kwargs", "primary", "label", "note"}: err.append("abench needs an arm (fields: arm, template_kwargs, primary, label, note)")
+        if (ab.get("template_kwargs") or {}).get("enable_thinking"): err.append("thinking-on AbstentionBench needs Meta's two-phase protocol, not in the pipeline yet")
     if err: raise SystemExit(f"{path}: " + "; ".join(err))
     return rc
 
@@ -63,15 +71,21 @@ def label(m):
 
 
 def load_recipes(reg):
-    """Merge every recipe's model and M1 arms into a registry dict (build_scorecard.py); duplicates are an error."""
+    """Merge every recipe's model, M1 arms and AbstentionBench arm into a registry dict (build_scorecard.py); duplicates
+    are an error."""
     for p, rc in recipes():
         mid = rc["model_id"]
         if mid in reg["models"]: raise SystemExit(f"{p}: model {mid} is also in registry.json")
         reg["models"][mid] = rc["model"]
-        if "M1-v1" not in rc["instruments"]: continue
-        for m in rc["modes"].values():
+        for m in rc["modes"].values() if "M1-v1" in rc["instruments"] else ():
             if m["arm"] in reg["m1_arms"]: raise SystemExit(f"{p}: arm {m['arm']} is already registered")
             reg["m1_arms"][m["arm"]] = {"model": mid, "quant": rc["file"]["quant"], "thinking": label(m), "primary": bool(m["primary"]), "note": m.get("note", "")}
+        if AB_INST in rc["instruments"]:
+            ab = rc["abench"]; tk = ab.get("template_kwargs") or {}
+            if ab["arm"] in reg["abench_arms"]: raise SystemExit(f"{p}: AbstentionBench arm {ab['arm']} is already registered")
+            reg["abench_arms"][ab["arm"]] = {"model": mid, "quant": rc["file"]["quant"], "primary": bool(ab.get("primary", True)), "note": ab.get("note", ""),
+                                             "thinking": ab.get("label") or ("off" if tk.get("enable_thinking") is False else "n/a"),
+                                             "verdicts": f"verdicts_{ab['arm']}.csv", "col": "norefs", "sub1000_only": True}
     return reg
 
 
@@ -151,6 +165,21 @@ def prior(name):
     return "\n".join(f"{'' if i == 0 else '- '}`ledger_precheck.py \"{q}\"` -> {precheck(q)}" for i, q in enumerate(qs))
 
 
+def abench_section(rc):
+    if AB_INST not in rc["instruments"]: return ""
+    ins, ab = INSTRUMENTS[AB_INST], rc["abench"]; j = ins["judge"]; tk = ab.get("template_kwargs")
+    return f"""
+{AB_INST} v{ins['version']} (arm `{ab['arm']}`): the frozen 1,000 items (`subset_1000.csv`), re-hashed against their
+frozen question hashes before the run (a mismatch skips the instrument). {ins['subject']}; template kwargs
+{json.dumps(tk) if tk else 'none'}; explicit neutral penalties. This is Meta's protocol, not the modes above, on purpose: the
+row stays comparable with the anchors and with Meta's method. After the model's server has stopped, the frozen norefs
+judge (`{Path(j['file']).name}`, sha256 `{j['sha256'][:12]}...`, hash-checked; `{j['bin'].split('/engines/')[-1]}`;
+`{j['flags']}`) runs on the 9070 at {j['url']}, a different port from any model server. The card reports abstention
+recall, precision, missing-info recall and false-premise recall with Wilson 95 % intervals (worst case +-0.047, varies,
++-0.103, +-0.128), on the sub1000 instrument only, never mixed with fast-subset numbers.
+"""
+
+
 def prereg(path, rc, force=False, stdout=False):
     pp = prereg_path(rc)
     if pp.exists() and not force and not stdout: raise SystemExit(f"{rel(pp)} exists (a prereg is never rewritten; --force only before any run)")
@@ -198,7 +227,7 @@ confabulation on invented items, and unfinished answers (cap hits and runaways; 
 counts as not answered). Beside them, the same easy, hard, lenient-refusal and confabulation rates among finished
 answers only (`*_finished`, with n): the reading that does not count runaways against capability. Survivors skew
 toward easier items, so these read high. Unfinished is also reported as its own reliability metric.
-
+{abench_section(rc)}
 ## Stop rules
 
 A hash mismatch or a failed smoke gate stops the mode. A server death resumes on a fresh server (`run_main.py` skips
@@ -239,7 +268,9 @@ def audit(rc):
 def chain_path(rc): return prereg_path(rc).parent / f"chain_{rc['host']}.sh"
 
 
-# Chain templates: @KEY@ placeholders, filled by chain(). The ssh variant follows nanbeige_chain.sh (2026-10-25).
+# Chain templates: @KEY@ placeholders, filled by chain(). The ssh variant follows nanbeige_chain.sh (2026-10-25). Every
+# server is stopped by its recorded PID after a readlink check; the EXIT trap stops whatever is still up and restores Clef
+# if this chain paused it. The chain always runs on the desktop (the judge host), whatever the model's host.
 HEAD = r"""#!/bin/bash
 # Abstend chain: @RECIPE@ (sha256:@RHASH@) on host @HOST@. Generated by data/scorecard/abstend.py chain; regenerate it,
 # never edit it. Launch:
@@ -248,35 +279,39 @@ set -u
 R=@ROOT@; PY=$R/venv_cachyos/bin/python3; Q=$R/data/receipts/quant-abstention; A=$R/data/scorecard/abstend.py
 RC=$R/@RECIPE@; D=$R/@RUNDIR@; LOG=$D/state.log; F=@STORE@/@NAME@; N=@NAME@; SHA=@SHA@; H=@URL@
 log () { echo "$(date '+%F %T') $*" >> $LOG; }
+memcheck () { local a; a=$(awk '/MemAvailable/ {print int($2/1048576)}' /proc/meminfo)
+  [ "$a" -ge @MINMEM@ ] || { log "ABORT: MemAvailable $a GiB < @MINMEM@"; exit 1; }
+  log "MemAvailable $a GiB, SwapFree $(awk '/SwapFree/ {print int($2/1048576)}' /proc/meminfo) GiB"; }
+CLEF=0
+pause_clef () { [ $CLEF = 1 ] && return 0; systemctl --user stop @PAUSE@; CLEF=1; sleep 3; log "clef paused"; }
+restore_clef () { [ $CLEF = 1 ] || return 0; systemctl --user start @PAUSE_START@; CLEF=0; log "clef restored: $(systemctl --user is-active @PAUSE_START@ | tr '\n' ' ')"; }
+JBIN=@JBIN@; JP=
+stop_judge () { [ -n "$JP" ] && [ "$(readlink /proc/$JP/exe 2>/dev/null)" = "$(readlink -f $JBIN)" ] && kill $JP && timeout 60 tail --pid=$JP -f /dev/null; JP=; }
+cleanup () { stop_judge; stop_model; restore_clef; }
 log "chain start"
 [ "$(sha256sum $RC | cut -d' ' -f1)" = @RHASH@ ] || { log "ABORT: recipe changed since this chain was generated"; exit 1; }
 $PY $A guard $RC >> $LOG 2>&1 || { log "ABORT: launch guard refused"; exit 1; }
 got=$(sha256sum $F | cut -d' ' -f1); [ "$got" = $SHA ] || { log "ABORT: model sha256 mismatch at the store (${got:-none})"; exit 1; }
 log "model sha256 ok at the store"
 """
-LOCAL = r"""BIN=@BIN@
-avail=$(awk '/MemAvailable/ {print int($2/1048576)}' /proc/meminfo)
-[ "$avail" -ge @MINMEM@ ] || { log "ABORT: MemAvailable $avail GiB < @MINMEM@"; exit 1; }
-log "MemAvailable $avail GiB, SwapFree $(awk '/SwapFree/ {print int($2/1048576)}' /proc/meminfo) GiB"
-cleanup () {
-  [ -n "${SP:-}" ] && [ "$(readlink /proc/$SP/exe 2>/dev/null)" = "$(readlink -f $BIN)" ] && kill $SP && timeout 60 tail --pid=$SP -f /dev/null
-  systemctl --user start @PAUSE@; log "restored: $(systemctl --user is-active @PAUSE@ | tr '\n' ' ')"
-}
+LOCAL = r"""BIN=@BIN@; SP=
+stop_model () { [ -n "$SP" ] || return 0
+  [ "$(readlink /proc/$SP/exe 2>/dev/null)" = "$(readlink -f $BIN)" ] && { kill $SP; timeout 60 tail --pid=$SP -f /dev/null; }
+  [ "$(readlink /proc/$SP/exe 2>/dev/null)" = "$(readlink -f $BIN)" ] && { log "model server $SP did not exit"; return 1; }; SP=; }
 trap cleanup EXIT
-systemctl --user stop @PAUSE@; sleep 3
+memcheck; pause_clef
 @ENV@$BIN -m $F @FLAGS@ --host 127.0.0.1 --port @PORT@ > $D/server.log 2>&1 < /dev/null & SP=$!
 ok=0; for i in $(seq 1 120); do sleep 3; curl -s -m 3 $H/health | grep -q '"ok"' && { ok=1; break; }; done
 [ $ok = 1 ] || { log "ABORT: server did not come up"; exit 1; }
 log "server up pid $SP: $(curl -s $H/props | python3 -c 'import sys,json; print(json.load(sys.stdin)["model_path"])')"
 """
-SSH = r"""S=@SSH@
-cleanup () {
+SSH = r"""S=@SSH@; UP=0
+stop_model () { [ $UP = 1 ] || return 0
   ssh $S "P=\$(cat ~/abstend_server.pid 2>/dev/null); [ -n \"\$P\" ] && [ \"\$(readlink /proc/\$P/exe)\" = \"@RBIN@\" ] && kill \$P && timeout 60 tail --pid=\$P -f /dev/null; rm -f /dev/shm/$N"
-  timeout 120 $R/@POWER@ off >> $LOG 2>&1; log "host powered off"
-}
-timeout 300 $R/@POWER@ on >> $LOG 2>&1
-for i in $(seq 1 60); do ssh -o ConnectTimeout=5 -o BatchMode=yes $S true 2>/dev/null && break; sleep 10; done
+  timeout 120 $R/@POWER@ off >> $LOG 2>&1; UP=0; log "host powered off"; }
 trap cleanup EXIT
+timeout 300 $R/@POWER@ on >> $LOG 2>&1; UP=1
+for i in $(seq 1 60); do ssh -o ConnectTimeout=5 -o BatchMode=yes $S true 2>/dev/null && break; sleep 10; done
 rsync -a $F $S:/dev/shm/ && got=$(ssh $S "sha256sum /dev/shm/$N" | cut -d' ' -f1)
 [ "${got:-}" = $SHA ] || { log "ABORT: staged sha256 mismatch (${got:-none})"; exit 1; }
 log "staged, sha256 ok; clocks $(ssh $S 'nvidia-smi --query-gpu=clocks.applications.graphics,power.limit --format=csv,noheader | tr "\n" " "')"
@@ -289,27 +324,54 @@ MODE = r"""if $PY $A smoke $RC @MODE@ >> $LOG 2>&1; then
   $PY -s run_main.py @ARGS@ >> $D/run_@ARM@.log 2>&1
   log "@ARM@ rc=$? rows=$(( $(wc -l < raw/main_@ARM@.jsonl) - 1 ))"; else log "@ARM@ SMOKE FAILED"; fi
 """
+# Subject and judge output go to the gitignored abstentionbench/raw/, never to the committed state.log (GPQA rule)
+ABENCH = r"""# AbstentionBench-sub1000/norefs v1: Meta's protocol on this model's server, then the frozen norefs judge on the 9070
+AP=@APY@; AB=$R/data/receipts/abstentionbench; ABLOG=$AB/raw/@ABARM@.chain.log; mkdir -p $AB/raw
+if $AP -I $AB/make_subset.py @EXPORT@ --verify $AB/subset_1000.csv --emit @ITEMS@ >> $ABLOG 2>&1; then
+  log "sub1000 verified against its frozen question hashes"
+  $AP -s $AB/run_abench.py --items @ITEMS@ --out $AB/raw/@ABARM@.jsonl --host $H --neutral-penalties@ABTK@ --expect-model $N >> $ABLOG 2>&1
+  log "@ABARM@ subject rc=$? rows=$(wc -l < $AB/raw/@ABARM@.jsonl) errors=$(grep -c '"error"' $AB/raw/@ABARM@.jsonl)"
+  stop_model || { log "ABORT: the model server is still up; the judge would not start clean"; exit 1; }
+  memcheck; pause_clef
+  got=$(sha256sum @JFILE@ | cut -d' ' -f1); [ "$got" = @JSHA@ ] || { log "ABORT: judge sha256 mismatch (${got:-none})"; exit 1; }
+  $JBIN -m @JFILE@ @JFLAGS@ --host 127.0.0.1 --port @JPORT@ > $AB/raw/@ABARM@.judge_server.log 2>&1 < /dev/null & JP=$!
+  ok=0; for i in $(seq 1 120); do sleep 3; curl -s -m 3 @JURL@/health | grep -q '"ok"' && { ok=1; break; }; done
+  [ $ok = 1 ] || { log "ABORT: judge server did not come up"; exit 1; }
+  log "judge up pid $JP: $(curl -s @JURL@/props | python3 -c 'import sys,json; print(json.load(sys.stdin)["model_path"])')"
+  $AP -s $AB/judge_abench.py --checkout @CHECKOUT@ --items @ITEMS@ --responses $AB/raw/@ABARM@.jsonl --out $AB/raw/@ABARM@.judge_norefs.jsonl --host @JURL@ --variant norefs --expect-model @JNAME@ >> $ABLOG 2>&1
+  log "@ABARM@ judge norefs rc=$? rows=$(wc -l < $AB/raw/@ABARM@.judge_norefs.jsonl)"
+  stop_judge
+  $PY $A verdicts @ABARM@ >> $LOG 2>&1; log "verdicts rc=$?"
+else log "AbstentionBench SKIPPED: sub1000 failed its hash verification (raw/@ABARM@.chain.log)"; fi
+"""
 TAIL = r"""(cd $R/data/scorecard && $PY build_scorecard.py && $PY render_cards.py) >> $LOG 2>&1; log "scorecard rc=$?"
 log "DONE"
 """
 
 
 def chain(path, rc, stdout=False):
-    h = HOSTS[rc["host"]]; e, f = rc["engine"], rc["file"]
+    h = HOSTS[rc["host"]]; e, f = rc["engine"], rc["file"]; desk = HOSTS[JUDGE_HOST]
     if not h.get("url"): raise SystemExit(f"host {rc['host']} has no fixed test URL in hosts.json")
     if h["kind"] == "ssh" and e["weights"] != "/dev/shm": raise SystemExit("ssh hosts serve from /dev/shm in this version")
     if not stdout and not guard(path, rc): sys.exit(1)
-    cp = chain_path(rc); unit = f"abstend-{rc['model_id']}"
-    launch = (f"systemd-run --user --unit={unit} --collect -p MemoryMax={h['memory_max']} -p ExecStopPost=\"systemctl --user start "
-              f"{' '.join(h['pause'])}\" bash {cp}" if h["kind"] == "local" else f"systemd-run --user --unit={unit} --collect bash {cp}")   # absolute: systemd-run starts in ~
+    cp = chain_path(rc); unit = f"abstend-{rc['model_id']}"; ins = INSTRUMENTS[AB_INST]; j = ins["judge"]
+    # absolute path: systemd-run starts in ~; the restore runs even if the unit is killed
+    launch = (f"systemd-run --user --unit={unit} --collect -p MemoryMax={desk['memory_max']} -p ExecStopPost=\"systemctl --user start "
+              f"{' '.join(reversed(desk['pause']))}\" bash {cp}")
+    tk = (rc.get("abench") or {}).get("template_kwargs")
     sub = {"RECIPE": rel(path), "RHASH": sha(path), "HOST": rc["host"], "LAUNCH": launch, "ROOT": str(ROOT), "RUNDIR": rel(cp.parent),
            "STORE": f["store"], "NAME": f["name"], "SHA": f["sha256"], "URL": h["url"], "BIN": e["bin"], "FLAGS": e["flags"],
            "ENV": "".join(f"{k}={v} " for k, v in (e.get("env") or {}).items()), "PORT": h["url"].rsplit(":", 1)[1],
-           "MINMEM": str(h.get("min_mem_avail_gib", 0)), "PAUSE": " ".join(h.get("pause", [])), "SSH": h.get("ssh", ""),
-           "POWER": h.get("power", ""), "RBIN": e["bin"].replace("~", "\\$HOME", 1)}
+           "MINMEM": str(desk.get("min_mem_avail_gib", 0)), "PAUSE": " ".join(desk["pause"]), "PAUSE_START": " ".join(reversed(desk["pause"])),
+           "SSH": h.get("ssh", ""), "POWER": h.get("power", ""), "RBIN": e["bin"].replace("~", "\\$HOME", 1),
+           "JBIN": j["bin"], "JFILE": j["file"], "JSHA": j["sha256"], "JFLAGS": j["flags"], "JURL": j["url"], "JPORT": j["url"].rsplit(":", 1)[1],
+           "JNAME": Path(j["file"]).name, "APY": ins["python"], "EXPORT": ins["export"], "ITEMS": ins["items"], "CHECKOUT": ins["checkout"],
+           "ABARM": (rc.get("abench") or {}).get("arm", "none"), "ABTK": f" --template-kwargs {shlex.quote(json.dumps(tk))}" if tk else ""}
+    if j["url"] == h["url"]: raise SystemExit("the judge must not share the model's port")
     txt = HEAD + (LOCAL if h["kind"] == "local" else SSH) + "$PY $A audit $RC >> $LOG 2>&1\ncd $Q\n"
     for mode, m in rc["modes"].items():
         txt += MODE.replace("@MODE@", mode).replace("@ARM@", m["arm"]).replace("@ARGS@", shlex.join(run_argv(rc, path, mode)))
+    if AB_INST in rc["instruments"]: txt += ABENCH
     txt += TAIL
     for k, v in sub.items(): txt = txt.replace(f"@{k}@", v)
     left = re.search(r"@[A-Z]+@", txt)
@@ -332,6 +394,34 @@ def compare(arm_a, arm_b, tol=1e-6):
     return len(ids) == len(A) == len(B) and not any(bad.values())
 
 
+def sub1000(): return {(r["dataset"], r["index"]) for r in csv.DictReader(open(ROOT / INSTRUMENTS[AB_INST]["subset"]))}
+
+
+def verdicts(arm):
+    """abstentionbench/raw/<arm>.judge_norefs.jsonl -> the text-free, committed verdicts_<arm>.csv (sub1000 items only)."""
+    rows = [json.loads(l) for l in open(AB / "raw" / f"{arm}.judge_norefs.jsonl")]; ok = [r for r in rows if "error" not in r]
+    S = sub1000(); keys = {(r["dataset"], str(r["index"])) for r in ok}
+    if not keys <= S: raise SystemExit(f"{len(keys - S)} judged items are not in sub1000")
+    with open(AB / f"verdicts_{arm}.csv", "w", newline="") as fh:
+        w = csv.writer(fh); w.writerow(["dataset", "index", "should_abstain", "norefs"])
+        for r in sorted(ok, key=lambda r: (r["dataset"], r["index"])):
+            w.writerow([r["dataset"], r["index"], int(bool(r["should_abstain"])), "" if r["verdict"] is None else int(r["verdict"])])
+    print(f"verdicts_{arm}.csv: {len(ok)} of {len(S)} items judged, {len(rows) - len(ok)} judge errors, {sum(r['verdict'] is None for r in ok)} unparsed")
+
+
+def compare_abench(arm_a, arm_b):
+    """Reproduction check on sub1000: subject content and finish, then norefs verdicts, item by item."""
+    L = lambda f: {(r["dataset"], str(r["index"])): r for r in map(json.loads, open(AB / "raw" / f)) if "error" not in r}
+    S = sorted(sub1000()); A, B = L(f"{arm_a}.jsonl"), L(f"{arm_b}.jsonl"); JA, JB = L(f"{arm_a}.judge_norefs.jsonl"), L(f"{arm_b}.judge_norefs.jsonl")
+    miss = [k for k in S if not (k in A and k in B and k in JA and k in JB)]
+    dc = [k for k in S if k in A and k in B and (A[k]["content"], A[k]["finish"]) != (B[k]["content"], B[k]["finish"])]
+    dv = [k for k in S if k in JA and k in JB and JA[k]["verdict"] != JB[k]["verdict"]]
+    print(f"{arm_a} vs {arm_b} on sub1000 ({len(S)} items): {len(miss)} missing in either, {len(dc)} subject answers differ, {len(dv)} verdicts differ")
+    for name, v in (("answer", dc), ("verdict", dv)):
+        if v: print(f"  first {name} differences: {v[:5]}")
+    return not (miss or dc or dv)
+
+
 def main():
     ap = argparse.ArgumentParser(); sp = ap.add_subparsers(dest="cmd", required=True)
     sp.add_parser("check").add_argument("recipes", nargs="*")
@@ -342,9 +432,13 @@ def main():
     x = sp.add_parser("smoke"); x.add_argument("recipe"); x.add_argument("mode")
     sp.add_parser("audit").add_argument("recipe")
     x = sp.add_parser("compare"); x.add_argument("arm_a"); x.add_argument("arm_b")
+    x = sp.add_parser("compare-abench"); x.add_argument("arm_a"); x.add_argument("arm_b")
+    sp.add_parser("verdicts").add_argument("arm")
     a = ap.parse_args()
     if a.cmd == "check": return check(a.recipes or None)
     if a.cmd == "compare": sys.exit(0 if compare(a.arm_a, a.arm_b) else 1)
+    if a.cmd == "compare-abench": sys.exit(0 if compare_abench(a.arm_a, a.arm_b) else 1)
+    if a.cmd == "verdicts": return verdicts(a.arm)
     p, rc = next(recipes([a.recipe]))
     if a.cmd == "guard": sys.exit(0 if guard(p, rc) else 1)
     if a.cmd == "prereg": return prereg(p, rc, a.force, a.stdout)
