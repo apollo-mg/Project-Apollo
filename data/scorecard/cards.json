@@ -5501,5 +5501,405 @@
     }
    }
   ]
+ },
+ "spark-x2.5-4b": {
+  "display": "Spark-X2.5-4B",
+  "developer": "XHToken",
+  "arch": "dense",
+  "total_b": 4.11,
+  "active_b": 4.11,
+  "lineage": null,
+  "model_id": "spark-x2.5-4b",
+  "configs": [
+   {
+    "config_id": "abench:S25AB",
+    "quant": "Q8_0",
+    "thinking": "off",
+    "decoding": "T 0.8, top_p 0.95 (Meta)",
+    "primary": true,
+    "note": "",
+    "source": "abstentionbench/verdicts_S25AB.csv",
+    "metrics": {
+     "AbstentionBench-sub1000/norefs|honesty.abstention_recall": {
+      "v": 0.4096,
+      "lo": 0.3645,
+      "hi": 0.4563,
+      "n": 437
+     },
+     "AbstentionBench-sub1000/norefs|honesty.abstention_precision": {
+      "v": 0.8027,
+      "lo": 0.7455,
+      "hi": 0.8496,
+      "n": 223
+     },
+     "AbstentionBench-sub1000/norefs|honesty.missing_info_recall": {
+      "v": 0.5,
+      "lo": 0.3966,
+      "hi": 0.6034,
+      "n": 86
+     },
+     "AbstentionBench-sub1000/norefs|honesty.false_premise_recall": {
+      "v": 0.3091,
+      "lo": 0.2028,
+      "hi": 0.4403,
+      "n": 55
+     }
+    }
+   },
+   {
+    "config_id": "m1:S25G",
+    "quant": "Q8_0",
+    "thinking": "off",
+    "decoding": "greedy",
+    "primary": true,
+    "note": "",
+    "source": "quant-abstention/raw/main_S25G.jsonl",
+    "metrics": {
+     "M1-v1|knowledge.easy_acc": {
+      "v": 0.575,
+      "lo": 0.4219,
+      "hi": 0.7149,
+      "n": 40
+     },
+     "M1-v1|knowledge.hard_acc": {
+      "v": 0.15,
+      "lo": 0.0931,
+      "hi": 0.2328,
+      "n": 100
+     },
+     "M1-v1|honesty.overabstain_hard": {
+      "v": 0.0,
+      "lo": 0,
+      "hi": 0.037,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_refusal": {
+      "v": 0.02,
+      "lo": 0.0055,
+      "hi": 0.07,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_refusal_lenient": {
+      "v": 0.46,
+      "lo": 0.3656,
+      "hi": 0.5574,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_confabulation": {
+      "v": 0.54,
+      "lo": 0.4426,
+      "hi": 0.6344,
+      "n": 100
+     },
+     "M1-v1|reliability.unfinished": {
+      "v": 0.0,
+      "lo": 0,
+      "hi": 0.0158,
+      "n": 240
+     },
+     "M1-v1|knowledge.easy_acc_finished": {
+      "v": 0.575,
+      "lo": 0.4219,
+      "hi": 0.7149,
+      "n": 40
+     },
+     "M1-v1|knowledge.hard_acc_finished": {
+      "v": 0.15,
+      "lo": 0.0931,
+      "hi": 0.2328,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_refusal_lenient_finished": {
+      "v": 0.46,
+      "lo": 0.3656,
+      "hi": 0.5574,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_confabulation_finished": {
+      "v": 0.54,
+      "lo": 0.4426,
+      "hi": 0.6344,
+      "n": 100
+     }
+    }
+   },
+   {
+    "config_id": "m1:S25V",
+    "quant": "Q8_0",
+    "thinking": "on (vendor sampling)",
+    "decoding": "sampled {\"temperature\": 1.0, \"top_p\": 0.95, \"top_k\": 0, \"min_p\": 0}",
+    "primary": false,
+    "note": "",
+    "source": "quant-abstention/raw/main_S25V.jsonl",
+    "metrics": {
+     "M1-v1|knowledge.easy_acc": {
+      "v": 0.525,
+      "lo": 0.375,
+      "hi": 0.6706,
+      "n": 40
+     },
+     "M1-v1|knowledge.hard_acc": {
+      "v": 0.18,
+      "lo": 0.117,
+      "hi": 0.2667,
+      "n": 100
+     },
+     "M1-v1|honesty.overabstain_hard": {
+      "v": 0.05,
+      "lo": 0.0215,
+      "hi": 0.1118,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_refusal": {
+      "v": 0.34,
+      "lo": 0.2546,
+      "hi": 0.4372,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_refusal_lenient": {
+      "v": 0.36,
+      "lo": 0.2727,
+      "hi": 0.4576,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_confabulation": {
+      "v": 0.58,
+      "lo": 0.4821,
+      "hi": 0.672,
+      "n": 100
+     },
+     "M1-v1|reliability.unfinished": {
+      "v": 0.0333,
+      "lo": 0.017,
+      "hi": 0.0644,
+      "n": 240
+     },
+     "M1-v1|knowledge.easy_acc_finished": {
+      "v": 0.525,
+      "lo": 0.375,
+      "hi": 0.6706,
+      "n": 40
+     },
+     "M1-v1|knowledge.hard_acc_finished": {
+      "v": 0.1837,
+      "lo": 0.1195,
+      "hi": 0.2718,
+      "n": 98
+     },
+     "M1-v1|honesty.invented_refusal_lenient_finished": {
+      "v": 0.383,
+      "lo": 0.2911,
+      "hi": 0.484,
+      "n": 94
+     },
+     "M1-v1|honesty.invented_confabulation_finished": {
+      "v": 0.617,
+      "lo": 0.516,
+      "hi": 0.7089,
+      "n": 94
+     }
+    }
+   }
+  ]
+ },
+ "spark-x2.6-4b": {
+  "display": "Spark-X2.6-4B",
+  "developer": "XHToken",
+  "arch": "dense",
+  "total_b": 4.11,
+  "active_b": 4.11,
+  "lineage": null,
+  "model_id": "spark-x2.6-4b",
+  "configs": [
+   {
+    "config_id": "abench:S26AB",
+    "quant": "Q8_0",
+    "thinking": "off",
+    "decoding": "T 0.8, top_p 0.95 (Meta)",
+    "primary": true,
+    "note": "",
+    "source": "abstentionbench/verdicts_S26AB.csv",
+    "metrics": {
+     "AbstentionBench-sub1000/norefs|honesty.abstention_recall": {
+      "v": 0.3432,
+      "lo": 0.3003,
+      "hi": 0.389,
+      "n": 437
+     },
+     "AbstentionBench-sub1000/norefs|honesty.abstention_precision": {
+      "v": 0.7576,
+      "lo": 0.6933,
+      "hi": 0.812,
+      "n": 198
+     },
+     "AbstentionBench-sub1000/norefs|honesty.missing_info_recall": {
+      "v": 0.2907,
+      "lo": 0.2053,
+      "hi": 0.394,
+      "n": 86
+     },
+     "AbstentionBench-sub1000/norefs|honesty.false_premise_recall": {
+      "v": 0.2727,
+      "lo": 0.1728,
+      "hi": 0.4023,
+      "n": 55
+     }
+    }
+   },
+   {
+    "config_id": "m1:S26G",
+    "quant": "Q8_0",
+    "thinking": "off",
+    "decoding": "greedy",
+    "primary": true,
+    "note": "",
+    "source": "quant-abstention/raw/main_S26G.jsonl",
+    "metrics": {
+     "M1-v1|knowledge.easy_acc": {
+      "v": 0.625,
+      "lo": 0.4703,
+      "hi": 0.7578,
+      "n": 40
+     },
+     "M1-v1|knowledge.hard_acc": {
+      "v": 0.15,
+      "lo": 0.0931,
+      "hi": 0.2328,
+      "n": 100
+     },
+     "M1-v1|honesty.overabstain_hard": {
+      "v": 0.02,
+      "lo": 0.0055,
+      "hi": 0.07,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_refusal": {
+      "v": 0.05,
+      "lo": 0.0215,
+      "hi": 0.1118,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_refusal_lenient": {
+      "v": 0.31,
+      "lo": 0.2278,
+      "hi": 0.4063,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_confabulation": {
+      "v": 0.69,
+      "lo": 0.5937,
+      "hi": 0.7722,
+      "n": 100
+     },
+     "M1-v1|reliability.unfinished": {
+      "v": 0.0,
+      "lo": 0,
+      "hi": 0.0158,
+      "n": 240
+     },
+     "M1-v1|knowledge.easy_acc_finished": {
+      "v": 0.625,
+      "lo": 0.4703,
+      "hi": 0.7578,
+      "n": 40
+     },
+     "M1-v1|knowledge.hard_acc_finished": {
+      "v": 0.15,
+      "lo": 0.0931,
+      "hi": 0.2328,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_refusal_lenient_finished": {
+      "v": 0.31,
+      "lo": 0.2278,
+      "hi": 0.4063,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_confabulation_finished": {
+      "v": 0.69,
+      "lo": 0.5937,
+      "hi": 0.7722,
+      "n": 100
+     }
+    }
+   },
+   {
+    "config_id": "m1:S26V",
+    "quant": "Q8_0",
+    "thinking": "on (vendor sampling)",
+    "decoding": "sampled {\"temperature\": 1.0, \"top_p\": 0.95, \"top_k\": 0, \"min_p\": 0}",
+    "primary": false,
+    "note": "",
+    "source": "quant-abstention/raw/main_S26V.jsonl",
+    "metrics": {
+     "M1-v1|knowledge.easy_acc": {
+      "v": 0.475,
+      "lo": 0.3294,
+      "hi": 0.625,
+      "n": 40
+     },
+     "M1-v1|knowledge.hard_acc": {
+      "v": 0.11,
+      "lo": 0.0625,
+      "hi": 0.1863,
+      "n": 100
+     },
+     "M1-v1|honesty.overabstain_hard": {
+      "v": 0.03,
+      "lo": 0.0103,
+      "hi": 0.0845,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_refusal": {
+      "v": 0.15,
+      "lo": 0.0931,
+      "hi": 0.2328,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_refusal_lenient": {
+      "v": 0.15,
+      "lo": 0.0931,
+      "hi": 0.2328,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_confabulation": {
+      "v": 0.53,
+      "lo": 0.4329,
+      "hi": 0.6249,
+      "n": 100
+     },
+     "M1-v1|reliability.unfinished": {
+      "v": 0.175,
+      "lo": 0.1322,
+      "hi": 0.2281,
+      "n": 240
+     },
+     "M1-v1|knowledge.easy_acc_finished": {
+      "v": 0.475,
+      "lo": 0.3294,
+      "hi": 0.625,
+      "n": 40
+     },
+     "M1-v1|knowledge.hard_acc_finished": {
+      "v": 0.1236,
+      "lo": 0.0704,
+      "hi": 0.2079,
+      "n": 89
+     },
+     "M1-v1|honesty.invented_refusal_lenient_finished": {
+      "v": 0.2174,
+      "lo": 0.1364,
+      "hi": 0.3282,
+      "n": 69
+     },
+     "M1-v1|honesty.invented_confabulation_finished": {
+      "v": 0.7681,
+      "lo": 0.656,
+      "hi": 0.8519,
+      "n": 69
+     }
+    }
+   }
+  ]
  }
 }
