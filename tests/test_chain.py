@@ -44,8 +44,7 @@ def test_chain_refuses_judge_url(monkeypatch):
     with pytest.raises(SystemExit, match="the judge must not share the model's port"): abstend.chain(p, rc, stdout=True)
 
 
-# REPORTED: the port rule compares whole URLs, so the same port under another spelling of the same host passes
-@pytest.mark.xfail(strict=True, reason="chain() compares judge and model URLs, not ports: localhost:8196 slips past 127.0.0.1:8196")
+# FIXED 2026-10-29, reported by this suite: the port rule compares whole URLs, so the same port under another spelling of the same host passes
 def test_chain_refuses_judge_port_by_another_name(monkeypatch):
     p, rc = load("phi-4-mini"); monkeypatch.setitem(abstend.HOSTS["9070"], "url", "http://localhost:8196")
     with pytest.raises(SystemExit, match="must not share"): abstend.chain(p, rc, stdout=True)
@@ -56,8 +55,7 @@ def test_chain_refuses_unfilled_placeholder(monkeypatch):
     with pytest.raises(SystemExit, match="unfilled placeholder @NEWKEY@"): abstend.chain(p, rc, stdout=True)
 
 
-# REPORTED: the leftover check is r"@[A-Z]+@", but the templates already use underscored keys (@PAUSE_START@)
-@pytest.mark.xfail(strict=True, reason="chain()'s leftover-placeholder regex @[A-Z]+@ misses keys with an underscore")
+# FIXED 2026-10-29, reported by this suite: the leftover check is r"@[A-Z]+@", but the templates already use underscored keys (@PAUSE_START@)
 def test_chain_refuses_unfilled_underscore_placeholder(monkeypatch):
     p, rc = load("phi-4-mini"); monkeypatch.setattr(abstend, "TAIL", abstend.TAIL + "echo @NEW_KEY@\n")
     with pytest.raises(SystemExit, match="unfilled placeholder"): abstend.chain(p, rc, stdout=True)

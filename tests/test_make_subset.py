@@ -37,11 +37,10 @@ def test_select_quotas(n):
     quota_ok(M.select(synthetic(), n), n)
 
 
-# REPORTED: a cell raised to the 1-item floor keeps its fractional part and can also win a remainder seat. At N = 1,000
+# FIXED 2026-10-29, reported by this suite: a cell raised to the 1-item floor keeps its fractional part and can also win a remainder seat. At N = 1,000
 # DeltaQA/True (1 item, exact 0.83) gets quota 2 > its size, so select() returns 999 items; its assert checks the quotas,
 # not the selection. At N = 500 GammaQA/True (2 items, exact 0.83) gets 2 seats. Latent: in the committed data every
 # cell's exact quota is >= 1.75 (test_committed_subsets_reselect_from_text_free_labels), so the frozen subsets are unaffected.
-@pytest.mark.xfail(strict=True, reason="make_subset.select(): a floor-raised cell also competes for remainder seats (quota can exceed the cell)")
 @pytest.mark.parametrize("n", [500, 1000])
 def test_select_quotas_with_floor_raised_cells(n):
     quota_ok(M.select(synthetic(), n), n)
@@ -57,13 +56,14 @@ def test_select_nested():
 
 
 def test_containment_is_asserted_not_assumed(tmp_path):
-    """Largest remainder is not monotone in N (the Alabama paradox): cells 2, 8, 8 give quotas 2, 2, 2 at N = 6 but 1, 3, 3
-    at N = 7. main() must refuse such a pair rather than write a subset_N that is not inside subset_nested."""
-    items = [{"dataset": f"D{c}", "index": i, "should_abstain": True, "question": f"Invented {c}.{i}"} for c, k in enumerate((2, 8, 8)) for i in range(k)]
-    assert not keys(M.select(items, 6)) <= keys(M.select(items, 7))
-    r = subprocess.run([sys.executable, "-I", str(AB / "make_subset.py"), str(jsonl(tmp_path / "items.jsonl", items)), "--n", "6", "--nested", "7"],
+    """Largest remainder is not monotone in N (the Alabama paradox), with or without the floor-raised-cell fix: cells
+    2, 6, 6 are not nested between N = 10 and N = 11 (the original 2, 8, 8 example at 6/7 only failed through that bug,
+    fixed 2026-10-29). main() must refuse such a pair rather than write a subset_N that is not inside subset_nested."""
+    items = [{"dataset": f"D{c}", "index": i, "should_abstain": True, "question": f"Invented {c}.{i}"} for c, k in enumerate((2, 6, 6)) for i in range(k)]
+    assert not keys(M.select(items, 10)) <= keys(M.select(items, 11))
+    r = subprocess.run([sys.executable, "-I", str(AB / "make_subset.py"), str(jsonl(tmp_path / "items.jsonl", items)), "--n", "10", "--nested", "11"],
                        capture_output=True, text=True)
-    assert r.returncode == 1 and "subset_6 is not contained in subset_7" in r.stderr
+    assert r.returncode == 1 and "subset_10 is not contained in subset_11" in r.stderr
 
 
 @pytest.fixture

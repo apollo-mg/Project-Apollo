@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Abstend: four bugs found by the new test suite, fixed (Claude, 2026-10-29):** `make_subset.select()` no longer gives a
+  floor-raised cell an extra remainder seat (the frozen subsets are unchanged: every real cell's share is >= 1.75, and a
+  test reselects them); `chain()` catches unfilled placeholders with underscores and refuses a judge on the model's port
+  by port, not URL string; `validate()` requires the file, engine and mode fields it later reads. The seven xfail pins
+  now pass (115 tests); the Alabama-paradox containment test uses cells 2, 6, 6, a real case under the fixed rule.
 - **Abstend badges (Claude, 2026-10-29):** `data/scorecard/render_badges.py` renders one self-contained SVG per model
   (`data/scorecard/badges/<model_id>.svg`) plus a static preview `badges/index.html`, from `cards.json` only: the
   primary M1 config's hard recall, admits-invented and over-refusal (lower is better), each with 95% interval and n;

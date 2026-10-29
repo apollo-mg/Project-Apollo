@@ -67,7 +67,6 @@ def _mode_no_arm(rc): del rc["modes"]["greedy"]["arm"]
 def _no_flags(rc): del rc["engine"]["flags"]
 
 
-@pytest.mark.xfail(strict=True, reason="validate() does not require mode arm/thinking/max_tokens/timeout or engine.flags")
 @pytest.mark.parametrize("bad", [_mode_no_thinking, _mode_no_arm, _no_flags], ids=["mode_no_thinking", "mode_no_arm", "engine_no_flags"])
 def test_validate_requires_fields(bad):
     _, rc = load("llama-3.1-8b-instruct"); bad(rc)

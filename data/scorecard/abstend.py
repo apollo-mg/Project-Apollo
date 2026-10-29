@@ -17,7 +17,7 @@ build_scorecard.py merges recipes through load_recipes(), so a recipe's model an
   compare ARM ARM     item-by-item reproduction check of two stored M1 arms (content, finish, grade; P_abs to 1e-6)
   compare-abench A B  the same for two AbstentionBench arms on sub1000 (subject content and finish, norefs verdicts)
   verdicts ARM        judge output -> the committed, text-free abstentionbench/verdicts_<ARM>.csv"""
-import argparse, csv, datetime, hashlib, json, re, shlex, subprocess, sys, urllib.request
+import argparse, csv, datetime, hashlib, json, re, shlex, subprocess, sys, urllib.parse, urllib.request
 from pathlib import Path
 HERE = Path(__file__).resolve().parent; ROOT = HERE.parents[1]; QA = ROOT / "data" / "receipts" / "quant-abstention"
 HOSTS = json.load(open(HERE / "hosts.json")); INSTRUMENTS = json.load(open(HERE / "instruments.json"))
@@ -37,6 +37,12 @@ def validate(rc, path):
     for k in ("model_id", "model", "file", "host", "engine", "modes", "instruments"):
         if k not in rc: err.append(f"missing {k}")
     if err: raise SystemExit(f"{path}: " + "; ".join(err))
+    # required fields are checked here, not discovered later as a KeyError (cloud test suite, 2026-10-29)
+    for part, keys in (("file", ("repo", "revision", "name", "sha256", "store", "quant")), ("engine", ("name", "commit", "build", "bin", "flags", "weights"))):
+        err += [f"{part}.{k} is required" if k != "bin" else "engine.bin (the server binary on the host) is required" for k in keys if k not in rc[part]]
+    for m in rc["modes"].values():
+        err += [f"mode {m.get('arm', '?')}: {k} is required" for k in ("arm", "thinking", "max_tokens", "timeout", "primary") if k not in m]
+    if err: raise SystemExit(f"{path}: " + "; ".join(err))
     if Path(path).stem != rc["model_id"]: err.append("file name must be <model_id>.json")
     if not re.fullmatch(r"[0-9a-f]{64}", rc["file"].get("sha256", "")): err.append("file.sha256 must be the full 64-hex hash")
     if rc["host"] not in HOSTS: err.append(f"host {rc['host']} not in hosts.json")
@@ -45,7 +51,6 @@ def validate(rc, path):
     if set(rc["modes"]) - {"greedy", "vendor"}: err.append("modes are greedy and vendor only")
     if sum(bool(m.get("primary")) for m in rc["modes"].values()) != 1: err.append("exactly one mode is primary")
     if "/home/" in json.dumps(rc): err.append("no /home paths in a recipe (public repo)")
-    if "bin" not in rc["engine"]: err.append("engine.bin (the server binary on the host) is required")
     if rc["engine"].get("weights") not in ("/dev/shm", "store"): err.append("engine.weights is /dev/shm (staged) or store")
     for f in HOSTS.get(rc["host"], {}).get("require_flags", []):
         if f not in rc["engine"]["flags"]: err.append(f"host {rc['host']} requires {f} in engine.flags")
@@ -369,14 +374,16 @@ def chain(path, rc, stdout=False):
            "JBIN": j["bin"], "JFILE": j["file"], "JSHA": j["sha256"], "JFLAGS": j["flags"], "JURL": j["url"], "JPORT": j["url"].rsplit(":", 1)[1],
            "JNAME": Path(j["file"]).name, "APY": ins["python"], "EXPORT": ins["export"], "ITEMS": ins["items"], "CHECKOUT": ins["checkout"],
            "ABARM": (rc.get("abench") or {}).get("arm", "none"), "ABTK": f" --template-kwargs {shlex.quote(json.dumps(tk))}" if tk else ""}
-    if j["url"] == h["url"]: raise SystemExit("the judge must not share the model's port")
+    # ports, not URL strings: localhost:8196 and 127.0.0.1:8196 are the same socket on the desktop (cloud test suite, 2026-10-29)
+    if j["url"] == h["url"] or (h["kind"] == "local" and urllib.parse.urlparse(h["url"]).port == urllib.parse.urlparse(j["url"]).port):
+        raise SystemExit("the judge must not share the model's port")
     txt = HEAD + (LOCAL if h["kind"] == "local" else SSH) + "$PY $A audit $RC >> $LOG 2>&1\ncd $Q\n"
     for mode, m in rc["modes"].items():
         txt += MODE.replace("@MODE@", mode).replace("@ARM@", m["arm"]).replace("@ARGS@", shlex.join(run_argv(rc, path, mode)))
     if AB_INST in rc["instruments"]: txt += ABENCH
     txt += TAIL
     for k, v in sub.items(): txt = txt.replace(f"@{k}@", v)
-    left = re.search(r"@[A-Z]+@", txt)
+    left = re.search(r"@[A-Z_]+@", txt)   # keys contain underscores (@PAUSE_START@)
     if left: raise SystemExit(f"unfilled placeholder {left.group()}")
     if stdout: return print(txt)
     cp.parent.mkdir(parents=True, exist_ok=True); cp.write_text(txt); cp.chmod(0o755)

@@ -28,7 +28,11 @@ def select(items, n):
     for it in items: cells[(it["dataset"], bool(it["should_abstain"]))].append(it)
     total = len(items); exact = {c: n * len(v) / total for c, v in cells.items()}
     quota = {c: max(1, math.floor(x)) for c, x in exact.items()}
-    for c in sorted(cells, key=lambda c: (-(exact[c] - math.floor(exact[c])), c))[: n - sum(quota.values())]: quota[c] += 1
+    # remainder seats by largest remainder over the quota already given, never past the cell's size: a cell raised to its
+    # 1-item floor has a negative remainder and no longer wins a seat (cloud test suite, 2026-10-29). Every committed cell's
+    # exact share is >= 1.75, so the frozen subsets are unchanged (tests/test_make_subset.py reselects them).
+    order = sorted((c for c in cells if quota[c] < len(cells[c])), key=lambda c: (-(exact[c] - quota[c]), c))
+    for c in order[: n - sum(quota.values())]: quota[c] += 1
     assert sum(quota.values()) == n, (sum(quota.values()), n)
     return [it for c, v in sorted(cells.items()) for it in sorted(v, key=lambda it: rank(it["dataset"], it["index"]))[: quota[c]]]
 
