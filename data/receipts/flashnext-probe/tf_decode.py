@@ -43,7 +43,11 @@ def main():
         while acc != PRE:
             acc += cp[k]["token"]; k += 1
             if not PRE.startswith(acc): raise SystemExit(f"a token straddles the end of {PRE!r}: {acc!r}")
-        host = cp[k:]; lp = sum(c["logprob"] for c in host)
+        host, acc = [], ""   # only the tokens that spell the host: the grammar then forces end-of-text, which the model never wanted
+        for c in cp[k:]:
+            if acc == h: break
+            host.append(c); acc += c["token"]
+        lp = sum(c["logprob"] for c in host)
         out["hosts"][h] = {"tokens": [c["token"] for c in host], "per_token_logprob": [c["logprob"] for c in host], "p": math.exp(lp)}
         print(a.arm, h, f"P = {math.exp(lp):.3e}  ({len(host)} tokens)")
     json.dump(out, open(RAW / f"tfdecode_{a.arm}.json", "w"), indent=1)

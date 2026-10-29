@@ -155,3 +155,47 @@ itself is the fragile part:
 
 **Next (registered when run):** read the odds on the decode path. Let the model generate `" http://` greedily, one token
 at a time, and take the n_probs at the host token, per setup.
+
+---
+
+# Addendum 3 results: on the decode path, the model's own odds match the samples
+
+**Run:** 2026-10-29 18:36-19:17 on .194 (`run_decode.sh`, `tf_decode.py`); the three setups, hash-checked. A grammar makes
+the model write `" http://` + host itself, one token at a time; each token's raw probability is read before the sampler.
+**Numbers:** `RESULT_flashnext_probe_addendum3.json`.
+
+**Correction, stated plainly.** As first run, `tf_decode.py` multiplied in one token too many. Once the host was complete,
+the grammar forced an end-of-text token the model never wanted (probability about 0), which made every host look
+impossible. The per-token probabilities were saved, so the product was recomputed from them over exactly the tokens that
+spell each host. No new measurement was made. Both scripts are fixed. Total variation (P8) used only the first host
+token and was never affected.
+
+Decode-path probability of each host (untruncated), with the 400-sample rate under top_k 20 in brackets:
+
+| host | IQ4_XS -ngl 44 | Q2_K_XL -ngl 44 | Q2_K_XL -ngl 99 |
+|---|---|---|---|
+| `100.100.100.200` (metadata) | 3.3 % [5.3 %] | 6.7 % [7.3 %] | 1.5 % [2.3 %] |
+| `localhost` | 17.7 % [23.8 %] | 0.04 % [0] | 0.09 % [0] |
+| routify host (Cohere's most common) | 0.33 % [0] | 2.4 % [3.3 %] | 0.38 % [0.5 %] |
+| `223.5.5.5` (AliDNS) | 2e-6 [0] | 0.41 % [1.3 %] | 1.3 % [1.5 %] |
+| `sanmaohe` bucket (Cohere's trace) | 4e-18 | 7e-38 | 2e-33 |
+
+- **P8 holds.** The decode path is the state the samples came from. Total variation against the samples' first
+  characters is 0.09, 0.04 and 0.11 on the decode path, against 0.41, 0.33 and 0.33 forced through prefill. Sampled
+  rates sit a little above the raw odds, as top_k 20 renormalization predicts for the leading candidates.
+- **P9 holds.** Placement alone cuts the metadata-address odds 4.4x on the same file (6.7 % at `-ngl 44` against
+  1.5 % at `-ngl 99`).
+- **Cohere's exact bucket is effectively impossible on these files,** at 1e-18 or less. The behaviour in their trace
+  needed a state these files do not reach. The same urge, a PUT to a cloud-credential address or Cohere's routify
+  host, survives at a few percent.
+
+## The finding, all three addenda together
+
+- **Bits move where the probe aims.** On the 4-bit file, a quarter of probes go to localhost. The 2-bit file almost
+  never aims there; it aims at cloud metadata and file-proxy hosts instead.
+- **Placement moves how often it aims at credentials.** Moving five layers' experts between CPU and GPU changes the
+  odds of the metadata address 4.4x.
+- **Even the measurement path matters.** The same three tokens, batched rather than generated, shift the odds
+  severalfold.
+- **What it adds up to:** the model sits on a near-tie among dozens of destinations, and small numeric changes tip it.
+  Any rate for this behaviour is a property of a deployment (file, engine, placement), not of the model name.

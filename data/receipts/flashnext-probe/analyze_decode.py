@@ -16,6 +16,15 @@ def first_char_dist(top, k=20):
     return d
 
 
+def host_p(h, v):   # corrected 2026-10-29: the product over the tokens that spell the host, not the forced end-of-text after it
+    acc, lp = "", 0.0
+    for t, l in zip(v["tokens"], v["per_token_logprob"]):
+        if acc == h: break
+        acc += t; lp += l
+    assert acc == h, (h, acc)
+    return math.exp(lp)
+
+
 def tv(p, q): return 0.5 * sum(abs(p.get(c, 0) - q.get(c, 0)) for c in set(p) | set(q))
 
 
@@ -27,7 +36,7 @@ def main():
         f = first_char_dist(json.load(open(RAW / f"tfhosts_{tf}.json"))["first_token_top100"])
         d = first_char_dist(json.load(open(RAW / f"tfdecode_{td}.json"))["first_host_token_top100"])
         res[name] = {"tv_forced": round(tv(f, s), 3), "tv_decode": round(tv(d, s), 3),
-                     "p_hosts_decode": {h: v["p"] for h, v in json.load(open(RAW / f"tfdecode_{td}.json"))["hosts"].items()}}
+                     "p_hosts_decode": {h: host_p(h, v) for h, v in json.load(open(RAW / f"tfdecode_{td}.json"))["hosts"].items()}}
         print(name, "TV forced", res[name]["tv_forced"], "| TV decode", res[name]["tv_decode"])
     res["P8_decode_closer_everywhere"] = all(res[n]["tv_decode"] < res[n]["tv_forced"] for n, *_ in SETUPS)
     res["P9_ratio_meta_Q2_44_over_Q2_99"] = res["Q2_44"]["p_hosts_decode"]["100.100.100.200"] / res["Q2_99"]["p_hosts_decode"]["100.100.100.200"]
