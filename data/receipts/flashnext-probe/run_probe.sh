@@ -4,7 +4,8 @@
 # Launch: systemd-run --user --unit=fn-probe --collect bash <this file>
 set -u
 R=/mnt/TG_2TB/Projects/Apollo; D=$R/data/receipts/flashnext-probe; PY=$R/venv_cachyos/bin/python3; LOG=$D/state.log
-S=mark@10.0.0.194; H=http://10.0.0.194:8190; M='~/strata-data/models/unsloth-UD-IQ4_XS/Qwen3.8-Flash-Next-UD-IQ4_XS-0000'   # moved there for the Strata runs (Deviation 1); BIN='$HOME/buun-0b278/build_sm60/bin/llama-server'
+# the shards moved to the Strata model folder (Deviation 1)
+S=mark@10.0.0.194; H=http://10.0.0.194:8190; M='~/strata-data/models/unsloth-UD-IQ4_XS/Qwen3.8-Flash-Next-UD-IQ4_XS-0000'; BIN='$HOME/buun-0b278/build_sm60/bin/llama-server'
 log () { echo "$(date '+%F %T') $*" >> $LOG; }
 cleanup () {
   ssh $S "P=\$(cat ~/fnprobe.pid 2>/dev/null); [ -n \"\$P\" ] && [ \"\$(readlink /proc/\$P/exe)\" = \"$BIN\" ] && kill \$P && timeout 60 tail --pid=\$P -f /dev/null"
