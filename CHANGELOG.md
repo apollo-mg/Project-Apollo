@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Abstend badges (Claude, 2026-10-29):** `data/scorecard/render_badges.py` renders one self-contained SVG per model
+  (`data/scorecard/badges/<model_id>.svg`) plus a static preview `badges/index.html`, from `cards.json` only: the
+  primary M1 config's hard recall, admits-invented and over-refusal (lower is better), each with 95% interval and n;
+  footer "Tested on M1-v1" and the render date. All styling sits in one `STYLE` dict for the designer. Stdlib only.
+  `tests/test_badges.py` checks coverage, numbers against `cards.json` (fresh render and the committed files), no
+  endorsement words, ASCII. Rerun the renderer after `build_scorecard.py`, or the committed-badges test fails.
 - **Abstend pipeline, step one: model recipes (Claude, 2026-10-28):** `data/scorecard/recipes/<model_id>.json` records a
   model's identity, exact file (repo, revision, full sha256), host (`data/scorecard/hosts.json`), engine and flags, and
   its two run modes (greedy, plus the vendor's recommended sampling). `data/scorecard/abstend.py` validates recipes,
