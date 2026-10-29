@@ -12,7 +12,7 @@ build_scorecard.py merges recipes through load_recipes(), so a recipe's model an
                       recipe's hash
   chain  RECIPE       write the host's run chain to data/receipts/abstend/<model_id>/chain_<host>.sh and print the
                       systemd-run launch line (refuses unless the guard passes; --stdout renders it for review)
-  smoke  RECIPE MODE  the pre-mode gate against the live server ("What is 17*19?" -> 323; thinking off -> no reasoning)
+  smoke  RECIPE MODE  the pre-mode plumbing gate: the model echoes a number; thinking off -> no reasoning
   audit  RECIPE       defaults audit: one greedy request with and one without explicit neutral penalties, compared"""
 import argparse, datetime, hashlib, json, re, shlex, subprocess, sys, urllib.request
 from pathlib import Path
@@ -183,8 +183,8 @@ are committed unmodified.
 
 Every request sends `cache_prompt: false`. The generation request (R-gen) also sends explicit neutral penalties
 (presence 0, frequency 0, repeat 1, DRY off), so no engine default enters; a vendor's own sampling values override them.
-The answer-slot readout (R-slot) reads pre-sampling probabilities, which penalties cannot reach on llama.cpp. A smoke gate ("What is 17*19?" must
-return 323, and thinking-off reasoning must be empty) runs before each mode.
+The answer-slot readout (R-slot) reads pre-sampling probabilities, which penalties cannot reach on llama.cpp. A smoke gate checks the plumbing,
+not the model, before each mode: the model must echo a given number, and thinking-off reasoning must be empty.
 
 ## Instruments and fixed analysis
 
@@ -214,11 +214,12 @@ def post(url, body, timeout=1800):
 
 def smoke(rc, mode):
     m = rc["modes"][mode]; url = HOSTS[rc["host"]]["url"]
-    body = {"messages": [{"role": "user", "content": "What is 17*19? Answer briefly."}], "max_tokens": 4096, "temperature": 0,
+    # plumbing, not capability: Phi-4-mini answers 17*19 with 341 (pipeline run 1, 2026-10-28), so the gate is an echo
+    body = {"messages": [{"role": "user", "content": "Reply with exactly this number and nothing else: 4721"}], "max_tokens": 4096, "temperature": 0,
             "cache_prompt": False, "chat_template_kwargs": {"enable_thinking": bool(m["thinking"])}, **(m.get("sampling") or {})}
     if m.get("sampling"): body["seed"] = 1
     msg = post(f"{url}/v1/chat/completions", body); c, r = msg.get("content") or "", msg.get("reasoning_content") or ""
-    ok = "323" in c and (m["thinking"] or not r)
+    ok = "4721" in c and (m["thinking"] or not r)
     print(f"{m['arm']} smoke {'OK' if ok else 'FAILED'}: content {c[:80]!r}, reasoning {len(r)} chars"); return ok
 
 

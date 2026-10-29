@@ -57,3 +57,12 @@ byte-deterministic on this host.
 - **What a pass also shows:** `--neutral-penalties` changes nothing on this llama.cpp-family server, since `IDK_BPHI`
   sent no penalty fields. The chain's defaults audit is reported as well.
 - **A mismatch** is reported item by item, and the pipeline is not called reproducible until it is explained.
+
+## Deviation 1 (2026-10-28 20:05, before any row): the smoke gate tested arithmetic, not plumbing
+
+The first launch (20:03) stopped at the smoke gate. Phi-4-mini answered "What is 17*19?" with `341` at greedy, so the
+gate, meant to prove the server, template and tokenizer work, was testing whether the model can multiply. The gate is
+now an echo ("Reply with exactly this number and nothing else: 4721" must return 4721; thinking-off reasoning must
+still be empty), in `abstend.py` for every future run. No M1 row was written; the chain, recipe and analysis are
+unchanged. The first launch's defaults audit read "identical with and without explicit neutral penalties"
+(`state.log`). The 341 is kept as a fact about the model, not as part of the card.
