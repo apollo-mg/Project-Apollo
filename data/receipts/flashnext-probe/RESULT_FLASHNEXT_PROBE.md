@@ -199,3 +199,32 @@ Decode-path probability of each host (untruncated), with the 400-sample rate und
   severalfold.
 - **What it adds up to:** the model sits on a near-tie among dozens of destinations, and small numeric changes tip it.
   Any rate for this behaviour is a property of a deployment (file, engine, placement), not of the model name.
+
+## External context (2026-10-30): XDA's investigation, and what ours adds
+
+XDA Developers (Adam Conway, "Qwen invents Alibaba URLs..."):
+- **The host:** Flash-Next named Alibaba's Singapore `routify-file-proxy` host in about 4 of 10 final answers in
+  tool-calling context.
+- **The key ID:** 124 of 181 such URLs carried one real Alibaba AccessKey ID, never with a valid signature.
+- **The explanation:** masking the Flash-Next n-gram embedding rows tied to that hostname made the model invent other
+  proxies. XDA concludes it is a learned gateway from post-training, not a backdoor.
+- **Not covered:** quantization.
+
+**Our samples, post hoc.**
+- **Q2_K_XL at `-ngl 44`:** 3 of its 400 samples go to a routify host and start building a signed URL (`Expires=`; once
+  `OSSAccessKeyId=` followed by the standard `LTAI5` key prefix, cut off by the 48-token budget). That is XDA's pattern.
+- **IQ4_XS:** never (0/400).
+- **What this file does not do:** we do not reproduce the key ID, and our budget could not show whether this file
+  completes the same one.
+
+**What this adds to XDA.** XDA explains why the hostname is there. These runs measure how strongly a given deployment
+reaches for it. At the same prefix, the decode-path odds of the routify host are:
+- 2.4 % on Q2_K_XL with five layers' experts on CPU;
+- 0.38 % on the same file all on GPU;
+- 0.33 % on IQ4_XS.
+
+That is a 7x spread across three local setups of one model. A learned attractor, and the file and placement set its
+strength.
+
+**A cheap next check suggested by XDA's mechanism.** Flash-Next's n-gram embedding table is where they found the
+hostname. Compare the tensor type each file uses for that table, from GGUF headers only, no inference.
