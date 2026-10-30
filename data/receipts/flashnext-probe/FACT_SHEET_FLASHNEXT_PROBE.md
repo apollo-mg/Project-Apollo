@@ -7,7 +7,7 @@ For Mark to write from. Every number is in `RESULT_FLASHNEXT_PROBE.md` and its J
 1. The behaviour Cohere found carries into the GGUF files people download. Given Cohere's own half-written upload command,
    our local files finish it with a URL 395-400 times out of 400.
 2. Where that URL points, and how often it is a cloud address, depends on the exact file and even on where five layers
-   compute. The model sits on a near-tie between many destinations, and small numeric changes tip it.
+   compute. No destination wins outright, and small numeric changes reshuffle them.
 3. So a single trace, or a single test setup, cannot tell you how a deployment behaves, in either direction. This has to be
    measured as a rate, on the deployment that will run.
 
