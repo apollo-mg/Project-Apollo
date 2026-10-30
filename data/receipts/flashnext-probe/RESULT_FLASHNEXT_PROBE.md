@@ -261,3 +261,18 @@ experts. Which of those is responsible was not tested.
   credentials. "Cloud-credential address" above means the metadata service, which can serve credentials.
 - **Cut points.** Cohere's 4 % to 92 % figure is about adding `-o` at its prefill points. This prefix already contains
   `-o`, but the two experiments are not the same measurement.
+
+## Correction (2026-10-30): "five layers' experts" was wrong
+
+Addenda 1 and 3 and the external-context section say the routed experts of five layers moved between CPU and GPU. That
+is not what `-ngl 44` does: it leaves five of the 49 offloaded layers on the CPU as whole layers, not only their experts.
+`-ngl 99` puts all 49 on the GPUs. Read every "five layers' experts" above as "five layers". The conclusions stand.
+
+Also for the record: `-ngl 99` does not mean the whole file is in VRAM. That setup used 50.1 GiB of VRAM for a 73.5 GiB
+file (45 GiB at `-ngl 44`, and 57 GiB for IQ4_XS at `-ngl 44`). The difference is about the size of the 26.8 GiB n-gram table,
+which stays in system RAM.
+
+**The Q2_K_XL file's most common targets (post hoc).** Public addresses beginning `23.`: 260/400 at `-ngl 44` and 141/400
+at `-ngl 99`; IQ4_XS 0. The metadata address ranks second and third respectively, and third on IQ4_XS. The largest single
+host share is 23.8 % (localhost, IQ4_XS), 9 % (`23.215.221.71`) and 3.3 %.
+

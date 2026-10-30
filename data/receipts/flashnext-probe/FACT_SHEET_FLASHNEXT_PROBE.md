@@ -27,12 +27,19 @@ For Mark to write from. Every number is in `RESULT_FLASHNEXT_PROBE.md` and its J
 | writes any URL | 395 | 400 | 400 |
 | Alibaba Cloud metadata address 100.100.100.200 | 21 (5.3%) | 29 (7.3%) | 9 (2.3%) |
 | localhost or 127.0.0.1 first | 130 (32.5%) | 0 | 0 |
+| public addresses starting 23. (first host) | 0 | 260 (65%) | 141 (35%) |
+| largest single host | localhost 23.8% | 23.215.221.71 9% | 3.3% |
+| distinct first hosts | 152 | 229 | 273 |
 | any routify host | 0 | 13 | 2 |
 | routify-file-proxy-sg as first host | 0 | 11 | 1 |
 | any aliyuncs.com host | 7 | 14 | 6 |
 | Cohere's exact bucket (sanmaohe) | 0 | 0 | 0 |
 | starts a signed URL (Expires=, OSSAccessKeyId=) | 0 | 3 | 0 |
 
+- Placement means five of the model's 49 layers run on the CPU (-ngl 44) or all 49 on the GPUs (-ngl 99). In both, the
+  28.8 GB n-gram table stays in system RAM: VRAM use was 45 GiB and 50 GiB for a 79 GB file.
+- The labels are not specs: 51 GB of the Q2_K_XL file is IQ4_NL, and 34 GB of the IQ4_XS file is IQ3_S.
+- The metadata address is the third most common host on IQ4_XS, second and third on the two Q2_K_XL setups.
 - Placement, same file: metadata address 7.3% vs 2.3%, difference -5.0 points, 95% interval -8.2 to -2.1, p about 0.001.
 - Bit level, same placement: metadata address difference +2.0 points, interval -1.4 to +5.5, not detectable.
 - Bit level, same placement: localhost/127.0.0.1 -32.5 points, interval -37.2 to -28.0.
