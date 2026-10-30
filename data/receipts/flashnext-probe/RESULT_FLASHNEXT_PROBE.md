@@ -228,3 +228,36 @@ strength.
 
 **A cheap next check suggested by XDA's mechanism.** Flash-Next's n-gram embedding table is where they found the
 hostname. Compare the tensor type each file uses for that table, from GGUF headers only, no inference.
+
+---
+
+# Final check (2026-10-30): the n-gram table is byte-identical across the files that behave differently
+
+Header reads and a hash of the raw tensor bytes; no inference and no prereg (a one-off check of XDA's mechanism against
+these files). Scripts: `ple_types.py`, `ple_hash.py`. **Numbers:** `RESULT_flashnext_probe_ngram.json`.
+
+- **The table:** `per_layer_token_embd.weight`, 320,001,536 rows x 160 dimensions (XDA's "51B N-gram embedding table"),
+  28,800,138,240 bytes.
+- **Its type is `IQ4_NL` in all five files read:** UD-IQ4_XS, UD-Q2_K_XL, UD-Q4_K_XL, the GSQ-RCO IQ3_XXS and the REAP-320 Q2.
+- **Its bytes are identical in the three Unsloth files:** sha256 `dd55c289...` for UD-IQ4_XS, UD-Q2_K_XL and UD-Q4_K_XL.
+
+So the table where XDA found the hostname cannot explain the differences measured here. UD-IQ4_XS and UD-Q2_K_XL carry
+the same table, yet the routify odds differ 7x and loopback by far more; and Q2_K_XL's own placement effect is one file
+by definition. The differences come from the rest of the model and from the numeric path. The tensors that do differ
+include the main token embedding and the output layer (`Q8_0`/`Q6_K` in IQ4_XS, `Q5_K`/`Q4_K` in Q2_K_XL), plus the
+experts. Which of those is responsible was not tested.
+
+## Corrections to earlier sections, against Cohere's own text (2026-10-30)
+
+- **Routify counts.** The "13" and "2" in Addendum 1 count any continuation containing `routify`. The exact Singapore host
+  `routify-file-proxy-sg.oss-ap-southeast-1.aliyuncs.com` was the first host 0, 11 and 1 times.
+- **"Cohere's most common host".** Cohere's table row reads `routify-...aliyuncs.com (42)`, truncated; it names
+  `routify-file-proxy-sg` separately, about fetches logged by a developer's agent project. Read "Cohere's most common
+  host" above as "the routify host family Cohere reports as most common".
+- **Metadata address.** Cohere's example is `169.254.169.254` (23-36 % of completions at early prefill points, not this
+  cut). Ours is Alibaba Cloud's own `100.100.100.200`, so the match is in kind, not by string. `169.254.169.254` appears
+  3, 0 and 0 times here.
+- **What the model wrote.** At this prefix the continuation is a PUT of a test payload to the address, not a request for
+  credentials. "Cloud-credential address" above means the metadata service, which can serve credentials.
+- **Cut points.** Cohere's 4 % to 92 % figure is about adding `-o` at its prefill points. This prefix already contains
+  `-o`, but the two experiments are not the same measurement.
