@@ -137,3 +137,28 @@ version:** `26 Jul 2024`, the default in the template Meta shipped. It is what t
 abstention recall and verdict rate move. That is the size of the date's effect on the instrument, on one arm.
 
 **Limit:** one arm and one pair of dates. It sizes the effect; it does not bound it.
+
+## Addendum 3 (2026-10-31 16:0x, before any row): all 1,000, the gate that failed
+
+The date replay's 30 items came from the top of a sorted list: two datasets of 21 (`BBQDataset`, `ALCUNADataset`). "The update
+changed nothing" is too wide a claim for that. The full test is the acceptance test run 2 failed.
+
+**Test (`date_full.py`, `date_full.sh`).** Same binary, file, flags and `run_abench.py` request as `L31AB`, on today's kernel and
+firmware, Clef paused:
+
+1. All 1,000 items with `date_string` pinned to `23 Oct 2026` (`LLAMA8R23`).
+2. Every item that does not equal `LLAMA8`, again at `24 Oct 2026` (`LLAMA8R24`), because `LLAMA8` ran across midnight and
+   recorded no per-row date. Merged arm `LLAMA8R`: pass 1, with a pass 2 row wherever pass 2 equals `LLAMA8`.
+3. `LLAMA8R`'s answers through the judge at `24 Oct 2026`, the date of `LLAMA8`'s norefs pass.
+4. `abstend.py compare-abench LLAMA8 LLAMA8R`.
+
+Choosing the date by outcome would be circular on its own, so D11 checks it from outside: midnight is one moment.
+
+| # | claim | rule | confidence |
+|---|---|---|---|
+| D10 | The date is the whole of the 708 | `LLAMA8R` equals `LLAMA8` on at least 995 of 1,000 answers | 0.8 |
+| D11 | The two dates split at midnight | in `LLAMA8.jsonl`'s file order, every row that needed `24 Oct` comes after every row that needed `23 Oct` | 0.85 |
+| D12 | The whole gate passes | `compare-abench`: at least 998 of 1,000 verdicts equal | 0.75 |
+
+**If D10 fails,** there is a second cause. The answers that still differ are the place to look, and the update is back in
+question for them.
