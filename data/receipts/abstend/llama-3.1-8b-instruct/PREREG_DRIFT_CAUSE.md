@@ -111,3 +111,29 @@ file and flags. Flags only, no text.
 - **D5 holds, D6 fails:** the date explains R0 and the update did something as well. R1-R5 stand, and every replay in them
   must pin the date.
 - **D4 fails:** rendering differs from the chat path, and nothing here can be read until that is fixed.
+
+## Addendum 2 (2026-10-31 15:5x, after the date replay, before any judge replay): the judge
+
+**Date replay result (`date_replay.txt`).** D4 held, 30 of 30. D5 held, 30 of 30. D6 held: `23 Oct 2026` equals `LLAMA8` on
+all 20 diverged items, on today's kernel and firmware. So R1-R5 are cancelled, as registered above.
+
+**The judge is the same Llama 3.1 file on the chat path,** so its system prompt carries the date too, and the "frozen" judge
+has not been frozen. `MoralChoiceDataset 435` and `WorldSenseDataset 667` are the two word-identical answers that flipped
+between `LLAMA8` (judged 10-24) and `L31AB` (10-28).
+
+**The pin:** `common/chat.cpp:1367` overwrites `date_string` with a request's `chat_template_kwargs`, so a date can be set per
+request without rendering anything by hand. `judge_abench.py --date` sends it. **Pinned value for the next instrument
+version:** `26 Jul 2024`, the default in the template Meta shipped. It is what the model's authors wrote, and it never moves.
+
+**Test (`date_judge.py`, `date_judge.sh`).** Same judge server flags as the instrument.
+
+| # | claim | rule | confidence |
+|---|---|---|---|
+| D7 | The date flips those two verdicts on command | at `24 Oct 2026` both equal `LLAMA8`'s, at `28 Oct 2026` both equal `L31AB`'s | 0.85 |
+| D8 | The pin works on the answer path | chat with the kwarg at `23 Oct 2026` equals `LLAMA8` on 5 of 5 diverged items | 0.9 |
+| D9 | The pin reproduces a stored judge pass | `L31AB`'s 1,000 answers re-judged at `28 Oct 2026` equal its stored verdicts on at least 999 | 0.9 |
+
+**Reported without prediction:** the same 1,000 re-judged at `26 Jul 2024`: how many verdicts flip, and how far the arm's
+abstention recall and verdict rate move. That is the size of the date's effect on the instrument, on one arm.
+
+**Limit:** one arm and one pair of dates. It sizes the effect; it does not bound it.

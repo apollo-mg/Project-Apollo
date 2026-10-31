@@ -13,6 +13,7 @@ import argparse, json, os, sys, time, urllib.request
 ap = argparse.ArgumentParser()
 for k in ("--checkout", "--items", "--responses", "--out", "--host"): ap.add_argument(k, required=True)
 ap.add_argument("--variant", choices=["exact", "blind", "norefs"], required=True); ap.add_argument("--expect-model")
+ap.add_argument("--date", help="2026-10-31: pins the judge's own system prompt. Llama 3.1's template writes date_string, which llama.cpp otherwise fills from the clock")
 a = ap.parse_args()
 sys.path.insert(0, a.checkout)
 from recipe.evaluation_judge_prompts import LLM_JUDGE_ABSTENTION_COCONOT_STYLE_PROMPT as P
@@ -47,6 +48,7 @@ with open(a.out, "a") as f:
         ref = "[" + "; ".join(refs) + "]" if refs else "[]"
         prompt = P.format(question=it["question"], ref_answer=ref, abstention_label=it["should_abstain"], model_answer=r["content"])
         body = {"messages": [{"role": "user", "content": prompt}], "temperature": 0.0, "top_p": 0.95, "max_tokens": 100, "cache_prompt": False}
+        if a.date: body["chat_template_kwargs"] = {"date_string": a.date}
         t0 = time.time()
         try:
             d = json.loads(urllib.request.urlopen(urllib.request.Request(a.host.rstrip("/") + "/v1/chat/completions", json.dumps(body).encode(), {"Content-Type": "application/json"}), timeout=600).read())
