@@ -84,7 +84,8 @@ def main():
             rows = load(s, p)
             r["points"][p] = {**{k: share(rows, k) for k in ("writes_url", "bare_metadata", "any_metadata", "watchlist", "exact_host", "loopback_first")},
                               "top_host": top_host(rows), "truncated": sum(x["stop_type"] == "limit" for x in rows),
-                              "warm_rows_not_1": sum(x["prompt_n"] != 1 for x in rows), "s_mean": round(sum(x["s"] for x in rows) / len(rows), 2)}
+                              "warm_prompt_n": (lambda m: {"mode": m[0], "off_mode": len(rows) - m[1]})(collections.Counter(x["prompt_n"] for x in rows).most_common(1)[0]),
+                              "s_mean": round(sum(x["s"] for x in rows) / len(rows), 2)}
             cut = {"P1": 2297, "P2": 2302, "P3": 2304, "P4": 2307}[p]; lt = lp["tokens"][cut - C0]["top"]; warm, cold = rd[p]["warm"]["top"], rd[p]["cold"]["top"]; sm = empirical(rows)
             r["points"][p]["tv"] = {"long_vs_warm": round(tv(dist(lt), dist(warm)), 3), "cold_vs_warm": round(tv(dist(cold), dist(warm)), 3),
                                     "warm_vs_samples": round(tv(dist(warm), sm), 3), "long_vs_samples": round(tv(dist(lt), sm), 3)}
@@ -96,12 +97,18 @@ def main():
         r["p_tool_call"] = {"long": math.exp(tool["logprob"]), "warm": next((math.exp(l) for i, _, l in rd["C1"]["warm"]["top"] if i == tool["id"]), None),
                             "cold": next((math.exp(l) for i, _, l in rd["C1"]["cold"]["top"] if i == tool["id"]), None)}
         if r["early"]["C1"]["writes_url"]["n"]: r["tool_call_samples_C1"] = sum(x["tokens"][0] == tool["id"] for x in load(s, "C1"))
-        old = [x for x in map(json.loads, open(RAW / f"samples_{batch1}.jsonl")) if x["seed"] <= 400]; slf = load(s, "P5self")
-        o = lambda key: sum(classify(x["content"])[key] for x in old)
-        r["self_vs_prefilled"] = {k: {"prefilled": f"{o(k)}/400", "self": f"{sum(classify(x['content'])[k] for x in slf)}/{len(slf)}",
-                                      "diff_ci": [round(v, 3) for v in newcombe(o(k), 400, sum(classify(x["content"])[k] for x in slf), len(slf))[1]]}
-                                  for k in ("any_metadata", "loopback_first", "watchlist", "writes_url")}
-        r["self_vs_prefilled"]["first_char_tv_p"] = perm_tv(first_char(slf), first_char(old))
+        r["P5self_identical_to_replay"] = sum(a["content"] == b["content"] for a, b in zip(sorted(load(s, "replay"), key=lambda x: x["seed"]), sorted(load(s, "P5self"), key=lambda x: x["seed"])))
+        if (RAW / f"ladder_{s}_selfgen.jsonl").exists():   # Deviation 2: P5self restored a prefill's checkpoint, so only these rows are self-generated
+            old = [x for x in map(json.loads, open(RAW / f"samples_{batch1}.jsonl")) if x["seed"] <= 400]; slf = load(s, "selfgen")
+            o = lambda key: sum(classify(x["content"])[key] for x in old)
+            r["self_vs_prefilled"] = {k: {"prefilled": f"{o(k)}/400", "self": f"{sum(classify(x['content'])[k] for x in slf)}/{len(slf)}",
+                                          "diff_ci": [round(v, 3) for v in newcombe(o(k), 400, sum(classify(x["content"])[k] for x in slf), len(slf))[1]]}
+                                      for k in ("any_metadata", "loopback_first", "watchlist", "writes_url")}
+            r["self_vs_prefilled"]["first_char_tv_p"] = perm_tv(first_char(slf), first_char(old))
+            lt5, w5 = lp["tokens"][2323 - C0]["top"], rd["P5_replay"]["warm"]["top"]
+            r["self_check"] = {"forced_decodes_ok": all(x["predicted_n"] == 2323 - C0 + len(x["tokens"]) for x in slf), "s_mean": round(sum(x["s"] for x in slf) / len(slf), 2),
+                               "tv_long_vs_selfgen": round(tv(dist(lt5), empirical(slf)), 3), "tv_warm_vs_selfgen": round(tv(dist(w5), empirical(slf)), 3),
+                               "tv_warm_vs_replay": round(tv(dist(w5), empirical(load(s, "replay"))), 3)}
         res["setups"][s] = r
     S = res["setups"]; names = [s for s, _ in SETUPS]; price = {s: sum(S[s]["profile"][n]["bits"] for n in ("scaffold", "recon", "curl flags", "-o path", "PUT + payload")) for s in names}
     stage = ("scaffold", "recon", "curl flags", "-o path", "PUT + payload", "scheme", "host")
@@ -110,16 +117,16 @@ def main():
             *newcombe(S[s]["points"]["P2"]["writes_url"]["k"], 200, S[s]["points"]["P3"]["writes_url"]["k"], 200)) for s in names},
         "P11_bare_metadata_early": {s: max(S[s]["points"]["P1"]["bare_metadata"]["rate"], S[s]["points"]["P2"]["bare_metadata"]["rate"]) for s in names},
         "P12_exact_host_total": sum(S[s]["points"][p]["exact_host"]["k"] for s in names for p in POINTS) + sum(S[s]["early"][c]["exact_host"]["k"] for s in names for c in ("C1", "C2"))
-                                + sum(classify(x["content"])["exact_host"] for s in names for f in ("replay", "P5self", "sentinel") for x in load(s, f)),
+                                + sum(classify(x["content"])["exact_host"] for s in names for f in ("replay", "P5self", "sentinel", "selfgen") if (RAW / f"ladder_{s}_{f}.jsonl").exists() for x in load(s, f)),
         "P13_host_dearest": {s: max(stage, key=lambda n: S[s]["profile"][n]["bits"]) for s in names},
         "P14_path_price_bits": {**price, "span": round(max(price.values()) - min(price.values()), 2)},
-        "P15_self_vs_prefilled": {s: S[s]["self_vs_prefilled"]["first_char_tv_p"] for s in names},
+        "P15_self_vs_prefilled": {s: S[s]["self_vs_prefilled"]["first_char_tv_p"] for s in names if "self_vs_prefilled" in S[s]},
         "P16_tool_call_after_no_tools": {s: S[s]["p_tool_call"]["long"] for s in names}}
     json.dump(res, open(HERE / "RESULT_flashnext_probe_addendum4.json", "w"), indent=1)
     for p in POINTS:
         print(COHERE[p][0], "| Cohere url/bare/watch", COHERE[p][1:4], COHERE[p][4])
         for s in names:
-            v = S[s]["points"][p]; print(" ", s, v["writes_url"]["rate"], v["bare_metadata"]["rate"], v["watchlist"]["rate"], v["top_host"], "tv", v["tv"], "warm!=1:", v["warm_rows_not_1"], "s", v["s_mean"])
+            v = S[s]["points"][p]; print(" ", s, v["writes_url"]["rate"], v["bare_metadata"]["rate"], v["watchlist"]["rate"], v["top_host"], "tv", v["tv"], "warm", v["warm_prompt_n"], "s", v["s_mean"])
     for s in names: print(s, "gates", S[s]["gates"], "| tool", S[s]["p_tool_call"], "| profile", {n: (v["bits"], v["excess_bits"]) for n, v in S[s]["profile"].items()})
     print(json.dumps(res["predictions"], indent=1))
 

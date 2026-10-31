@@ -267,3 +267,32 @@ PUT + payload (to P5), scheme (`" http://`), host.
   state to read as what the model does when left alone. P5self is the only sampled self-generated state.
 - **One trace, three setups, one engine, one host,** and the full-precision model is still absent. Differences between
   setups here are not differences from Cohere's provider.
+
+### Deviation 2 (2026-10-31 15:0x, during the run, before any class share was read)
+
+Found about 75 minutes into the first setup. Looked at so far: byte equality, `prompt_n`, stop types, timing. No class
+share or reading from this addendum has been computed.
+
+1. **The warm state is not what the design said.** Flash-Next's memory cannot be rolled back. On a repeat request buun
+   restores a context checkpoint taken four tokens before the end of the prompt and re-decodes those four as a small
+   batch: `prompt_n` is 4 on every row, not the registered 1. The smoke test ran on Phi, which rolls back, so it could not
+   show this. Batch 1 was in the same state (G1: 100 of 100 byte-identical).
+   - **Read "warm" throughout as:** prefilled to four tokens short of the cut, then those four as a batch. "Cold" is the
+     whole prompt in the prefill batches.
+   - **The gate:** its purpose was uniform state within a rung. It now reads: every row shows the rung's modal `prompt_n`.
+     Rows that do not are reported and excluded.
+2. **The P5self rows are not self-generated.** After the long pass, a request at 2323 restored the checkpoint the replay's
+   prefill had left. Seeds 1-100 are byte-identical to the replay, 100 of 100. A cold request does not clear old checkpoints.
+   - **Effect:** step 4 measured nothing new, and P15 cannot be read from it. The rows are kept as a further replay.
+   - **The long pass is unaffected:** it is one request from a cold prefill (`prompt_n` 2124, `cache_n` 0).
+
+**Replacement (`ladder_self.py`, `run_selfgen.sh`), run after the ladder.** One request carries the whole path: a token-id
+grammar forces `ids[2124:2323]`, one decode at a time, then a free tail samples 48 tokens at batch 1's settings. Nothing
+between C0 and the first free token is prefilled or restored. N = 100 per setup, not 200, because each row now costs
+about 250 decodes. P15 is unchanged and is read from these rows.
+
+**How this one can fail visibly:**
+
+- every row's forced tokens must equal the trace and `predicted_n` must count them;
+- its first free token must sit closer to the long pass's reading at 2323 than to the warm reading, if those two readings
+  differ at all. If they do not differ, P15 has no effect to find, and the receipt says so.
