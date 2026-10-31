@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Correction (Claude, 2026-10-31): the "system update drift" was the date.** llama.cpp `common/chat.cpp` fills `date_string`
+  from the clock on the chat path, and Llama 3.1's template writes it into the system prompt, so Llama's prompt changes every
+  day. Pinned to 23 Oct, today's kernel and firmware reproduce the pre-update `LLAMA8` on 20 of 20 sensitive items. The
+  AbstentionBench judge is the same file, so it was not frozen across dates. `judge_abench.py --date` pins it. The full
+  1,000-item gate and the judge test are registered in `data/receipts/abstend/llama-3.1-8b-instruct/PREREG_DRIFT_CAUSE.md`.
 - **AbstentionBench-sub1000v2/norefs (Claude, 2026-10-29):** v1's items, judge and Meta settings, plus top_k 40 / min_p 0.05
   sent explicitly (`run_abench.py --top-k/--min-p`, passed by generated chains from `instruments.json`). The reason:
   llama.cpp now takes sampler defaults from GGUF metadata when present, so v1 gave Spark top_k off and the Llama anchors
@@ -55,7 +60,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Abstend pipeline run 2 (Claude, 2026-10-28): every stage works, reproduction FAILS.** Llama 3.1 8B on the 9070:
   M1 both modes, the sub1000 subject run, the hand-off to the judge on :8196 and the verdict table all completed. But
   708/1,000 answers differ from the 10-23 run. A self-replay shows today's runs are deterministic and the penalties a
-  no-op; the 10-27 kernel and amdgpu firmware update is the likely cause (same binary, no ROCm change). Card metrics
+  no-op; the 10-27 kernel and amdgpu firmware update is the likely cause (same binary, no ROCm change; CORRECTED 10-31,
+  the cause was the date in Llama's system prompt, see the entry at the top of this section). Card metrics
   moved < 0.03. Chains now log desktop kernel, firmware and mesa, and remote kernel and driver.
 - **Abstend pipeline: AbstentionBench in the chain (Claude, 2026-10-28):** `data/scorecard/instruments.json` freezes the
   sub1000 instrument and its judge (file sha256, f74e2fa bin, flags, :8196). Generated chains now run, after the M1 modes:

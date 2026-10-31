@@ -27,8 +27,9 @@ settings, not the lab's full-precision API. The scorecard is the dyno sheet, not
   - The smoke gate is an echo now: Phi-4-mini says 17*19 = 341.
 - Next:
   1. AbstentionBench in the chain: DONE 10-28 (run 2, Llama 3.1 8B). Every stage worked, but bit-exact reproduction
-     of the 10-23 run FAILED after the 10-27 system update (kernel and firmware); today's runs replay exactly and the
-     card metrics moved < 0.03. Chains now log kernel, firmware and driver.
+     of the 10-23 run FAILED. Corrected 10-31: the cause was the date llama.cpp writes into Llama's system prompt, not the
+     10-27 system update (`abstend/llama-3.1-8b-instruct/PREREG_DRIFT_CAUSE.md`). The card metrics moved < 0.03. Chains log
+     kernel, firmware and driver; that stays, as a record. The date pin and a rendered-prompt hash per row are the fix.
   2. **AbstentionBench samplers: DONE 10-29 (Mark agreed).** `AbstentionBench-sub1000v2/norefs` sends top_k 40 / min_p
      0.05 explicitly. New recipes use v2. LLAMA8 anchors v2 by equivalence (its GGUF has no sampling metadata). The Qwen
      27B anchors stay v1-only until their file's metadata is checked. The Spark runs (S25AB/S26AB) are v1 with top_k off.

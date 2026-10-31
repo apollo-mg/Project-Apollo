@@ -1,4 +1,17 @@
-# RESULT: pipeline run 2 FAILS its reproduction test; a system update changed the arithmetic, not the pipeline
+# RESULT: pipeline run 2 FAILS its reproduction test; the date in the prompt changed, not the arithmetic (corrected 2026-10-31)
+
+**Correction, 2026-10-31. The diagnosis below is wrong on the cause.** The system update did not change these outputs. Llama
+3.1's template writes `Today Date: {date_string}` into the system prompt, and llama.cpp fills that from the clock, so the prompt
+was different on 10-23 and 10-28. On the post-update kernel and firmware, pinning `23 Oct 2026` reproduces `LLAMA8` on all 20
+sensitive items, and `28 Oct 2026` reproduces `L31AB`, 30 of 30 (`PREREG_DRIFT_CAUSE.md`, `date_replay.txt`).
+
+- **The error:** "Not the prompt" rested on identical token counts, and a date swap keeps the count. The self-replay ran the same
+  night, so it could not see a date.
+- **What falls:** "a system update changed the arithmetic", the "path-specific" reading of Phi (its template has no date), and
+  "bit-exact reproduction is only defined on one (build, kernel, firmware)".
+- **What stands:** the acceptance test did fail as run, the card metrics table, and the M1 card.
+
+The original text is kept below so the error stays visible.
 
 **Prereg:** `PREREG_llama-3.1-8b-instruct.md` (`544a0a62`). **Chain:** `chain_9070.sh` (`76bf1153`), 2026-10-28 22:06-23:10,
 RX 9070 XT, llama.cpp `f74e2fa` `build_rocm` (binary built 2026-10-18), `Meta-Llama-3.1-8B-Instruct-Q8_0.gguf` (sha256
