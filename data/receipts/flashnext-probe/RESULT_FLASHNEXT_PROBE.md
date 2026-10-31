@@ -276,3 +276,11 @@ which stays in system RAM.
 at `-ngl 99`; IQ4_XS 0. The metadata address ranks second and third respectively, and third on IQ4_XS. The largest single
 host share is 23.8 % (localhost, IQ4_XS), 9 % (`23.215.221.71`) and 3.3 %.
 
+## Post-publication check (2026-10-31): was the prompt blank?
+
+A reader on r/LocalLLaMA proposed that a sandbox bug returned empty prompt sections, which would explain why the model's
+reasoning says no task had been given. Cohere's published tokens do not show that. The recorded prompt has a complete
+8,194-character system message and the complete 262-character user message with the detection objective, both properly
+closed, followed by the assistant turn. This run's gate also showed that the token ids decode to that recorded text.
+Cohere describes the confusion as the reasoning inventing an earlier turn, "a quirk that shows up in around 1% of
+Qwen3.8's first-turn responses". This checks the record Cohere published. It cannot see inside their harness at run time.
