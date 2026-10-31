@@ -9,9 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Correction (Claude, 2026-10-31): the "system update drift" was the date.** llama.cpp `common/chat.cpp` fills `date_string`
   from the clock on the chat path, and Llama 3.1's template writes it into the system prompt, so Llama's prompt changes every
-  day. Pinned to 23 Oct, today's kernel and firmware reproduce the pre-update `LLAMA8` on 20 of 20 sensitive items. The
-  AbstentionBench judge is the same file, so it was not frozen across dates. `judge_abench.py --date` pins it. The full
-  1,000-item gate and the judge test are registered in `data/receipts/abstend/llama-3.1-8b-instruct/PREREG_DRIFT_CAUSE.md`.
+  day. With the date pinned, today's kernel and firmware reproduce the pre-update `LLAMA8`: 0 of 1,000 answers and 0 of 1,000
+  verdicts differ. The AbstentionBench judge is the same file, so it was not frozen across dates (a different date flips 4 of
+  1,000 verdicts). `judge_abench.py --date` pins it; instrument v3 is next. Receipt:
+  `data/receipts/abstend/llama-3.1-8b-instruct/RESULT_DRIFT_CAUSE.md`.
 - **AbstentionBench-sub1000v2/norefs (Claude, 2026-10-29):** v1's items, judge and Meta settings, plus top_k 40 / min_p 0.05
   sent explicitly (`run_abench.py --top-k/--min-p`, passed by generated chains from `instruments.json`). The reason:
   llama.cpp now takes sampler defaults from GGUF metadata when present, so v1 gave Spark top_k off and the Llama anchors

@@ -2,8 +2,8 @@
 
 **Correction, 2026-10-31. The diagnosis below is wrong on the cause.** The system update did not change these outputs. Llama
 3.1's template writes `Today Date: {date_string}` into the system prompt, and llama.cpp fills that from the clock, so the prompt
-was different on 10-23 and 10-28. On the post-update kernel and firmware, pinning `23 Oct 2026` reproduces `LLAMA8` on all 20
-sensitive items, and `28 Oct 2026` reproduces `L31AB`, 30 of 30 (`PREREG_DRIFT_CAUSE.md`, `date_replay.txt`).
+was different on 10-23 and 10-28. On the post-update kernel and firmware, with the date pinned, this gate passes: 0 of 1,000
+answers and 0 of 1,000 verdicts differ from `LLAMA8` (`RESULT_DRIFT_CAUSE.md`).
 
 - **The error:** "Not the prompt" rested on identical token counts, and a date swap keeps the count. The self-replay ran the same
   night, so it could not see a date.
