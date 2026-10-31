@@ -72,3 +72,42 @@ under a further addendum.
 - **This finds the package, not the mechanism.** A firmware result would say which update did it, not why.
 - **The reference is stored output.** `LLAMA8` is the only record of the pre-update state, and it cannot be regenerated
   unless a rollback restores it.
+
+## Addendum 1 (2026-10-31 15:2x, after R0, before any date replay): the premise may be wrong
+
+**R0 failed its expectation.** `drift_R0.txt`: on the 20 diverged items it equals `L31AB` on 3 and `LLAMA8` on 2. The 10
+identical items match both. Two requests inside one server agree, 20 of 20. So this is a third output state, and:
+
+- the machine has not rebooted since 2026-10-27 14:28, before `L31AB` (10-28 22:13) and the first replay (10-28 23:14);
+- kernel, firmware and binary hash (`6330bdf83521bc10`) are unchanged;
+- the 82 packages since 10-27 are desktop applications; none is in the compute path.
+
+So something other than the update changes this model's outputs.
+
+**New hypothesis: the date.** Llama 3.1's template writes `Today Date: {date_string}` into the system prompt, and
+`common/chat.cpp:1071` sets `date_string` from the clock in `%d %b %Y`. It explains what the update story did not:
+
+- token counts identical on all 1,000 items (the string length does not change);
+- answers sharing a prefix, then diverging;
+- the two 10-28 runs agreeing with each other, and today not agreeing with them;
+- Phi surviving "the update": its template has no date.
+
+It says nothing yet about whether the update also had an effect. That is what this test separates.
+
+**Test (`date_replay.py`, `date_replay.sh`), on the machine as it is now, no system change.** Render each item with
+`/apply-template`, replace the date, and send the prompt to `/completion` with the same seed and sampling. Same binary,
+file and flags. Flags only, no text.
+
+| # | claim | rule | confidence |
+|---|---|---|---|
+| D4 | Rendering is faithful: raw with today's date equals the chat path | 30 of 30 | 0.9 |
+| D5 | The date explains R0 | with `28 Oct 2026`, equals `L31AB` on at least 29 of 30 | 0.9 |
+| D6 | The date explains the whole "update" effect | with `23 Oct 2026` or `24 Oct 2026` (`LLAMA8` ran across midnight), equals `LLAMA8` on at least 19 of the 20 diverged items | 0.6 |
+
+**What each outcome means:**
+
+- **D6 holds:** kernel and firmware did not change this model's outputs. R1-R5 are cancelled, and the receipts and memory
+  that blame the update are corrected. The judge's 2 of 292 is then checked separately.
+- **D5 holds, D6 fails:** the date explains R0 and the update did something as well. R1-R5 stand, and every replay in them
+  must pin the date.
+- **D4 fails:** rendering differs from the chat path, and nothing here can be read until that is fixed.
