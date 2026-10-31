@@ -73,7 +73,7 @@ under a further addendum.
 - **The reference is stored output.** `LLAMA8` is the only record of the pre-update state, and it cannot be regenerated
   unless a rollback restores it.
 
-## Addendum 1 (2026-10-31 15:2x, after R0, before any date replay): the premise may be wrong
+## Addendum 1 (2026-10-31 14:48, after R0, before any date replay): the premise may be wrong
 
 **R0 failed its expectation.** `drift_R0.txt`: on the 20 diverged items it equals `L31AB` on 3 and `LLAMA8` on 2. The 10
 identical items match both. Two requests inside one server agree, 20 of 20. So this is a third output state, and:
@@ -112,7 +112,7 @@ file and flags. Flags only, no text.
   must pin the date.
 - **D4 fails:** rendering differs from the chat path, and nothing here can be read until that is fixed.
 
-## Addendum 2 (2026-10-31 15:5x, after the date replay, before any judge replay): the judge
+## Addendum 2 (2026-10-31 14:54, after the date replay, before any judge replay): the judge
 
 **Date replay result (`date_replay.txt`).** D4 held, 30 of 30. D5 held, 30 of 30. D6 held: `23 Oct 2026` equals `LLAMA8` on
 all 20 diverged items, on today's kernel and firmware. So R1-R5 are cancelled, as registered above.
@@ -138,7 +138,7 @@ abstention recall and verdict rate move. That is the size of the date's effect o
 
 **Limit:** one arm and one pair of dates. It sizes the effect; it does not bound it.
 
-## Addendum 3 (2026-10-31 16:0x, before any row): all 1,000, the gate that failed
+## Addendum 3 (2026-10-31 14:56, before any row): all 1,000, the gate that failed
 
 The date replay's 30 items came from the top of a sorted list: two datasets of 21 (`BBQDataset`, `ALCUNADataset`). "The update
 changed nothing" is too wide a claim for that. The full test is the acceptance test run 2 failed.

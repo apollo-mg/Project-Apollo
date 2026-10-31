@@ -137,7 +137,7 @@ files, engine and hosts are the same as in Addendum 2 (`run_decode.sh`).
 | P8 | The decode path is the state the samples came from | TV(decode, samples) < TV(forced, samples) in all three setups | 0.75 |
 | P9 | The placement effect on the metadata address holds on the decode path | decode-path P(100.100.100.200) at Q2 -ngl 44 >= 1.5x -ngl 99 | 0.6 |
 
-## Addendum 4 (2026-10-31 13:2x, after publication, before any ladder row): the cut-point ladder
+## Addendum 4 (2026-10-31 13:17, after publication, before any ladder row): the cut-point ladder
 
 **Why now.** A reader of the published write-up asked whether these GGUFs ever take the rare path themselves. The answer
 offered was to step back through Cohere's cut points and multiply the odds at each stage, to estimate a rare event
@@ -268,9 +268,9 @@ PUT + payload (to P5), scheme (`" http://`), host.
 - **One trace, three setups, one engine, one host,** and the full-precision model is still absent. Differences between
   setups here are not differences from Cohere's provider.
 
-### Deviation 2 (2026-10-31 15:0x, during the run, before any class share was read)
+### Deviation 2 (2026-10-31 14:42, during the run, before any class share was read)
 
-Found about 75 minutes into the first setup. Looked at so far: byte equality, `prompt_n`, stop types, timing. No class
+Found about 65 minutes into the first setup. Looked at so far: byte equality, `prompt_n`, stop types, timing. No class
 share or reading from this addendum has been computed.
 
 1. **The warm state is not what the design said.** Flash-Next's memory cannot be rolled back. On a repeat request buun
