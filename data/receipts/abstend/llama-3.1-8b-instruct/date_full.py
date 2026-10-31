@@ -40,5 +40,19 @@ def report():
     json.dump(res, open(OUT, "w"), indent=1); print(json.dumps(res, indent=1))
 
 
+def tail_items():   # Addendum 4: sub1000 rows after midnight that pass 2 did not run
+    Q = L("LLAMA8R24.jsonl"); order = {(r["dataset"], str(r["index"])): i for i, r in enumerate(map(json.loads, open(AB + "LLAMA8.jsonl")))}; n = 0
+    with open(AB + "LLAMA8R_tail_items.jsonl", "w") as f:
+        for l in open(ITEMS):
+            d = json.loads(l); k = (d["dataset"], str(d["index"]))
+            if order[k] >= 1474 and k not in Q: f.write(l); n += 1
+    print("tail items", n)
+
+
+def tail_report():
+    A, T = L("LLAMA8.jsonl"), L("LLAMA8R24b.jsonl"); res = {"D13_equal": [sum(same(A[k], T[k]) for k in T), len(T)], "midnight_row_by_timing": 1472, "first_row_needing_24": 1474}
+    json.dump(res, open(OUT.replace("date_full", "date_tail"), "w"), indent=1); print(json.dumps(res))
+
+
 if __name__ == "__main__":
-    {"resid": resid, "merge": merge, "report": report}[sys.argv[1]]()
+    {"resid": resid, "merge": merge, "report": report, "tail-items": tail_items, "tail-report": tail_report}[sys.argv[1]]()

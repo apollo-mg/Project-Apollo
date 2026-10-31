@@ -162,3 +162,22 @@ Choosing the date by outcome would be circular on its own, so D11 checks it from
 
 **If D10 fails,** there is a second cause. The answers that still differ are the place to look, and the update is back in
 question for them.
+
+## Addendum 4 (2026-10-31 16:21, after the full gate, before the tail run): D11 as run was too weak
+
+D10 and D12 held: 0 answers and 0 verdicts differ. D11 printed "held", but its "needed 23" side was only the replay's rows,
+ending at file row 139, so it could hardly fail. Two sharper readings:
+
+- **From timing, without using outcomes:** walking back from the file's finish time through each row's own `s`, midnight falls at
+  row 1472. The first row that needed `24 Oct` is row 1474, finished at 00:00:09.
+- **Not yet closed:** the sub1000 rows from 1474 on that matched at `23 Oct` were never run at `24 Oct`. Some are date-sensitive
+  against 28 Oct, so they may simply not distinguish 23 from 24, but that was assumed rather than measured.
+
+**Test (`date_tail.sh`).** Run every sub1000 row at or after file row 1474 that pass 2 skipped, at `24 Oct 2026`, on the same
+server settings.
+
+| # | claim | rule | confidence |
+|---|---|---|---|
+| D13 | Every row after midnight is a 24 Oct row | all of them equal `LLAMA8` at `24 Oct 2026` | 0.9 |
+
+**If D13 fails,** a row finished after midnight needed the 23rd, so the date-only account has a gap there, however small.
