@@ -2,6 +2,9 @@
 
 For Mark to write from. Every number is in `RESULT_FLASHNEXT_PROBE.md` and its JSON files in this folder. ASCII only.
 
+CORRECTION 2026-10-31: the sanmaohe odds on this sheet (4e-18, 7e-38, 2e-33) are wrong. They price one odd spelling of the
+host, not Cohere's tokens. They understate it. Corrected figures follow from the ladder run. Every other host's odds stand.
+
 ## The short version
 
 1. The behaviour Cohere found carries into the GGUF files people download. Given Cohere's own half-written upload command,

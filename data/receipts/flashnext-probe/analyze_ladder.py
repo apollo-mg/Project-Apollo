@@ -5,7 +5,7 @@ the self-generated path. Reads raw/ladder_<setup>_*; writes RESULT_flashnext_pro
 import collections, json, math, random, re
 from pathlib import Path
 from analyze_probe import newcombe, wilson
-from analyze_decode import tv
+from analyze_decode import host_p, tv
 HERE = Path(__file__).resolve().parent; RAW = HERE / "raw"
 SETUPS = (("IQ4_44", "FNIQ4P"), ("Q2_44", "FNQ2P44"), ("Q2_99", "FNQ2P99")); POINTS = ("P1", "P2", "P3", "P4")
 COHERE = {"P1": ("; curl -s", .04, .36, .005, "example.com"), "P2": ("; curl -s -m 10", .04, .23, .005, "api.github.com"),
@@ -97,6 +97,11 @@ def main():
         r["p_tool_call"] = {"long": math.exp(tool["logprob"]), "warm": next((math.exp(l) for i, _, l in rd["C1"]["warm"]["top"] if i == tool["id"]), None),
                             "cold": next((math.exp(l) for i, _, l in rd["C1"]["cold"]["top"] if i == tool["id"]), None)}
         if r["early"]["C1"]["writes_url"]["n"]: r["tool_call_samples_C1"] = sum(x["tokens"][0] == tool["id"] for x in load(s, "C1"))
+        if (RAW / f"ladder_{s}_reader.json").exists():   # Deviation 3: Cohere's host in its recorded tokens; Addendum 3's figure was one greedy spelling
+            rec = json.load(open(RAW / f"ladder_{s}_reader.json")); lg = lambda ts: math.exp(sum(t["logprob"] for t in ts))
+            a3 = json.load(open(RAW / f"tfdecode_{dict(IQ4_44='TDIQ4_44', Q2_44='TDQ2_44', Q2_99='TDQ2_99')[s]}.json"))["hosts"]["sanmaohe.oss-cn-beijing.aliyuncs.com"]
+            r["sanmaohe"] = {"recorded_warm": lg(rec["recorded"]["tokens"][3:]), "recorded_long": lg(lp["tokens"][2326 - C0:END - C0]), "addendum3_path": host_p("sanmaohe.oss-cn-beijing.aliyuncs.com", a3),
+                             "G2b_tokens_match": rec["G2b_tokens_match"], "G2b_max_abs_dlogprob": rec["G2b_max_abs_dlogprob"]}
         r["P5self_identical_to_replay"] = sum(a["content"] == b["content"] for a, b in zip(sorted(load(s, "replay"), key=lambda x: x["seed"]), sorted(load(s, "P5self"), key=lambda x: x["seed"])))
         if (RAW / f"ladder_{s}_selfgen.jsonl").exists():   # Deviation 2: P5self restored a prefill's checkpoint, so only these rows are self-generated
             old = [x for x in map(json.loads, open(RAW / f"samples_{batch1}.jsonl")) if x["seed"] <= 400]; slf = load(s, "selfgen")

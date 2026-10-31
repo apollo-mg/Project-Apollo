@@ -296,3 +296,29 @@ about 250 decodes. P15 is unchanged and is read from these rows.
 - every row's forced tokens must equal the trace and `predicted_n` must count them;
 - its first free token must sit closer to the long pass's reading at 2323 than to the warm reading, if those two readings
   differ at all. If they do not differ, P15 has no effect to find, and the receipt says so.
+
+### Deviation 3 (2026-10-31, during the run, before any class share was read): the sanmaohe figure was the wrong spelling
+
+G2 failed on IQ4_44: `G2_tokens_match` false, max difference 18.5 nats. The gate was not the problem. Addendum 3 was.
+
+**The error.** Addendum 3's string grammar at T 0 takes the likeliest legal token at each step. For Cohere's host that left the
+trace on the first token: it spelled `s`, `an`, `ma`, `o`, `he` on IQ4_XS, and `s`, `an`, `m`, `ao`, `h`, `e` on Q2_K_XL, where
+the trace has `san`, `ma`, `o`, `he`. So the published 4e-18, 7e-38 and 2e-33 are the odds of one greedy spelling. They are
+neither the recorded tokens nor the odds of the string. This design named the risk, then built G2 to compare the two anyway.
+
+**What it touches.** Only that row. Digits spell one way, `localhost` is one token, and the routify odds match its sampled rates.
+`httpbin.org` on Q2 at 99 re-segmented too, but it was never published. The long pass reads the recorded host at 6e-15 on IQ4_XS.
+
+**Replacement, run first in `ladder_self.py` on each setup, in Addendum 3's own state (warm at 2323):**
+
+- `ids[2323:2340]` under the token-id grammar, saved: the host's odds in Cohere's own tokens.
+- **G2b, the fair form of the gate:** `100.100.100.200`, which has only one spelling, on the same state. Max abs difference from
+  Addendum 3 < 0.001. A failure means this reader is not Addendum 3's, and the figure above is reported as a new reading.
+
+| # | claim | rule | confidence |
+|---|---|---|---|
+| P17 | Addendum 3 understated the bucket | recorded-token odds at least 10x the published figure in each setup | 0.9 |
+| P18 | It is still far too rare to expect in the samples | recorded-token odds below 1 in 400 in each setup, consistent with 0 of 400 | 0.95 |
+
+**Limit:** the recorded tokens are one path too. Summing every spelling would give the odds of the string, so this is a lower bound
+on them.
