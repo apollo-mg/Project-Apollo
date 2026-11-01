@@ -49,6 +49,10 @@ The judge is the same file on the same path, so it has been reading the date too
 | D11 | the dates split at midnight | printed "held" on a check too weak to fail; replaced by D13 and the timing above |
 | D12 | the whole gate passes | held, 0 verdicts differ |
 | D13 | every row after midnight is a 24 Oct row | held, 98 of 98 |
+| D14 | a pinned replay survives the case move and kernel 7.3.1 | held: `L31AB` 30 of 30, `LLAMA8` 20 of 20 (`date_replay_moved.txt`) |
+
+D14 ran on 2026-11-01 after every component moved into a new case and last night's update took the kernel from 7.3.0-4 to 7.3.1-1 with 73 other
+packages. Firmware, mesa and LLVM did not change, so it clears the kernel step, not those.
 
 ## What this corrects
 
