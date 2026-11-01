@@ -2,8 +2,9 @@
 
 For Mark to write from. Every number is in `RESULT_FLASHNEXT_PROBE.md` and its JSON files in this folder. ASCII only.
 
-CORRECTION 2026-10-31: the sanmaohe odds on this sheet (4e-18, 7e-38, 2e-33) are wrong. They price one odd spelling of the
-host, not Cohere's tokens. They understate it. Corrected figures follow from the ladder run. Every other host's odds stand.
+CORRECTION 2026-10-31: the sanmaohe odds first published here (4e-18, 7e-38, 2e-33) were wrong. They priced one odd spelling of
+the host, not Cohere's tokens. Corrected, same order: 1e-12, 3e-18, 4e-18. Every other host's odds stand. All percentages below
+were measured on a prefilled state; see "The follow-up" at the end of this sheet.
 
 ## The short version
 
@@ -56,7 +57,7 @@ Read on the decode path, the state the samples came from (untruncated probabilit
 | 100.100.100.200 | 3.3% | 6.7% | 1.5% |
 | localhost | 17.7% | 0.04% | 0.09% |
 | routify-file-proxy-sg | 0.33% | 2.4% | 0.38% |
-| sanmaohe bucket | 4e-18 | 7e-38 | 2e-33 |
+| sanmaohe bucket (corrected 10-31) | 1e-12 | 3e-18 | 4e-18 |
 
 - These odds match the samples: total variation 0.04-0.11 against the samples' first characters.
 - The same three tokens pushed through as a batch instead give 0.33-0.41. Even that kernel difference moves the odds.
@@ -87,3 +88,48 @@ Read on the decode path, the state the samples came from (untruncated probabilit
 - XDA Developers (Adam Conway): the routify host in "roughly four in ten final answers", the AccessKey ID, and the n-gram
   masking explanation. XDA's article does not discuss quantization.
 - This work adds: the same prefix across files and placement, the decision-point odds, and the table comparison.
+
+## The follow-up (2026-10-31)
+
+Same three setups. Receipt: Addendum 4 in `RESULT_FLASHNEXT_PROBE.md`.
+
+1. Prefilling is not a neutral probe. Same tokens, same file, same placement, decoded one at a time instead of prefilled:
+
+| at the batch 1 cut | IQ4_XS, 44 | Q2_K_XL, 44 | Q2_K_XL, all GPU |
+|---|---|---|---|
+| routify-sg host, prefilled of 400 -> self-generated of 100 | 0 -> 8 | 11 -> 9 | 1 -> 6 |
+| 100.100.100.200 | 21 -> 5 | 29 -> 0 | 9 -> 1 |
+| first host starts 23. | 0 -> 0 | 260 -> 42 | 141 -> 58 |
+
+2. The tool call after "without tool calls", P(tool call next):
+
+| state | IQ4_XS, 44 | Q2_K_XL, 44 | Q2_K_XL, all GPU |
+|---|---|---|---|
+| prefilled | 6.4% | 61% | 70% |
+| self-generated | 32% | 0.28% | 2.0% |
+
+3. The five-layer metadata effect in the article belongs to the prefilled state: 7.3% vs 2.3% prefilled, 0 vs 1 of 100 self-generated.
+   Placement still moves things: first host 23. is 42 vs 58, the opposite way round.
+4. Cohere's four prefill points on these GGUFs: a URL at 90-98% already at bare `curl -s` (Cohere 4%), so -o is not a switch here.
+   Bare metadata IP 0 of 200 at every point (Cohere 23-36% early). The metadata address does appear, with a scheme: 2-7% early.
+   Cohere's article gives neither the table's prefill text nor its settings, so the cause of the gap cannot be separated.
+5. From the start of the command, curl or wget in 1 of 300 samples.
+
+Limits: one trace, three setups, one engine, P100s, no full precision. n = 100 per self-generated cell. The self-generated state still
+replays Cohere's text. None of these is a rate of the behaviour in use. A prediction that -o would be the switch failed; so did
+"bare metadata survives".
+
+## Correction note, for Mark to post
+
+A correction and a follow-up on my Flash-Next write-up.
+
+The correction: the raw odds I gave for Cohere's sanmaohe bucket were wrong. My reader priced an odd spelling of the host, not Cohere's
+tokens. In Cohere's own tokens it is about 1e-12 on the 4-bit file and 3e-18 to 4e-18 on the 2-bit setups, not 4e-18 to 7e-38. Still 0 of
+1,200 samples, and the rest of the table stands as measured.
+
+The follow-up: those percentages come from a prefilled cache, which is how Cohere's reproduction works too. Decode the same tokens one
+at a time, the way real generation goes, and they move a lot. The routify host goes to 6-9% on all three setups, including the 4-bit file
+that wrote it 0 of 400 times, and the five-layer metadata effect mostly goes away (0 vs 1 of 100, small sample). On the 2-bit file, the
+odds of a tool call right after "without tool calls" go from 61% prefilled to 0.3% decoded. Prefilling is not a neutral probe.
+
+One trace, one engine, P100s, no full precision. Receipts: https://github.com/apollo-mg/Project-Apollo/tree/main/data/receipts/flashnext-probe
