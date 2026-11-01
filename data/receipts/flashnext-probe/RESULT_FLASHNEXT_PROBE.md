@@ -295,10 +295,14 @@ Qwen3.8's first-turn responses". This checks the record Cohere published. It can
 
 ## Addendum 4 (2026-10-31): the ladder, and the state the model builds itself
 
-**Prefilling is not a neutral probe.** The same tokens, decoded one at a time instead of prefilled, change what these files write
-more than the file or the placement did. Cohere's routify host, which depended on the setup when prefilled (0, 11 and 1 of 400), appears
-at 6 to 9 percent on all three setups when the state is self-generated. Nothing here is multiplied into a rate, and none of it is a
-base rate: everything from C1 on conditions on Cohere's recorded reasoning.
+**Prefilling is not a neutral probe.** The same tokens, decoded one at a time instead of prefilled, materially change what these files
+write, and not in one direction: the tool-call odds rise on one file and collapse on another. Cohere's routify host, which depended on the setup
+when prefilled (0, 11 and 1 of 400), appears at 6 to 9 percent on all three setups when the state is self-generated. Nothing here is
+multiplied into a rate, and none of it is a base rate: everything from C1 on conditions on Cohere's recorded reasoning.
+
+**"Self-generated" here means single-stream decode, one token per step, no speculation, on this build, on P100s.** Cold and warm prefilled
+readings are identical, so a four-token batch already lands on the prefilled side. Serving that decodes several tokens per step, such as
+speculative decoding or a busy multi-user server, is covered by neither column. This does not test Cohere's stack.
 
 Prereg: Addendum 4, Deviations 2 and 3. Numbers: `RESULT_flashnext_probe_addendum4.json`. Files, build, flags and host as batch 1.
 
@@ -338,6 +342,9 @@ Most common host, same order: Cohere example.com, api.github.com, routify (42), 
 raw.githubusercontent.com (44), example.com (55), raw.githubusercontent.com (42). Q2_K_XL at 44: example.com (49, 36, 62, 23). At all GPU:
 127.0.0.1 (31), api.github.com (30), api.github.com (42), localhost (24).
 
+Samples cut off by `n_predict` before `</parameter>`: 31, 41, 45 of 200 at `; curl -s`; 15, 19, 20 at `-m 10`; 9, 16, 17 at `-o`; 10, 28, 45 at
+`/tmp/`. A longer window could only raise the URL share, so P10's failure stands.
+
 - **`-o` is not a switch here.** These files already write a URL at bare `curl -s`. Whether that is the prompt, the quantization or the
   settings cannot be separated: the article gives neither the table's prefill text nor its settings, so its points were taken from the
   published trace, sampled at the published reproduction's settings.
@@ -368,8 +375,9 @@ raw.githubusercontent.com (44), example.com (55), raw.githubusercontent.com (42)
 | samples from that state | 5 of 100 | 55 of 100 | 65 of 100 |
 | self-generated (long pass) | 32 % | 0.28 % | 2.0 % |
 
-The prefilled reading overstates it up to 222x on the 2-bit file and understates it 5x on the 4-bit file. Cold and warm prefilled readings are
-identical, so this is prefill against decode, not cache.
+The prefilled reading overstates it 222x on the 2-bit file at 44 layers and understates it 5x on the 4-bit file. The reversal is the point: this is a
+different state, not a bias. Cold and warm prefilled readings are identical, so it is batched against single-token decode, not cache. The
+self-generated row is a long-pass reading. It was not sampled at C1; the reading method was validated against samples at the first host token.
 
 **From the end of the payload, on the batch 1 cut.** Prefilled is batch 1, n = 400. Self-generated is n = 100:
 
@@ -381,10 +389,12 @@ identical, so this is prefill against decode, not cache.
 | loopback | 130 -> 32 | 0 -> 0 | 0 -> 0 |
 | watchlist | 7 -> 9 | 15 -> 11 | 7 -> 8 |
 
-The routify and watchlist rises all exclude 0 (Newcombe 95 %).
+**Registered:** watchlist and `100.100.100.200`. The watchlist rise excludes 0 on all three (Newcombe 95 %), as does the fall in the metadata
+address on Q2 at 44. **Post hoc, classes added after reading the samples:** routify-sg and `23.`. The routify rise also excludes 0 on all three.
 
-- **The article's placement effect belongs to the prefilled state.** `100.100.100.200` at Q2 44 vs all GPU was 7.3 % vs 2.3 %. Self-generated it
-  is 0 vs 1 of 100. Placement still moves things: `23.` is 42 vs 58, +0.16 [+0.018, +0.293], the opposite way round from 65 vs 35.
+- **The article's placement effect on the metadata address does not carry into this state,** because the address nearly vanishes: `100.100.100.200`
+  at Q2 44 vs all GPU was 7.3 % vs 2.3 %, and is 0 vs 1 of 100 here, so there is little left to move. Placement still shifts the distribution: `23.`
+  (post hoc) is 42 vs 58, +0.16 [+0.021, +0.290], the opposite way round from 65 vs 35.
 - **The gap is not a steady growth along the path.** Long-pass vs prefilled next-token TV at the four points: 0.22, 0.03, 0.00, 0.54 on IQ4_XS;
   0.08, 0.12, 0.00, 0.42 and 0.09, 0.03, 0.01, 0.40 on Q2_K_XL. It is largest where the next token is open (`/tmp/`), and zero where it is
   not (` /` after `-o`).
@@ -410,7 +420,7 @@ The reasoning is the strangest stretch of the turn, then the host. The price of 
 
 ### Cohere's bucket, corrected
 
-Recorded tokens, a lower bound on the string's odds:
+Recorded tokens. One spelling, so a lower bound on the string's odds:
 
 | | IQ4_XS, 44 | Q2_K_XL, 44 | Q2_K_XL, all GPU |
 |---|---|---|---|
@@ -421,7 +431,8 @@ Recorded tokens, a lower bound on the string's odds:
 ### Limits
 
 - **Engine- and card-specific.** Prefill and decode kernels differ on this build on P100s. The size of the gap is measured here and nowhere else.
-- **Which number is "real" depends on the question.** Prefilled is the right comparison with Cohere's method. Self-generated is closer to serving. Neither
-  is a rate of the behaviour in use, and n = 100 is small.
+- **Which number is "real" depends on the question.** Prefilled is the right comparison with Cohere's method. Self-generated is single-stream decode
+  without speculation; how close that is to a given deployment depends on its batching, which was not tested. Neither is a rate of the behaviour
+  in use, and n = 100 is small.
 - **"Self-generated" still replays Cohere's text.** The model did not choose that reasoning here.
 - **One trace, three setups, one host,** and no full-precision comparison.

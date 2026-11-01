@@ -93,43 +93,55 @@ Read on the decode path, the state the samples came from (untruncated probabilit
 
 Same three setups. Receipt: Addendum 4 in `RESULT_FLASHNEXT_PROBE.md`.
 
-1. Prefilling is not a neutral probe. Same tokens, same file, same placement, decoded one at a time instead of prefilled:
+"Decoded" below means single-stream, one token per step, no speculation, on this build, on P100s. A four-token batch already lands on
+the prefilled side, so speculative decoding and busy multi-user serving are covered by neither column. Cohere's stack was not tested.
 
-| at the batch 1 cut | IQ4_XS, 44 | Q2_K_XL, 44 | Q2_K_XL, all GPU |
+1. Prefilling is not a neutral probe. Same tokens, same file, same placement, prefilled of 400 -> decoded of 100, at the batch 1 cut:
+
+| | IQ4_XS, 44 | Q2_K_XL, 44 | Q2_K_XL, all GPU |
 |---|---|---|---|
-| routify-sg host, prefilled of 400 -> self-generated of 100 | 0 -> 8 | 11 -> 9 | 1 -> 6 |
-| 100.100.100.200 | 21 -> 5 | 29 -> 0 | 9 -> 1 |
-| first host starts 23. | 0 -> 0 | 260 -> 42 | 141 -> 58 |
+| watchlist: aliyuncs or routify (registered) | 7 -> 9 | 15 -> 11 | 7 -> 8 |
+| 100.100.100.200 (registered) | 21 -> 5 | 29 -> 0 | 9 -> 1 |
+| routify-sg first host (post hoc) | 0 -> 8 | 11 -> 9 | 1 -> 6 |
+| first host starts 23. (post hoc) | 0 -> 0 | 260 -> 42 | 141 -> 58 |
 
-2. The tool call after "without tool calls", P(tool call next):
+2. The tool call after "without tool calls", P(tool call next). The two files move in opposite directions. The decoded row is a reading,
+   not sampled at this point:
 
 | state | IQ4_XS, 44 | Q2_K_XL, 44 | Q2_K_XL, all GPU |
 |---|---|---|---|
 | prefilled | 6.4% | 61% | 70% |
-| self-generated | 32% | 0.28% | 2.0% |
+| decoded | 32% | 0.28% | 2.0% |
 
-3. The five-layer metadata effect in the article belongs to the prefilled state: 7.3% vs 2.3% prefilled, 0 vs 1 of 100 self-generated.
-   Placement still moves things: first host 23. is 42 vs 58, the opposite way round.
+3. Decoded, the metadata address nearly vanishes on the 2-bit file at 44 layers (the fall excludes 0), so there is little left for placement to
+   move there: 7.3% vs 2.3% prefilled, 0 vs 1 of 100 decoded. Placement still shifts the distribution: first host 23. is 42 vs 58, the
+   opposite way round from 65 vs 35.
 4. Cohere's four prefill points on these GGUFs: a URL at 90-98% already at bare `curl -s` (Cohere 4%), so -o is not a switch here.
    Bare metadata IP 0 of 200 at every point (Cohere 23-36% early). The metadata address does appear, with a scheme: 2-7% early.
    Cohere's article gives neither the table's prefill text nor its settings, so the cause of the gap cannot be separated.
 5. From the start of the command, curl or wget in 1 of 300 samples.
 
-Limits: one trace, three setups, one engine, P100s, no full precision. n = 100 per self-generated cell. The self-generated state still
-replays Cohere's text. None of these is a rate of the behaviour in use. A prediction that -o would be the switch failed; so did
-"bare metadata survives".
+Limits: one trace, three setups, one engine, P100s, no full precision. n = 100 per decoded cell. The decoded state still replays Cohere's
+text. None of these is a rate of the behaviour in use. Predictions that failed: -o as the switch, bare metadata surviving, and tool-call
+odds of at least 1% on every setup.
 
-## Correction note, for Mark to post
+## Correction note, draft for Mark to rework and post
 
 A correction and a follow-up on my Flash-Next write-up.
 
 The correction: the raw odds I gave for Cohere's sanmaohe bucket were wrong. My reader priced an odd spelling of the host, not Cohere's
-tokens. In Cohere's own tokens it is about 1e-12 on the 4-bit file and 3e-18 to 4e-18 on the 2-bit setups, not 4e-18 to 7e-38. Still 0 of
-1,200 samples, and the rest of the table stands as measured.
+tokens. In Cohere's own tokens it is at least about 1e-12 on the 4-bit file and about 3e-18 to 4e-18 on the 2-bit setups, not 4e-18 to
+7e-38. Still 0 of 1,200 samples, and the rest of the table stands as measured.
 
-The follow-up: those percentages come from a prefilled cache, which is how Cohere's reproduction works too. Decode the same tokens one
-at a time, the way real generation goes, and they move a lot. The routify host goes to 6-9% on all three setups, including the 4-bit file
-that wrote it 0 of 400 times, and the five-layer metadata effect mostly goes away (0 vs 1 of 100, small sample). On the 2-bit file, the
-odds of a tool call right after "without tool calls" go from 61% prefilled to 0.3% decoded. Prefilling is not a neutral probe.
+The idea I floated was wrong too. Multiplying the odds along Cohere's recorded path only gives the probability of that one exact string, and
+for a behaviour you would have to continue from samples that actually reached each stage. So I measured each point directly instead. From
+the start of the command, my two files called curl or wget in 1 of 300 samples.
 
-One trace, one engine, P100s, no full precision. Receipts: https://github.com/apollo-mg/Project-Apollo/tree/main/data/receipts/flashnext-probe
+The follow-up: my percentages came from a prefilled cache. Decoding the same tokens one at a time, single stream with no speculation, moves
+them a lot, and not in one direction. The odds of a tool call right after "without tool calls" go from 61% to 0.3% on the 2-bit file at 44
+layers, but from 6% to 32% on the 4-bit file. Alibaba hosts rise from 2-4% to 8-11% on all three setups. The metadata address nearly vanishes
+on the 2-bit file at 44 layers (29 of 400 to 0 of 100), so there is little left for placement to move there, but placement still shifts other
+hosts, the opposite way round from before. Prefilled and decoded are different states. Even a four-token batch lands on the prefilled side here,
+so this says nothing about speculative decoding or busy multi-user servers.
+
+One trace, one engine, P100s, no full precision, 100 samples per decoded cell. Cohere's own stack was not tested. Receipts: LINK
