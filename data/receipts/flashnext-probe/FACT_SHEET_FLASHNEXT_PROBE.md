@@ -144,4 +144,4 @@ on the 2-bit file at 44 layers (29 of 400 to 0 of 100), so there is little left 
 hosts, the opposite way round from before. Prefilled and decoded are different states. Even a four-token batch lands on the prefilled side here,
 so this says nothing about speculative decoding or busy multi-user servers.
 
-One trace, one engine, P100s, no full precision, 100 samples per decoded cell. Cohere's own stack was not tested. Receipts: LINK
+One trace, one engine, P100s, no full precision, 100 samples per decoded cell. Cohere's own stack was not tested. Receipts: https://github.com/apollo-mg/Project-Apollo/tree/b5cc2108fbe6876cac842a5fbcab950545d419de/data/receipts/flashnext-probe
