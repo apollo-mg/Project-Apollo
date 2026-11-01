@@ -181,3 +181,18 @@ server settings.
 | D13 | Every row after midnight is a 24 Oct row | all of them equal `LLAMA8` at `24 Oct 2026` | 0.9 |
 
 **If D13 fails,** a row finished after midnight needed the 23rd, so the date-only account has a gap there, however small.
+
+## Addendum 5 (2026-11-01 01:10, after the case swap, before any replay on it): a pinned replay across a move and a kernel
+
+The machine now differs from every run above in two ways at once: all of its hardware moved into a new case, with different fans and a heatsink on
+the second NVMe, and last night's update moved the kernel from 7.3.0-4 to 7.3.1-1, with 73 other packages. Firmware, mesa and LLVM did not change
+(`linux-firmware-amdgpu` 1:20261019-1, mesa 26.2.5, `llvm-libs` 23.1.4). The GPU is in the same slot at the same link, PCIe x16 at 32 GT/s.
+
+**Test:** `date_replay.sh moved`, the same 30 items, binary, file and flags as Addendum 1.
+
+| # | claim | rule | confidence |
+|---|---|---|---|
+| D14 | The move and the new kernel change nothing | `28 Oct 2026` equals `L31AB` 30 of 30, and `23 Oct 2026` equals `LLAMA8` 20 of 20 | 0.9 |
+
+**If D14 fails,** the move, the kernel and the 73 packages are confounded here, and the next step separates them. If it holds, it clears all of them together,
+for this model and binary only.
