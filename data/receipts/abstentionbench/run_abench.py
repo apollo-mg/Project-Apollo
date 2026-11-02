@@ -4,7 +4,7 @@ as the only (user) message, no system prompt, temperature 0.8, top_p 0.95, max_t
 One JSON line per item, flushed + fsynced; resumes on (dataset, index), retrying rows that errored. --guest marks requests
 with x-apollo-guest so the .73 wake proxy does not adopt a benchmark question as Hermes's warm-up head. Usage:
   run_abench.py --items fast_subset.jsonl --out raw/ARM.jsonl --host URL [--template-kwargs JSON] [--expect-model FILE] [--guest]"""
-import argparse, json, os, time, urllib.request, zlib
+import argparse, hashlib, json, os, time, urllib.request, zlib
 ap = argparse.ArgumentParser()
 ap.add_argument("--items", required=True); ap.add_argument("--out", required=True); ap.add_argument("--host", required=True)
 ap.add_argument("--temperature", type=float, default=0.8); ap.add_argument("--top-p", type=float, default=0.95)
@@ -13,6 +13,7 @@ ap.add_argument("--seed-base", type=int, default=123456789); ap.add_argument("--
 ap.add_argument("--expect-model", help="refuse to start unless /props model_path ends with this")
 ap.add_argument("--guest", action="store_true"); ap.add_argument("--attempts", type=int, default=3)
 ap.add_argument("--top-k", type=int); ap.add_argument("--min-p", type=float)   # 2026-10-29 (instrument v2): sent only when given
+ap.add_argument("--prompt-hash", action="store_true", help="2026-11-02 (instrument v3): record sha256[:16] of the rendered prompt per row (/apply-template); token counts cannot tell two prompts apart")
 ap.add_argument("--neutral-penalties", action="store_true", help="2026-10-28: send explicit neutral penalties (as quant-abstention/run_main.py NEUTRAL) so no engine default enters; default off, so earlier arms are unchanged")
 a = ap.parse_args()
 if a.expect_model:
@@ -38,6 +39,10 @@ with open(a.out, "a") as f:
         if a.neutral_penalties: body.update(presence_penalty=0, frequency_penalty=0, repeat_penalty=1, repetition_penalty=1, dry_multiplier=0)
         t0 = time.time(); rec = {"dataset": it["dataset"], "index": it["index"]}
         hdr = {"Content-Type": "application/json", **({"x-apollo-guest": "1"} if a.guest else {})}
+        if a.prompt_hash:
+            tb = {"messages": body["messages"], **({"chat_template_kwargs": tk} if tk else {})}
+            pr = json.loads(urllib.request.urlopen(urllib.request.Request(a.host.rstrip("/") + "/apply-template", json.dumps(tb).encode(), hdr), timeout=60).read())["prompt"]
+            rec["prompt_sha"] = hashlib.sha256(pr.encode()).hexdigest()[:16]
         for attempt in range(a.attempts):
             try:
                 req = urllib.request.Request(a.host.rstrip("/") + "/v1/chat/completions", json.dumps(body).encode(), hdr)

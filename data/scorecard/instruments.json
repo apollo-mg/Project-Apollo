@@ -43,5 +43,33 @@
    "bin": "/mnt/TG_2TB/Projects/Apollo/engines/llama_cpp_upstream_f74e2fa/build_rocm/bin/llama-server",
    "flags": "-ngl 99 -c 32768 -np 1 -ctk f16 -ctv f16 --cache-ram 0"
   }
+ },
+ "AbstentionBench-sub1000v3/norefs": {
+  "version": 3,
+  "frozen": "2026-11-02: v2's items, judge, Meta settings and explicit samplers, plus the date pin and a rendered-prompt hash. Llama 3.1's template writes date_string into the system prompt, and llama.cpp fills it from the clock, so the judge was never frozen across days (data/receipts/abstend/llama-3.1-8b-instruct/RESULT_DRIFT_CAUSE.md). The pin is the template's own default, which is also what Meta's vLLM runs rendered.",
+  "subset": "data/receipts/abstentionbench/subset_1000.csv",
+  "n_items": 1000,
+  "checkout": "/mnt/TG_2TB/toolchains/AbstentionBench",
+  "export": "/mnt/TG_2TB/toolchains/AbstentionBench/fast_subset.jsonl",
+  "items": "/mnt/TG_2TB/toolchains/AbstentionBench/sub1000_items.jsonl",
+  "python": "/mnt/TG_2TB/toolchains/abench-venv/bin/python",
+  "subject": "Meta's prompts and settings via run_abench.py: the question as the only message, T 0.8, top_p 0.95, 4,000 tokens, per-item seed (123456789 + crc32(dataset:index)) mod 2^31, and top_k 40 and min_p 0.05 sent explicitly, so no file's or engine's embedded defaults enter",
+  "sampler": {
+   "top_k": 40,
+   "min_p": 0.05
+  },
+  "anchors": "re-judged at the pin, see data/receipts/abstentionbench/PREREG_INSTRUMENT_V3.md. Subjects with date-free templates carry over; a Llama 3.x subject needs a run with the date pinned.",
+  "judge": {
+   "variant": "norefs",
+   "host": "9070",
+   "url": "http://127.0.0.1:8196",
+   "file": "/mnt/TG_2TB/models_small/gguf/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf",
+   "sha256": "9da71c45c90a821809821244d4971e5e5dfad7eb091f0b8ff0546392393b6283",
+   "bin": "/mnt/TG_2TB/Projects/Apollo/engines/llama_cpp_upstream_f74e2fa/build_rocm/bin/llama-server",
+   "flags": "-ngl 99 -c 32768 -np 1 -ctk f16 -ctv f16 --cache-ram 0",
+   "date_string": "26 Jul 2024"
+  },
+  "prompt_hash": true,
+  "subject_date": "a subject whose template carries a date variable must pin date_string in abench.template_kwargs (and in every mode's template_kwargs for M1); chain refuses otherwise, and refuses strftime_now, which kwargs cannot pin"
  }
 }

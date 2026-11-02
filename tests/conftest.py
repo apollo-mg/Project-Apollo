@@ -27,6 +27,13 @@ def no_precheck(monkeypatch):
     return seen
 
 
+@pytest.fixture(autouse=True)
+def no_template_read(monkeypatch):
+    """chain() reads the model's chat template for date variables (2026-11-02); tests never open a GGUF. A test about the
+    date check sets its own stub."""
+    monkeypatch.setattr(abstend, "template_vars", lambda gguf: (set(), None))
+
+
 def jsonl(path, rows):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("".join(json.dumps(r) + "\n" for r in rows))

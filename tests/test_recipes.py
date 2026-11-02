@@ -38,7 +38,7 @@ def _abench_no_arm(rc): del rc["abench"]["arm"]
 BAD = [(_drop_greedy, "a greedy mode is required"), (_greedy_sampling, "the greedy mode cannot carry sampling"),
        (_two_primaries, "exactly one mode is primary"), (_short_sha, "file.sha256 must be the full 64-hex hash"),
        (_home_path, "no /home paths in a recipe (public repo)"),
-       (_unknown_instrument, "instruments are M1-v1 and one of AbstentionBench-sub1000/norefs, AbstentionBench-sub1000v2/norefs"),
+       (_unknown_instrument, "instruments are M1-v1 and one of " + ", ".join(abstend.AB_INSTS)),
        (_thinking_abench, "thinking-on AbstentionBench needs Meta's two-phase protocol, not in the pipeline yet"),
        (_no_cache_ram, "host 9070 requires --cache-ram 0 in engine.flags"), (_bad_schema, "schema is not abstend-recipe/1"),
        (_unknown_host, "host 42 not in hosts.json"), (_third_mode, "modes are greedy and vendor only"),

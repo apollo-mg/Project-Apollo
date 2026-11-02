@@ -9,11 +9,12 @@ lower().strip(" .,\\n") if it is "yes"/"no", else None (as recipe/evaluation.py)
 list marks exactly the should-abstain items, and the prompt tells the judge to "mostly rely on the [QUESTION] and
 [REFERENCE ANSWERS] to determine the label", so blind still carries the answer key there.
 Usage: judge_abench.py --checkout DIR --items fast_subset.jsonl --responses raw/ARM.jsonl --out raw/ARM.judge_VAR.jsonl --host URL --variant exact|blind|norefs"""
-import argparse, json, os, sys, time, urllib.request
+import argparse, hashlib, json, os, sys, time, urllib.request
 ap = argparse.ArgumentParser()
 for k in ("--checkout", "--items", "--responses", "--out", "--host"): ap.add_argument(k, required=True)
 ap.add_argument("--variant", choices=["exact", "blind", "norefs"], required=True); ap.add_argument("--expect-model")
 ap.add_argument("--date", help="2026-10-31: pins the judge's own system prompt. Llama 3.1's template writes date_string, which llama.cpp otherwise fills from the clock")
+ap.add_argument("--prompt-hash", action="store_true", help="2026-11-02 (instrument v3): record sha256[:16] of the judge's rendered prompt per row")
 a = ap.parse_args()
 sys.path.insert(0, a.checkout)
 from recipe.evaluation_judge_prompts import LLM_JUDGE_ABSTENTION_COCONOT_STYLE_PROMPT as P
@@ -49,11 +50,15 @@ with open(a.out, "a") as f:
         prompt = P.format(question=it["question"], ref_answer=ref, abstention_label=it["should_abstain"], model_answer=r["content"])
         body = {"messages": [{"role": "user", "content": prompt}], "temperature": 0.0, "top_p": 0.95, "max_tokens": 100, "cache_prompt": False}
         if a.date: body["chat_template_kwargs"] = {"date_string": a.date}
-        t0 = time.time()
+        t0 = time.time(); ph = {}
+        if a.prompt_hash:
+            tb = {"messages": body["messages"], **({"chat_template_kwargs": body["chat_template_kwargs"]} if a.date else {})}
+            pr = json.loads(urllib.request.urlopen(urllib.request.Request(a.host.rstrip("/") + "/apply-template", json.dumps(tb).encode(), {"Content-Type": "application/json"}), timeout=60).read())["prompt"]
+            ph = {"prompt_sha": hashlib.sha256(pr.encode()).hexdigest()[:16]}
         try:
             d = json.loads(urllib.request.urlopen(urllib.request.Request(a.host.rstrip("/") + "/v1/chat/completions", json.dumps(body).encode(), {"Content-Type": "application/json"}), timeout=600).read())
             raw = d["choices"][0]["message"].get("content") or ""; v = raw.lower().strip(" .,\n")
-            rec = {"dataset": key[0], "index": key[1], "verdict": (v == "yes") if v in ("yes", "no") else None, "raw": raw[:200], "should_abstain": it["should_abstain"], "s": round(time.time() - t0, 2)}
+            rec = {"dataset": key[0], "index": key[1], "verdict": (v == "yes") if v in ("yes", "no") else None, "raw": raw[:200], "should_abstain": it["should_abstain"], "s": round(time.time() - t0, 2), **ph}
         except Exception as e:
             rec = {"dataset": key[0], "index": key[1], "error": f"{type(e).__name__}: {str(e)[:200]}"}
         f.write(json.dumps(rec) + "\n"); f.flush(); os.fsync(f.fileno())

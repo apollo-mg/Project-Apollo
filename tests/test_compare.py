@@ -1,6 +1,6 @@
 """compare (M1 reproduction), compare_abench (sub1000 reproduction) and verdicts (judge output -> committed csv), on
 small synthetic fixtures. QA, AB and ROOT (which sub1000() reads the subset through) point at tmp."""
-import csv
+import csv, json
 import pytest
 import abstend
 from conftest import jsonl
@@ -72,3 +72,25 @@ def test_verdicts_refuses_items_outside_sub1000(tmp_receipts):
     jsonl(ab / "raw" / "X.judge_norefs.jsonl", [{"dataset": "AlphaQA", "index": 4, "should_abstain": True, "verdict": True}])
     with pytest.raises(SystemExit, match="1 judged items are not in sub1000"): abstend.verdicts("X")
     assert not (ab / "verdicts_X.csv").exists()
+
+
+def hashed(ab, arm, differ=None, where="subject"):
+    """Instrument v3 rows carry prompt_sha; `differ` gives one item a different hash in the subject or the judge file."""
+    for f, kind in ((f"{arm}.jsonl", "subject"), (f"{arm}.judge_norefs.jsonl", "judge")):
+        rows = [json.loads(l) for l in open(ab / "raw" / f)]
+        for r in rows: r["prompt_sha"] = "b" * 16 if (differ == (r["dataset"], str(r["index"])) and kind == where) else "a" * 16
+        jsonl(ab / "raw" / f, rows)
+
+
+@pytest.mark.parametrize("differ, where, ok, report", [(None, "subject", True, "prompts hashed on 3: 0 subject and 0 judge prompts differ"),
+                                                       (("BetaQA", "7"), "subject", False, "1 subject and 0 judge prompts differ"),
+                                                       (("AlphaQA", "3"), "judge", False, "0 subject and 1 judge prompts differ")])
+def test_compare_abench_prompt_hash(tmp_receipts, capsys, differ, where, ok, report):
+    _, ab = tmp_receipts; abench(ab, "A"); abench(ab, "B"); hashed(ab, "A"); hashed(ab, "B", differ, where)
+    assert abstend.compare_abench("A", "B") is ok
+    assert report in capsys.readouterr().out
+
+
+def test_compare_abench_says_when_there_are_no_hashes(tmp_receipts, capsys):
+    _, ab = tmp_receipts; abench(ab, "A"); abench(ab, "B")
+    assert abstend.compare_abench("A", "B") and "no prompt hashes to compare" in capsys.readouterr().out

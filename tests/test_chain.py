@@ -170,3 +170,44 @@ def test_one_abench_instrument_per_recipe():
     _, rc = load("phi-4-mini"); rc["instruments"] = ["M1-v1", "AbstentionBench-sub1000/norefs", "AbstentionBench-sub1000v2/norefs"]
     rc["abench"] = {"arm": "X"}
     with pytest.raises(SystemExit, match="one AbstentionBench instrument per recipe"): abstend.validate(rc, f"{rc['model_id']}.json")
+
+
+# 2026-11-02, instrument v3: an unpinned template date changed 708 of 1,000 answers between two days
+def test_date_check(monkeypatch):
+    p, rc = load("llama-3.1-8b-instruct")
+    monkeypatch.setattr(abstend, "template_vars", lambda g: ({"date_string"}, "26 Jul 2024"))
+    bad = abstend.date_check(rc)
+    assert len(bad) == len(rc["modes"]) + (1 if abstend.ab_inst(rc) else 0) and "'26 Jul 2024'" in bad[0]
+    for m in rc["modes"].values(): m["template_kwargs"] = {**(m.get("template_kwargs") or {}), "date_string": "26 Jul 2024"}
+    rc["abench"]["template_kwargs"] = {**(rc["abench"].get("template_kwargs") or {}), "date_string": "26 Jul 2024"}
+    assert abstend.date_check(rc) == []
+    monkeypatch.setattr(abstend, "template_vars", lambda g: ({"date_string", "datetime"}, None))
+    assert all("datetime" in b for b in abstend.date_check(rc))
+    monkeypatch.setattr(abstend, "template_vars", lambda g: ({"strftime_now"}, None))
+    assert "strftime_now" in abstend.date_check(rc)[0]
+    def unreadable(g): raise OSError("no such file")
+    monkeypatch.setattr(abstend, "template_vars", unreadable)
+    assert "cannot read" in abstend.date_check(rc)[0]
+
+
+def test_chain_refuses_unpinned_date(monkeypatch, capsys):
+    p, rc = load("llama-3.1-8b-instruct"); monkeypatch.setattr(abstend, "template_vars", lambda g: ({"date_string"}, "26 Jul 2024"))
+    with pytest.raises(SystemExit, match="date check"): render(capsys, p, rc)
+
+
+def test_chain_v3_pins_judge_date_and_hashes_prompts(capsys):
+    p, rc = load("llama-3.1-8b-instruct")
+    rc["instruments"] = ["AbstentionBench-sub1000v3/norefs" if i in abstend.AB_INSTS else i for i in rc["instruments"]]
+    lines = render(capsys, p, rc).splitlines()
+    sub = [l for l in lines if "run_abench.py" in l]; jud = [l for l in lines if "judge_abench.py" in l]
+    assert len(sub) == 1 and len(jud) == 1
+    assert "--prompt-hash" in sub[0] and "--prompt-hash" in jud[0] and "--date '26 Jul 2024'" in jud[0]
+    old = render(capsys, *load("llama-3.1-8b-instruct"))
+    assert "--date " not in old and "--prompt-hash" not in old
+
+
+def test_prereg_v3_states_the_pin(capsys, no_precheck):
+    p, rc = load("llama-3.1-8b-instruct")
+    rc["instruments"] = ["AbstentionBench-sub1000v3/norefs" if i in abstend.AB_INSTS else i for i in rc["instruments"]]
+    abstend.prereg(p, rc, stdout=True); txt = capsys.readouterr().out
+    assert "pinned to '26 Jul 2024'" in txt and "hash of its rendered prompt" in txt

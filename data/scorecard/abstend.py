@@ -78,6 +78,35 @@ def recipes(paths=None):
 def ab_inst(rc): return next((i for i in rc.get("instruments", []) if i in AB_INSTS), None)
 
 
+DATE_VARS = ("date_string", "datetime", "strftime_now")
+
+
+def template_vars(gguf):
+    """Date variables in a file's chat template, and the default date_string the template sets, if any. llama.cpp fills
+    date_string and datetime from the clock on every chat request, so an unpinned one changes the prompt every day: the
+    708/1,000 'system update drift' was this (2026-11-02, abstend/llama-3.1-8b-instruct/RESULT_DRIFT_CAUSE.md)."""
+    sys.path.insert(0, str(ROOT / "engines" / "llama_cpp_upstream_f74e2fa" / "gguf-py")); from gguf import GGUFReader   # noqa: E402
+    f = GGUFReader(str(gguf), "r").fields.get("tokenizer.chat_template")
+    t = bytes(f.parts[f.data[0]]).decode() if f else ""
+    m = re.search(r'set\s+date_string\s*=\s*"([^"]+)"', t)
+    return {v for v in DATE_VARS if v in t}, (m.group(1) if m else None)
+
+
+def date_check(rc):
+    """Problems with a recipe whose template carries a date: every chat-path request (each mode, and the AbstentionBench
+    subject) must pin it. strftime_now cannot be pinned through template kwargs at all."""
+    try:
+        found, default = template_vars(Path(rc["file"]["store"]) / rc["file"]["name"])
+    except Exception as e:
+        return [f"cannot read the chat template of {rc['file']['name']} ({type(e).__name__}: {e})"]
+    if not found: return []
+    if "strftime_now" in found: return ["the template calls strftime_now, which template kwargs cannot pin"]
+    who = [(f"mode {m['arm']}", m.get("template_kwargs") or {}) for m in rc["modes"].values()]
+    if ab_inst(rc): who.append(("abench", (rc.get("abench") or {}).get("template_kwargs") or {}))
+    return [f"{w}: the template uses {', '.join(sorted(found))}; pin {', '.join(sorted(found - set(tk)))} in template_kwargs"
+            + (f" (the template's own default date_string is {default!r})" if default else "") for w, tk in who if found - set(tk)]
+
+
 def label(m):
     return m.get("label") or ("off" if not m["thinking"] else "on (vendor sampling)" if m.get("sampling") else "on")
 
@@ -190,7 +219,11 @@ judge (`{Path(j['file']).name}`, sha256 `{j['sha256'][:12]}...`, hash-checked; `
 `{j['flags']}`) runs on the 9070 at {j['url']}, a different port from any model server. The card reports abstention
 recall, precision, missing-info recall and false-premise recall with Wilson 95 % intervals (worst case +-0.047, varies,
 +-0.103, +-0.128), on the sub1000 instrument only, never mixed with fast-subset numbers.
-"""
+""" + (f"""The judge's `date_string` is pinned to {j['date_string']!r}, its template's own default and what Meta's vLLM runs
+rendered; llama.cpp would otherwise fill it from the clock.
+""" if j.get("date_string") else "") + ("""Each subject and judge row records a hash of its rendered prompt, so two runs can be checked
+for identical prompts directly.
+""" if ins.get("prompt_hash") else "")
 
 
 def prereg(path, rc, force=False, stdout=False):
@@ -351,7 +384,7 @@ ABENCH = r"""# AbstentionBench-sub1000/norefs v1: Meta's protocol on this model'
 AP=@APY@; AB=$R/data/receipts/abstentionbench; ABLOG=$AB/raw/@ABARM@.chain.log; mkdir -p $AB/raw
 if $AP -I $AB/make_subset.py @EXPORT@ --verify $AB/subset_1000.csv --emit @ITEMS@ >> $ABLOG 2>&1; then
   log "sub1000 verified against its frozen question hashes"
-  $AP -s $AB/run_abench.py --items @ITEMS@ --out $AB/raw/@ABARM@.jsonl --host $H --neutral-penalties@ABSAMP@@ABTK@ --expect-model $N >> $ABLOG 2>&1
+  $AP -s $AB/run_abench.py --items @ITEMS@ --out $AB/raw/@ABARM@.jsonl --host $H --neutral-penalties@ABSAMP@@ABTK@@ABPH@ --expect-model $N >> $ABLOG 2>&1
   log "@ABARM@ subject rc=$? rows=$(wc -l < $AB/raw/@ABARM@.jsonl) errors=$(grep -c '"error"' $AB/raw/@ABARM@.jsonl)"
   stop_model || { log "ABORT: the model server is still up; the judge would not start clean"; exit 1; }
   memcheck; pause_clef
@@ -360,7 +393,7 @@ if $AP -I $AB/make_subset.py @EXPORT@ --verify $AB/subset_1000.csv --emit @ITEMS
   ok=0; for i in $(seq 1 120); do sleep 3; curl -s -m 3 @JURL@/health | grep -q '"ok"' && { ok=1; break; }; done
   [ $ok = 1 ] || { log "ABORT: judge server did not come up"; exit 1; }
   log "judge up pid $JP: $(curl -s @JURL@/props | python3 -c 'import sys,json; print(json.load(sys.stdin)["model_path"])')"
-  $AP -s $AB/judge_abench.py --checkout @CHECKOUT@ --items @ITEMS@ --responses $AB/raw/@ABARM@.jsonl --out $AB/raw/@ABARM@.judge_norefs.jsonl --host @JURL@ --variant norefs --expect-model @JNAME@ >> $ABLOG 2>&1
+  $AP -s $AB/judge_abench.py --checkout @CHECKOUT@ --items @ITEMS@ --responses $AB/raw/@ABARM@.jsonl --out $AB/raw/@ABARM@.judge_norefs.jsonl --host @JURL@ --variant norefs --expect-model @JNAME@@JDATE@@ABPH@ >> $ABLOG 2>&1
   log "@ABARM@ judge norefs rc=$? rows=$(wc -l < $AB/raw/@ABARM@.judge_norefs.jsonl)"
   stop_judge
   $PY $A verdicts @ABARM@ >> $LOG 2>&1; log "verdicts rc=$?"
@@ -376,6 +409,8 @@ def chain(path, rc, stdout=False):
     if not h.get("url"): raise SystemExit(f"host {rc['host']} has no fixed test URL in hosts.json")
     if h["kind"] == "ssh" and e["weights"] != "/dev/shm": raise SystemExit("ssh hosts serve from /dev/shm in this version")
     if not stdout and not guard(path, rc): sys.exit(1)
+    bad = date_check(rc)
+    if bad: raise SystemExit("date check: " + "; ".join(bad))
     cp = chain_path(rc); unit = f"abstend-{rc['model_id']}"; ins = INSTRUMENTS[ab_inst(rc) or AB_INST]; j = ins["judge"]
     # absolute path: systemd-run starts in ~; the restore runs even if the unit is killed
     launch = (f"systemd-run --user --unit={unit} --collect -p MemoryMax={desk['memory_max']} -p ExecStopPost=\"systemctl --user start "
@@ -389,7 +424,8 @@ def chain(path, rc, stdout=False):
            "JBIN": j["bin"], "JFILE": j["file"], "JSHA": j["sha256"], "JFLAGS": j["flags"], "JURL": j["url"], "JPORT": j["url"].rsplit(":", 1)[1],
            "JNAME": Path(j["file"]).name, "APY": ins["python"], "EXPORT": ins["export"], "ITEMS": ins["items"], "CHECKOUT": ins["checkout"],
            "ABSAMP": "".join(f" --{k.replace('_', '-')} {v}" for k, v in (ins.get("sampler") or {}).items()),
-           "ABARM": (rc.get("abench") or {}).get("arm", "none"), "ABTK": f" --template-kwargs {shlex.quote(json.dumps(tk))}" if tk else ""}
+           "ABARM": (rc.get("abench") or {}).get("arm", "none"), "ABTK": f" --template-kwargs {shlex.quote(json.dumps(tk))}" if tk else "",
+           "JDATE": f" --date {shlex.quote(j['date_string'])}" if j.get("date_string") else "", "ABPH": " --prompt-hash" if ins.get("prompt_hash") else ""}
     # ports, not URL strings: localhost:8196 and 127.0.0.1:8196 are the same socket on the desktop (cloud test suite, 2026-10-29)
     if j["url"] == h["url"] or (h["kind"] == "local" and urllib.parse.urlparse(h["url"]).port == urllib.parse.urlparse(j["url"]).port):
         raise SystemExit("the judge must not share the model's port")
@@ -441,10 +477,15 @@ def compare_abench(arm_a, arm_b):
     miss = [k for k in S if not (k in A and k in B and k in JA and k in JB)]
     dc = [k for k in S if k in A and k in B and (A[k]["content"], A[k]["finish"]) != (B[k]["content"], B[k]["finish"])]
     dv = [k for k in S if k in JA and k in JB and JA[k]["verdict"] != JB[k]["verdict"]]
-    print(f"{arm_a} vs {arm_b} on sub1000 ({len(S)} items): {len(miss)} missing in either, {len(dc)} subject answers differ, {len(dv)} verdicts differ")
-    for name, v in (("answer", dc), ("verdict", dv)):
+    # instrument v3: rendered-prompt hashes, when both runs have them. Equal token counts once hid a changed date (11-02).
+    dp = [k for k in S if k in A and k in B and "prompt_sha" in A[k] and "prompt_sha" in B[k] and A[k]["prompt_sha"] != B[k]["prompt_sha"]]
+    dpj = [k for k in S if k in JA and k in JB and "prompt_sha" in JA[k] and "prompt_sha" in JB[k] and JA[k]["prompt_sha"] != JB[k]["prompt_sha"]]
+    hashed = sum(1 for k in S if k in A and k in B and "prompt_sha" in A[k] and "prompt_sha" in B[k])
+    print(f"{arm_a} vs {arm_b} on sub1000 ({len(S)} items): {len(miss)} missing in either, {len(dc)} subject answers differ, {len(dv)} verdicts differ"
+          + (f"; prompts hashed on {hashed}: {len(dp)} subject and {len(dpj)} judge prompts differ" if hashed else "; no prompt hashes to compare"))
+    for name, v in (("subject prompt", dp), ("judge prompt", dpj), ("answer", dc), ("verdict", dv)):
         if v: print(f"  first {name} differences: {v[:5]}")
-    return not (miss or dc or dv)
+    return not (miss or dc or dv or dp or dpj)
 
 
 def main():
