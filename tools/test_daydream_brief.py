@@ -59,4 +59,28 @@ likely, rest = B.split_suggested(["a", "b", "c", "d"], verdicts)
 check("commit-backed suggestion -> likely", likely == ["a"])
 check("diary, same-day receipt and missing evidence -> check", rest == ["b", "c", "d"])
 
+# 2026-11-02: one question for Mark
+import daydream_close as C
+T = lambda m, first, kind="action", status="open", **kw: {"text": "x", "mentions": m, "first_seen": first, "kind": kind, "status": status, "sources": [], **kw}
+st = {"threads": {"hot": T(4, "2026-10-01"), "new": T(1, "2026-11-01"), "scope": T(9, "2026-09-01", kind="scope"),
+                  "old1": T(1, "2026-10-20"), "asked": T(9, "2026-09-01", asked_on="2026-10-30", question={"question": "q?"}),
+                  "parked": T(9, "2026-09-01", status="parked", park_until="2026-11-02"),
+                  "parkedlater": T(9, "2026-09-01", status="parked", park_until="2026-12-01")}}
+cand = B.question_candidates(st, "2026-11-02")
+check("candidates: a thread that keeps coming back ranks first", cand[0] == "hot")
+check("candidates: one mention and one day old is not a candidate", "new" not in cand)
+check("candidates: scope caveats and already-asked threads are excluded", "scope" not in cand and "asked" not in cand)
+check("candidates: one mention but open for two weeks is a candidate", "old1" in cand)
+check("pending: an asked, unanswered, open thread blocks a new question", B.pending_question(st) == "asked")
+back = B.unpark(st, "2026-11-02")
+check("unpark: a park that ends today comes back; a later one stays", back == ["parked"] and st["threads"]["parkedlater"]["status"] == "parked")
+C.answer(st["threads"]["asked"], "drop", "not worth it", "2026-11-02", 30)
+check("answer drop: closes the thread and clears the pending question",
+      st["threads"]["asked"]["status"] == "closed" and B.pending_question(st) is None)
+C.answer(st["threads"]["hot"], "park", "later", "2026-11-02", 30)
+check("answer park: hidden until the date", st["threads"]["hot"]["status"] == "parked" and st["threads"]["hot"]["park_until"] == "2026-12-02")
+C.answer(st["threads"]["old1"], "finish", "yes", "2026-11-02", 30)
+check("answer finish: stays open and marked", st["threads"]["old1"]["status"] == "open" and st["threads"]["old1"]["answer"] == "finish")
+check("answer finish: never asked about again", "old1" not in B.question_candidates(st, "2026-11-02"))
+
 sys.exit(1 if fails else 0)

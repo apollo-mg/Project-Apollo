@@ -92,6 +92,42 @@ Reply with a JSON array only:
 [{{"id": "<thread id>", "title": "<5-9 words>", "why": "<1-2 sentences>", "next": "<one concrete step>"}}]"""
 
 
+ASK = """You are the night-shift reviewer for a solo hardware-empirics lab, and tonight you may ask Mark ONE question, or none.
+Ask only when his answer changes what happens next: whether a thread is worth finishing, should be dropped, or can be
+parked, or a fact only he knows. Prefer threads that keep coming back without progress (mentioned many times, open for
+many days): those are the half-finished things that cost him most. A hunch is allowed: if several threads point at one
+pattern, ask whether it is real, and say it is a hunch. Do not ask what the threads already answer, and do not invent
+commands, file paths or commit ids. If nothing tonight is worth his attention, ask nothing: an unneeded question costs
+more than a missed one.
+
+THREADS:
+{threads}
+
+Reply with one line of JSON only:
+{{"ask": true | false, "kind": "decide" | "clarify" | "hunch", "id": "<thread id>", "question": "<one sentence he can answer in a few words>", "why": "<one sentence: what his answer changes>"}}"""
+
+
+def unpark(state, today):
+    """A parked thread (daydream_close.py --answer park) comes back on its date."""
+    back = [k for k, t in state["threads"].items() if t["status"] == "parked" and t.get("park_until", "9999") <= today]
+    for k in back:
+        state["threads"][k]["status"] = "open"
+    return back
+
+
+def pending_question(state):
+    """The thread asked about and not answered yet: one open question at a time."""
+    return next((k for k, t in state["threads"].items() if t.get("asked_on") and not t.get("answer") and t["status"] == "open"), None)
+
+
+def question_candidates(state, today, n=20):
+    """Open action threads that keep coming back, never asked about: mentions times days open ranks them."""
+    age = lambda t: (datetime.date.fromisoformat(today) - datetime.date.fromisoformat(t["first_seen"])).days
+    c = [k for k, t in state["threads"].items() if t["status"] == "open" and t.get("kind", "action") == "action"
+         and not t.get("asked_on") and not t.get("answer") and (t["mentions"] >= 2 or age(t) >= 7)]
+    return sorted(c, key=lambda k: (-state["threads"][k]["mentions"] * (1 + age(state["threads"][k])), state["threads"][k]["first_seen"]))[:n]
+
+
 def fmt_evidence(ev):
     return "\n".join(f"{n}. [{e['date']} {e['source']}] {e['snippet'][:300]}" for n, e in enumerate(ev, 1))
 
@@ -160,6 +196,7 @@ def main():
     verdicts, bl_verdicts = {}, []
     todo = [(k, v) for k, v in links["threads"].items() if v["closure_candidates"]][: a.max_adjudicate]
     vpath = MORNING / f"verdicts_{today}.json"
+    saved = {}
     if a.render_only:
         saved = json.load(open(vpath))
         verdicts, bl_verdicts, picks = saved["verdicts"], saved["backlog"], saved["picks"]
@@ -234,6 +271,46 @@ def main():
         except Exception as e:                              # noqa: BLE001
             status = "degraded"; notes.append(f"picks failed: {type(e).__name__}: {e}")
 
+    # 2b. one question for Mark (2026-11-02, Mark: "it should be asking us questions"). The brief summarised 136 threads
+    # and asked nothing. One open question at a time; an unanswered one is shown again, three times in all, then parked
+    # for 30 days so it cannot nag. A failure here is a note, not a degraded brief.
+    q = saved.get("question") if a.render_only else None
+    if not a.render_only:
+        back = unpark(state, today)
+        if back:
+            notes.append(f"{len(back)} parked thread(s) came back today")
+        pend = pending_question(state)
+        if pend:
+            t = state["threads"][pend]
+            if t.get("asked_times", 1) >= 3:
+                t.update(status="parked", park_until=(datetime.date.today() + datetime.timedelta(days=30)).isoformat(),
+                         parked_why="asked three times, no answer")
+                notes.append(f"question about `{pend}` went unanswered three times; parked for 30 days")
+            else:
+                t["asked_times"] = t.get("asked_times", 1) + 1
+                q = {**t["question"], "id": pend, "repeat": t["asked_times"]}
+        elif status == "ok":
+            cand = question_candidates(state, today)
+            if cand:
+                blob = "\n\n".join(f"[{k}] (mentioned {state['threads'][k]['mentions']}x, open since {state['threads'][k]['first_seen']}, "
+                                   f"from {state['threads'][k]['sources'][0] if state['threads'][k]['sources'] else 'unknown'})\n"
+                                   f"{state['threads'][k]['text'][:500]}" for k in cand)
+                try:
+                    try:
+                        out = think(a.host, ASK.format(threads=blob))
+                    except RuntimeError as e:
+                        notes.append(f"question: {e}; retried with thinking off")
+                        n_calls += 1
+                        out = quick(a.host, ASK.format(threads=blob), max_tokens=500, timeout=900)
+                    n_calls += 1
+                    j = last_json(out) or {}
+                    if j.get("ask") and j.get("id") in cand and str(j.get("question", "")).strip():
+                        qq = {k: str(j.get(k, "")).strip() for k in ("kind", "question", "why")}
+                        state["threads"][j["id"]].update(asked_on=today, asked_times=1, question=qq)
+                        q = {**qq, "id": j["id"], "repeat": 1}
+                except Exception as e:                      # noqa: BLE001
+                    notes.append(f"question failed: {type(e).__name__}: {e}")
+
     # 3. brief
     closed_now = [k for k, v in verdicts.items() if v.get("status") == "closed"]
     suggested = [k for k, v in verdicts.items() if v.get("status") == "suggested" and state["threads"][k]["status"] == "open"]
@@ -254,6 +331,17 @@ def main():
          f"{n_shadowed} open thread(s) skipped as siblings of closed ones.*", ""]
     if notes:
         L += ["> " + n for n in notes] + [""]
+    if q:
+        L += ["## One question for you", "", f"**{q['question']}**", "",
+              f"- {q.get('kind') or 'decide'}, about `{q['id']}`: {re.sub(r'[*`]', '', state['threads'][q['id']]['text'])[:220].strip()}",
+              f"- Why ask: {q.get('why', '')}" + (f" (asked {q['repeat']} times)" if q.get("repeat", 1) > 1 else ""),
+              f"- Answer: `tools/daydream_close.py --answer finish|drop|park|note {q['id']}`, with `--why \"...\"` for the "
+              f"reason or the fact, or tell a session.", ""]
+    finish = [k for k, t in state["threads"].items() if t.get("answer") == "finish" and t["status"] == "open"]
+    if finish:
+        L += ["## You said finish (still open)", ""]
+        L += [f"- `{k}` (since {state['threads'][k]['answered_on']}): {re.sub(r'[*`]', '', state['threads'][k]['text'])[:140].strip()}"
+              for k in finish[:5]] + [""]
     L += ["## Worth picking up", ""]
     if picks:
         for n, p in enumerate(picks, 1):
@@ -288,9 +376,9 @@ def main():
     json.dump(state, open(state_p, "w"), indent=1, ensure_ascii=False)
     if not a.render_only:
         json.dump({"verdicts": verdicts, "backlog": bl_verdicts, "picks": picks, "status": status, "notes": notes,
-                   "calls": n_calls, "checked": len(todo)}, open(vpath, "w"), indent=1, ensure_ascii=False)
+                   "calls": n_calls, "checked": len(todo), "question": q}, open(vpath, "w"), indent=1, ensure_ascii=False)
     print(json.dumps({"status": status, "picks": len(picks), "closed": len(closed_now), "suggested": len(suggested), "likely": len(likely), "backlog_close": len(bl_verdicts),
-                      "backlog_add": len(adds), "calls": n_calls, "notes": notes}))
+                      "backlog_add": len(adds), "calls": n_calls, "notes": notes, "question": (q or {}).get("question", "")}))
 
 
 if __name__ == "__main__":

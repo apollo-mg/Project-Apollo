@@ -40,5 +40,7 @@ ST=$(printf '%s' "$OUT" | "$PY" -c 'import json,sys; print(json.loads(sys.stdin.
 if [ ! -s "$M/$D.md" ]; then beat error "no brief written: $OUT"; notify "Daydream FAILED" "no brief; see $LOG"; exit 1; fi
 beat "$ST" "$OUT"
 SUM=$(printf '%s' "$OUT" | "$PY" -c 'import json,sys; d=json.loads(sys.stdin.read()); print("%d picks, %d closed, %d likely closed, %d to check, %d BACKLOG edits" % (d.get("picks", 0), d.get("closed", 0), d.get("likely", 0), d.get("suggested", 0) - d.get("likely", 0), d.get("backlog_close", 0)))' 2>/dev/null || echo "see brief")
-echo "Morning brief ($ST): $SUM -> data/dev_diaries/morning/$D.md | $CSUM -> data/dev_diaries/content/this_week.md" > "$ROOT/data/dev_diaries/.daydream_motd"
-notify "Morning brief ready ($ST)" "$SUM\ndata/dev_diaries/morning/$D.md\n$CSUM"
+# 2026-11-02: the brief may ask one question; it goes first in the toast and in the MOTD, where it is seen.
+QN=$(printf '%s' "$OUT" | "$PY" -c 'import json,sys; print(json.loads(sys.stdin.read()).get("question") or "")' 2>/dev/null)
+echo "${QN:+Question: $QN | }Morning brief ($ST): $SUM -> data/dev_diaries/morning/$D.md | $CSUM -> data/dev_diaries/content/this_week.md" > "$ROOT/data/dev_diaries/.daydream_motd"
+notify "Morning brief ready ($ST)" "${QN:+Q: $QN\n}$SUM\ndata/dev_diaries/morning/$D.md\n$CSUM"
