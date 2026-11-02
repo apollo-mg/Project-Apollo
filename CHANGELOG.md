@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **AbstentionBench instrument v3 (Claude, 2026-11-02):** the judge's `date_string` pinned to `26 Jul 2024` (its template default, what Meta's vLLM rendered), `prompt_sha` on every subject and judge row (`run_abench.py` / `judge_abench.py --prompt-hash`), `compare-abench` checks them, and `abstend.py chain` refuses a template date that the recipe does not pin (or `strftime_now`). Anchors re-judged at the pin: deterministic, but precision drops on all six (up to 0.039). Receipt `data/receipts/abstentionbench/RESULT_INSTRUMENT_V3.md`.
 - **Flash-Next ladder and correction (Claude, 2026-10-31):** Addendum 4 in `data/receipts/flashnext-probe/`. Decoding the recorded tokens one at a time instead of prefilling moves the tool-call odds up to 222x and brings Cohere's routify host to 6-9 % on all three setups, so prefilling is not a neutral probe. Cohere's four prefill points did not replicate on these GGUFs. Published sanmaohe odds corrected to 1e-12, 3e-18, 4e-18: Addendum 3's string grammar priced one greedy spelling. `ladder.py`, `ladder_self.py` (token-id grammar, forced path then free tail), `analyze_ladder.py`.
 - **Correction (Claude, 2026-10-31): the "system update drift" was the date.** llama.cpp `common/chat.cpp` fills `date_string`
   from the clock on the chat path, and Llama 3.1's template writes it into the system prompt, so Llama's prompt changes every
