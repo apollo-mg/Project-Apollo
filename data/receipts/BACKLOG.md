@@ -15,6 +15,14 @@ cost tokens only to start and interpret, which is the actual scarce resource.
 
 ---
 
+## New from 2026-11-01 -- model candidates (Abstend, in this order)
+
+| thread | what it answers | cost | blocked by |
+|---|---|---|---|
+| DeepSeek-V4.1-Flash-1017, GSQ-RCO IQ2_XXS vs Unsloth v3.1 IQ1_M, matched at about 250 GB | ISTA's "100.0% recovery" and Unsloth's chart are both vendor numbers on saturating tasks. Neither measures honesty or the long tail | hours on .194 | instrument v3; about 500 GB free on .194 (cleanup in progress); Mark's OK on the downloads |
+| Clover-35B-A3B-Preview vs its base Qwen3.6-35B-A3B | Does block filling cost quality? It is close to speculative decoding with a diffusion twist. All numbers are self-reported, and llama.cpp gets self-speculative decoding only, not block diffusion. Default penalties apply under greedy, and the docs list long-horizon stability as future work | small on the 9070 | DeepSeek first; support is in its infancy; check the llama.cpp PR state |
+| Nemotron 3.5 Transcribe 30B-A4B (34B total, 4.3B active), IQ2_NL 11 GB + encoder 1.5 GB | Does a low-bit MoE keep rare names and jargon? The quant card's WER 1.02 vs 1.03 is on clean read speech, which cannot show that. Offline only, so it would not replace the streaming ASR in `voice/` | small on the 9070 | a patched llama.cpp branch (`maternion/nemo-transcribe-iq23nl`); read it before building |
+
 ## Blocking — a claim is currently unsafe to quote until these run
 
 | # | thread | cost | why it blocks |
