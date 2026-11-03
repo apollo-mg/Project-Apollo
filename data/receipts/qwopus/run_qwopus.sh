@@ -48,10 +48,13 @@ verify QWC "$QWC_F" 8190 && verify C.R "$BASE_F" 8191 || { ssh "$H" 'pkill -x ll
 log "GPUs: $(ssh "$H" 'nvidia-smi --query-gpu=index,power.limit,clocks.applications.graphics,memory.used --format=csv,noheader' | tr '\n' ';')"
 
 run() {     # run ARM FILE GPUS PORT SHA
+  # $(cat) strips trailing newlines, and C.A's render tail ends in "\n\n": read it with a sentinel (11-03, first launch
+  # stopped at the runner's tail check on both lanes before writing any row)
+  local tail; tail=$(cat "$QA/raw/logs/qw_expect_tail.txt"; printf x); tail=${tail%x}
   local meta; meta=$($PY -c 'import json,sys; print(json.dumps(dict(zip(["arm","model","sha256","commit","flags","env","host"], sys.argv[1:]))))' \
     "$1" "$2" "$5" 0b2789f23f5ac10ed9a99aeb40ed10d3ba1c0163 "$FLAGS --port $4" "CUDA_VISIBLE_DEVICES=$3 GGML_CUDA_ALLREDUCE=internal" ".194")
   $PY "$QA/run_main.py" --url "http://$H:$4" --arm "$1" --meta "$meta" --usage \
-    --expect-variants "$(cat "$QA/raw/logs/qw_expect_variants.json")" --expect-render-tail "$(cat "$QA/raw/logs/qw_expect_tail.txt")" \
+    --expect-variants "$(cat "$QA/raw/logs/qw_expect_variants.json")" --expect-render-tail "$tail" \
     > "$QA/raw/logs/qw_run_$1.log" 2>&1
   log "$1: run_main exit $? ($(( $(wc -l < "$QA/raw/main_$1.jsonl") - 1 )) rows)"
 }
