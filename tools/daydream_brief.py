@@ -12,7 +12,10 @@ Everything else in the brief is mechanical: the proposed BACKLOG edits, recurrin
 model sections and says so (status "degraded").
 
 Writes data/dev_diaries/morning/<date>.md and prints one status line (json) for the runner's heartbeat.
-Usage: daydream_brief.py [--host http://127.0.0.1:8099] [--max-adjudicate 60]
+Stage 2b (one question for Mark) never asks about a thread that BACKLOG.md records as settled (backlog_settled());
+the skipped ids and the matching BACKLOG snippets go to `question_skipped_settled` in the JSON output.
+
+Usage: daydream_brief.py [--host http://127.0.0.1:8099] [--max-adjudicate 60] [--render-only]
 """
 import argparse, datetime, json, re, subprocess, sys, urllib.request
 from pathlib import Path
@@ -20,8 +23,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 from ledger_build import strip_reasoning  # noqa: E402  (the ledger's tested call + think stripping)
+from daydream_harvest import anchors  # noqa: E402  (the harvest's strong-anchor extractor, COMMIT_RX included)
 
 MORNING = ROOT / "data" / "dev_diaries" / "morning"
+BACKLOG = ROOT / "data" / "receipts" / "BACKLOG.md"
 
 
 def quick(host, prompt, max_tokens=220, timeout=600):
@@ -115,16 +120,112 @@ def unpark(state, today):
     return back
 
 
-def pending_question(state):
-    """The thread asked about and not answered yet: one open question at a time."""
-    return next((k for k, t in state["threads"].items() if t.get("asked_on") and not t.get("answer") and t["status"] == "open"), None)
+# --- settled BACKLOG evidence (2026-11-03) ----------------------------------------------------------------------------
+# The first live question asked whether the .73 daily driver should switch to `1c5e564b`; BACKLOG row N2 had recorded
+# that switch as done five weeks earlier (struck id, "**DONE 10-02:**", and "~~.73 daily driver to `1c5e564b`~~ **done
+# via `510cbbbfa`**"). A question is not asked when one of the thread's commit ids or file names appears in what
+# BACKLOG records as settled. Precision first: a wrong skip silently hides an open item, so only strong anchors count
+# (never a shared word), and text after an "open" marker inside a done item is not settled.
+SETTLED_KINDS = ("commit", "file", "ident")      # what settled evidence may carry (backticked identifiers included)
+THREAD_KINDS = ("commit", "file")                # what a thread may be skipped on
+DONE_RX = re.compile(r"\*\*\s*(?:DONE|FIXED)\b")
+STRUCK_RX = re.compile(r"~~(.+?)~~")
+STRUCK_ID_RX = re.compile(r"^\|\s*~~[^~|]+~~\s*\|")
+OPEN_RX = re.compile(r"\b(?:still|also|remains?|left) open\b|\bopen follow-?up|\bstill (?:on|to do|todo|untested|pending)\b|"
+                     r"\bnot yet\b|\buntested\b|\bremaining\b|\bblocked\b|\bmark's call\b|\bpartly\b", re.I)
 
 
-def question_candidates(state, today, n=20):
-    """Open action threads that keep coming back, never asked about: mentions times days open ranks them."""
+def _strong(text, kinds=SETTLED_KINDS):
+    return {a: k for a, k in anchors(text).items() if k in kinds}
+
+
+def _settled_segments(body, whole):
+    """The settled parts of a done item, struck spans removed (they are evidence of their own): from the start when the
+    whole item is done, and from every **DONE/**FIXED marker; each part ends at the next open marker."""
+    starts = ([0] if whole else []) + [m.start() for m in DONE_RX.finditer(body)]
+    segs, end = [], -1
+    for s in sorted(set(starts)):
+        if s < end:                                       # inside the part before it: already counted
+            continue
+        m = OPEN_RX.search(body, s + 2)
+        end = m.start() if m else len(body)
+        segs.append(body[s:end])
+    return segs
+
+
+def backlog_settled(text):
+    """BACKLOG.md text -> [{line, kind, snippet, anchors}] for what it records as settled: rows whose id cell is struck
+    (`| ~~N2~~ |`), rows and bullets that start with or contain **DONE** / **FIXED**, and every ~~struck span~~ (which
+    settles only what is inside it). Only commit ids, backticked identifiers and file names are kept as anchors."""
+    out = []
+    for n, line in enumerate(text.splitlines(), 1):
+        s = line.strip()
+        is_row, is_bullet = s.startswith("|"), bool(re.match(r"^(?:[-*+]|\d+[.)])\s", s))
+        if not (is_row or is_bullet):
+            continue
+        for m in STRUCK_RX.finditer(s):
+            anc = _strong(m.group(1))
+            if anc:
+                out.append({"line": n, "kind": "struck", "snippet": m.group(0)[:200], "anchors": anc})
+        body = STRUCK_RX.sub(" ", s)
+        if is_row:
+            cells = [c.strip() for c in body.strip("|").split("|")]
+            first = cells[1] if len(cells) > 1 else ""
+            body = " | ".join(cells[1:])                          # the id cell carries no anchors
+        else:
+            first = body = re.sub(r"^(?:[-*+]|\d+[.)])\s+", "", body)
+        whole = bool(STRUCK_ID_RX.match(s)) or bool(re.match(r"\*\*\s*(?:DONE|FIXED)\b", first))
+        if not (whole or DONE_RX.search(body)):
+            continue
+        for seg in _settled_segments(body, whole):
+            anc = _strong(seg)
+            if anc:
+                out.append({"line": n, "kind": "struck-id" if whole and STRUCK_ID_RX.match(s) else "done",
+                            "snippet": seg.strip()[:200], "anchors": anc})
+    return out
+
+
+def load_backlog_settled(path=BACKLOG):
+    """No BACKLOG file -> no settled evidence -> stage 2b behaves exactly as before."""
+    try:
+        return backlog_settled(Path(path).read_text())
+    except OSError:
+        return []
+
+
+def settled_by(text, settled):
+    """{"anchors": [...], "backlog": [...]} when one of the thread's commit ids or file names is in settled BACKLOG
+    evidence, else None."""
+    mine = _strong(text, THREAD_KINDS)
+    order = {"struck": 0, "struck-id": 1, "done": 2}    # the most specific evidence first
+    hits = sorted((e for e in settled if mine.keys() & e["anchors"].keys()), key=lambda e: (order[e["kind"]], e["line"]))
+    if not hits:
+        return None
+    return {"anchors": sorted({a for e in hits for a in e["anchors"] if a in mine}),
+            "backlog": [{"line": e["line"], "kind": e["kind"], "snippet": e["snippet"]} for e in hits[:3]]}
+
+
+def _skip(state, k, settled, skipped):
+    hit = settled_by(state["threads"][k].get("text", ""), settled) if settled else None
+    if hit and skipped is not None:
+        skipped.append({"id": k, **hit})
+    return bool(hit)
+
+
+def pending_question(state, settled=(), skipped=None):
+    """The thread asked about and not answered yet: one open question at a time. One that BACKLOG records as settled
+    is not shown again (it is recorded in `skipped`; its state is left for a session or Mark to close)."""
+    return next((k for k, t in state["threads"].items() if t.get("asked_on") and not t.get("answer") and t["status"] == "open"
+                 and not _skip(state, k, settled, skipped)), None)
+
+
+def question_candidates(state, today, n=20, settled=(), skipped=None):
+    """Open action threads that keep coming back, never asked about: mentions times days open ranks them. Threads that
+    BACKLOG records as settled are dropped before ranking and recorded in `skipped`."""
     age = lambda t: (datetime.date.fromisoformat(today) - datetime.date.fromisoformat(t["first_seen"])).days
     c = [k for k, t in state["threads"].items() if t["status"] == "open" and t.get("kind", "action") == "action"
          and not t.get("asked_on") and not t.get("answer") and (t["mentions"] >= 2 or age(t) >= 7)]
+    c = [k for k in c if not _skip(state, k, settled, skipped)]
     return sorted(c, key=lambda k: (-state["threads"][k]["mentions"] * (1 + age(state["threads"][k])), state["threads"][k]["first_seen"]))[:n]
 
 
@@ -275,11 +376,15 @@ def main():
     # and asked nothing. One open question at a time; an unanswered one is shown again, three times in all, then parked
     # for 30 days so it cannot nag. A failure here is a note, not a degraded brief.
     q = saved.get("question") if a.render_only else None
+    settled, q_skipped = load_backlog_settled(), []
+    if a.render_only:                                     # dry run: report what the settled check would skip, change nothing
+        pending_question(state, settled, q_skipped)
+        question_candidates(state, today, settled=settled, skipped=q_skipped)
     if not a.render_only:
         back = unpark(state, today)
         if back:
             notes.append(f"{len(back)} parked thread(s) came back today")
-        pend = pending_question(state)
+        pend = pending_question(state, settled, q_skipped)
         if pend:
             t = state["threads"][pend]
             if t.get("asked_times", 1) >= 3:
@@ -290,7 +395,7 @@ def main():
                 t["asked_times"] = t.get("asked_times", 1) + 1
                 q = {**t["question"], "id": pend, "repeat": t["asked_times"]}
         elif status == "ok":
-            cand = question_candidates(state, today)
+            cand = question_candidates(state, today, settled=settled, skipped=q_skipped)
             if cand:
                 blob = "\n\n".join(f"[{k}] (mentioned {state['threads'][k]['mentions']}x, open since {state['threads'][k]['first_seen']}, "
                                    f"from {state['threads'][k]['sources'][0] if state['threads'][k]['sources'] else 'unknown'})\n"
@@ -310,6 +415,10 @@ def main():
                         q = {**qq, "id": j["id"], "repeat": 1}
                 except Exception as e:                      # noqa: BLE001
                     notes.append(f"question failed: {type(e).__name__}: {e}")
+
+    if q_skipped:
+        notes.append(f"question: {len(q_skipped)} thread(s) skipped as settled in BACKLOG.md "
+                     f"({', '.join('`' + x['id'] + '`' for x in q_skipped[:5])}); see question_skipped_settled")
 
     # 3. brief
     closed_now = [k for k, v in verdicts.items() if v.get("status") == "closed"]
@@ -376,9 +485,11 @@ def main():
     json.dump(state, open(state_p, "w"), indent=1, ensure_ascii=False)
     if not a.render_only:
         json.dump({"verdicts": verdicts, "backlog": bl_verdicts, "picks": picks, "status": status, "notes": notes,
-                   "calls": n_calls, "checked": len(todo), "question": q}, open(vpath, "w"), indent=1, ensure_ascii=False)
+                   "calls": n_calls, "checked": len(todo), "question": q, "question_skipped_settled": q_skipped},
+                  open(vpath, "w"), indent=1, ensure_ascii=False)
     print(json.dumps({"status": status, "picks": len(picks), "closed": len(closed_now), "suggested": len(suggested), "likely": len(likely), "backlog_close": len(bl_verdicts),
-                      "backlog_add": len(adds), "calls": n_calls, "notes": notes, "question": (q or {}).get("question", "")}))
+                      "backlog_add": len(adds), "calls": n_calls, "notes": notes, "question": (q or {}).get("question", ""),
+                      "question_skipped_settled": q_skipped}))
 
 
 if __name__ == "__main__":
