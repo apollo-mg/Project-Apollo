@@ -40,3 +40,24 @@ ggml-org/llama.cpp #31086 (10-26); ISTA needs b11870+; Unsloth's own PR #30817 w
    Engram, and two packagers' builds matched to 1 % in backbone bytes.
 8. **Budget:** at ~5 t/s, M1 (240 short answers) is a few hours per arm; AbstentionBench sub1000 is roughly a day per arm.
    Measure speed in a smoke test before fixing the instrument list.
+
+## Checks and smoke tests, 2026-11-03 (procedure only)
+
+- **Downloads:** all 13 files match their published sha256 (`download.log` on .194: ALL OK, 01:04).
+- **Engram identical:** both files hold one tensor, `per_layer_token_embd.weight`, IQ4_NL, [256, 768022850],
+  110,595,290,400 bytes; sha256 of the tensor data `36ee7d378c25f61a...` in both. The 224-byte gap is the header.
+- **Backbone bytes:** routed experts 132.07 GB (GSQ) vs 132.21 GB (Unsloth); other layer tensors 5.25 vs 6.34 GB;
+  embeddings/output 0.91 vs 1.25 GB. GSQ varies expert bytes per layer (2.97-3.93 GB); Unsloth uses blocks
+  (2.65 / 2.94 / 3.79 / 3.65 / 3.93 GB).
+- **Tokenizer identical:** tokens, merges, token types, BOS/EOS/padding ids, add_bos/add_eos, model, pre: all equal.
+  " UNKNOWN" is not a single token (" Unknown" 33049, " unknown" 13026).
+- **Templates:** differ only in reasoning-effort aliases and tool content_blocks; an M1 prompt renders identically
+  under both, thinking off and on.
+- **Smoke (`smoke_ds41.sh`, b12063, three neutral prompts, greedy, 160 tokens):**
+  - first GSQ try (experts of 0-2, 10-12, 20-22, 30-32 on GPU): loaded in 7 min 16 s, then CUDA0 out of memory on the
+    first request. Layer 2 moved to the CPU and layer 33 to the GPU.
+  - GSQ: loaded in 377 s, GPUs 13.3 / 11.1 / 10.8 / 11.9 GB; decode 1.07, 1.92, 2.13 t/s; prefill 0.3-1.4 t/s on
+    ~20-token prompts; answers coherent.
+  - Unsloth: loaded in 467 s, GPUs 12.5 / 11.4 / 12.7 / 12.8 GB; decode 1.11, 1.72, 2.42 t/s; answers coherent.
+  - Upstream warns that the fused DeepSeek-V4 HC pre step is disabled (layer 11 on CUDA1, the op on CUDA0) and that
+    `kernel.numa_balancing` is on. Neither is changed.
