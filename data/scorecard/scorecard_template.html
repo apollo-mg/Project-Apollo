@@ -126,7 +126,8 @@ a { color: var(--know); }
       references removed from the judge prompt (our test found the key tilts verdicts). "Missing info" covers the sets Meta
       builds by deleting a question's context (GSM8K, MMLU, GPQA); "false premise" covers FalseQA and QAQA. Models run through
       the pipeline use a frozen 1,000-item stratified subset, labelled <b>sub1000</b>: a separate instrument, never mixed with
-      fast-subset numbers.</p>
+      fast-subset numbers. <b>sub1000 v3</b> pins the judge's own date: llama.cpp writes today's date into Llama 3.1's prompt,
+      and that alone moved precision by up to 4 points. Versions are never compared with each other.</p>
     <p><b>Chips</b> use fixed thresholds: deep recall (hard &ge; 75&nbsp;%), thin recall (&le; 20&nbsp;%), admits invented
       questions (refuses &ge; 85&nbsp;% while refusing &le; 5&nbsp;% of real hard ones), bluffs (makes up &ge; 50&nbsp;%),
       over-refuses (refuses &ge; 10&nbsp;% of real hard ones), and thinking helps or hurts (refusal moves by &ge; 15 points).</p>
@@ -147,8 +148,11 @@ const K = { easy:"M1-v1|knowledge.easy_acc", hard:"M1-v1|knowledge.hard_acc", re
   miss:"AbstentionBench-fast/norefs|honesty.missing_info_recall", fp:"AbstentionBench-fast/norefs|honesty.false_premise_recall" };
 const pct = v => v == null ? "–" : Math.round(v * 100) + "%";
 // AbstentionBench: the fast-subset key when the setup has one, else the frozen sub1000 instrument (release-day runs)
-const AB = (cfg, k) => { if (cfg && cfg.metrics[K[k]]) return K[k]; const v2 = K[k].replace("-fast/", "-sub1000v2/");
-  return cfg && cfg.metrics[v2] ? v2 : K[k].replace("-fast/", "-sub1000/"); };
+// 2026-11-02: v3 (judge date pinned) is preferred over v2 and v1 when a setup has it; versions are never compared
+const AB = (cfg, k) => { if (cfg && cfg.metrics[K[k]]) return K[k];
+  for (const v of ["-sub1000v3/", "-sub1000v2/"]) { const key = K[k].replace("-fast/", v); if (cfg && cfg.metrics[key]) return key; }
+  return K[k].replace("-fast/", "-sub1000/"); };
+const abInst = x => { const k = AB(x, "rec"); return k.includes("-fast/") ? "fast subset" : k.includes("v3") ? "sub1000 v3" : k.includes("v2") ? "sub1000 v2" : "sub1000"; };
 // among finished answers only (runaways excluded); shown when a setup has >= 2 % unfinished. Survivors skew easy, so n matters
 const KF = { hard:"M1-v1|knowledge.hard_acc_finished", refuse:"M1-v1|honesty.invented_refusal_lenient_finished", confab:"M1-v1|honesty.invented_confabulation_finished" };
 const finNote = (x, k) => { const m = x.metrics[KF[k]]; return (x.metrics[K.unf]?.v ?? 0) >= 0.02 && m ? `<small class="fin">${pct(m.v)} of finished (n=${m.n})</small>` : ""; };
@@ -196,7 +200,7 @@ function otherTable(c) {
   if (restM1.length) h += `<div class="tbl"><table><thead><tr><th>M1 setup</th><th>Hard</th><th>Refuses invented</th><th>Makes up</th><th>Unfinished</th></tr></thead><tbody>` +
     restM1.map(x => `<tr><td>${esc(setupText(x))}</td><td>${pct(val(x, K.hard))}${finNote(x, "hard")}</td><td>${pct(val(x, K.refuse))}${finNote(x, "refuse")}</td><td>${pct(val(x, K.confab))}${finNote(x, "confab")}</td><td>${pct(val(x, K.unf))}</td></tr>`).join("") + `</tbody></table></div>`;
   if (restAb.length) h += `<div class="tbl"><table><thead><tr><th>AbstentionBench setup</th><th>Abstains</th><th>Missing info</th><th>False premise</th><th>Precision</th></tr></thead><tbody>` +
-    restAb.map(x => `<tr><td>${esc(setupText(x))}</td><td>${pct(val(x, AB(x, "rec")))}</td><td>${pct(val(x, AB(x, "miss")))}</td><td>${pct(val(x, AB(x, "fp")))}</td><td>${pct(val(x, AB(x, "prec")))}</td></tr>`).join("") + `</tbody></table></div>`;
+    restAb.map(x => `<tr><td>${esc(setupText(x))} · <b>${abInst(x)}</b></td><td>${pct(val(x, AB(x, "rec")))}</td><td>${pct(val(x, AB(x, "miss")))}</td><td>${pct(val(x, AB(x, "fp")))}</td><td>${pct(val(x, AB(x, "prec")))}</td></tr>`).join("") + `</tbody></table></div>`;
   return h + `</details>`;
 }
 function card(c) {
@@ -210,7 +214,7 @@ function card(c) {
     <div class="group"><span class="eyebrow">Honesty</span>${bar(p, K.refuse, "Refuses invented questions", 1, "--good")}${bar(p, K.confab, "Makes up an answer instead", 0, "--warn")}${bar(p, K.over, "Refuses real hard questions", 0, "--caution")}</div>
     <div class="group"><span class="eyebrow">Reliability</span>${bar(p, K.unf, "Unfinished answers", 1, "--muted")}${(val(p, K.unf) ?? 0) >= 0.02 && p.metrics[KF.hard] ?
       `<span class="fin">Among finished answers only: hard ${pct(val(p, KF.hard))} (n=${p.metrics[KF.hard].n}), refuses invented ${pct(val(p, KF.refuse))} (n=${p.metrics[KF.refuse].n}). Runaways tend to be the hardest items, so these read high.</span>` : ""}</div>`;
-  if (pa) h += `<div class="group"><span class="eyebrow">AbstentionBench${pa.metrics[K.rec] ? "" : AB(pa, "rec").includes("v2") ? " (sub1000 v2)" : " (sub1000)"} · ${esc(pa.quant)} · thinking ${esc(pa.thinking)}</span>${bar(pa, AB(pa, "rec"), "Abstains when it should", 1, "--good")}${bar(pa, AB(pa, "miss"), "Catches missing information", 1, "--good")}${bar(pa, AB(pa, "fp"), "Catches false premises", 1, "--good")}${bar(pa, AB(pa, "prec"), "Its abstentions are warranted", 0, "--know")}</div>`;
+  if (pa) h += `<div class="group"><span class="eyebrow">AbstentionBench${pa.metrics[K.rec] ? "" : ` (${abInst(pa)})`} · ${esc(pa.quant)} · thinking ${esc(pa.thinking)}</span>${bar(pa, AB(pa, "rec"), "Abstains when it should", 1, "--good")}${bar(pa, AB(pa, "miss"), "Catches missing information", 1, "--good")}${bar(pa, AB(pa, "fp"), "Catches false premises", 1, "--good")}${bar(pa, AB(pa, "prec"), "Its abstentions are warranted", 0, "--know")}</div>`;
   h += otherTable(c);
   h += `<div class="foot"><a href="${esc(c.receipt)}" target="_blank" rel="noopener">Receipt</a>${p ? `<a href="${esc(DATA.repo + p.source)}" target="_blank" rel="noopener">Raw rows</a>` : ""}</div></article>`;
   return h;

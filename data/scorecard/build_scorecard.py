@@ -67,19 +67,34 @@ def abench(arm, path, col, sub_only=False, sub_inst="AbstentionBench-sub1000/nor
         if len(keys) < len(SUB1000): print(f"note: {path.name} covers {len(keys)} of {len(SUB1000)} sub1000 items")
     sub = [r for r in V if (r["dataset"], r["index"]) in SUB1000]
     for inst, rows in ((("AbstentionBench-fast/norefs", V),) if not sub_only else ()) + ((sub_inst, sub),) + tuple((i, sub) for i in also):
-        sa = [r for r in rows if r["should_abstain"] == "1"]; called = [r for r in rows if r[col] == "1"]
-        add(cfg, inst, "honesty.abstention_recall", sum(r[col] == "1" for r in sa), len(sa), src)
-        add(cfg, inst, "honesty.abstention_precision", sum(r["should_abstain"] == "1" for r in called), len(called), src)
-        for name, S in (("honesty.missing_info_recall", CONTEXT_REMOVED), ("honesty.false_premise_recall", FALSE_PREMISE)):
-            sub = [r for r in sa if r["dataset"] in S]; add(cfg, inst, name, sum(r[col] == "1" for r in sub), len(sub), src)
+        ab_metrics(cfg, inst, rows, col, src)
+
+
+def ab_metrics(cfg, inst, rows, col, src):
+    sa = [r for r in rows if r["should_abstain"] == "1"]; called = [r for r in rows if r[col] == "1"]
+    add(cfg, inst, "honesty.abstention_recall", sum(r[col] == "1" for r in sa), len(sa), src)
+    add(cfg, inst, "honesty.abstention_precision", sum(r["should_abstain"] == "1" for r in called), len(called), src)
+    for name, S in (("honesty.missing_info_recall", CONTEXT_REMOVED), ("honesty.false_premise_recall", FALSE_PREMISE)):
+        sub = [r for r in sa if r["dataset"] in S]; add(cfg, inst, name, sum(r[col] == "1" for r in sub), len(sub), src)
+
+
+V3 = "AbstentionBench-sub1000v3/norefs"
+def abench_v3(arm):
+    """2026-11-02: the same arm's answers re-judged at instrument v3 (judge date pinned; RESULT_INSTRUMENT_V3.md). Rows go
+    beside the config's v1/v2 rows, from verdicts_<arm>_v3.csv; versions are never compared with each other."""
+    p = R / "abstentionbench" / f"verdicts_{arm}_v3.csv"
+    if f"abench:{arm}" not in configs or not p.exists() or REG["abench_arms"][arm].get("instrument") == V3: return   # a v3 run already has them
+    ab_metrics(f"abench:{arm}", V3, [r for r in csv.DictReader(open(p)) if r["norefs"] != "" and (r["dataset"], r["index"]) in SUB1000], "norefs", f"abstentionbench/{p.name}")
 # 2026-10-29: LLAMA8 also anchors sub1000 v2 unchanged: its GGUF carries no sampling metadata, so llama.cpp sent it exactly
 # v2's explicit top_k 40 / min_p 0.05 (instruments.json "anchors"); the Qwen anchors stay v1-only until their file is checked
 abench("LLAMA8", R / "abstentionbench" / "verdicts_LLAMA8.csv", "norefs", also=("AbstentionBench-sub1000v2/norefs",))
 abench("Q27OFF", R / "abstentionbench" / "verdicts_Q27.csv", "off_norefs")
 abench("Q27ON", R / "abstentionbench" / "verdicts_Q27.csv", "on_norefs")
-for arm, a in REG["abench_arms"].items():   # pipeline arms (recipes): sub1000 only, once their verdict table exists
+for arm, a in REG["abench_arms"].items():   # pipeline arms (recipes) and v3 runs: sub1000 only, once their verdict table exists
     if a.get("sub1000_only") and (R / "abstentionbench" / a["verdicts"]).exists():
         abench(arm, R / "abstentionbench" / a["verdicts"], a["col"], sub_only=True, sub_inst=a.get("instrument", "AbstentionBench-sub1000/norefs"))
+for arm in list(REG["abench_arms"]):
+    abench_v3(arm)
 
 # --- write ---
 db = HERE / "scorecard.db"; db.unlink(missing_ok=True); con = sqlite3.connect(db)

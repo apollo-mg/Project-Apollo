@@ -55,9 +55,20 @@ def test_finished_metrics_never_alter_frozen_rows(built, tmp_path):
 
 def test_pipeline_arm_rows_are_sub1000_only(built):
     R = rows((built / "scorecard.csv").read_text())
-    assert {r["instrument"] for r in R if r["config_id"] == "abench:L31AB"} == {"AbstentionBench-sub1000/norefs"}
+    V3 = "AbstentionBench-sub1000v3/norefs"   # 2026-11-02: every existing arm also carries its v3 re-judge
+    assert {r["instrument"] for r in R if r["config_id"] == "abench:L31AB"} == {"AbstentionBench-sub1000/norefs", V3}
     assert {r["instrument"] for r in R if r["config_id"] == "abench:LLAMA8"} == {"AbstentionBench-fast/norefs", "AbstentionBench-sub1000/norefs",
-                                                                                "AbstentionBench-sub1000v2/norefs"}   # v2 anchor by equivalence
+                                                                                "AbstentionBench-sub1000v2/norefs", V3}   # v2 anchor by equivalence
     v1 = {r["metric"]: r["value"] for r in R if r["config_id"] == "abench:LLAMA8" and r["instrument"] == "AbstentionBench-sub1000/norefs"}
     v2 = {r["metric"]: r["value"] for r in R if r["config_id"] == "abench:LLAMA8" and r["instrument"] == "AbstentionBench-sub1000v2/norefs"}
     assert v1 == v2   # the same verdicts: the anchor carries over, it is not re-run
+
+
+def test_v3_rows_once_each_from_the_v3_tables(built):
+    """2026-11-02: v3 rows come from verdicts_<arm>_v3.csv, one row per (config, metric); the v3 subject run (L31V3) has
+    nothing else, and an arm registered at v3 is not added a second time by the re-judge pass."""
+    R = rows((built / "scorecard.csv").read_text()); V3 = "AbstentionBench-sub1000v3/norefs"
+    keys = [(r["config_id"], r["metric"]) for r in R if r["instrument"] == V3]
+    assert len(keys) == len(set(keys)) and len(keys) == 4 * 7
+    assert {r["instrument"] for r in R if r["config_id"] == "abench:L31V3"} == {V3}
+    assert all(r["receipt"].endswith("_v3.csv") for r in R if r["instrument"] == V3)
