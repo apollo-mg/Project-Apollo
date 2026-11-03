@@ -16,7 +16,8 @@ build_scorecard.py merges recipes through load_recipes(), so a recipe's model an
   audit  RECIPE       defaults audit: one greedy request with and one without explicit neutral penalties, compared
   compare ARM ARM     item-by-item reproduction check of two stored M1 arms (content, finish, grade; P_abs to 1e-6)
   compare-abench A B  the same for two AbstentionBench arms on sub1000 (subject content and finish, norefs verdicts)
-  verdicts ARM        judge output -> the committed, text-free abstentionbench/verdicts_<ARM>.csv"""
+  verdicts ARM        judge output -> the committed, text-free abstentionbench/verdicts_<ARM>.csv
+  result RECIPE       write_result.py: RESULT_<model_id>.draft.md from committed files (facts only; --stdout to render)"""
 import argparse, csv, datetime, hashlib, json, re, shlex, subprocess, sys, urllib.parse, urllib.request
 from pathlib import Path
 HERE = Path(__file__).resolve().parent; ROOT = HERE.parents[1]; QA = ROOT / "data" / "receipts" / "quant-abstention"
@@ -500,6 +501,7 @@ def main():
     x = sp.add_parser("compare"); x.add_argument("arm_a"); x.add_argument("arm_b")
     x = sp.add_parser("compare-abench"); x.add_argument("arm_a"); x.add_argument("arm_b")
     sp.add_parser("verdicts").add_argument("arm")
+    x = sp.add_parser("result"); x.add_argument("recipe"); x.add_argument("--stdout", action="store_true")
     a = ap.parse_args()
     if a.cmd == "check": return check(a.recipes or None)
     if a.cmd == "compare": sys.exit(0 if compare(a.arm_a, a.arm_b) else 1)
@@ -511,6 +513,7 @@ def main():
     if a.cmd == "chain": return chain(p, rc, a.stdout)
     if a.cmd == "smoke": sys.exit(0 if smoke(rc, a.mode) else 1)
     if a.cmd == "audit": return audit(rc)
+    if a.cmd == "result": import write_result; return write_result.write(p, ROOT, a.stdout)
     if not guard(p, rc, quiet=True): guard(p, rc); sys.exit(1)
     if not HOSTS[rc["host"]]["url"]: sys.exit(f"host {rc['host']} has no fixed test URL in hosts.json; set one for this run")
     print(shlex.join([str(QA / "run_main.py"), *run_argv(rc, p, a.mode)]))
