@@ -70,7 +70,8 @@ see seen first last time times day days node nodes desktop rx 9070 xt host hosts
 diary ledger entry note notes item items thread threads value values number numbers way work works working
 """.split())
 COMMON_FILES = {"readme.md", "changelog.md", "index.md", "backlog.md", "status.md", "claude.md", "agents.md",
-                "gemini.md", "roadmap.md", "failure_modes.md", "profiles.yaml"}
+                "gemini.md", "roadmap.md", "failure_modes.md", "profiles.yaml",
+                "llama.cpp", "whisper.cpp"}     # project names that read as files (2026-11-02 replay: two false merges)
 COMMON_ANCHORS = {"q8_0", "f16", "bf16", "f32"}     # the reference quants: named in half the lab's sentences
 ANCHOR_MAX_THREADS = 4      # an anchor carried by more open threads than this is not distinctive, so it is not used
 FILE_RX = re.compile(r"[\w.-]+\.(?:md|py|sh|json|jsonl|ts|tsx|js|yaml|yml|txt|log|gguf|cpp|cu|c|h|csv)\b", re.I)
@@ -128,10 +129,16 @@ def recurrence(state, text, rel, _cache=None):
     Rule (precision first): the item and the thread share an anchor that at most ANCHOR_MAX_THREADS open threads carry,
     and their non-generic words overlap: 1 anchor needs >= 3 shared words and overlap >= 0.25 of the smaller set;
     2+ anchors need >= 1 shared word and overlap >= 0.15. Threads with a source in `rel` are not candidates (two items of
-    one file are two threads unless they are near-duplicates or adjacent paragraphs, the existing rules)."""
+    one file are two threads unless they are near-duplicates or adjacent paragraphs, the existing rules).
+
+    Action items only, on both sides (2026-11-02, local review): the nightly question reads only open ACTION threads, so
+    an action item absorbed into a scope thread is hidden from it (before recurrence it became its own action thread),
+    and scope-to-scope merges never reach the question at all. In a night-by-night replay of all diaries and receipts,
+    14 of the 16 action-to-action merges were real recurrences (1 borderline, 1 false); the other 12 merges held 9 of the
+    10 false ones. Anchor frequency is still counted over ALL open threads, so the cap stays conservative."""
     cache = _cache if _cache is not None else {}
     A = anchors(text)
-    if not A:
+    if not A or not ACTION.search(text):
         return None
     opens = [k for k, t in state["threads"].items() if t.get("status") == "open"]
     for k in opens:
@@ -144,7 +151,7 @@ def recurrence(state, text, rel, _cache=None):
     for k in opens:
         t = state["threads"][k]
         shared = strong & set(cache[k])
-        if not shared or any(src_file(s) == rel for s in t["sources"]):
+        if not shared or t.get("kind", "action") != "action" or any(src_file(s) == rel for s in t["sources"]):
             continue
         TW = content_words(t["text"], cache[k])
         sw = W & TW

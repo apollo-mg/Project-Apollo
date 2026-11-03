@@ -58,7 +58,7 @@ def test_last_seen_updates_and_rerun_is_stable(tmp_path):
 def test_commit_and_filename_anchors(tmp_path):
     a = diary(tmp_path, "2026-11-01", "Daily driver not switched to `1c5e564b` yet: Mark's call after the "
                                       "RESULT_SPEC_DRAFT.md acceptance numbers come in.")
-    b = diary(tmp_path, "2026-11-02", "Switching the daily driver to 1c5e564 still waits on the acceptance numbers "
+    b = diary(tmp_path, "2026-11-02", "Switching the daily driver to 1c5e564 is still pending the acceptance numbers "
                                       "in RESULT_SPEC_DRAFT.md.")
     state, _ = run(tmp_path, [a, b])
     assert [t["mentions"] for t in opens(state).values()] == [2]
@@ -146,3 +146,29 @@ def test_anchors():
                   "`cache_prompt:false`; 16 GB card, 4x P100, 2026-09-28, README.md, Q8_0")
     assert A == {"1.9gb": "number", "1c5e564": "commit", "qwen3.8-27b": "name", "q4_k_m": "name",
                  "result_x.md": "file", "cache_prompt:false": "ident"}
+
+
+SCOPE_NP4 = "The np4 store measured 1.9 GB after the overnight eviction run, with the vector store growing past the threshold."
+SCOPE_NP4_2 = "np4 vector store at 1.9 GB again this morning; eviction never shrank the growing store."
+
+
+def test_action_item_does_not_join_a_scope_thread(tmp_path):
+    """2026-11-02: the nightly question reads action threads only, so an action item absorbed by a scope thread would
+    be hidden from it. It stays its own (action) thread."""
+    assert not H.ACTION.search(SCOPE_NP4) and H.ACTION.search(NP4_2) and H.similar(SCOPE_NP4, NP4_2) < 0.7
+    a = diary(tmp_path, "2026-11-01", SCOPE_NP4)
+    b = diary(tmp_path, "2026-11-02", NP4_2)
+    state, _ = run(tmp_path, [a, b], log=(log := []))
+    assert log == [] and sorted(t["kind"] for t in opens(state).values()) == ["action", "scope"]
+
+
+def test_scope_item_does_not_raise_an_action_threads_mentions(tmp_path):
+    assert H.ACTION.search(NP4_1) and not H.ACTION.search(SCOPE_NP4_2) and H.similar(NP4_1, SCOPE_NP4_2) < 0.7
+    a = diary(tmp_path, "2026-11-01", NP4_1)
+    b = diary(tmp_path, "2026-11-02", SCOPE_NP4_2)
+    state, _ = run(tmp_path, [a, b], log=(log := []))
+    assert log == [] and all(t["mentions"] == 1 for t in state["threads"].values())
+
+
+def test_project_names_are_not_file_anchors():
+    assert "llama.cpp" not in H.anchors("Not yet checked against upstream llama.cpp or `whisper.cpp`; see RESULT_X.md")
