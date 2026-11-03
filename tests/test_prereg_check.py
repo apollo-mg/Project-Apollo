@@ -167,3 +167,11 @@ def test_hook_printer_prints_and_installs_nothing():
     r = subprocess.run(["bash", str(ROOT / "tools" / "install_prereg_hook.sh")], capture_output=True, text=True)
     assert r.returncode == 0
     assert "prereg_check.py --staged" in r.stdout and "/home/" not in r.stdout
+
+
+def test_filename_hit_needs_a_whole_word(monkeypatch, index):
+    """2026-11-02: "ports" in a query matched SPECTRAL_REPORTS.md by substring; a real filename term still counts."""
+    monkeypatch.setattr(pc, "_added", lambda p: datetime.date(2026, 9, 1))
+    out = "=== FILENAME matches\n  data/receipts/scale-gfx1201/drafts/SPECTRAL_REPORTS.md\n  data/receipts/kolibri-old/RESULT_KOLIBRI.md\n"
+    got = pc.hits(out, datetime.date(2026, 10, 6), "data/receipts/kolibri-194/PREREG_KOLIBRI_194.md", query="port ports kolibri")
+    assert got == ["receipt data/receipts/kolibri-old/RESULT_KOLIBRI.md"]

@@ -216,6 +216,10 @@ def hits(out, before, own, query=""):
         elif "FILENAME" in section:
             if s == own or s.endswith("/" + Path(own or "?").name):
                 continue
+            # 2026-11-02: filename hits need a query term as a whole word too. ledger_precheck matches substrings, so the
+            # Kolibri prereg's "ports" hit scale-gfx1201/drafts/SPECTRAL_REPORTS.md, an unrelated SCALE defect report.
+            if words and not any(has(re.sub(r"[_/.]", " ", s.lower()), w) for w in words):
+                continue
             d = _added(s)
             if before and (d is None or d >= before):
                 continue
