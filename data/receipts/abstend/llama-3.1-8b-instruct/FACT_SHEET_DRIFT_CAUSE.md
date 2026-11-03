@@ -44,8 +44,9 @@ For Mark to write from. Every number is in `RESULT_DRIFT_CAUSE.md`, `RESULT_llam
 
 - Bit-exact across eight days and a kernel, firmware, mesa and LLVM update.
 - The midnight split falls out of timing alone. Walking back from the run's finish time puts midnight at row 1,472 of 2,004;
-  the first row that needed the next day's date is row 1,474, finished at 00:00:09. Every later row matches at the next date
-  (98 of 98 run separately to close it).
+  the first row that needed the next day's date is row 1,474, finished at 00:00:09. Every later row in the 1,000-item subset
+  matches at the next date (the 164 that failed at the first date, plus 98 of 98 run separately to close it). Later rows of
+  the full 2,004-item run outside that subset were not tested.
 
 ## The judge
 
@@ -63,7 +64,8 @@ For Mark to write from. Every number is in `RESULT_DRIFT_CAUSE.md`, `RESULT_llam
 - The chain refuses to run a model whose template reads the date unless the recipe pins it.
 - Instrument v3 is the AbstentionBench instrument with the judge's date pinned. The scorecards show v3 rows beside the older
   ones and label which version each number comes from. Versions are never compared with each other.
-- Of the models run so far, only Llama 3.1 has a date in its template. Nanbeige, Spark, Phi and Granite do not.
+- Of the five models run through the pipeline (Llama 3.1, Nanbeige, Spark, Phi, Granite), only Llama 3.1 has a date in its
+  template. The other models on the scorecards have not been checked; the chain now checks every new recipe.
 
 ## What is NOT claimed
 
