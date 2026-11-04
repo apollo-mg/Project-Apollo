@@ -5,7 +5,9 @@
    edited-in-place successor (a different thread id, same source line) as possibly closed.
 2. split_suggested: commit-backed closure suggestions go to the one-line 'likely closed' list; diary- and
    receipt-backed ones stay in 'check'.
-Synthetic data only; no files or model calls. Run: tools/test_daydream_brief.py (exit 0 when all pass).
+3. question_candidates / pending_question: the 2026-11-03 question asked about a switch BACKLOG had recorded as done;
+   a thread whose commit id or file name is in settled BACKLOG evidence is no longer asked about.
+Synthetic data only (BACKLOG text in a temp dir); no model calls. Run: tools/test_daydream_brief.py (exit 0 when all pass).
 """
 import sys
 from pathlib import Path
@@ -82,5 +84,57 @@ check("answer park: hidden until the date", st["threads"]["hot"]["status"] == "p
 C.answer(st["threads"]["old1"], "finish", "yes", "2026-11-02", 30)
 check("answer finish: stays open and marked", st["threads"]["old1"]["status"] == "open" and st["threads"]["old1"]["answer"] == "finish")
 check("answer finish: never asked about again", "old1" not in B.question_candidates(st, "2026-11-02"))
+
+# 2026-11-03: never ask about what BACKLOG records as settled
+import tempfile
+BL = """# Backlog
+| # | thread | cost | blocked by |
+|---|---|---|---|
+| ~~N2~~ | **DONE 10-02: `--resume` live on the daily driver (`resume-daily/NOTE_RESUME_DAILY_73.md`).** Was: ~~.73 daily driver to `1c5e564b`~~ **done via `510cbbbfa` (09-27)**; still open: a suspend/wake with `deadc0de9` | ~25 min | x |
+| N9 | **Open:** port the fix in `abc1234f` to the P100 build (`RESULT_OPEN_PORT.md`) | ~1 h | x |
+| N10 | Bisect the kv regression: ~~`5fd30894a` ruled out~~, `77eeaa1b2` still suspect (`RESULT_KV_BISECT.md`) | ~2 h | x |
+- **FIXED in buun `0b2789f23` (09-25):** the abort. The daily driver is still on `feed1234a`; switching is Mark's call.
+"""
+SET = B.backlog_settled(BL)
+TH = {"text": "x", "mentions": 3, "first_seen": "2026-10-01", "kind": "action", "status": "open", "sources": []}
+mk = lambda text, **kw: {**TH, "text": text, **kw}
+st2 = {"threads": {
+    "drv": mk("The daily driver was not switched to 1c5e564b; that is Mark's call."),
+    "port": mk("Port of abc1234f to the P100 build not yet run."),
+    "inspan": mk("5fd30894a needs a second look on .194."),
+    "outspan": mk("77eeaa1b2 is not root-caused yet."),
+    "after_open": mk("Suspend/wake with deadc0de9 untested."),
+    "after_open2": mk("Daily driver still on feed1234a, not switched yet."),
+    "fixed": mk("The 0b2789f23 abort fix is not re-tested at -np 4."),
+    "word": mk("The daily driver --resume is not tested across a suspend."),
+}}
+skipped = []
+cand = B.question_candidates(st2, "2026-11-03", settled=SET, skipped=skipped)
+sk = {x["id"]: x for x in skipped}
+check("settled: the 1c5e564b thread is not asked (struck span in a struck-id DONE row)", "drv" not in cand and "drv" in sk)
+check("settled: the skip records the anchor and the BACKLOG snippet",
+      sk.get("drv", {}).get("anchors") == ["1c5e564"] and "1c5e564b" in sk["drv"]["backlog"][0]["snippet"]
+      and sk["drv"]["backlog"][0]["kind"] == "struck")
+check("open row: a thread whose anchor is only in an OPEN BACKLOG row is still asked", "port" in cand and "port" not in sk)
+check("struck span in an open row: the anchor inside the span is settled", "inspan" not in cand and "inspan" in sk)
+check("struck span in an open row: an anchor outside the span is not", "outspan" in cand)
+check("done row: anchors after a 'still open' marker are not settled", "after_open" in cand)
+check("FIXED bullet: anchors after 'still on' are not settled; before it they are", "after_open2" in cand and "fixed" not in cand)
+check("shared words and backticked flags never skip (only commit ids and file names do)", "word" in cand)
+st2["threads"]["drv"].update(asked_on="2026-11-03", asked_times=1, question={"question": "switch?"})
+psk = []
+check("pending: a settled asked question is not shown again; skip recorded",
+      B.pending_question(st2, SET, psk) is None and [x["id"] for x in psk] == ["drv"])
+check("pending: without settled evidence it is still pending", B.pending_question(st2) == "drv")
+with tempfile.TemporaryDirectory() as d:
+    none = B.load_backlog_settled(Path(d) / "BACKLOG.md")
+    (Path(d) / "BACKLOG.md").write_text(BL)
+    present = B.load_backlog_settled(Path(d) / "BACKLOG.md")
+st2["threads"]["drv"].pop("asked_on")
+sk0 = []
+check("no BACKLOG file: no settled evidence, candidates unchanged",
+      none == [] and B.question_candidates(st2, "2026-11-03", settled=none, skipped=sk0) == B.question_candidates(st2, "2026-11-03")
+      and "drv" in B.question_candidates(st2, "2026-11-03") and sk0 == [])
+check("BACKLOG file in a temp dir parses the same as the text", present == SET)
 
 sys.exit(1 if fails else 0)
