@@ -137,4 +137,15 @@ check("no BACKLOG file: no settled evidence, candidates unchanged",
       and "drv" in B.question_candidates(st2, "2026-11-03") and sk0 == [])
 check("BACKLOG file in a temp dir parses the same as the text", present == SET)
 
+
+# 2026-11-05: every no-question path says why (two nights asked nothing with 20 candidates and left no trace)
+CAND = ["a1", "b2"]
+q_ok, n_ok = B.interpret_ask({"ask": True, "id": "a1", "kind": "decide", "question": "Switch?", "why": "unblocks x"}, CAND)
+check("ask: a valid reply becomes the question with its id", q_ok == {"id": "a1", "kind": "decide", "question": "Switch?", "why": "unblocks x"} and n_ok is None)
+for reply, frag in (({}, "no JSON"), (None, "no JSON"), ({"ask": False, "why": "nothing is ripe"}, "chose to ask nothing (nothing is ripe)"),
+                    ({"ask": True, "id": "zz", "question": "q?"}, "not one of the 2 candidates"),
+                    ({"ask": True, "id": "a1", "question": "  "}, "question was empty")):
+    q_n, note = B.interpret_ask(reply, CAND)
+    check(f"ask: {frag!r} -> nothing asked, and the note says so", q_n is None and note and frag in note)
+
 sys.exit(1 if fails else 0)

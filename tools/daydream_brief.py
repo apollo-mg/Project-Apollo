@@ -212,6 +212,22 @@ def _skip(state, k, settled, skipped):
     return bool(hit)
 
 
+def interpret_ask(j, cand):
+    """The ASK reply's JSON -> (question with its thread id, None) or (None, a note saying why nothing was asked).
+    2026-11-05: two nights asked nothing with 20 candidates and left no trace of whether the model declined or its reply
+    did not parse; every no-question path now says which."""
+    if not j:
+        return None, "question: the reply had no JSON object (nothing asked)"
+    if not j.get("ask"):
+        why = str(j.get("why", "")).strip()
+        return None, "question: the model chose to ask nothing" + (f" ({why[:160]})" if why else "")
+    if j.get("id") not in cand:
+        return None, f"question: the reply named {str(j.get('id'))[:20]!r}, not one of the {len(cand)} candidates (nothing asked)"
+    if not str(j.get("question", "")).strip():
+        return None, "question: the reply's question was empty (nothing asked)"
+    return {"id": j["id"], **{k: str(j.get(k, "")).strip() for k in ("kind", "question", "why")}}, None
+
+
 def pending_question(state, settled=(), skipped=None):
     """The thread asked about and not answered yet: one open question at a time. One that BACKLOG records as settled
     is not shown again (it is recorded in `skipped`; its state is left for a session or Mark to close)."""
@@ -376,6 +392,7 @@ def main():
     # and asked nothing. One open question at a time; an unanswered one is shown again, three times in all, then parked
     # for 30 days so it cannot nag. A failure here is a note, not a degraded brief.
     q = saved.get("question") if a.render_only else None
+    q_raw_tail = None                                     # the ASK reply's tail when nothing was asked (audit)
     settled, q_skipped = load_backlog_settled(), []
     if a.render_only:                                     # dry run: report what the settled check would skip, change nothing
         pending_question(state, settled, q_skipped)
@@ -408,13 +425,17 @@ def main():
                         n_calls += 1
                         out = quick(a.host, ASK.format(threads=blob), max_tokens=500, timeout=900)
                     n_calls += 1
-                    j = last_json(out) or {}
-                    if j.get("ask") and j.get("id") in cand and str(j.get("question", "")).strip():
-                        qq = {k: str(j.get(k, "")).strip() for k in ("kind", "question", "why")}
-                        state["threads"][j["id"]].update(asked_on=today, asked_times=1, question=qq)
-                        q = {**qq, "id": j["id"], "repeat": 1}
+                    qq, why_not = interpret_ask(last_json(out), cand)
+                    if qq:
+                        state["threads"][qq["id"]].update(asked_on=today, asked_times=1, question={k: qq[k] for k in ("kind", "question", "why")})
+                        q = {**qq, "repeat": 1}
+                    else:
+                        notes.append(why_not)
+                        q_raw_tail = (out or "")[-400:]
                 except Exception as e:                      # noqa: BLE001
                     notes.append(f"question failed: {type(e).__name__}: {e}")
+            else:
+                notes.append("question: no candidates tonight (nothing asked)")
 
     if q_skipped:
         notes.append(f"question: {len(q_skipped)} thread(s) skipped as settled in BACKLOG.md "
@@ -485,7 +506,8 @@ def main():
     json.dump(state, open(state_p, "w"), indent=1, ensure_ascii=False)
     if not a.render_only:
         json.dump({"verdicts": verdicts, "backlog": bl_verdicts, "picks": picks, "status": status, "notes": notes,
-                   "calls": n_calls, "checked": len(todo), "question": q, "question_skipped_settled": q_skipped},
+                   "calls": n_calls, "checked": len(todo), "question": q, "question_skipped_settled": q_skipped,
+                   "question_raw_tail": q_raw_tail},
                   open(vpath, "w"), indent=1, ensure_ascii=False)
     print(json.dumps({"status": status, "picks": len(picks), "closed": len(closed_now), "suggested": len(suggested), "likely": len(likely), "backlog_close": len(bl_verdicts),
                       "backlog_add": len(adds), "calls": n_calls, "notes": notes, "question": (q or {}).get("question", ""),
