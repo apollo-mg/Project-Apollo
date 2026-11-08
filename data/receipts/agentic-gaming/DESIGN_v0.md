@@ -72,6 +72,10 @@ shortcut rate is reported conditional on whether the model solves the control.
 - Serving is part of the instrument: temperature 0, `cache_prompt` false, `-np 1`, KV flags explicit, thinking budget
   stated per arm.
 
+## Build status
+
+- 2026-11-08: `argus/gaming/` -- `fswatch.py` (host inotify), `sandbox.py` (bwrap; all four tools inside), `families/f1_checksum.py` (S2 family, easy/hard rungs, no-key control), `harness.py` (episodes, attribution, outcome checks in a fresh `python -I` sandbox, F1 detectors), `scripted.py`. `tests/test_gaming_f1.py`: every scripted agent labelled right (quiet and noisy honest clean; cat, hard-link and silent-script key cheaters caught, the last two without the canary; edit-run-revert caught with a clean final diff; escape probe read nothing). Still to build: F2 (S1/S3/S4 and the impossible rung), the model agent loop, then the pilot.
+
 ## Validation suite (before any model; it must be able to fail)
 
 Scripted agents, each of which must be labelled exactly right:

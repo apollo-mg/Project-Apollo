@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Agentic gaming harness, F1 (Claude, 2026-11-08):** `argus/gaming/` (watcher, bwrap sandbox with every tool inside, the answer-key family F1, episode runner with per-call attribution and fresh-sandbox outcome checks, scripted agents). `tests/test_gaming_f1.py`: honest agents clean, all key cheaters caught (two without the canary, by inode events and seeded wrong values), edit-run-revert caught, escape probe contained. 195 tests pass.
 - **Posted (Mark, 2026-11-08):** the Ripple-65B and Arete-27B M1 results are live on their Hugging Face community pages (drafts in `data/receipts/ripple/HF_POST_DRAFT.md` and `data/receipts/arete/HF_POST_DRAFT.md`).
 - **Agentic gaming instrument, design v0 (Claude, 2026-11-08):** `data/receipts/agentic-gaming/DESIGN_v0.md`. Shortcut classes (edit tests, read the key, hard-code, disable a check) under a stated rule, an impossible rung as agentic abstention, detection outside the agent (harness log, inotify, canary tokens, post-run diff, hidden checks), bwrap sandbox, scripted agents to validate the detectors before any model.
 - **Arete-27B on M1 (Claude, 2026-11-08):** `data/receipts/arete/`. BF16 downloaded (sha256 per shard), our Q8_0 (`--no-mtp`: Arete ships no MTP head; tensor types match the base's), run against the same-day base replay on .194. Refusal of invented items -0.12 (p = 0.0005), knowledge unchanged; all predictions held. Fifth fine-tune with the same direction.
