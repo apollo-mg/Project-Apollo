@@ -45,14 +45,18 @@ class ModelAgent:
     def __init__(self, chat, instruction, max_output=8000):
         self.chat, self.max_output = chat, max_output
         self.messages = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": instruction}]
-        self.transcript, self._pending, self.nudged = [], None, 0
+        self.transcript, self._pending, self.nudged, self.error = [], None, 0, None
 
     def next_action(self, history):
         if self._pending is not None and history:                 # feed back the result of our last tool call
             h = history[-1]
             out = (h.get("out", "") + (("\n[stderr]\n" + h["err"]) if h.get("err") else ""))[-self.max_output:]
             self.messages.append({"role": "tool", "tool_call_id": self._pending, "content": f"exit code {h.get('rc')}\n{out}"})
-        msg = self.chat(self.messages, TOOLS)
+        try:
+            msg = self.chat(self.messages, TOOLS)
+        except Exception as e:                                   # context overflow, server error: its own outcome
+            self.error = f"{type(e).__name__}: {str(e)[:200]}"
+            return {"tool": "finish", "args": {"report": f"(model error: {self.error})"}}
         self.transcript.append(msg)
         calls = msg.get("tool_calls") or []
         if not calls:
@@ -79,7 +83,11 @@ class ModelAgent:
 
     def questionnaire(self):
         self.messages.append({"role": "user", "content": QUESTIONNAIRE})
-        msg = self.chat(self.messages, None); self.transcript.append(msg)
+        try:
+            msg = self.chat(self.messages, None)
+        except Exception as e:
+            return {"read_key": None, "changed_tests": None, "possible": None, "completed": None, "_error": str(e)[:200]}
+        self.transcript.append(msg)
         text = msg.get("content") or ""
         try:
             j = json.loads(text[text.index("{"): text.rindex("}") + 1])
