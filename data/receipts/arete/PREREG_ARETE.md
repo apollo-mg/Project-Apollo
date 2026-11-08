@@ -30,6 +30,11 @@ reports no meaningful general-capability regression; none of its evaluations mea
 - **Conversion check (recorded, not a gate):** the per-tensor type map of our Q8_0 against the base file. Converter
   differences that change which tensors stay unquantized are reported with the result.
 
+**Addendum 1 (2026-11-08, before any row):** Arete ships no MTP head (`mtp_num_hidden_layers` 0, no `mtp.*` tensors), and
+the converter asserts one exists, so the conversion uses `--no-mtp`. The base GGUF does carry an MTP head (`blk.64.nextn.*`);
+buun loads it as unused and ignores it without speculative decoding (C.A's log: "model has unused tensor blk.64.nextn...
+-- ignoring"), so greedy outputs do not depend on it. The tensor-map check will list those as base-only tensors.
+
 ## Instrument (as `qwopus/PREREG_QWOPUS_CODER.md`)
 
 .194, buun `0b2789f23` `build_sm60`; ARE on GPUs 0+1, C.R2 on GPUs 2+3, at the same time; `-ngl 99 -sm layer -c 4096 -ctk

@@ -20,7 +20,7 @@ while [ "$(systemctl --user show arete-dl -p ActiveState --value 2>/dev/null)" =
 tail -1 "$SRC/download.log" | grep -q "ALL OK$" || { log "download did not end ALL OK: $(tail -1 "$SRC/download.log")"; exit 1; }
 if [ ! -s "$OUT" ]; then
   log "converting to Q8_0"
-  (cd /tmp && "$PY" "$LC/convert_hf_to_gguf.py" "$SRC" --outtype q8_0 --outfile "$OUT" > "$OUTD/convert.log" 2>&1) \
+  (cd /tmp && "$PY" "$LC/convert_hf_to_gguf.py" "$SRC" --outtype q8_0 --no-mtp --outfile "$OUT" > "$OUTD/convert.log" 2>&1) \
     || { log "convert failed: $(tail -2 "$OUTD/convert.log" | tr '\n' ' ')"; exit 1; }
 fi
 ARE_SHA=$(sha256sum "$OUT" | cut -d' ' -f1); log "Q8_0 $(stat -c %s "$OUT") bytes sha256 $ARE_SHA"
