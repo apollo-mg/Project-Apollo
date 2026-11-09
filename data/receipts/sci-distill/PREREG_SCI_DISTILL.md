@@ -90,6 +90,14 @@ that is accepted and recorded.
 **Named in advance as the most interesting outcome:** equal accuracy at a fraction of the tokens (P4 holds and the CI on
 the GPQA difference includes 0 with |point| < 0.03).
 
+## Addendum 1 -- the chain (2026-11-09, before any row)
+
+`run_sci_distill.sh` implements the above with two procedural details. M1 runs Q35B first and DSV9 second, on separate
+servers (GPU 0 :8190, GPU 2 :8191), because DSV9's expected UNKNOWN ids and render tail are read from Q35B's header (M1
+is greedy at `-np 1`, so order does not change outputs). The thinking-on smoke uses the GPQA sampling, since a greedy
+thinking smoke can loop to its cap and fail for a reason that says nothing about the gate. The conversion's size,
+sha256 and tensor map are logged by the chain (`raw/chain.log`, `tensor_map.txt`), recorded, not gated.
+
 ## Deviations
 
 Any change to a file, flag, lane, round rule or the analysis after the first M1 or GPQA row gets a numbered Deviation.
