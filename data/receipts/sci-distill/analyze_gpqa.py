@@ -24,16 +24,17 @@ def by_round(rows):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("A"); ap.add_argument("B"); ap.add_argument("--json")
+    ap.add_argument("--field", default="correct", help="correct (registered) or correct_any (Deviation 1, regraded files)")
     a = ap.parse_args()
     (na, ra), (nb, rb) = load(a.A), load(a.B)
     A, B = by_round(ra), by_round(rb)
     rounds = sorted(r for r in set(A) & set(B) if len(A[r]) == 198 and len(B[r]) == 198)
     ids = sorted(A[rounds[0]]) if rounds else []
-    out = {"arms": [na, nb], "rounds": rounds, "n_items": len(ids)}
+    out = {"arms": [na, nb], "grade": a.field, "rounds": rounds, "n_items": len(ids)}
     if len(rounds) < 2:
         out["status"] = f"INCOMPLETE: {len(rounds)} complete round(s), the prereg needs 2"
     trunc = lambda r: r["finish"] == "length"
-    acc = lambda D, i: sum(D[k][i]["correct"] for k in rounds) / len(rounds)
+    acc = lambda D, i: sum(D[k][i][a.field] for k in rounds) / len(rounds)
 
     def paired(keep):
         diffs = [acc(B, i) - acc(A, i) for i in keep]
@@ -51,12 +52,13 @@ def main():
         out["sensitivity_never_truncated"] = paired(clean)
         for name, D in ((na, A), (nb, B)):
             rs = [D[k][i] for k in rounds for i in ids]
-            tok = sum(r["completion_tokens"] or 0 for r in rs); cor = sum(r["correct"] for r in rs)
+            tok = sum(r["completion_tokens"] or 0 for r in rs); cor = sum(r[a.field] for r in rs)
             dom = defaultdict(list)
-            for r in rs: dom[r["domain"]].append(r["correct"])
+            for r in rs: dom[r["domain"]].append(r[a.field])
             out[name] = {"requests": len(rs), "accuracy": round(cor / len(rs), 4),
                          "truncated": round(sum(trunc(r) for r in rs) / len(rs), 4),
-                         "no_answer": round(sum(not r["answered"] for r in rs) / len(rs), 4),
+                         "no_answer": round(sum((r.get("answer_form") == "none") if a.field == "correct_any" else (not r["answered"]) for r in rs) / len(rs), 4),
+                         "bare_letter_answers": round(sum(r.get("answer_form") == "bare_letter" for r in rs) / len(rs), 4),
                          "median_completion_tokens": statistics.median(r["completion_tokens"] or 0 for r in rs),
                          "mean_completion_tokens": round(tok / len(rs)), "tokens_per_correct": round(tok / max(cor, 1)),
                          "by_domain": {k: round(sum(v) / len(v), 3) for k, v in sorted(dom.items())}}

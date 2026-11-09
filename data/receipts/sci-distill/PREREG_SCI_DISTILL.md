@@ -101,3 +101,18 @@ sha256 and tensor map are logged by the chain (`raw/chain.log`, `tensor_map.txt`
 ## Deviations
 
 Any change to a file, flag, lane, round rule or the analysis after the first M1 or GPQA row gets a numbered Deviation.
+
+**Deviation 1 -- GPQA grading fallback (2026-11-09 14:07, after DSV9's first 3 GPQA rows and before any Q35B GPQA row).**
+DSV9 ends its replies with a bare letter ("C") instead of the requested `ANSWER: C` line, so the registered parser
+scores them unanswered. I saw this on its first three rows, and I also saw that those three letters matched the gold
+answers. The fallback is defined by format alone and applies to both arms identically: when there is no `ANSWER:` line,
+the last non-empty content line counts if it is a bare letter A-D, optionally wrapped ("**C**", "(C)", "C.",
+`\boxed{C}`). Implemented in `regrade_gpqa.py` (12 test cases, negatives included), which reads the private rows,
+reproduces the registered grade exactly, and adds `correct_any` and `answer_form` to text-free files. Generation is
+unchanged and nothing is rerun. Both grades are reported: the registered one (`correct`) and the fallback
+(`correct_any`, read as the substantive result since it differs from the registered one only in answer format).
+The share of bare-letter answers per arm is reported, since format compliance is itself a difference between the models.
+
+**Note on M1 (not a deviation; the instrument's lenient grade already exists):** DSV9 answers 125 of 240 M1 items with
+the single word "UNKNOWN" (median reply 2 tokens, vs 53 for Q35B), which the registered strict grade scores NO-ANSWER.
+P1 is read on both grades in the result.
