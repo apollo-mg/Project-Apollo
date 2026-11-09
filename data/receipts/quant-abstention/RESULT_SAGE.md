@@ -1,5 +1,7 @@
 # RESULT: Sage-A1.5 recalls more obscure facts than the dense 27B but confabulates more, and its fine-tune lineage is what cost the honesty
 
+**Caveat (2026-11-08):** Sage ran at Q8_0 and its base at a plain Q6_K, so precision was not matched. An independent MLX probe (HF discussion #23 on NousResearch/Arete-27B) found Sage holding its base's refusal rate on 30 invented items. The -0.22 is unconfirmed until a matched rerun (candidate: mradermacher's static Sage-A1.5 Q6_K, the same packager as the base file).
+
 **Prereg:** `PREREG_SAGE.md` (`8ba98077`), Addendum 1 (`0db665b6`, sampled thinking arms; results appended when they land).
 **Host:** .194 4x P100 at the default 1,063 MHz, 150 W, upstream llama.cpp `c7fc509` build_sm60, `-sm layer`, F16 KV,
 weights from `/dev/shm`. M1 instrument, 240 items (E 40 easy, H 100 hard real facts, U 100 invented), greedy, thinking

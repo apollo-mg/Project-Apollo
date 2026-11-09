@@ -61,6 +61,11 @@ far from M1's. It did not. The skill or value being trained does not seem to mat
 abstention signal costs "I don't know" on unrelated questions. The one adapter trained for abstention (Granite's IDK
 LoRA) is the only counterexample, and it went the other way.
 
+## Independent replication and a caveat (2026-11-08)
+
+- **Replicated on a different stack** (Jorge Leon, HF discussion #23 on NousResearch/Arete-27B): 4-bit MLX quants, his own 30 invented questions plus 6 real controls, greedy, thinking off. Base 11/30 UNKNOWN vs Arete 8/30; flips 5 toward fabrication vs 2 back; controls 6/6 for both; a second, independently made base quant scored identically (11/30). Same direction and signature as M1.
+- **The Sage row above is in question.** Our Sage-A1.5 comparison (`quant-abstention/RESULT_SAGE.md`) paired Sage at Q8_0 with its base at a plain Q6_K: precision was not matched as it was here. On his set, Sage holds its base's rate (15-17/30 vs 15/30). Until a matched rerun, treat Sage's -0.22 as unconfirmed; the other four rows are matched comparisons.
+
 ## Limits
 
 - Thinking off, greedy, one file (Q8_0, our conversion), n = 100 per group.
