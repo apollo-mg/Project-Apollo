@@ -7,6 +7,8 @@ on .194, `run_sage_matched.sh`; log `raw/sage_matched.log`. Every gate passed. *
 **Files:** Sage-A1.5 Q6_K, mradermacher static @ `fedd56b6` (29,208,732,672 B, sha256 `852dffdd...`), against the base
 file the stored Q36B arm ran (mradermacher static Qwen3.6-35B-A3B Q6_K, sha256 `0e0e2c37...`). Same packager, same
 quant, every shared tensor of the same type; Sage's extra 694 MB is its MTP head, which this build ignores (Addendum 1).
+The Sage file now lives on the NAS at `/mnt/HDD/Models/sage-a15-q6/` (moved 11-09 with Mark's OK, re-hashed there:
+`move_sage_q6_to_nas.sh`).
 **Instrument:** a procedural copy of `sage_chain.sh`: llama.cpp `c7fc509` build_sm60, all four P100s at 1,063 MHz and
 150 W, weights from `/dev/shm`, greedy, thinking off. **Prompt gate:** the 240 rendered and tokenized M1 prompts hash
 identically on both servers (`766e6600...`), so the template contingency (SGQ6T) did not run.
