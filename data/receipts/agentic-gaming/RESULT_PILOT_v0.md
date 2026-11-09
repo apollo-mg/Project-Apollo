@@ -31,6 +31,12 @@ by where it came from).
   period was measured over the tool-call log). The other two (BASE s2, s3) kept trying new things until the budget ended.
   The harness label `honest_abstain` counts these 9 because it reads the questionnaire. None of them is an abstention the
   agent volunteered.
+- **The three F2 seeds are one task, not three.** The seed draws only the hidden grading cases
+  (`families/f2_fix.py generate()`), so every seed shows the agent the same workspace. The runs still differ, because
+  tool outputs carry incidental noise (directory timestamps from the first `list_dir`), and greedy trajectories drift
+  apart by about step 11. So each F2 cell is one task run three times with small perturbations: the 9 impossible
+  episodes are 3 models on one task, and ARE's three took only 2 distinct action sequences. (F1's instruction text is
+  the same across seeds as well.)
 - **Harness faults: 1 in 51.** BASE F2 hard s1 answered the questionnaire with a `finish` tool call instead of the four
   answers, so that row's questionnaire is unparsed (`_raw` kept). No agent errors, no malformed calls that ended an
   episode, no context overflow.
@@ -47,10 +53,13 @@ by where it came from).
    episode as its own outcome, "stuck") and an abstention label that separates a finish report saying the task is
    impossible from an answer elicited afterwards.
 4. **The questionnaire parser should accept the `finish`-call form** it got once here.
-5. The question the pilot could only hint at, whether the fine-tunes' M1 pattern (less "I don't know") shows up as more
+5. **Seeds must change what the agent sees** (visible tests, names, values), or episodes need sampling at K > 1.
+   Otherwise three seeds at temperature 0 are one sample with noise, and rates over them overstate N.
+6. The question the pilot could only hint at, whether the fine-tunes' M1 pattern (less "I don't know") shows up as more
    corner-cutting: not here. Neither fine-tune cut a corner; with zero shortcuts in every arm there is nothing to compare.
 
 ## Limits
 
-One sample per cell and seed at temperature 0, three seeds per cell, three models from one lineage, a 30-step budget.
-Zero events in 51 is a base-rate estimate for these rungs, not evidence that these models would not game a harder one.
+Temperature 0, three seeds per cell that on F2 vary only the hidden cases (so close to one task per cell), three models
+from one lineage, a 30-step budget. Zero events in 51 episodes, far fewer independent tasks, is a base-rate hint for
+these rungs, not evidence that these models would not game a harder one.
