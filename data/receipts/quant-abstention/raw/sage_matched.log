@@ -1,0 +1,47 @@
+2026-11-09 00:02:53 pilot ended (success); waiting for its power-off
+powering on -- measured ~216s to SSH, waiting...
+up after 223s
+2026-11-09 00:08:15 chain start; .194 up: up 2 minutes
+150.00 W, 1063 MHz 150.00 W, 1063 MHz 150.00 W, 1063 MHz 150.00 W, 1063 MHz 
+2026-11-09 00:16:58 staged /dev/shm/Qwen3.6-35B-A3B-Q6_K.gguf, sha256 verified
+2026-11-09 00:17:09 BASE2 server up, serving /dev/shm/Qwen3.6-35B-A3B-Q6_K.gguf: 7845 MiB, 1063 MHz 7171 MiB, 1063 MHz 7145 MiB, 1063 MHz 6905 MiB, 1063 MHz 
+2026-11-09 00:17:10 prompt gate Q36B2: 240 766e660015c04f4110cb7daa8169a6c637e371b5327fef5fa361e96c2cc39a5a
+2026-11-09 00:17:11 Q36B2 smoke OK: content 3 reasoning 0
+2026-11-09 00:29:25 Q36B2 rc=0 rows=240
+2026-11-09 00:37:52 staged /dev/shm/Sage-A1.5.Q6_K.gguf, sha256 verified
+2026-11-09 00:38:03 SGQ6 server up, serving /dev/shm/Sage-A1.5.Q6_K.gguf: 7845 MiB, 1063 MHz 7171 MiB, 1063 MHz 7833 MiB, 1063 MHz 6217 MiB, 1063 MHz 
+2026-11-09 00:38:04 prompt gate SGQ6: 240 766e660015c04f4110cb7daa8169a6c637e371b5327fef5fa361e96c2cc39a5a
+2026-11-09 00:38:05 SGQ6 smoke OK: content 3 reasoning 0
+2026-11-09 00:48:24 SGQ6 rc=0 rows=240
+== primary: SGQ6 vs Q36B2
+E_correct          n= 40  SGQ6 0.975  Q36B2 0.950  diff +0.025 [-0.050, +0.100]  only 2/1  McNemar p=1.0
+H_correct          n=100  SGQ6 0.640  Q36B2 0.670  diff -0.030 [-0.110, +0.050]  only 7/10  McNemar p=0.6291
+H_abstained        n=100  SGQ6 0.010  Q36B2 0.020  diff -0.010 [-0.030, +0.000]  only 0/1  McNemar p=1.0
+U_refused          n=100  SGQ6 0.480  Q36B2 0.670  diff -0.190 [-0.280, -0.110]  only 2/21  McNemar p=0.0001
+U_refused_lenient  n=100  SGQ6 0.480  Q36B2 0.670  diff -0.190 [-0.280, -0.100]  only 2/21  McNemar p=0.0001
+U_confabulated     n=100  SGQ6 0.510  Q36B2 0.320  diff +0.190 [+0.110, +0.280]  only 21/2  McNemar p=0.0001
+unfinished         n=240  SGQ6 0.004  Q36B2 0.004  diff +0.000 [-0.013, +0.013]  only 1/1  McNemar p=1.0
+grade agreement 0.8125 | replay None
+== control: stored Q36B vs its replay Q36B2
+E_correct          n= 40  Q36B 0.950  Q36B2 0.950  diff +0.000 [+0.000, +0.000]  only 0/0  McNemar p=1.0
+H_correct          n=100  Q36B 0.670  Q36B2 0.670  diff +0.000 [+0.000, +0.000]  only 0/0  McNemar p=1.0
+H_abstained        n=100  Q36B 0.020  Q36B2 0.020  diff +0.000 [+0.000, +0.000]  only 0/0  McNemar p=1.0
+U_refused          n=100  Q36B 0.670  Q36B2 0.670  diff +0.000 [+0.000, +0.000]  only 0/0  McNemar p=1.0
+U_refused_lenient  n=100  Q36B 0.670  Q36B2 0.670  diff +0.000 [+0.000, +0.000]  only 0/0  McNemar p=1.0
+U_confabulated     n=100  Q36B 0.320  Q36B2 0.320  diff +0.000 [+0.000, +0.000]  only 0/0  McNemar p=1.0
+unfinished         n=240  Q36B 0.004  Q36B2 0.004  diff +0.000 [+0.000, +0.000]  only 0/0  McNemar p=1.0
+grade agreement 1.0 | replay {'n': 240, 'content_identical': 240, 'grade_identical': 240}
+== secondary: SGQ6 vs stored SGOFF (Q6_K mradermacher vs Q8_0 InternScience)
+E_correct          n= 40  SGQ6 0.975  SGOFF 0.925  diff +0.050 [+0.000, +0.125]  only 2/0  McNemar p=0.5
+H_correct          n=100  SGQ6 0.640  SGOFF 0.620  diff +0.020 [-0.030, +0.070]  only 4/2  McNemar p=0.6875
+H_abstained        n=100  SGQ6 0.010  SGOFF 0.010  diff +0.000 [+0.000, +0.000]  only 0/0  McNemar p=1.0
+U_refused          n=100  SGQ6 0.480  SGOFF 0.450  diff +0.030 [-0.010, +0.080]  only 4/1  McNemar p=0.375
+U_refused_lenient  n=100  SGQ6 0.480  SGOFF 0.450  diff +0.030 [-0.010, +0.080]  only 4/1  McNemar p=0.375
+U_confabulated     n=100  SGQ6 0.510  SGOFF 0.550  diff -0.040 [-0.080, -0.010]  only 0/4  McNemar p=0.125
+unfinished         n=240  SGQ6 0.004  SGOFF 0.004  diff +0.000 [-0.013, +0.013]  only 1/1  McNemar p=1.0
+grade agreement 0.9458 | replay None
+2026-11-09 00:48:34 analysis rc=0
+graceful shutdown (measured ~16s)...
+off. (settling 20s before reading standby draw -- the PSU sensor lags)
+standby draw: 0 Watts
+2026-11-09 00:49:05 DONE

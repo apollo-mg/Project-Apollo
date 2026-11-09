@@ -1,6 +1,6 @@
 # RESULT: Sage-A1.5 recalls more obscure facts than the dense 27B but confabulates more, and its fine-tune lineage is what cost the honesty
 
-**Caveat (2026-11-08):** Sage ran at Q8_0 and its base at a plain Q6_K, so precision was not matched. An independent MLX probe (HF discussion #23 on NousResearch/Arete-27B) found Sage holding its base's refusal rate on 30 invented items. The -0.22 is unconfirmed until a matched rerun (candidate: mradermacher's static Sage-A1.5 Q6_K, the same packager as the base file).
+**Confirmed at matched precision (2026-11-09, `RESULT_SAGE_MATCHED.md`):** Sage ran here at Q8_0 and its base at a plain Q6_K, a mismatch an independent MLX probe (HF discussion #23 on NousResearch/Arete-27B) brought to light by finding Sage holding its base's refusal rate on 30 invented items. Rerun with Sage at the base's packager and quant (mradermacher static Q6_K), same build, base replayed byte-identically: invented refused 0.48 vs 0.67, **-0.19** [-0.28, -0.11], flips 2 vs 21. The mismatch was worth about 0.03; finding 3 stands.
 
 **Prereg:** `PREREG_SAGE.md` (`8ba98077`), Addendum 1 (`0db665b6`, sampled thinking arms; results appended when they land).
 **Host:** .194 4x P100 at the default 1,063 MHz, 150 W, upstream llama.cpp `c7fc509` build_sm60, `-sm layer`, F16 KV,
