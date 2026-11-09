@@ -98,6 +98,28 @@ is greedy at `-np 1`, so order does not change outputs). The thinking-on smoke u
 thinking smoke can loop to its cap and fail for a reason that says nothing about the gate. The conversion's size,
 sha256 and tensor map are logged by the chain (`raw/chain.log`, `tensor_map.txt`), recorded, not gated.
 
+## Addendum 2 -- M1 with thinking on (registered 2026-11-09, after the thinking-off M1 arms, before any thinking-on row)
+
+**Why.** With thinking off, DSV9 answered 125 of 240 M1 items with a bare "UNKNOWN" (median reply 2 tokens), refusing 0.40
+of real hard facts where the base refused 0.03, while its forced answer slot leaned toward UNKNOWN LESS than the base's
+(0.53 vs 0.79 on invented items). A model distilled only from thinking traces may have lost its non-thinking mode rather
+than its knowledge. Mark asked for the thinking-on run to separate the two (11-09).
+
+**Arms:** Q35BT and DSV9T, M1 as above except `--thinking` and Qwen's thinking sampling (T 1.0, top_p 0.95, top_k 20,
+min_p 0, presence 1.5; per-item seed, `--seed-base` default, as Sage's SGTHK1), `--max-tokens 16384`, `--timeout
+3600`; the R-slot readout stays thinking-off greedy. One sample per item (K = 1). Same files, build and per-GPU flags
+(`-c 20480 -np 1`); each arm runs as four shards (`run_main.py --shard I/4`, new 11-09, default off), one per P100,
+Q35BT first, then DSV9T; `merge_shards.py` joins them. Chain: `run_sci_m1think.sh`, which waits for the GPQA chain.
+
+**Analysis:** `analyze_ds41.py DSV9T Q35BT` (both grades), plus per group the share of bare-UNKNOWN replies (the
+analyzer's `bare` predicate) and median completion tokens; thinking on vs off within each model is descriptive.
+
+| # | claim | rule | confidence |
+|---|---|---|---|
+| P6 | **It is the mode, not lost knowledge** | H accuracy DSV9T - Q35BT >= -0.05 (point) | 0.55 |
+| P7 | **The bare-UNKNOWN collapse is a non-thinking effect** | DSV9T bare-UNKNOWN share on H <= 0.10 | 0.6 |
+| P8 | **The fine-tune pattern under thinking** | U refused, bare UNKNOWN counted, DSV9T - Q35BT <= -0.05 | 0.45 |
+
 ## Deviations
 
 Any change to a file, flag, lane, round rule or the analysis after the first M1 or GPQA row gets a numbered Deviation.

@@ -57,6 +57,7 @@ def build_parser():
     ap.add_argument("--system", default=None, help="2026-10-24: a system message sent before the CAL prompt in R-slot and R-gen (Sage's verification flag requires one); default none, so earlier arms are unchanged")
     ap.add_argument("--sampling", default=None, help="2026-10-25: JSON of sampling fields for R-gen (e.g. Sage's recommended temperature/top_k/presence_penalty) plus a per-item seed; default none = greedy, so earlier arms are unchanged. R-slot stays greedy")
     ap.add_argument("--seed-base", type=int, default=20261025)
+    ap.add_argument("--shard", default=None, help="2026-11-09: I/N runs only items whose corpus index %% N == I (one process per server; the --arm names the shard, merge_shards.py joins them); default none = every item, so earlier arms are unchanged")
     ap.add_argument("--neutral-penalties", action="store_true", help="2026-10-28: R-gen sends NEUTRAL penalties, applied before --sampling so vendor values still win; default off, so earlier arms are unchanged")
     return ap
 
@@ -64,13 +65,15 @@ def build_parser():
 def header_fields(a):
     """The header-row fields that come from the arguments alone (the pipeline compares these against stored runs)."""
     return {"arm": a.arm, "corpus": a.corpus, "max_tokens": a.max_tokens, "thinking": bool(a.thinking), "template_kwargs": json.loads(a.template_kwargs), "skip_slot": bool(a.skip_slot), **({"system": a.system} if a.system else {}), **({"sampling": json.loads(a.sampling), "seed_base": a.seed_base} if a.sampling else {}), **({"usage": True, "timeout": a.timeout} if a.usage else {}),
-            **({"neutral_penalties": True} if a.neutral_penalties else {}), "meta": json.loads(a.meta)}
+            **({"neutral_penalties": True} if a.neutral_penalties else {}), **({"shard": a.shard} if a.shard else {}), "meta": json.loads(a.meta)}
 
 
 def main():
     a = build_parser().parse_args()
     SYS = [{"role": "system", "content": a.system}] if a.system else []
     items = [json.loads(l) for l in open(HERE / "corpus" / f"{a.corpus}.jsonl")]
+    if a.shard:
+        si, sn = map(int, a.shard.split("/")); items = [it for k, it in enumerate(items) if k % sn == si]
     out = HERE / "raw" / (f"main_{a.arm}.jsonl" if a.corpus == "M1" else f"main_{a.arm}.{a.corpus}.jsonl")
     out.parent.mkdir(exist_ok=True)
     done = {json.loads(l).get("id") for l in open(out)} if out.exists() else set()
