@@ -120,6 +120,26 @@ analyzer's `bare` predicate) and median completion tokens; thinking on vs off wi
 | P7 | **The bare-UNKNOWN collapse is a non-thinking effect** | DSV9T bare-UNKNOWN share on H <= 0.10 | 0.6 |
 | P8 | **The fine-tune pattern under thinking** | U refused, bare UNKNOWN counted, DSV9T - Q35BT <= -0.05 | 0.45 |
 
+## Addendum 3 -- thinking off, sampled: separating thinking from sampling (registered 2026-11-09, before any of these rows)
+
+**Why.** Addendum 2's thinking-on arms change two things against the greedy thinking-off arms: thinking and sampling
+(as Sage's SGOFF -> SGTHK1 did, so its 0.45 -> 0.85 is "the package"). Two outside critiques on HF #23 (SerialKicked,
+11-09) name exactly these: greedy is not how any model is meant to run, and thinking should not change knowledge
+recall. Two more arms close the 2 x 2 per model, so both effects are measured separately.
+
+**Arms:** Q35BS and DSV9S: M1 thinking OFF with the same sampling as Addendum 2 (T 1.0, top_p 0.95, top_k 20, min_p 0,
+presence 1.5, which is also Qwen's recommended setting for non-thinking reasoning tasks), per-item seed, 1,024 tokens,
+K = 1. Same files, build, per-GPU flags and four shards per arm as Addendum 2; chain `run_sci_m1samp.sh`, which waits
+for Addendum 2's chain. **Thinking effect** = xT - xS (same sampling); **sampling effect** = xS - x (thinking off).
+
+| # | claim | rule | confidence |
+|---|---|---|---|
+| P9 | **Thinking does not change knowledge recall** (SerialKicked) | \|H accuracy Q35BT - Q35BS\| <= 0.05 | 0.6 |
+| P10 | **Thinking does change abstention** | \|U refused, bare counted, Q35BT - Q35BS\| >= 0.10 | 0.45 |
+| P11 | **Greedy vs sampled barely matters with thinking off** | \|U refused, bare counted, Q35BS - Q35B\| <= 0.05 | 0.5 |
+
+DSV9's arms are reported in the same 2 x 2 without predictions (its thinking-off mode is already known to be collapsed).
+
 ## Deviations
 
 Any change to a file, flag, lane, round rule or the analysis after the first M1 or GPQA row gets a numbered Deviation.
