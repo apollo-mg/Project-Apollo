@@ -74,6 +74,22 @@ P(UNKNOWN) on U.
 If P3 fails, the primary comparison still holds (same day, same instrument), and the drift is reported as a finding
 about the instrument.
 
+## Addendum 1 -- header checks (2026-11-08, after the download, before any row)
+
+- **Recipe matched** (`raw/logs/sage_q6_tensor_map.txt`): every tensor the two files share has the same type (432 Q6_K,
+  301 F32). SGQ6 has 20 more, all `blk.40.*` (`block_count` 41, `nextn_predict_layers` 1): Sage's MTP head, which the
+  base conversion lacks (`block_count` 40). That is the 694 MB. The c7fc509 build does not run it: loading the stored
+  Sage Q8_0, which carries the same head, it logged "model has unused tensor blk.40... -- ignoring". The stored
+  comparison had the same asymmetry, so it is not a new difference.
+- **Tokenizer identical:** tokens, merges, token types, pre-tokenizer, BOS/EOS/pad ids. SGQ6 also carries
+  `add_eos_token` false and `normalizer.nfc` true, which the base file lacks; the token-level prompt gate catches any
+  effect.
+- **Templates differ as text** (9,025 vs 7,764 characters; Sage adds the verification switch) but render all 240 M1
+  prompts identically under jinja2 (thinking off, no system message). The live gate on the servers' own renderer and
+  tokenizer still decides, so the SGQ6T contingency stays registered.
+- Chain: `run_sage_matched.sh`; the base template for the contingency is `raw/logs/q36b_chat_template.jinja`, extracted
+  from the base GGUF.
+
 ## Deviations
 
 Any change to a file, flag, lane or the analysis after the first SGQ6 or Q36B2 row gets a numbered Deviation here.
