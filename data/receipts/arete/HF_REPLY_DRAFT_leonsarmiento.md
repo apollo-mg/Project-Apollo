@@ -14,6 +14,8 @@ A few questions so we can line the two up:
 - Which Sage-A1.5 build and bit depth did you run, and what changed between the two inference profiles?
 - Was your Qwen3.6 base the same release we used (Qwen/Qwen3.6-35B-A3B)?
 
-On our side, I'll rerun the base at Q8_0 so the pair is matched, and post the result here either way.
+On our side, I'm rerunning Sage at Q6_K from the same packager as the base file we already ran (mradermacher's
+static quants), same build, same settings, with a same-day replay of the base as a control. I'll post the result here
+either way.
 
 The abliteration number is striking. 50% to 3% with zero flips back is the clearest case of the pattern I've seen.
