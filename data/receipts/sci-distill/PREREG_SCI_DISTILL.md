@@ -155,6 +155,15 @@ unchanged and nothing is rerun. Both grades are reported: the registered one (`c
 (`correct_any`, read as the substantive result since it differs from the registered one only in answer format).
 The share of bare-letter answers per arm is reported, since format compliance is itself a difference between the models.
 
+**Deviation 2 -- some requests started after the 24 h stop (found 2026-11-10 12:57, before the stop).** `run_gpqa.py`
+gives each arm 16 workers for 8 slots. A worker that has just released a slot takes the next job and re-acquires the
+slot before workers already waiting wake from their 0.2 s sleep, so a waiting job can sit for hours. At 12:57 three such
+jobs had left DSV9's round 2 one item short and Q35B's round 3 two short. They had passed the deadline check before the
+stop and ran once the stop freed the slots, so they (and at most 8 waiting jobs per arm in all) started after 14:03.
+Without them only round 1 would be complete in both arms, below the registered minimum of 2. They are included: the
+wait changes nothing about what is generated (the seed is fixed per item and round). Rounds used: 1-3. Fix for later
+runs: hand out slots first-come, first-served.
+
 **Note on M1 (not a deviation; the instrument's lenient grade already exists):** DSV9 answers 125 of 240 M1 items with
 the single word "UNKNOWN" (median reply 2 tokens, vs 53 for Q35B), which the registered strict grade scores NO-ANSWER.
 P1 is read on both grades in the result.

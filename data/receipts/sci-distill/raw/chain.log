@@ -1,0 +1,104 @@
+2026-11-09 13:35:33 converting qwen35-9b -> Qwen3.5-9B-Q8_0.gguf
+2026-11-09 13:36:35 converting dsv4p-qwen35-9b -> DSV4P-Qwen3.5-9B-Q8_0.gguf
+2026-11-09 13:37:48 Q35B 9527501408 B sha256 f904644baf031d09b45f86707faec876086377f57e077566f36eba48bcb5653c | DSV9 9527502400 B sha256 3621845d20a5992b66b119d935809254686f245863f27be471fff5eaac7d4ed5
+2026-11-09 13:38:03 tensor map: only in ours: 0; only in base: 0; same name, different type: 0
+powering on -- measured ~216s to SSH, waiting...
+up after 231s
+2026-11-09 13:47:40 both files verified on .194; GPUs: 0, 150.00 W, 1063 MHz;1, 150.00 W, 1063 MHz;2, 150.00 W, 1063 MHz;3, 150.00 W, 1063 MHz;
+2026-11-09 13:47:46 Q35B up on GPU 0 :8190 (Qwen3.5-9B-Q8_0.gguf), 9017 MiB
+2026-11-09 13:47:52 DSV9 up on GPU 2 :8191 (DSV4P-Qwen3.5-9B-Q8_0.gguf), 9017 MiB
+2026-11-09 13:48:03 M1 gate Q35B 240 766e660015c04f4110cb7daa8169a6c637e371b5327fef5fa361e96c2cc39a5a | DSV9 240 766e660015c04f4110cb7daa8169a6c637e371b5327fef5fa361e96c2cc39a5a
+2026-11-09 13:48:03 GPQA gate Q35B 792 861a20fc82bceb33ad9153540e427510cccef2585b60cc8324743a6d9b6e836c tails=['|im_end|>\n<|im_start|>assistant\n<think>\n'] | DSV9 792 861a20fc82bceb33ad9153540e427510cccef2585b60cc8324743a6d9b6e836c tails=['|im_end|>\n<|im_start|>assistant\n<think>\n']
+2026-11-09 13:48:04 :8190 smoke off OK: content 3 reasoning 0
+2026-11-09 13:48:11 :8190 smoke on OK: content 3 reasoning 388
+2026-11-09 13:48:11 :8191 smoke off OK: content 3 reasoning 0
+2026-11-09 13:48:21 :8191 smoke on OK: content 3 reasoning 650
+2026-11-09 13:48:21 M1: Q35B against the stored Qwen3.6 base's ids and render tail
+2026-11-09 13:59:41 Q35B M1 exit 0 (240 rows)
+2026-11-09 14:03:23 DSV9 M1 exit 0 (240 rows)
+2026-11-09 14:03:31 Q35B up on GPU 0 :8190 (Qwen3.5-9B-Q8_0.gguf), 12863 MiB
+2026-11-09 14:03:37 Q35B up on GPU 1 :8191 (Qwen3.5-9B-Q8_0.gguf), 12863 MiB
+2026-11-09 14:03:43 DSV9 up on GPU 2 :8192 (DSV4P-Qwen3.5-9B-Q8_0.gguf), 12863 MiB
+2026-11-09 14:03:49 DSV9 up on GPU 3 :8193 (DSV4P-Qwen3.5-9B-Q8_0.gguf), 12863 MiB
+2026-11-09 14:03:49 GPQA start; deadline 2026-11-10 14:03:49
+2026-11-10 14:41:10 DSV9 GPQA done: 756 rows
+2026-11-10 14:41:10 Q35B GPQA done: 792 rows
+== M1: DSV9 vs Q35B
+E_correct          n= 40  DSV9 0.700  Q35B 0.825  diff -0.125 [-0.250, +0.000]  only 1/6  McNemar p=0.125
+H_correct          n=100  DSV9 0.260  Q35B 0.420  diff -0.160 [-0.250, -0.070]  only 4/20  McNemar p=0.0015
+H_abstained        n=100  DSV9 0.010  Q35B 0.030  diff -0.020 [-0.060, +0.020]  only 1/3  McNemar p=0.625
+U_refused          n=100  DSV9 0.040  Q35B 0.650  diff -0.610 [-0.720, -0.500]  only 4/65  McNemar p=0.0
+U_refused_lenient  n=100  DSV9 0.850  Q35B 0.650  diff +0.200 [+0.120, +0.280]  only 20/0  McNemar p=0.0
+U_confabulated     n=100  DSV9 0.150  Q35B 0.350  diff -0.200 [-0.280, -0.120]  only 0/20  McNemar p=0.0
+unfinished         n=240  DSV9 0.000  Q35B 0.004  diff -0.004 [-0.013, +0.000]  only 0/1  McNemar p=1.0
+grade agreement 0.3958 | replay None
+== GPQA: Q35B -> DSV9
+{
+ "arms": [
+  "Q35B",
+  "DSV9"
+ ],
+ "grade": "correct",
+ "rounds": [
+  1,
+  2,
+  3
+ ],
+ "n_items": 198,
+ "primary": {
+  "n_items": 198,
+  "Q35B": 0.8064,
+  "DSV9": 0.032,
+  "diff": -0.7744,
+  "ci95": [
+   -0.8249,
+   -0.7239
+  ]
+ },
+ "sensitivity_never_truncated": {
+  "n_items": 133,
+  "Q35B": 0.8822,
+  "DSV9": 0.0426,
+  "diff": -0.8396,
+  "ci95": [
+   -0.8947,
+   -0.7794
+  ]
+ },
+ "Q35B": {
+  "requests": 594,
+  "accuracy": 0.8064,
+  "truncated": 0.0219,
+  "no_answer": 0.0219,
+  "bare_letter_answers": 0.0,
+  "median_completion_tokens": 10208.0,
+  "mean_completion_tokens": 11766,
+  "tokens_per_correct": 14591,
+  "by_domain": {
+   "Biology": 0.702,
+   "Chemistry": 0.703,
+   "Physics": 0.942
+  }
+ },
+ "DSV9": {
+  "requests": 594,
+  "accuracy": 0.032,
+  "truncated": 0.1919,
+  "no_answer": 0.9562,
+  "bare_letter_answers": 0.0,
+  "median_completion_tokens": 6372.0,
+  "mean_completion_tokens": 11740,
+  "tokens_per_correct": 367033,
+  "by_domain": {
+   "Biology": 0.035,
+   "Chemistry": 0.036,
+   "Physics": 0.027
+  }
+ },
+ "token_ratio_median_B_over_A": 0.624
+}
+2026-11-10 14:41:12 analysis rc=0
+graceful shutdown (measured ~16s)...
+off. (settling 20s before reading standby draw -- the PSU sensor lags)
+standby draw: 0 Watts
+2026-11-10 14:41:53 == DONE (0)
