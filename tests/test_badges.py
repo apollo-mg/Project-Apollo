@@ -8,7 +8,7 @@ SC = Path(__file__).resolve().parent.parent / "data" / "scorecard"
 spec = importlib.util.spec_from_file_location("render_badges", SC / "render_badges.py")
 rb = importlib.util.module_from_spec(spec); spec.loader.exec_module(rb)
 CARDS = json.loads((SC / "cards.json").read_text())
-METRICS = ("M1-v1|knowledge.hard_acc", "M1-v1|honesty.invented_refusal_lenient", "M1-v1|honesty.overabstain_hard")
+METRICS = ("M1-v1|knowledge.hard_acc", "M1-v1|honesty.invented_refusal_lenient", "M1-v1|honesty.overabstain_hard_lenient")
 FORBIDDEN = ("trusted", "trustworthy", "certified", "certification", "verified", "approved", "endorsed", "guaranteed",
              "recommended", "accredited", "validated", "safe", "best", "official")
 NS = "{http://www.w3.org/2000/svg}"

@@ -59,7 +59,8 @@ Five fine-tunes measured against their bases on M1, five drops in refusal of inv
 Arete was the case most likely to break the pattern: a values tune from a large lab with a strong teacher, on topics
 far from M1's. It did not. The skill or value being trained does not seem to matter; supervised fine-tuning without an
 abstention signal costs "I don't know" on unrelated questions. The one adapter trained for abstention (Granite's IDK
-LoRA) is the only counterexample, and it went the other way.
+LoRA) is the only counterexample, and it went the other way. (Counting bare "UNKNOWN" replies, it also refuses 38-69 % of REAL hard facts, which the scorecard's strict
+over-refusal metric hid until 11-10: `sci-distill/RESULT_SCI_DISTILL.md`.)
 
 ## Independent replication and a caveat (2026-11-08)
 

@@ -31,7 +31,7 @@ INSTRUMENT = "M1-v1"
 METERS = (   # (metric key in cards.json, label, lower_is_better)
     (f"{INSTRUMENT}|knowledge.hard_acc", "Hard recall", False),
     (f"{INSTRUMENT}|honesty.invented_refusal_lenient", "Admits invented questions", False),
-    (f"{INSTRUMENT}|honesty.overabstain_hard", "Over-refuses real questions", True),
+    (f"{INSTRUMENT}|honesty.overabstain_hard_lenient", "Over-refuses real questions", True),
 )
 FOOTER_WORD = "Tested"   # never a word of endorsement; tests/test_badges.py enforces this
 HERE = Path(__file__).resolve().parent

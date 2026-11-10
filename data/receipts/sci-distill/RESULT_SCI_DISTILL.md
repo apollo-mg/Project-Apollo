@@ -30,16 +30,22 @@ Graded with the Deviation 1 fallback (a bare final letter counts when the `ANSWE
 | accuracy: physics / chemistry / biology | 0.94 / 0.70 / 0.70 | 0.79 / 0.46 / 0.53 | |
 
 - **Worse everywhere,** in all three domains, and still 9 points worse where neither model ran out of budget.
-- **The runaways are not loops.** The capped traces (about 100,000 characters) contain no repeated text; they are
-  endless re-deliberation ("actually... wait... no...") that never commits. Temperature 1.0 and a presence penalty were
-  already on, as Qwen recommends, so this is the kind of runaway sampling does not fix (Sage's greedy loops, by
-  contrast, mostly vanished under sampling).
+- **The runaways do not look like loops.** A tail check of the 114 capped traces (about 100,000 characters each)
+  found no verbatim repetition, and the two I read are endless re-deliberation ("actually... wait... no...") that never
+  commits. Temperature 1.0 and a presence penalty were already on, as Qwen recommends. That sampling does not fix this
+  kind of runaway is an inference (there is no greedy GPQA arm); Sage's greedy loops, by contrast, mostly vanished
+  under sampling.
 - **Efficient when it knows, unable to tell when it does not.** Right answers took a median 3,064 tokens (the base:
-  9,382); wrong ones 28,965 (the base: 14,563). Length flags a wrong answer with AUROC 0.80 for the distill and 0.72
-  for the base. The card's efficiency claim is true only for questions the model can answer; over all questions it
-  spends a third more tokens per correct answer.
+  9,382); wrong ones 28,965 (the base: 14,563). Among replies that FINISHED, length flags a wrong answer only weakly
+  (AUROC 0.60 for the distill, 0.68 for the base); with the capped replies included, 0.80 and 0.72, which is partly
+  circular because a capped reply is wrong by definition. As a budget it separates clearly: a distill reply finished
+  within 8,000 tokens is right 81.5 % of the time, one not finished by then 35.5 %; for the base the same cut gives
+  92.1 % vs 74.7 %, so the useful cutoff is model-specific. The card's efficiency claim is true only for questions the
+  model can answer; over all questions it spends a third more tokens per correct answer.
 - **It also drops the answer format:** 71 % of its replies end with a bare letter instead of the requested `ANSWER: X`
-  line (the base: 0 %). By the registered grade it scores 0.032.
+  line (the base: 0 %). By the registered grade it scores 0.032. A further 33 of its 594 finished replies carry no
+  answer either rule recognizes (26 say "Option Selected: X", a few are garbage); the primary grade stays as
+  registered, and counting those 26 as answers would move it from 0.609 to 0.626 (10 of them are right).
 
 ## 2. The cost side: M1, two decoding modes x two thinking modes per model
 
@@ -88,15 +94,20 @@ Graded with the Deviation 1 fallback (a bare final letter counts when the `ANSWE
    frontier teacher made a 9B worse at graduate science reasoning, by 20 points, while its card reports +0.93 on
    MMLU-Pro at an 8K cap. The difference is not explained by budget: the distill is 9 points behind even where neither
    model ran out.
-2. **The sixth fine-tune against its base on M1, and the largest drop in refusal of invented items (-0.36),** measured
-   in the mode the model was built for. Six of six fine-tunes measured here cost "I don't know"; only Granite's IDK
-   adapter, trained for abstention, went the other way.
+2. **The largest drop in refusal of invented items measured here (-0.36), but in thinking mode,** a condition none of
+   the five earlier fine-tunes were compared in (they ran thinking off). On the thinking-off comparison the series uses,
+   this one cannot be counted: its non-thinking mode is broken and refuses MORE (+0.20 with bare replies). So the series
+   stays at five of five with thinking off, plus this thinking-mode case. Granite's IDK adapter, trained for abstention,
+   is still the only one to raise refusal of invented items, but with bare "UNKNOWN" counted it also refuses 38 % (4.1)
+   and 69 % (4.2) of REAL hard facts, which the scorecard's strict over-refusal metric had hidden (corrected 11-10:
+   `honesty.overabstain_hard_lenient`, read by the map and badges).
 3. **For the HF #23 critiques (SerialKicked, 11-09), on this model:** thinking does not change knowledge recall (he was
    right), but it changes abstention a lot (+0.26), and greedy vs sampled makes no measurable difference with thinking
    off. This also suggests, without proving, that Sage's 0.45 -> 0.85 was mostly thinking rather than sampling.
 4. **Stopping is a separate skill, and distillation breaks it:** the distill learned the teacher's long self-checking
    without the ability to finish it (GPQA) and the short confident answer without the check that a thing exists (M1).
-   Reasoning length is a strong per-model signal of a wrong answer, with model-specific thresholds.
+   A token budget separates right from wrong well, with a model-specific threshold; length among finished replies is a
+   weak signal.
 5. **A model trained only on thinking traces can lose its non-thinking mode entirely,** and no thinking-mode benchmark
    will show it.
 
