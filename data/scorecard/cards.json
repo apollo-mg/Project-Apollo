@@ -5467,6 +5467,490 @@
    }
   ]
  },
+ "qwen3.5-9b": {
+  "display": "Qwen3.5-9B",
+  "developer": "Alibaba Qwen",
+  "arch": "dense",
+  "total_b": 9,
+  "active_b": 9,
+  "lineage": null,
+  "model_id": "qwen3.5-9b",
+  "configs": [
+   {
+    "config_id": "m1:Q35B",
+    "quant": "Q8_0 (our conversion)",
+    "thinking": "off",
+    "decoding": "greedy",
+    "primary": true,
+    "note": "our conversion, one converter for both models; single P100 per server (sci-distill/PREREG_SCI_DISTILL.md)",
+    "source": "quant-abstention/raw/main_Q35B.jsonl",
+    "metrics": {
+     "M1-v1|knowledge.easy_acc": {
+      "v": 0.825,
+      "lo": 0.6805,
+      "hi": 0.9125,
+      "n": 40
+     },
+     "M1-v1|knowledge.hard_acc": {
+      "v": 0.42,
+      "lo": 0.328,
+      "hi": 0.5179,
+      "n": 100
+     },
+     "M1-v1|honesty.overabstain_hard": {
+      "v": 0.03,
+      "lo": 0.0103,
+      "hi": 0.0845,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_refusal": {
+      "v": 0.65,
+      "lo": 0.5525,
+      "hi": 0.7364,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_refusal_lenient": {
+      "v": 0.65,
+      "lo": 0.5525,
+      "hi": 0.7364,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_confabulation": {
+      "v": 0.35,
+      "lo": 0.2636,
+      "hi": 0.4475,
+      "n": 100
+     },
+     "M1-v1|reliability.unfinished": {
+      "v": 0.0042,
+      "lo": 0.0007,
+      "hi": 0.0232,
+      "n": 240
+     },
+     "M1-v1|knowledge.easy_acc_finished": {
+      "v": 0.825,
+      "lo": 0.6805,
+      "hi": 0.9125,
+      "n": 40
+     },
+     "M1-v1|knowledge.hard_acc_finished": {
+      "v": 0.4242,
+      "lo": 0.3315,
+      "hi": 0.5226,
+      "n": 99
+     },
+     "M1-v1|honesty.invented_refusal_lenient_finished": {
+      "v": 0.65,
+      "lo": 0.5525,
+      "hi": 0.7364,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_confabulation_finished": {
+      "v": 0.35,
+      "lo": 0.2636,
+      "hi": 0.4475,
+      "n": 100
+     }
+    }
+   },
+   {
+    "config_id": "m1:Q35BS",
+    "quant": "Q8_0 (our conversion)",
+    "thinking": "off (Qwen sampling)",
+    "decoding": "sampled {\"temperature\": 1.0, \"top_p\": 0.95, \"top_k\": 20, \"min_p\": 0.0, \"presence_penalty\": 1.5}",
+    "primary": false,
+    "note": "our conversion, one converter for both models; single P100 per server (sci-distill/PREREG_SCI_DISTILL.md)",
+    "source": "quant-abstention/raw/main_Q35BS.jsonl",
+    "metrics": {
+     "M1-v1|knowledge.easy_acc": {
+      "v": 0.8,
+      "lo": 0.6524,
+      "hi": 0.895,
+      "n": 40
+     },
+     "M1-v1|knowledge.hard_acc": {
+      "v": 0.38,
+      "lo": 0.291,
+      "hi": 0.4779,
+      "n": 100
+     },
+     "M1-v1|honesty.overabstain_hard": {
+      "v": 0.06,
+      "lo": 0.0278,
+      "hi": 0.1248,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_refusal": {
+      "v": 0.68,
+      "lo": 0.5834,
+      "hi": 0.7633,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_refusal_lenient": {
+      "v": 0.68,
+      "lo": 0.5834,
+      "hi": 0.7633,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_confabulation": {
+      "v": 0.29,
+      "lo": 0.2101,
+      "hi": 0.3854,
+      "n": 100
+     },
+     "M1-v1|reliability.unfinished": {
+      "v": 0.0333,
+      "lo": 0.017,
+      "hi": 0.0644,
+      "n": 240
+     },
+     "M1-v1|knowledge.easy_acc_finished": {
+      "v": 0.8,
+      "lo": 0.6524,
+      "hi": 0.895,
+      "n": 40
+     },
+     "M1-v1|knowledge.hard_acc_finished": {
+      "v": 0.4,
+      "lo": 0.3072,
+      "hi": 0.5005,
+      "n": 95
+     },
+     "M1-v1|honesty.invented_refusal_lenient_finished": {
+      "v": 0.701,
+      "lo": 0.6037,
+      "hi": 0.7831,
+      "n": 97
+     },
+     "M1-v1|honesty.invented_confabulation_finished": {
+      "v": 0.299,
+      "lo": 0.2169,
+      "hi": 0.3963,
+      "n": 97
+     }
+    }
+   },
+   {
+    "config_id": "m1:Q35BT",
+    "quant": "Q8_0 (our conversion)",
+    "thinking": "on (Qwen sampling)",
+    "decoding": "sampled {\"temperature\": 1.0, \"top_p\": 0.95, \"top_k\": 20, \"min_p\": 0.0, \"presence_penalty\": 1.5}",
+    "primary": false,
+    "note": "our conversion, one converter for both models; single P100 per server (sci-distill/PREREG_SCI_DISTILL.md)",
+    "source": "quant-abstention/raw/main_Q35BT.jsonl",
+    "metrics": {
+     "M1-v1|knowledge.easy_acc": {
+      "v": 0.825,
+      "lo": 0.6805,
+      "hi": 0.9125,
+      "n": 40
+     },
+     "M1-v1|knowledge.hard_acc": {
+      "v": 0.39,
+      "lo": 0.3002,
+      "hi": 0.488,
+      "n": 100
+     },
+     "M1-v1|honesty.overabstain_hard": {
+      "v": 0.12,
+      "lo": 0.07,
+      "hi": 0.1981,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_refusal": {
+      "v": 0.94,
+      "lo": 0.8752,
+      "hi": 0.9722,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_refusal_lenient": {
+      "v": 0.94,
+      "lo": 0.8752,
+      "hi": 0.9722,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_confabulation": {
+      "v": 0.06,
+      "lo": 0.0278,
+      "hi": 0.1248,
+      "n": 100
+     },
+     "M1-v1|reliability.unfinished": {
+      "v": 0.0,
+      "lo": 0,
+      "hi": 0.0158,
+      "n": 240
+     },
+     "M1-v1|knowledge.easy_acc_finished": {
+      "v": 0.825,
+      "lo": 0.6805,
+      "hi": 0.9125,
+      "n": 40
+     },
+     "M1-v1|knowledge.hard_acc_finished": {
+      "v": 0.39,
+      "lo": 0.3002,
+      "hi": 0.488,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_refusal_lenient_finished": {
+      "v": 0.94,
+      "lo": 0.8752,
+      "hi": 0.9722,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_confabulation_finished": {
+      "v": 0.06,
+      "lo": 0.0278,
+      "hi": 0.1248,
+      "n": 100
+     }
+    }
+   }
+  ]
+ },
+ "dsv4p-qwen3.5-9b": {
+  "display": "DeepSeek-V4-Pro-Qwen3.5-9B",
+  "developer": "Jackrong (with Kyle Hessling)",
+  "arch": "dense",
+  "total_b": 9,
+  "active_b": 9,
+  "lineage": "qwen3.5-9b",
+  "model_id": "dsv4p-qwen3.5-9b",
+  "configs": [
+   {
+    "config_id": "m1:DSV9",
+    "quant": "Q8_0 (our conversion)",
+    "thinking": "off",
+    "decoding": "greedy",
+    "primary": true,
+    "note": "our conversion, one converter for both models; single P100 per server (sci-distill/PREREG_SCI_DISTILL.md)",
+    "source": "quant-abstention/raw/main_DSV9.jsonl",
+    "metrics": {
+     "M1-v1|knowledge.easy_acc": {
+      "v": 0.7,
+      "lo": 0.5457,
+      "hi": 0.8193,
+      "n": 40
+     },
+     "M1-v1|knowledge.hard_acc": {
+      "v": 0.26,
+      "lo": 0.184,
+      "hi": 0.3537,
+      "n": 100
+     },
+     "M1-v1|honesty.overabstain_hard": {
+      "v": 0.01,
+      "lo": 0.0018,
+      "hi": 0.0545,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_refusal": {
+      "v": 0.04,
+      "lo": 0.0157,
+      "hi": 0.0984,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_refusal_lenient": {
+      "v": 0.85,
+      "lo": 0.7672,
+      "hi": 0.9069,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_confabulation": {
+      "v": 0.15,
+      "lo": 0.0931,
+      "hi": 0.2328,
+      "n": 100
+     },
+     "M1-v1|reliability.unfinished": {
+      "v": 0.0,
+      "lo": 0,
+      "hi": 0.0158,
+      "n": 240
+     },
+     "M1-v1|knowledge.easy_acc_finished": {
+      "v": 0.7,
+      "lo": 0.5457,
+      "hi": 0.8193,
+      "n": 40
+     },
+     "M1-v1|knowledge.hard_acc_finished": {
+      "v": 0.26,
+      "lo": 0.184,
+      "hi": 0.3537,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_refusal_lenient_finished": {
+      "v": 0.85,
+      "lo": 0.7672,
+      "hi": 0.9069,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_confabulation_finished": {
+      "v": 0.15,
+      "lo": 0.0931,
+      "hi": 0.2328,
+      "n": 100
+     }
+    }
+   },
+   {
+    "config_id": "m1:DSV9S",
+    "quant": "Q8_0 (our conversion)",
+    "thinking": "off (Qwen sampling)",
+    "decoding": "sampled {\"temperature\": 1.0, \"top_p\": 0.95, \"top_k\": 20, \"min_p\": 0.0, \"presence_penalty\": 1.5}",
+    "primary": false,
+    "note": "our conversion, one converter for both models; single P100 per server (sci-distill/PREREG_SCI_DISTILL.md)",
+    "source": "quant-abstention/raw/main_DSV9S.jsonl",
+    "metrics": {
+     "M1-v1|knowledge.easy_acc": {
+      "v": 0.475,
+      "lo": 0.3294,
+      "hi": 0.625,
+      "n": 40
+     },
+     "M1-v1|knowledge.hard_acc": {
+      "v": 0.07,
+      "lo": 0.0343,
+      "hi": 0.1375,
+      "n": 100
+     },
+     "M1-v1|honesty.overabstain_hard": {
+      "v": 0.01,
+      "lo": 0.0018,
+      "hi": 0.0545,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_refusal": {
+      "v": 0.0,
+      "lo": 0,
+      "hi": 0.037,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_refusal_lenient": {
+      "v": 0.93,
+      "lo": 0.8625,
+      "hi": 0.9657,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_confabulation": {
+      "v": 0.07,
+      "lo": 0.0343,
+      "hi": 0.1375,
+      "n": 100
+     },
+     "M1-v1|reliability.unfinished": {
+      "v": 0.0,
+      "lo": 0,
+      "hi": 0.0158,
+      "n": 240
+     },
+     "M1-v1|knowledge.easy_acc_finished": {
+      "v": 0.475,
+      "lo": 0.3294,
+      "hi": 0.625,
+      "n": 40
+     },
+     "M1-v1|knowledge.hard_acc_finished": {
+      "v": 0.07,
+      "lo": 0.0343,
+      "hi": 0.1375,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_refusal_lenient_finished": {
+      "v": 0.93,
+      "lo": 0.8625,
+      "hi": 0.9657,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_confabulation_finished": {
+      "v": 0.07,
+      "lo": 0.0343,
+      "hi": 0.1375,
+      "n": 100
+     }
+    }
+   },
+   {
+    "config_id": "m1:DSV9T",
+    "quant": "Q8_0 (our conversion)",
+    "thinking": "on (Qwen sampling)",
+    "decoding": "sampled {\"temperature\": 1.0, \"top_p\": 0.95, \"top_k\": 20, \"min_p\": 0.0, \"presence_penalty\": 1.5}",
+    "primary": false,
+    "note": "our conversion, one converter for both models; single P100 per server (sci-distill/PREREG_SCI_DISTILL.md)",
+    "source": "quant-abstention/raw/main_DSV9T.jsonl",
+    "metrics": {
+     "M1-v1|knowledge.easy_acc": {
+      "v": 0.725,
+      "lo": 0.5716,
+      "hi": 0.8389,
+      "n": 40
+     },
+     "M1-v1|knowledge.hard_acc": {
+      "v": 0.34,
+      "lo": 0.2546,
+      "hi": 0.4372,
+      "n": 100
+     },
+     "M1-v1|honesty.overabstain_hard": {
+      "v": 0.03,
+      "lo": 0.0103,
+      "hi": 0.0845,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_refusal": {
+      "v": 0.25,
+      "lo": 0.1755,
+      "hi": 0.343,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_refusal_lenient": {
+      "v": 0.58,
+      "lo": 0.4821,
+      "hi": 0.672,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_confabulation": {
+      "v": 0.4,
+      "lo": 0.3094,
+      "hi": 0.498,
+      "n": 100
+     },
+     "M1-v1|reliability.unfinished": {
+      "v": 0.0125,
+      "lo": 0.0043,
+      "hi": 0.0361,
+      "n": 240
+     },
+     "M1-v1|knowledge.easy_acc_finished": {
+      "v": 0.7436,
+      "lo": 0.5892,
+      "hi": 0.8543,
+      "n": 39
+     },
+     "M1-v1|knowledge.hard_acc_finished": {
+      "v": 0.3469,
+      "lo": 0.2601,
+      "hi": 0.4453,
+      "n": 98
+     },
+     "M1-v1|honesty.invented_refusal_lenient_finished": {
+      "v": 0.58,
+      "lo": 0.4821,
+      "hi": 0.672,
+      "n": 100
+     },
+     "M1-v1|honesty.invented_confabulation_finished": {
+      "v": 0.4,
+      "lo": 0.3094,
+      "hi": 0.498,
+      "n": 100
+     }
+    }
+   }
+  ]
+ },
  "llama-3.1-8b-instruct": {
   "display": "Llama 3.1 8B Instruct",
   "developer": "Meta",
