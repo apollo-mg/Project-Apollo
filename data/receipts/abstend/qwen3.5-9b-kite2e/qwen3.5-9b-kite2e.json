@@ -1,0 +1,57 @@
+{
+ "schema": "abstend-recipe/1",
+ "model_id": "qwen3.5-9b-kite2e",
+ "model": {
+  "display": "Qwen3.5-9B (kit acceptance replay)",
+  "developer": "Alibaba Qwen",
+  "arch": "dense",
+  "total_b": 9,
+  "active_b": 9,
+  "lineage": null
+ },
+ "file": {
+  "repo": "Qwen/Qwen3.5-9B",
+  "revision": "c202236235762e1c871ad0ccb60c8ee5ba337b9a",
+  "packager": "our conversion (llama.cpp 67107ac34f convert_hf_to_gguf.py --outtype q8_0 --no-mtp)",
+  "name": "Qwen3.5-9B-Q8_0.gguf",
+  "sha256": "f904644baf031d09b45f86707faec876086377f57e077566f36eba48bcb5653c",
+  "store": "/mnt/TG_2TB/AI/Models/sci-distill-gguf",
+  "quant": "Q8_0"
+ },
+ "host": "194",
+ "engine": {
+  "name": "llama.cpp",
+  "commit": "67107ac34f",
+  "build": "build_sm60 gcc-13",
+  "bin": "~/llama.cpp-67107ac/build_sm60/bin/llama-server",
+  "env": {
+   "CUDA_VISIBLE_DEVICES": "0",
+   "GGML_CUDA_ALLREDUCE": "internal"
+  },
+  "flags": "-ngl 99 -c 16384 -ctk f16 -ctv f16 -np 1 -fit off --jinja --cache-ram 0",
+  "weights": "disk"
+ },
+ "modes": {
+  "greedy": {
+   "arm": "Q35BK",
+   "thinking": false,
+   "max_tokens": 1024,
+   "timeout": 600,
+   "primary": true
+  },
+  "sampled": {
+   "arm": "Q35BKS",
+   "thinking": false,
+   "max_tokens": 1024,
+   "timeout": 600,
+   "sampling": {"temperature": 1.0, "top_p": 0.95, "top_k": 20, "min_p": 0.0, "presence_penalty": 1.5},
+   "sampling_source": "Qwen/Qwen3.5-9B card: instruct (non-thinking) mode for reasoning tasks, temperature=1.0, top_p=0.95, top_k=20, min_p=0.0, presence_penalty=1.5 (as sci-distill Q35BS)",
+   "label": "off (vendor sampling)",
+   "primary": false
+  }
+ },
+ "instruments": [
+  "M1-v1"
+ ],
+ "history": "Acceptance test for the Qwen 4 kit (2026-11-11): the hand-run sci-distill arm Q35B replayed through a generated chain, with the same file (our Q8_0 conversion, sha256 f904644b...), build (67107ac34f build_sm60), flags and single P100, staged with the new disk path (engine.weights disk). Q35BK must match Q35B byte for byte (abstend.py compare); the pipeline adds --neutral-penalties, which the hand run did not send, so a mismatch is checked against the defaults audit first. Q35BKS exercises the sampled mode; Q35BS ran at -c 20480 in shards, so a match there is a bonus. Kept outside recipes/: qwen3.5-9b is a registry model."
+}
