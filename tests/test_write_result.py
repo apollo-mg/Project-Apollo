@@ -11,7 +11,7 @@ RECIPE = {"schema": "abstend-recipe/1", "model_id": MID, "model": {"display": "T
           "file": {"repo": "acme/Toy-1B", "revision": "abc1234", "name": "Toy-1B-Q8_0.gguf", "sha256": "1" * 64, "store": "/mnt/x", "quant": "Q8_0"},
           "host": "9070", "engine": {"name": "llama.cpp", "commit": "f74e2fa", "build": "build_rocm", "bin": "/mnt/x/llama-server", "flags": "-ngl 99 --cache-ram 0", "weights": "store"},
           "modes": {"greedy": {"arm": "TOYG", "thinking": False, "max_tokens": 1024, "timeout": 600, "primary": True},
-                    "vendor": {"arm": "TOYV", "thinking": True, "max_tokens": 8192, "timeout": 600, "primary": False, "sampling": {"temperature": 0.6}}},
+                    "vendor": {"arm": "TOYV", "thinking": True, "max_tokens": 8192, "timeout": 600, "primary": False, "sampling": {"temperature": 0.6}, "sampling_source": "toy card: temperature 0.6"}},
           "instruments": ["M1-v1", "AbstentionBench-sub1000/norefs"], "abench": {"arm": "TOYAB"}}
 CLEAN = """2026-11-01 10:00:00 chain start
 2026-11-01 10:00:00 desktop: kernel 7.3.0-4-cachyos; linux-firmware-amdgpu 1:20261019-1 mesa 3:26.2.5-1

@@ -3,6 +3,10 @@
 file, the host and engine it is served on, and its run modes (greedy, plus the vendor's recommended sampling).
 build_scorecard.py merges recipes through load_recipes(), so a recipe's model and arms must not also be in registry.json.
 
+  scaffold REPO --id ID --like RECIPE --file GLOB [--rev R] [--prefix P]
+                      a recipe skeleton from the Hugging Face API (full revision, LFS sha256, every shard),
+                      engine/host/instruments copied from LIKE, CHOOSE where a person decides (validate rejects it)
+  fetch  RECIPE       its files from repo@revision into the store: resumable, sha256-checked, sidecars written
   check  RECIPE...    validate; derive each mode's run_main.py arguments and compare the header they would write with the
                       stored run's header, field by field (KNOWN_NEW fields allowed). Needs the project venv (httpx).
   args   RECIPE MODE  print the run_main.py command for one mode; refuses unless the launch guard passes
@@ -18,13 +22,14 @@ build_scorecard.py merges recipes through load_recipes(), so a recipe's model an
   compare-abench A B  the same for two AbstentionBench arms on sub1000 (subject content and finish, norefs verdicts)
   verdicts ARM        judge output -> the committed, text-free abstentionbench/verdicts_<ARM>.csv
   result RECIPE       write_result.py: RESULT_<model_id>.draft.md from committed files (facts only; --stdout to render)"""
-import argparse, csv, datetime, hashlib, json, re, shlex, subprocess, sys, urllib.parse, urllib.request
+import argparse, copy, csv, datetime, hashlib, json, re, shlex, shutil, subprocess, sys, urllib.error, urllib.parse, urllib.request
 from pathlib import Path
 HERE = Path(__file__).resolve().parent; ROOT = HERE.parents[1]; QA = ROOT / "data" / "receipts" / "quant-abstention"
 HOSTS = json.load(open(HERE / "hosts.json")); INSTRUMENTS = json.load(open(HERE / "instruments.json"))
 AB_INST = "AbstentionBench-sub1000/norefs"; AB_INSTS = [k for k in INSTRUMENTS if k.startswith("AbstentionBench-")]; AB = ROOT / "data" / "receipts" / "abstentionbench"; JUDGE_HOST = INSTRUMENTS[AB_INST]["judge"]["host"]
 SCHEMA = "abstend-recipe/1"
 KNOWN_NEW = {"neutral_penalties", "meta.recipe"}    # fields the pipeline adds that hand-run arms never wrote
+MODE_ORDER = ("greedy", "sampled", "vendor")        # run order: the quick arms first, the slow thinking arm last
 HDR_RUNTIME = {"header", "variant_ids", "render_tail", "props", "started"}   # written by the server, not the arguments
 
 
@@ -38,6 +43,8 @@ def validate(rc, path):
     for k in ("model_id", "model", "file", "host", "engine", "modes", "instruments"):
         if k not in rc: err.append(f"missing {k}")
     if err: raise SystemExit(f"{path}: " + "; ".join(err))
+    if "CHOOSE" in json.dumps(rc):   # an unfilled scaffold: stop before any check reads a placeholder as a value
+        raise SystemExit(f"{path}: fill every CHOOSE placeholder (scaffold leaves the decisions a person makes)")
     # required fields are checked here, not discovered later as a KeyError (cloud test suite, 2026-10-29)
     for part, keys in (("file", ("repo", "revision", "name", "sha256", "store", "quant")), ("engine", ("name", "commit", "build", "bin", "flags", "weights"))):
         err += [f"{part}.{k} is required" if k != "bin" else "engine.bin (the server binary on the host) is required" for k in keys if k not in rc[part]]
@@ -49,7 +56,17 @@ def validate(rc, path):
     if rc["host"] not in HOSTS: err.append(f"host {rc['host']} not in hosts.json")
     if "greedy" not in rc["modes"]: err.append("a greedy mode is required")
     if rc["modes"].get("greedy", {}).get("sampling"): err.append("the greedy mode cannot carry sampling")
-    if set(rc["modes"]) - {"greedy", "vendor"}: err.append("modes are greedy and vendor only")
+    if set(rc["modes"]) - set(MODE_ORDER): err.append("modes are greedy, sampled and vendor only")
+    # 2026-11-11 (Qwen 4 kit): "sampled" is thinking off under the vendor's sampling, the arm that separates the thinking
+    # effect from the decoding effect (sci-distill Addendum 3); every sampled mode quotes where its numbers came from
+    sm = rc["modes"].get("sampled")
+    if sm is not None and (sm.get("thinking") or not sm.get("sampling")): err.append("the sampled mode is thinking off with sampling")
+    for name, m in rc["modes"].items():
+        s = m.get("sampling")
+        if s is not None and s != "CHOOSE" and (not isinstance(s, dict) or not all(isinstance(v, (int, float)) for v in s.values())):
+            err.append(f"mode {m.get('arm', '?')}: sampling is a dict of numbers")
+        if s and name != "greedy" and not m.get("sampling_source"):   # a greedy mode with sampling is already an error
+            err.append(f"mode {m.get('arm', '?')}: sampling needs a sampling_source quoting where it came from")
     if sum(bool(m.get("primary")) for m in rc["modes"].values()) != 1: err.append("exactly one mode is primary")
     if "/home/" in json.dumps(rc): err.append("no /home paths in a recipe (public repo)")
     if rc["engine"].get("weights") not in ("/dev/shm", "store", "disk"): err.append("engine.weights is /dev/shm (staged), disk (staged to the host's disk_dir) or store")
@@ -78,6 +95,11 @@ def validate(rc, path):
         if m.get("sampling") and not {"top_k", "min_p"} <= set(m["sampling"]):
             print(f"note: {path}: mode {m['arm']} leaves {', '.join(sorted({'top_k', 'min_p'} - set(m['sampling'])))} to the engine's defaults", file=sys.stderr)
     return rc
+
+
+def ordered(rc):
+    """(name, mode) in MODE_ORDER: greedy, sampled, vendor."""
+    return [(k, rc["modes"][k]) for k in MODE_ORDER if k in rc["modes"]]
 
 
 def recipes(paths=None):
@@ -169,7 +191,7 @@ def check(paths):
     sys.path.insert(0, str(QA)); import run_main   # noqa: E402  (the runner's own parser and header mapping)
     bad = 0
     for p, rc in recipes(paths):
-        for mode, m in rc["modes"].items():
+        for mode, m in ordered(rc):
             raw = QA / "raw" / f"main_{m['arm']}.jsonl"
             if not raw.exists(): print(f"{rc['model_id']} {mode} {m['arm']}: no stored run, nothing to compare"); continue
             got = flat(json.loads(open(raw).readline()))
@@ -241,7 +263,7 @@ def prereg(path, rc, force=False, stdout=False):
     if pp.exists() and not force and not stdout: raise SystemExit(f"{rel(pp)} exists (a prereg is never rewritten; --force only before any run)")
     f, e, h = rc["file"], rc["engine"], HOSTS[rc["host"]]
     modes = []
-    for name, m in rc["modes"].items():
+    for name, m in ordered(rc):
         dec = (f"sampled {json.dumps(m['sampling'])} ({m.get('sampling_source', 'vendor')}), per-item seed (20261025 + crc32(id)) mod 2^31"
                if m.get("sampling") else "greedy (temperature 0)")
         extra = "".join(f", {k} {json.dumps(m[k])}" for k in ("system", "template_kwargs") if m.get(k))
@@ -473,7 +495,7 @@ def chain(path, rc, stdout=False):
     if j["url"] == h["url"] or (h["kind"] == "local" and urllib.parse.urlparse(h["url"]).port == urllib.parse.urlparse(j["url"]).port):
         raise SystemExit("the judge must not share the model's port")
     txt = HEAD + (PARTS if len(parts) > 1 or staged else "") + (LOCAL if h["kind"] == "local" else SSH_STAGE if staged else SSH) + "$PY $A audit $RC >> $LOG 2>&1\ncd $Q\n"
-    for mode, m in rc["modes"].items():
+    for mode, m in ordered(rc):
         txt += MODE.replace("@MODE@", mode).replace("@ARM@", m["arm"]).replace("@ARGS@", shlex.join(run_argv(rc, path, mode)))
     if ab_inst(rc): txt += ABENCH
     txt += TAIL
@@ -531,8 +553,108 @@ def compare_abench(arm_a, arm_b):
     return not (miss or dc or dv or dp or dpj)
 
 
+# --- 2026-11-11 (Qwen 4 kit): scaffold a recipe from the Hugging Face API, and fetch its files pinned and hash-checked ---
+HF = "https://huggingface.co"
+SPLIT = re.compile(r"^(?P<stem>.+)-(?P<k>\d{5})-of-(?P<n>\d{5})\.gguf$")
+QUANT = re.compile(r"(UD-)?(I?Q\d(_[A-Z0-9]+)*|BF16|F16|F32|MXFP4(_MOE)?)", re.I)
+
+
+def hf_json(url):
+    """JSON from the Hugging Face API, and the next page's URL from its Link header, if any."""
+    with urllib.request.urlopen(url, timeout=60) as r:
+        nxt = re.search(r'<([^>]+)>;\s*rel="next"', r.headers.get("Link") or "")
+        return json.load(r), (nxt.group(1) if nxt else None)
+
+
+def hf_tree(repo, rev):
+    """Every file of repo@rev (recursive, all pages): {path: (size, lfs sha256 or None)}."""
+    out, url = {}, f"{HF}/api/models/{repo}/tree/{rev}?recursive=true"
+    while url:
+        page, url = hf_json(url)
+        out.update({f["path"]: (f.get("size"), (f.get("lfs") or {}).get("oid")) for f in page if f.get("type") == "file"})
+    return out
+
+
+def scaffold(repo, model_id, like, pattern, rev="main", prefix=None, stdout=False):
+    """A recipe skeleton: identity and file from the API (full revision, LFS sha256, every shard of a split GGUF), host,
+    engine and instruments copied from an existing recipe (LIKE), and CHOOSE where a person decides: the model card facts,
+    the vendor sampling (cards list several sets) and the AbstentionBench template. validate() rejects any CHOOSE."""
+    full = hf_json(f"{HF}/api/models/{repo}/revision/{rev}")[0]["sha"]
+    tree = hf_tree(repo, full)
+    hits = sorted(p for p in tree if p.endswith(".gguf") and re.fullmatch(pattern.replace(".", r"\.").replace("*", ".*"), p.rsplit("/", 1)[-1]))
+    if not hits: raise SystemExit(f"no .gguf in {repo}@{full[:8]} matches {pattern}; the repo has: " + ", ".join(sorted(p for p in tree if p.endswith('.gguf')))[:600])
+    first = hits[0]; m = SPLIT.match(first.rsplit("/", 1)[-1])
+    if m:   # every shard of that split file, in order
+        hits = sorted(p for p in tree if (s := SPLIT.match(p.rsplit("/", 1)[-1])) and s["stem"] == m["stem"] and s["n"] == m["n"] and p.rpartition("/")[0] == first.rpartition("/")[0])
+        if len(hits) != int(m["n"]): raise SystemExit(f"{m['stem']}: {len(hits)} shards found, the name says {int(m['n'])}")
+    elif len(hits) > 1: raise SystemExit(f"{pattern} matches {len(hits)} files: {', '.join(hits)}; name one")
+    if any(tree[p][1] is None for p in hits): raise SystemExit("a matched file is not stored in LFS, so the API gives no sha256")
+    _, lk = next(recipes([HERE / "recipes" / f"{like}.json"]))
+    pre = prefix or "CHOOSE"; q = QUANT.search(hits[0].rsplit("/", 1)[-1])
+    rc = {"schema": SCHEMA, "model_id": model_id,
+          "model": {"display": repo.split("/")[-1], "developer": repo.split("/")[0], "arch": "CHOOSE", "total_b": "CHOOSE", "active_b": "CHOOSE", "lineage": "CHOOSE"},
+          "file": {"repo": repo, "revision": full, "name": hits[0].rsplit("/", 1)[-1], "sha256": tree[hits[0]][1],
+                   "store": f"/mnt/HDD/Models/{model_id}", "quant": q.group(0) if q else "CHOOSE"},
+          "host": lk["host"], "engine": copy.deepcopy(lk["engine"]), "modes": {}, "instruments": list(lk["instruments"])}
+    if "/" in hits[0]: rc["file"]["subdir"] = hits[0].rsplit("/", 1)[0]
+    if len(hits) > 1: rc["file"]["parts"] = [{"name": p.rsplit("/", 1)[-1], "sha256": tree[p][1]} for p in hits]
+    g = lk["modes"]["greedy"]
+    rc["modes"]["greedy"] = {"arm": f"{pre}G", "thinking": False, "max_tokens": g["max_tokens"], "timeout": g["timeout"], "primary": True}
+    rc["modes"]["sampled"] = {"arm": f"{pre}S", "thinking": False, "max_tokens": g["max_tokens"], "timeout": g["timeout"],
+                              "sampling": "CHOOSE", "sampling_source": "CHOOSE", "label": "off (vendor sampling)", "primary": False}
+    rc["modes"]["vendor"] = {"arm": f"{pre}V", "thinking": True, "max_tokens": 8192, "timeout": 1800,
+                             "sampling": "CHOOSE", "sampling_source": "CHOOSE", "label": "on (vendor sampling)", "primary": False}
+    if lk.get("abench"): rc["abench"] = {"arm": f"{pre}AB", "template_kwargs": "CHOOSE", "primary": True}
+    rc["history"] = (f"Scaffolded {datetime.date.today()} from {repo}@{full[:8]} (abstend.py scaffold), engine/host/instruments "
+                     f"copied from {like}: check the engine supports this architecture (build_engine.sh for a newer commit or PR).")
+    gc = None
+    try: gc = hf_json(f"{HF}/{repo}/resolve/{full}/generation_config.json")[0]
+    except Exception: pass
+    txt = json.dumps(rc, indent=1, ensure_ascii=False) + "\n"
+    if stdout: print(txt, end="")
+    else:
+        out = HERE / "recipes" / f"{model_id}.json"
+        if out.exists(): raise SystemExit(f"{rel(out)} exists")
+        out.write_text(txt); print("wrote", rel(out))
+    print(f"{len(hits)} file(s), {sum(tree[p][0] for p in hits) / 1e9:.2f} GB; generation_config.json: {json.dumps(gc) if gc else 'none'}", file=sys.stderr)
+    print("fill every CHOOSE (the card's facts, the sampling set to quote, the AbstentionBench kwargs), then check, fetch, prereg", file=sys.stderr)
+    return rc
+
+
+def fetch(path, rc):
+    """Every file of the recipe from repo@revision (the full 40-hex revision only) into its store: resumable, each one
+    checked against its sha256 (a mismatch is renamed .bad), a <name>.sha256 sidecar written beside it."""
+    f = rc["file"]; parts = f.get("parts") or [{"name": f["name"], "sha256": f["sha256"]}]
+    if not re.fullmatch(r"[0-9a-f]{40}", f["revision"]): raise SystemExit("fetch needs file.revision as the full 40-hex commit (pinned)")
+    store = Path(f["store"]); store.mkdir(parents=True, exist_ok=True)
+    try:
+        need = sum((hf_tree(f["repo"], f["revision"]).get(f"{f['subdir']}/{p['name']}" if f.get("subdir") else p["name"]) or (0,))[0] or 0
+                   for p in parts if not (store / p["name"]).exists())
+        free = shutil.disk_usage(store).free
+        if need and free < need * 1.05 + min(20e9, need * 0.2): raise SystemExit(f"{store}: {free / 1e9:.1f} GB free, {need / 1e9:.1f} GB needed plus a margin")
+    except (urllib.error.URLError, KeyError) as e: print(f"note: size check skipped ({e})", file=sys.stderr)
+    bad = 0
+    for p in parts:
+        dst = store / p["name"]
+        if dst.exists() and subprocess.run(["sha256sum", str(dst)], capture_output=True, text=True).stdout.split()[:1] == [p["sha256"]]:
+            print(f"ok (already there) {p['name']}"); continue
+        url = f"{HF}/{f['repo']}/resolve/{f['revision']}/" + (f"{f['subdir']}/" if f.get("subdir") else "") + p["name"]
+        r = subprocess.run(["curl", "-fsSL", "--retry", "30", "--retry-delay", "15", "--retry-all-errors", "-C", "-", "-o", str(dst), url])
+        got = subprocess.run(["sha256sum", str(dst)], capture_output=True, text=True).stdout.split()[:1] if dst.exists() else []
+        if r.returncode == 0 and got == [p["sha256"]]:
+            (store / f"{p['name']}.sha256").write_text(f"{p['sha256']}  {p['name']}\n"); print(f"ok {p['name']}")
+        else:
+            bad += 1; print(f"FAILED {p['name']} (curl rc {r.returncode}, sha256 {got[0][:12] if got else 'none'})")
+            if dst.exists() and r.returncode == 0: dst.rename(dst.with_name(dst.name + ".bad"))
+    print("ALL OK" if not bad else f"FAILED {bad}"); return bad == 0
+
+
 def main():
     ap = argparse.ArgumentParser(); sp = ap.add_subparsers(dest="cmd", required=True)
+    x = sp.add_parser("scaffold"); x.add_argument("repo"); x.add_argument("--id", required=True); x.add_argument("--like", required=True)
+    x.add_argument("--file", required=True, help="the .gguf name or a glob (Q8_0 file, or the first shard of a split one)")
+    x.add_argument("--rev", default="main"); x.add_argument("--prefix", help="arm-name prefix, e.g. Q4F -> Q4FG, Q4FS, Q4FV"); x.add_argument("--stdout", action="store_true")
+    sp.add_parser("fetch").add_argument("recipe")
     sp.add_parser("check").add_argument("recipes", nargs="*")
     x = sp.add_parser("args"); x.add_argument("recipe"); x.add_argument("mode")
     x = sp.add_parser("prereg"); x.add_argument("recipe"); x.add_argument("--force", action="store_true"); x.add_argument("--stdout", action="store_true")
@@ -549,6 +671,9 @@ def main():
     if a.cmd == "compare": sys.exit(0 if compare(a.arm_a, a.arm_b) else 1)
     if a.cmd == "compare-abench": sys.exit(0 if compare_abench(a.arm_a, a.arm_b) else 1)
     if a.cmd == "verdicts": return verdicts(a.arm)
+    if a.cmd == "scaffold": return scaffold(a.repo, a.id, a.like, a.file, a.rev, a.prefix, a.stdout)
+    if a.cmd == "fetch":   # before validation: a scaffold with CHOOSE left still has everything fetch needs
+        rc = json.load(open(a.recipe)); sys.exit(0 if fetch(Path(a.recipe), rc) else 1)
     p, rc = next(recipes([a.recipe]))
     if a.cmd == "guard": sys.exit(0 if guard(p, rc) else 1)
     if a.cmd == "prereg": return prereg(p, rc, a.force, a.stdout)
