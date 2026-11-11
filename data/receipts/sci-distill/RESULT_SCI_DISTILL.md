@@ -116,5 +116,6 @@ Graded with the Deviation 1 fallback (a bare final letter counts when the `ANSWE
 One model pair, Q8_0, single-GPU P100 servers. GPQA: 198 items, 3 rounds, resolves about 5 points. M1 sampled arms are
 K = 1 per item. The GPQA primary uses a post-hoc, format-only fallback grade (Deviation 1); the registered grade is
 reported and differs only by answer format. A few GPQA requests started after the 24 h stop (Deviation 2: a runner
-slot-starvation bug, to be fixed with first-come slot assignment). Concurrent slots make GPQA samples not
+slot-starvation bug, fixed afterwards: one dispatcher now hands out work in order and checks the stop when a request
+starts; `tests/test_gpqa_runner.py` fails on the old runner and passes on the fixed one). Concurrent slots make GPQA samples not
 bit-reproducible.

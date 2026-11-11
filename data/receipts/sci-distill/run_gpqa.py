@@ -4,14 +4,14 @@
 Each round asks every item once. The choice order is a permutation seeded by (item, round), identical across arms.
 Prompt: OpenAI simple-evals' multiple-choice template; the answer is the LAST "ANSWER: X" in the content (not the
 reasoning). No answer, or finish=length, counts as wrong in the primary analysis.
-Requests go to every server in --urls at once, --slots per server; work is ordered round by round so rounds finish in
-order. No request starts after --deadline (epoch seconds).
+Requests go to every server in --urls at once, --slots per server; one dispatcher hands out work strictly in order,
+round by round, so rounds finish in order. No request starts after --deadline (epoch seconds).
 
 GPQA must not be published: full text goes ONLY to --private (outside the repo, flush+fsync per row). The repo file
 --public holds the item's sha256 prefix, round, correctness, answered, finish and token counts: no text, no letters.
 Resumable: (item, round) pairs already in --public are skipped.
 Usage: run_gpqa.py --arm A --urls U1,U2 --rounds 1-4 --public F --private F [--slots 4] [--max-tokens 30000]"""
-import argparse, hashlib, json, os, random, re, threading, time
+import argparse, hashlib, json, os, queue, random, re, threading, time
 from concurrent.futures import ThreadPoolExecutor
 import httpx
 
@@ -74,35 +74,31 @@ def main():
                                 "thinking": True, "template": "simple-evals multichoice", "meta": json.loads(a.meta),
                                 "started": time.strftime("%Y-%m-%dT%H:%M:%S%z")}) + "\n")
     work = [(rnd, it) for rnd in range(lo, hi + 1) for it in its if (it["id"], rnd) not in done]
-    lock = threading.Lock(); free = {}; cl = httpx.Client(timeout=a.timeout)
+    lock = threading.Lock(); cl = httpx.Client(timeout=a.timeout)
+    free, known = queue.Queue(), set()   # one token (the server URL) per free slot
 
-    def slot(u):
-        with lock:
-            return free.setdefault(u, threading.Semaphore(a.slots))
+    def refresh():   # servers listed since the last look join with --slots tokens each
+        for u in urls():
+            if u not in known:
+                known.add(u)
+                for _ in range(a.slots):
+                    free.put(u)
     print(f"{a.arm}: {len(work)} requests to run ({len(done)} already done)", flush=True)
 
-    def one(job):
+    def one(job, u):
         rnd, it = job
-        if a.deadline and time.time() > a.deadline:
-            return
-        while True:   # first server with a free slot
-            for u in urls():
-                if slot(u).acquire(blocking=False):
-                    break
-            else:
-                time.sleep(0.2); continue
-            break
-        prompt, gold, seed = render(it, rnd); t0 = time.time()
         try:
-            r = cl.post(f"{u}/v1/chat/completions", json={
-                "messages": [{"role": "user", "content": prompt}], "max_tokens": a.max_tokens, "seed": seed,
-                "cache_prompt": False, "chat_template_kwargs": {"enable_thinking": True}, **SAMPLING}).json()
-            ch = r["choices"][0]; m = ch["message"]; usage = r.get("usage", {})
-            content, reasoning, finish, err = m.get("content") or "", m.get("reasoning_content") or "", ch.get("finish_reason"), None
-        except Exception as e:   # recorded as an error row; rerun to retry it
-            content = reasoning = ""; finish = None; usage = {}; err = repr(e)[:300]
+            prompt, gold, seed = render(it, rnd); t0 = time.time()
+            try:
+                r = cl.post(f"{u}/v1/chat/completions", json={
+                    "messages": [{"role": "user", "content": prompt}], "max_tokens": a.max_tokens, "seed": seed,
+                    "cache_prompt": False, "chat_template_kwargs": {"enable_thinking": True}, **SAMPLING}).json()
+                ch = r["choices"][0]; m = ch["message"]; usage = r.get("usage", {})
+                content, reasoning, finish, err = m.get("content") or "", m.get("reasoning_content") or "", ch.get("finish_reason"), None
+            except Exception as e:   # recorded as an error row; rerun to retry it
+                content = reasoning = ""; finish = None; usage = {}; err = repr(e)[:300]
         finally:
-            slot(u).release()
+            free.put(u)
         if err:
             print(f"{a.arm} r{rnd} {it['id']}: ERROR {err}", flush=True); return
         got, ok = grade(content, gold)
@@ -118,8 +114,23 @@ def main():
         print(f"{a.arm} r{rnd} {it['id']} {'OK ' if ok else 'BAD'} {finish} {usage.get('completion_tokens')} tok "
               f"{pub['elapsed_s']} s", flush=True)
 
-    with ThreadPoolExecutor(max_workers=a.slots * 4) as ex:   # up to four servers per arm (.194's four GPUs)
-        list(ex.map(one, work))
+    # 2026-11-10 (PREREG_SCI_DISTILL.md Deviation 2): one dispatcher hands out jobs strictly in work order, each only once
+    # it holds a free slot, and checks the deadline at that moment. Before, idle workers raced for slots, so a job could
+    # wait for hours behind later ones and start after the deadline.
+    futs = []
+    with ThreadPoolExecutor(max_workers=a.slots * 8) as ex:
+        for job in work:
+            while True:
+                refresh()
+                try:
+                    u = free.get(timeout=1.0); break
+                except queue.Empty:
+                    continue
+            if a.deadline and time.time() > a.deadline:
+                free.put(u); print(f"{a.arm}: deadline passed, {len(work) - len(futs)} requests not started", flush=True); break
+            futs.append(ex.submit(one, job, u))
+        for f in futs:
+            f.result()
 
 
 if __name__ == "__main__":
