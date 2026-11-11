@@ -42,7 +42,7 @@ BAD = [(_drop_greedy, "a greedy mode is required"), (_greedy_sampling, "the gree
        (_thinking_abench, "thinking-on AbstentionBench needs Meta's two-phase protocol, not in the pipeline yet"),
        (_no_cache_ram, "host 9070 requires --cache-ram 0 in engine.flags"), (_bad_schema, "schema is not abstend-recipe/1"),
        (_unknown_host, "host 42 not in hosts.json"), (_third_mode, "modes are greedy and vendor only"),
-       (_unknown_mode_field, "unknown mode fields in L31G"), (_bad_weights, "engine.weights is /dev/shm (staged) or store"),
+       (_unknown_mode_field, "unknown mode fields in L31G"), (_bad_weights, "engine.weights is /dev/shm (staged), disk (staged to the host's disk_dir) or store"),
        (_no_bin, "engine.bin (the server binary on the host) is required"),
        (_abench_no_arm, "abench needs an arm (fields: arm, template_kwargs, primary, label, note)")]
 

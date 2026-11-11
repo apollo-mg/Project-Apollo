@@ -52,7 +52,16 @@ def validate(rc, path):
     if set(rc["modes"]) - {"greedy", "vendor"}: err.append("modes are greedy and vendor only")
     if sum(bool(m.get("primary")) for m in rc["modes"].values()) != 1: err.append("exactly one mode is primary")
     if "/home/" in json.dumps(rc): err.append("no /home paths in a recipe (public repo)")
-    if rc["engine"].get("weights") not in ("/dev/shm", "store"): err.append("engine.weights is /dev/shm (staged) or store")
+    if rc["engine"].get("weights") not in ("/dev/shm", "store", "disk"): err.append("engine.weights is /dev/shm (staged), disk (staged to the host's disk_dir) or store")
+    # 2026-11-11 (Qwen 4 kit): split GGUFs and models bigger than .194's /dev/shm quota (~48.6 GiB)
+    if rc["engine"].get("weights") == "disk" and (HOSTS.get(rc["host"], {}).get("kind") != "ssh" or not HOSTS[rc["host"]].get("disk_dir")):
+        err.append("engine.weights disk needs an ssh host with a disk_dir in hosts.json")
+    parts = rc["file"].get("parts")
+    if parts is not None:
+        if not isinstance(parts, list) or len(parts) < 2 or any(not isinstance(p, dict) or set(p) != {"name", "sha256"} or not re.fullmatch(r"[0-9a-f]{64}", str(p.get("sha256"))) for p in parts):
+            err.append("file.parts lists every shard as {name, sha256} (full hash), two or more")
+        elif (parts[0]["name"], parts[0]["sha256"]) != (rc["file"]["name"], rc["file"]["sha256"]):
+            err.append("file.parts[0] must be file.name with file.sha256 (llama-server loads the other shards from the first)")
     for f in HOSTS.get(rc["host"], {}).get("require_flags", []):
         if f not in rc["engine"]["flags"]: err.append(f"host {rc['host']} requires {f} in engine.flags")
     for m in rc["modes"].values():
@@ -376,6 +385,34 @@ ok=0; for i in $(seq 1 120); do sleep 5; curl -s -m 3 $H/health | grep -q '"ok"'
 [ $ok = 1 ] || { log "ABORT: server did not come up"; exit 1; }
 log "server up: $(ssh $S 'nvidia-smi --query-gpu=memory.used --format=csv,noheader | tr "\n" " "')"
 """
+# 2026-11-11 (Qwen 4 kit): split GGUFs and/or weights on the host's disk. Every shard is checked at the store, copied
+# unless already on the host with its hash, and checked again there; ssh never reads the list (mapfile, not while-read:
+# ssh inside a while-read loop eats the loop's input). Recipes with one file in /dev/shm keep the SSH template above.
+PARTS = r"""mapfile -t PARTS <<'EOF_PARTS'
+@PARTS@
+EOF_PARTS
+for P in "${PARTS[@]}"; do got=$(sha256sum @STORE@/${P% *} | cut -d' ' -f1); [ "$got" = "${P#* }" ] || { log "ABORT: ${P% *} sha256 mismatch at the store (${got:-none})"; exit 1; }; done
+log "all @NPARTS@ file(s) sha256 ok at the store"
+"""
+SSH_STAGE = r"""S=@SSH@; UP=0; W='@WDIR@'
+stop_model () { [ $UP = 1 ] || return 0
+  ssh $S "P=\$(cat ~/abstend_server.pid 2>/dev/null); [ -n \"\$P\" ] && [ \"\$(readlink /proc/\$P/exe)\" = \"@RBIN@\" ] && kill \$P && timeout 60 tail --pid=\$P -f /dev/null@RMSTAGED@"
+  timeout 120 $R/@POWER@ off >> $LOG 2>&1; UP=0; log "host powered off"; }
+trap cleanup EXIT
+timeout 300 $R/@POWER@ on >> $LOG 2>&1; UP=1
+for i in $(seq 1 60); do ssh -o ConnectTimeout=5 -o BatchMode=yes $S true 2>/dev/null && break; sleep 10; done
+ssh $S "mkdir -p $W"
+for P in "${PARTS[@]}"; do PN=${P% *}; PS=${P#* }
+  [ "$(ssh $S "sha256sum $W/$PN 2>/dev/null" | cut -d' ' -f1)" = "$PS" ] || rsync -a @STORE@/$PN $S:$W/
+  got=$(ssh $S "sha256sum $W/$PN" | cut -d' ' -f1); [ "${got:-}" = "$PS" ] || { log "ABORT: staged sha256 mismatch for $PN (${got:-none})"; exit 1; }
+done
+log "$S: kernel $(ssh $S uname -r); driver $(ssh $S 'nvidia-smi --query-gpu=driver_version --format=csv,noheader | head -1')"
+log "staged @NPARTS@ file(s) in $W, sha256 ok; clocks $(ssh $S 'nvidia-smi --query-gpu=clocks.applications.graphics,power.limit --format=csv,noheader | tr "\n" " "')"
+ssh $S "@ENV@nohup @BIN@ -m $W/$N @FLAGS@ --host 0.0.0.0 --port @PORT@ > ~/abstend_server.log 2>&1 < /dev/null & echo \$! > ~/abstend_server.pid"
+ok=0; for i in $(seq 1 120); do sleep 5; curl -s -m 3 $H/health | grep -q '"ok"' && { ok=1; break; }; done
+[ $ok = 1 ] || { log "ABORT: server did not come up"; exit 1; }
+log "server up: $(ssh $S 'nvidia-smi --query-gpu=memory.used --format=csv,noheader | tr "\n" " "')"
+"""
 MODE = r"""if $PY $A smoke $RC @MODE@ >> $LOG 2>&1; then
   $PY -s run_main.py @ARGS@ >> $D/run_@ARM@.log 2>&1
   log "@ARM@ rc=$? rows=$(( $(wc -l < raw/main_@ARM@.jsonl) - 1 ))"; else log "@ARM@ SMOKE FAILED"; fi
@@ -408,7 +445,10 @@ log "DONE"
 def chain(path, rc, stdout=False):
     h = HOSTS[rc["host"]]; e, f = rc["engine"], rc["file"]; desk = HOSTS[JUDGE_HOST]
     if not h.get("url"): raise SystemExit(f"host {rc['host']} has no fixed test URL in hosts.json")
-    if h["kind"] == "ssh" and e["weights"] != "/dev/shm": raise SystemExit("ssh hosts serve from /dev/shm in this version")
+    if h["kind"] == "ssh" and e["weights"] not in ("/dev/shm", "disk"): raise SystemExit("ssh hosts serve from /dev/shm or their disk_dir")
+    parts = f.get("parts") or [{"name": f["name"], "sha256": f["sha256"]}]
+    staged = h["kind"] == "ssh" and (len(parts) > 1 or e["weights"] == "disk")   # the SSH_STAGE path; else the original templates
+    wdir = "/dev/shm" if e["weights"] == "/dev/shm" else h.get("disk_dir", "")
     if not stdout and not guard(path, rc): sys.exit(1)
     bad = date_check(rc)
     if bad: raise SystemExit("date check: " + "; ".join(bad))
@@ -426,11 +466,13 @@ def chain(path, rc, stdout=False):
            "JNAME": Path(j["file"]).name, "APY": ins["python"], "EXPORT": ins["export"], "ITEMS": ins["items"], "CHECKOUT": ins["checkout"],
            "ABSAMP": "".join(f" --{k.replace('_', '-')} {v}" for k, v in (ins.get("sampler") or {}).items()),
            "ABARM": (rc.get("abench") or {}).get("arm", "none"), "ABTK": f" --template-kwargs {shlex.quote(json.dumps(tk))}" if tk else "",
-           "JDATE": f" --date {shlex.quote(j['date_string'])}" if j.get("date_string") else "", "ABPH": " --prompt-hash" if ins.get("prompt_hash") else ""}
+           "JDATE": f" --date {shlex.quote(j['date_string'])}" if j.get("date_string") else "", "ABPH": " --prompt-hash" if ins.get("prompt_hash") else "",
+           "PARTS": "\n".join(f"{p['name']} {p['sha256']}" for p in parts), "NPARTS": str(len(parts)), "WDIR": wdir,
+           "RMSTAGED": "; rm -f " + " ".join(f"/dev/shm/{p['name']}" for p in parts) if wdir == "/dev/shm" else ""}
     # ports, not URL strings: localhost:8196 and 127.0.0.1:8196 are the same socket on the desktop (cloud test suite, 2026-10-29)
     if j["url"] == h["url"] or (h["kind"] == "local" and urllib.parse.urlparse(h["url"]).port == urllib.parse.urlparse(j["url"]).port):
         raise SystemExit("the judge must not share the model's port")
-    txt = HEAD + (LOCAL if h["kind"] == "local" else SSH) + "$PY $A audit $RC >> $LOG 2>&1\ncd $Q\n"
+    txt = HEAD + (PARTS if len(parts) > 1 or staged else "") + (LOCAL if h["kind"] == "local" else SSH_STAGE if staged else SSH) + "$PY $A audit $RC >> $LOG 2>&1\ncd $Q\n"
     for mode, m in rc["modes"].items():
         txt += MODE.replace("@MODE@", mode).replace("@ARM@", m["arm"]).replace("@ARGS@", shlex.join(run_argv(rc, path, mode)))
     if ab_inst(rc): txt += ABENCH

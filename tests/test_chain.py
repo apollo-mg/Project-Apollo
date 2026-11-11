@@ -211,3 +211,45 @@ def test_prereg_v3_states_the_pin(capsys, no_precheck):
     rc["instruments"] = ["AbstentionBench-sub1000v3/norefs" if i in abstend.AB_INSTS else i for i in rc["instruments"]]
     abstend.prereg(p, rc, stdout=True); txt = capsys.readouterr().out
     assert "pinned to '26 Jul 2024'" in txt and "hash of its rendered prompt" in txt
+
+
+# --- 2026-11-11 (Qwen 4 kit): split GGUFs and weights on the host's disk --------------------------------------------
+def _split(rc, n=3):
+    base = rc["file"]["name"].replace(".gguf", "")
+    rc["file"]["parts"] = [{"name": rc["file"]["name"], "sha256": rc["file"]["sha256"]}] + \
+                          [{"name": f"{base}-0000{k}-of-0000{n}.gguf", "sha256": f"{k:064x}"} for k in range(2, n + 1)]
+    return rc
+
+
+def test_chain_ssh_disk_split(capsys):
+    p, rc = load("nanbeige4.3-33b"); rc["engine"]["weights"] = "disk"; _split(rc)
+    abstend.validate(rc, p); txt = render(capsys, p, rc)
+    assert not PLACEHOLDER.search(txt)
+    assert subprocess.run(["bash", "-n"], input=txt, text=True, capture_output=True).returncode == 0
+    assert f"W='{abstend.HOSTS['194']['disk_dir']}'" in txt and "-m $W/$N" in txt and 'ssh $S "mkdir -p $W"' in txt
+    assert all(f"{q['name']} {q['sha256']}" in txt for q in rc["file"]["parts"])   # every shard listed, with its hash
+    assert "mapfile -t PARTS" in txt and "while read" not in txt   # ssh would eat a while-read loop's input
+    assert "rm -f /dev/shm" not in txt   # disk weights stay for the next run
+    assert "rsync -a $F $S:/dev/shm/" not in txt
+
+
+def test_chain_ssh_shm_split_removes_every_shard(capsys):
+    p, rc = load("nanbeige4.3-33b"); _split(rc, 2)
+    abstend.validate(rc, p); txt = render(capsys, p, rc)
+    assert "W='/dev/shm'" in txt and "rm -f " + " ".join(f"/dev/shm/{q['name']}" for q in rc["file"]["parts"]) in txt
+
+
+def test_chain_single_file_shm_keeps_the_original_template(capsys):
+    p, rc = load("nanbeige4.3-33b"); txt = render(capsys, p, rc)
+    assert "rsync -a $F $S:/dev/shm/" in txt and "mapfile" not in txt
+
+
+@pytest.mark.parametrize("change, msg", [
+    (lambda rc: rc["engine"].update(weights="disk"), "engine.weights disk needs an ssh host with a disk_dir in hosts.json"),
+    (lambda rc: rc["file"].update(parts=[{"name": "a.gguf", "sha256": "0" * 64}]), "file.parts lists every shard as {name, sha256} (full hash), two or more"),
+    (lambda rc: rc["file"].update(parts=[{"name": "x.gguf", "sha256": "0" * 64}, {"name": "y.gguf", "sha256": "1" * 64}]),
+     "file.parts[0] must be file.name with file.sha256 (llama-server loads the other shards from the first)"),
+])
+def test_validate_split_and_disk(change, msg):
+    p, rc = load("spark-x2.6-4b"); change(rc)   # the 9070: a local host, no disk_dir
+    with pytest.raises(SystemExit, match=re.escape(msg)): abstend.validate(rc, p)
