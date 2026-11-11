@@ -15,14 +15,34 @@ cost tokens only to start and interpret, which is the actual scarce resource.
 
 ---
 
+## Current queue (2026-11-11) -- start here; the sections below are older and kept for their reasoning
+
+| thread | what it answers | cost | state |
+|---|---|---|---|
+| **Qwen 4 release day** | the new 27B/Flash on the standard card, against Qwen3.8 replayed on the SAME new engine build (C.A ran on buun `0b2789f23`, so a cross-build comparison mixes build and model) | a day, mostly .194 | Alibaba summit 11-18/19 is the best lead. The Abstend kit is ready: `build_engine.sh` (any commit or `pr/N`), `abstend.py scaffold` -> fill CHOOSE -> `fetch` -> `prereg` -> `chain`; split GGUFs and disk weights for .194. Expect the token gate to differ between generations: record the template/tokenizer difference, do not gate on it |
+| **Agentic gaming v1** | does a fine-tune cut corners as an agent? (`agentic-gaming/RESULT_PILOT_v0.md`) | a design session + an overnight run | v1 changes registered in the pilot result: a loop rule ("stuck" as its own outcome), volunteered vs elicited abstention, seeds that change what the agent sees, a harder F1, the questionnaire parser |
+| **"Exact Answer:" prefix ablation** | SerialKicked (HF #23): does the answer line itself bias a small model toward or away from UNKNOWN? | ~2 h + a matcher or judge for free-form answers | open; M1's prompt OFFERS UNKNOWN by design, so this measures offered vs unprompted abstention |
+| **Observer agent on .73** | watch running chains (unit alive, rows arriving, log moving), wake the local model only when something looks wrong or for a twice-daily summary | a few hours | Mark's idea 11-11; .73 sleeps on demand, so the cheap checks run on the desktop and the model is woken rarely |
+| **Local performance grinder** | a local agent that proposes kernel changes for sm_60, gated by build + benchmark + output-match checks | days | Mark's idea 11-10; CUDA 13 dropped Pascal, so community fixes will stop; the referee (KLD path-noise floor, determinism) already exists |
+| GPQA for big models | science reasoning beyond 9B | days per 27B arm on P100s | NOT a day-one instrument: the 9B pair took 24 h on four cards (`sci-distill/`) |
+| Clover-35B-A3B vs its base | does block diffusion cost quality? | small | BLOCKED: llama.cpp runs it token by token only; testing it outside its real decoding repeats the "wrong mode" error critics raised. Wait for block-diffusion support |
+| Llama recipe date pin; second-date judge control; Ripple base vs instruct | small controls from 11-02..11-05 | ~1 h each | open |
+
+Done this week (receipts): `quant-abstention/RESULT_SAGE_MATCHED.md`, `RESULT_SAGE_SAMPLED.md` (the HF #23 Sage
+question: not precision, not decoding), `sci-distill/RESULT_SCI_DISTILL.md` (Qwen3.5-9B vs the DeepSeek-V4-Pro distill:
+GPQA -0.20; thinking changes honesty not knowledge), `agentic-gaming/RESULT_PILOT_v0.md`, `arete/RESULT_ARETE.md`,
+`ds41-h2h/RESULT_DS41_H2H.md`, `qwopus/`, `ripple/`.
+
+---
+
 ## New from 2026-11-01 -- model candidates (Abstend, in this order)
 
 | thread | what it answers | cost | blocked by |
 |---|---|---|---|
-| DeepSeek-V4.1-Flash-1017, GSQ-RCO IQ2_XXS vs Unsloth v3.1 IQ1_M, matched at about 250 GB | ISTA's "100.0% recovery" and Unsloth's chart are both vendor numbers on saturating tasks. Neither measures honesty or the long tail | hours on .194 | instrument v3; Mark's OK 11-02; downloading to .194 `~/AI/Models/ds41` (`ds41-h2h/download_ds41.sh`, revisions pinned, sha256 per file); then an engine that loads V4.1 Engram on sm_60, and a prereg |
-| Clover-35B-A3B-Preview vs its base Qwen3.6-35B-A3B | Does block filling cost quality? It is close to speculative decoding with a diffusion twist. All numbers are self-reported, and llama.cpp gets self-speculative decoding only, not block diffusion. Default penalties apply under greedy, and the docs list long-horizon stability as future work | small on the 9070 | DeepSeek first; support is in its infancy; check the llama.cpp PR state |
+| ~~DeepSeek-V4.1-Flash-1017, GSQ-RCO IQ2_XXS vs Unsloth v3.1 IQ1_M~~ **DONE 11-03** (`ds41-h2h/RESULT_DS41_H2H.md`) | ISTA's "100.0% recovery" and Unsloth's chart are both vendor numbers on saturating tasks. Neither measures honesty or the long tail | hours on .194 | instrument v3; Mark's OK 11-02; downloading to .194 `~/AI/Models/ds41` (`ds41-h2h/download_ds41.sh`, revisions pinned, sha256 per file); then an engine that loads V4.1 Engram on sm_60, and a prereg |
+| Clover-35B-A3B-Preview vs its base Qwen3.6-35B-A3B **(BLOCKED 11-11: see the current queue)** | Does block filling cost quality? It is close to speculative decoding with a diffusion twist. All numbers are self-reported, and llama.cpp gets self-speculative decoding only, not block diffusion. Default penalties apply under greedy, and the docs list long-horizon stability as future work | small on the 9070 | DeepSeek first; support is in its infancy; check the llama.cpp PR state |
 | Nemotron 3.5 Transcribe 30B-A4B (34B total, 4.3B active), IQ2_NL 11 GB + encoder 1.5 GB | Does a low-bit MoE keep rare names and jargon? The quant card's WER 1.02 vs 1.03 is on clean read speech, which cannot show that. Offline only, so it would not replace the streaming ASR in `voice/` | small on the 9070 | a patched llama.cpp branch (`maternion/nemo-transcribe-iq23nl`); read it before building |
-| Agentic gaming instrument (Abstend agentic arm) | Does an agent take a shortcut a stated rule forbids (edit the tests, read the answer key, hard-code the output, disable a check) when an honest path exists? Detection lives outside the agent: logged reads, writes and commands, never its own account. Same family as the local honeypot | design first, then small tasks on the 9070 | the honeypot design (local, private bait); an agent harness under test |
+| Agentic gaming instrument (Abstend agentic arm) **(pilot DONE 11-09, v1 in the current queue)** | Does an agent take a shortcut a stated rule forbids (edit the tests, read the answer key, hard-code the output, disable a check) when an honest path exists? Detection lives outside the agent: logged reads, writes and commands, never its own account. Same family as the local honeypot | design first, then small tasks on the 9070 | the honeypot design (local, private bait); an agent harness under test |
 
 ## Blocking — a claim is currently unsafe to quote until these run
 
