@@ -52,8 +52,12 @@ The mismatch was worth about 0.03 of the 0.22.
 The precision mismatch an independent replicator pointed out (Jorge Leon, HF discussion #23 on NousResearch/Arete-27B)
 was real, and it was not the explanation: matched, Sage still refuses invented questions about a fifth less often than
 its base. The fine-tune pattern on M1 stays at five of five. It does not explain why Leon's set showed Sage holding its
-base's rate (15-17/30 vs 15/30); his questions, his 4-bit MLX quants and his inference stack all differ from ours, and
+base's rate (15-17/30 vs 15/30); his questions, his 6-bit MLX quants (his 11-09 reply on the thread; his Arete run was 4-bit) and his inference
+stack all differ from ours, and
 this run changed none of those. That disagreement stays open.
+
+**Update 2026-11-11 (`RESULT_SAGE_SAMPLED.md`):** under Sage's recommended sampling, the very settings Leon used, the
+drop is -0.16 [-0.22, -0.10] (three replicates per item). Decoding does not explain the disagreement.
 
 ## Limits
 

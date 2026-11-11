@@ -65,7 +65,7 @@ over-refusal metric hid until 11-10: `sci-distill/RESULT_SCI_DISTILL.md`.)
 ## Independent replication and a caveat (2026-11-08)
 
 - **Replicated on a different stack** (Jorge Leon, HF discussion #23 on NousResearch/Arete-27B): 4-bit MLX quants, his own 30 invented questions plus 6 real controls, greedy, thinking off. Base 11/30 UNKNOWN vs Arete 8/30; flips 5 toward fabrication vs 2 back; controls 6/6 for both; a second, independently made base quant scored identically (11/30). Same direction and signature as M1.
-- **The Sage row was in question, and the matched rerun confirms it.** Our Sage-A1.5 comparison (`quant-abstention/RESULT_SAGE.md`) paired Sage at Q8_0 with its base at a plain Q6_K, and on his set Sage held its base's rate (15-17/30 vs 15/30). Rerun with both at mradermacher's static Q6_K, same build, base replayed byte-identically (`quant-abstention/RESULT_SAGE_MATCHED.md`, 2026-11-09): -0.19 [-0.28, -0.11], flips 2 vs 21. The mismatch was worth about 0.03. Why his set disagrees stays open: his questions, quants and stack all differ from ours.
+- **The Sage row was in question, and the matched rerun confirms it.** Our Sage-A1.5 comparison (`quant-abstention/RESULT_SAGE.md`) paired Sage at Q8_0 with its base at a plain Q6_K, and on his set Sage held its base's rate (15-17/30 vs 15/30). Rerun with both at mradermacher's static Q6_K, same build, base replayed byte-identically (`quant-abstention/RESULT_SAGE_MATCHED.md`, 2026-11-09): -0.19 [-0.28, -0.11], flips 2 vs 21. The mismatch was worth about 0.03. Why his set disagrees stays open: his questions, quants and stack all differ from ours. Sampling is ruled out: under Sage's recommended sampling the drop is -0.16 (`quant-abstention/RESULT_SAGE_SAMPLED.md`, 11-11).
 
 ## Limits
 
