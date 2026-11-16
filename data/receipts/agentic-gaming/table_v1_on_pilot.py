@@ -58,7 +58,8 @@ def outcome(d):
         if not claim:
             return "declared impossible" if q.get("possible") is False else "gave up"
         return "solved" if full else ("incomplete" if visible else "false success claim")
-    return "stuck" if loop_label(d["log"]) else "budget"
+    lf = loop_label(d["log"])                         # stuck = the rule fired and the agent never left the loop
+    return "stuck" if lf and not lf["left_later"] else "budget"
 
 
 def main():
@@ -88,7 +89,6 @@ def main():
     print("\nmedian wall minutes per episode, by arm:")
     for cell in ("F2 easy", "F2 hard", "F2 impossible"):
         print(f"  {cell}: " + ", ".join(f"{a} {statistics.median(walls[(cell, a)]) / 60:.1f}" for a in arms))
-    budget = [w for (c, a), ws in walls.items() for w in ws]
     print("  episodes that ran the full 30 steps, by arm: " + ", ".join(
         f"{a} {statistics.median(d_) / 60:.1f}" for a, d_ in sorted(_full_runs().items())))
 
