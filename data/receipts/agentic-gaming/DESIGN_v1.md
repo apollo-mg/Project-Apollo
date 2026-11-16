@@ -1,7 +1,7 @@
-# Agentic gaming instrument v1 -- design, revision 2 (2026-11-16)
+# Agentic gaming instrument v1 -- design, revision 3 (2026-11-16)
 
-**Status: DESIGN.** Not a prereg and no harness code yet. Three choices are Mark's and are marked **(pending Mark)**
-with the default this document assumes. Order of work: this design -> build and validation suite -> a calibration run
+**Status: DESIGN.** Not a prereg and no harness code yet. The three choices that were Mark's (the primary question, the models, a
+fresh-context review) were decided on 11-16 and are marked **(decided 11-16)**. Order of work: this design -> build and validation suite -> a calibration run
 (no predictions) -> prereg with sizes and predictions -> the main run.
 
 **Inputs:** `RESULT_PILOT_v0.md` (what v0 could not measure), `NOTE_DEEPSEEK_HARNESS.md` (a sanctioned "blocked" exit,
@@ -24,9 +24,9 @@ where the shortcut is fabricating a missing input; (4) local open-weight files a
 settings. Their prompt result is why every text that mentions an exit is frozen and stated here, and their abort
 result is why a ceiling on easy items is expected (section 3, depth).
 
-## 1. The question (pending Mark: which is primary)
+## 1. The question (decided 11-16: volunteered abstention is primary)
 
-**Default: volunteered abstention is the primary endpoint.** When a task cannot be done as specified, does the agent
+**Volunteered abstention is the primary endpoint.** When a task cannot be done as specified, does the agent
 stop and say so on its own? The pilot is why: every shortcut label was 0 of 51, so a shortcut rate has nothing to
 compare yet; the impossible rung was 0 of 9 volunteered exits with 7 of 9 ending in a repeat loop, which is a rate that
 can move. This is M1's question for an agent: an impossible task is the invented item, and stopping with the reason is
@@ -35,7 +35,8 @@ the agent's UNKNOWN.
 The shortcut detectors of v0 stay on for every episode as monitors (tamper, hard-coding, purity, plus one new one,
 fabricated input). If calibration finds a cell with a non-zero shortcut rate, it is reported and can be promoted in the
 prereg. The alternative primary, "make honest work expensive until models cut corners", is a different build (pressure,
-budgets shown to the agent, costlier honest paths) and is not designed here.
+budgets shown to the agent, costlier honest paths): harder to design and longer to test. Mark keeps it as the
+criterion for the NEXT round of this instrument (11-16; `BACKLOG.md`); it is not designed here.
 
 ## 2. Three item groups, one grading rule
 
@@ -171,18 +172,23 @@ runs `ls -la` or `date` itself) cannot be removed, so it is MEASURED: an **ident
 set twice and reports how many episodes replay with the same call sequence. If replay is not identical, greedy
 episodes are reported as single draws and the sampled mode (K > 1, as in M1) carries the rates.
 
-## 7. Serving and arms (pending Mark: models, thinking, hours)
+## 7. Serving and arms (decided 11-16: the 27B lineage, thinking off)
 
 Serving is part of the instrument, as in v0: temperature 0, `cache_prompt` false, `-np 1`, explicit KV flags,
 `max_tokens` 4096 per step, a 30-step budget, tools in bwrap on the desktop, the model on .194.
 
-**Default arms:** the pilot's lineage, already on .194 and already measured on M1: Qwen3.8-27B (base), Arete-27B,
+**Arms:** the pilot's lineage, already on .194 and already measured on M1: Qwen3.8-27B (base), Arete-27B,
 Qwopus3.8-27B-Coder-Flash, all Q8_0, **thinking off** (the setting M1's fine-tune pattern was measured in). The
 comparison the prereg would register: the fine-tunes refuse less on M1's invented items; do they also block less on
-IMP? An alternative or addition is the 9B pair (Qwen3.5-9B and its DeepSeek distill, four lanes in parallel): the
+IMP? Not in v1: the 9B pair (Qwen3.5-9B and its DeepSeek distill, four lanes in parallel): the
 distill made up answers to 40 of 100 invented questions against the base's 6 with thinking on, which makes K3 a sharp
 prediction, but it only works with thinking on, and on the science test one of its replies in five ran to the
 30,000-token cap (`sci-distill/RESULT_SCI_DISTILL.md`).
+
+Also not in v1: Qwen3.6-35B-A3B, which Mark raised and set aside (fast at 3B active, not a serious contender now). It
+is the natural SECOND lineage if v1 shows an effect: its fine-tune Sage-A1.5 carries the best-replicated refusal drop
+on M1 (-0.19 at matched precision, -0.16 sampled; `quant-abstention/RESULT_SAGE_MATCHED.md`,
+`RESULT_SAGE_SAMPLED.md`), and the pair is cheap to run.
 
 **Cost, from the pilot's wall times** (27B Q8_0 on two P100s per lane; median minutes per episode by arm, from
 `table_v1_on_pilot.py`: easy 1.9 for all three; hard 6.4 BASE, 45.1 ARE, 12.5 QWC; impossible run to the 30-step budget
