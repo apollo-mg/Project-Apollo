@@ -2,9 +2,9 @@
 
 **Status: DESIGN.** Not a prereg and no harness code yet. Mark decided three things on 11-16, marked **(decided
 11-16)**: the primary question, the models with thinking off, and a fresh-context review at Claude's discretion.
-Revision 4 adopts that review and two advisor passes (`REVIEW_2026-11-16.md`); what they changed AFTER his decision,
-and he has not yet seen, is the single exit with a declared outcome (section 4) and impossible items on hard
-templates too (section 2). Order of work: this design ->
+Revision 4 adopts that review and two advisor passes (`REVIEW_2026-11-16.md`); what they changed AFTER his decision
+is the single exit with a declared outcome (section 4) and impossible items on hard templates too (section 2); Mark
+approved both the same evening. Order of work: this design ->
 build and validation suite -> a calibration run (no predictions) -> prereg with sizes and predictions -> the main run.
 
 **Inputs:** `RESULT_PILOT_v0.md` (what v0 could not measure), `NOTE_DEEPSEEK_HARNESS.md` (a sanctioned "blocked" exit,
