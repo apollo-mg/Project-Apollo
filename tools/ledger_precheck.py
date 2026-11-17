@@ -65,7 +65,9 @@ def main(a):
     print(f"terms: {' '.join(words)}\n")
 
     found = False
-    for path, label in [(INDEX, "INDEX.md"), (FAILMODES, "FAILURE_MODES.md")]:
+    # The compendium first: it holds the CURRENT best statement about a machine, model or measurement lesson.
+    pages = [(p, str(p.relative_to(ROOT))) for p in sorted((ROOT / "compendium").rglob("*.md")) if p.name != "README.md"]
+    for path, label in pages + [(INDEX, "INDEX.md"), (FAILMODES, "FAILURE_MODES.md")]:
         hits = scan(path, words, label)[: a.k]
         if hits:
             found = True

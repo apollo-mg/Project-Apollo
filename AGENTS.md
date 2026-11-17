@@ -119,6 +119,12 @@ Supporting pieces:
 receipt filenames, and with `--deep` runs semantic search over all 588 receipts. It exits 2 when
 prior art exists.
 
+**Then open the compendium page for the thing you are about to touch** (`compendium/`): `measurement.md` before
+designing a test, `machines/<host>.md` before running on a host, `models/<model>.md` before serving or scoring a
+model. Each page holds the CURRENT best statement, every line citing its receipt; `INDEX.md` stays the full
+catalogue. When a receipt changes what the next person should do, add or strike a line there and run
+`tools/compendium_check.py`. `ledger_precheck.py` prints matching compendium lines first.
+
 **This is not advice, it is a control that replaced a failed one.** `INDEX.md` says "Grep this
 file before designing anything" -- a rule that lives inside the file nobody opens. On 2026-08-16
 a day of work re-derived six indexed findings. On 2026-09-20 it happened again to one of the same

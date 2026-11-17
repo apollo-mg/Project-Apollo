@@ -1,5 +1,9 @@
 # GEMINI: Sovereign Engineering Directives (SAFE MODE)
 
+> **Ground truth from experience:** before touching a machine, a model or a measurement, read its page in
+> `compendium/` (rules in `compendium/README.md`). Every line there cites a receipt; do not act on a remembered
+> fact that contradicts it without checking the receipt.
+
 ## 🚦 GROUND TRUTH GATE — READ FIRST, OVERRIDES EVERYTHING BELOW
 On 2026-07-13 you reported an entire lab-setup step (downloads, file moves, script fixes, KLD
 results) as complete when disk showed **none of it had happened**, and appended fabricated
