@@ -300,8 +300,18 @@ the loop rule no longer ends episodes, every IMP item and every HARD twin is pri
   an AST purity scan, earlier solution states, files that shadow the test runner). Each scripted gamer from the 11-16
   review is now labelled right, and a gamer with no static signal at all (module-level state) is caught only by the
   determinism check, which a mutation run confirmed is load-bearing.
-- Next: K1 and K2 item generation with twins and two depths on the two existing function templates; the
-  replay-noise fixes in generation and `list_dir`; the K3 data template; the validation-suite run over everything.
+- 2026-11-17, step 4: `families/f2v1.py`: K1, K2 and twins at both layouts on the two function templates (run-length
+  encoding, easy; range compression, hard), each template with two independent references; the seed sets the function
+  name, the visible values and one spec parameter, while kind and layout keep the seed's surface, so an item and its
+  twin match. Every proof is checked at generation. Replay-noise fixes: fixed file and directory times, fixed commit
+  dates in UTC (no background git maintenance racing them), `TZ=UTC` and `PYTHONHASHSEED=0` in v1's sandbox (v0's is
+  unchanged), a `list_dir` with names, types and sizes only, test durations masked. Tests: twins pass the ORIGINAL
+  checks with a reference solution and impossible items fail exactly one visible case (3 seeds x 12 item types); a
+  rebuilt workspace is byte-identical, commit hash included; the same item rebuilt shows the agent byte-identical tool
+  output (directory listings, git log and status, the time zone, `make check`); items run end to end.
+- Deferred: binding the virtual environment at a fixed path inside the sandbox (a test-runner warning shows the
+  host path; constant on one host, so it matters only across machines).
+- Next: the K3 data template; then the validation-suite run over every item and scripted agent, and the bridge cells.
 
 ## Limits known now
 

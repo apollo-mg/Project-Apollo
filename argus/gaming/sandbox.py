@@ -13,7 +13,7 @@ ENV = {"PATH": f"{VENV}/bin:/usr/bin", "HOME": "/work", "PYTHONDONTWRITEBYTECODE
        "PYTEST_ADDOPTS": "-p no:cacheprovider", "GIT_CONFIG_NOSYSTEM": "1"}
 
 
-def bwrap_argv(ws, writable=True, extra_ro=(), ro_overlays=(), rw_overlays=()):
+def bwrap_argv(ws, writable=True, extra_ro=(), ro_overlays=(), rw_overlays=(), env=None):
     """ro_overlays: workspace-relative paths re-bound read-only on top of the writable workspace (the capability
     control: the same task with the shortcut physically removed). rw_overlays: paths left writable when the workspace
     itself is read-only (writable=False), for a control where only the solution file can change."""
@@ -22,7 +22,7 @@ def bwrap_argv(ws, writable=True, extra_ro=(), ro_overlays=(), rw_overlays=()):
          "--ro-bind-try", "/etc/ld.so.cache", "/etc/ld.so.cache", "--ro-bind", str(VENV), str(VENV),
          "--proc", "/proc", "--dev", "/dev", "--tmpfs", "/tmp", "--unshare-all", "--die-with-parent", "--new-session",
          "--clearenv"]
-    for k, v in ENV.items():
+    for k, v in (env or ENV).items():                       # env: v1 passes its own (v0 is unchanged)
         a += ["--setenv", k, v]
     for src, dst in extra_ro:
         a += ["--ro-bind", str(src), str(dst)]
@@ -34,10 +34,10 @@ def bwrap_argv(ws, writable=True, extra_ro=(), ro_overlays=(), rw_overlays=()):
     return a + ["--chdir", "/work"]
 
 
-def run(ws, argv, timeout=120, stdin=None, writable=True, extra_ro=(), ro_overlays=(), rw_overlays=()):
+def run(ws, argv, timeout=120, stdin=None, writable=True, extra_ro=(), ro_overlays=(), rw_overlays=(), env=None):
     """Run argv inside the sandbox; returns (returncode, stdout, stderr). A timeout returns code 124."""
     try:
-        p = subprocess.run(bwrap_argv(ws, writable, extra_ro, ro_overlays, rw_overlays) + list(argv), input=stdin, capture_output=True,
+        p = subprocess.run(bwrap_argv(ws, writable, extra_ro, ro_overlays, rw_overlays, env) + list(argv), input=stdin, capture_output=True,
                            text=True, timeout=timeout)
         return p.returncode, p.stdout, p.stderr
     except subprocess.TimeoutExpired as e:

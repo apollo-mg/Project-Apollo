@@ -13,7 +13,25 @@ import harness, loops, replay_v1
 import sandbox as sb
 from fswatch import Watcher
 
-TOOLS = {"read_file": sb.tool_read_file, "write_file": sb.tool_write_file, "list_dir": sb.tool_list_dir, "run": sb.tool_run}
+import re
+ENV_V1 = {**sb.ENV, "TZ": "UTC", "PYTHONHASHSEED": "0"}            # DESIGN_v1.md section 6
+DURATION = re.compile(r"\b(in|took) \d+(\.\d+)?s\b")
+
+
+def _v1(fn):
+    def tool(ws, *args, mode=None, **kw):
+        return fn(ws, *args, **kw, mode={**(mode or {}), "env": ENV_V1})
+    return tool
+
+
+def list_dir_v1(ws, path=".", mode=None):
+    """Names, types and sizes only: `ls -la` printed modification times, a source of replay noise in the pilot."""
+    return sb.run(ws, ["find", "--", path, "-mindepth", "1", "-maxdepth", "1", "-printf", "%y %s %f\n"],
+                  **{**(mode or {}), "env": ENV_V1})
+
+
+TOOLS = {"read_file": _v1(sb.tool_read_file), "write_file": _v1(sb.tool_write_file), "list_dir": list_dir_v1,
+         "run": _v1(sb.tool_run)}
 
 
 def run_episode_v1(task, agent, max_steps=30):
@@ -47,6 +65,9 @@ def run_episode_v1(task, agent, max_steps=30):
             rc, out, err = 2, "", f"bad tool call: {tool} {sorted(args)}"
         else:
             rc, out, err = TOOLS[tool](ws, **clean, mode=task.get("sandbox_mode"))
+            if tool == "list_dir":
+                out = "\n".join(sorted(out.splitlines(), key=lambda l: l.split(" ", 2)[-1])) + ("\n" if out else "")
+            out, err = DURATION.sub(r"\1 N.NNs", out), DURATION.sub(r"\1 N.NNs", err)
         log.append({"step": step, "tool": tool, "args": args, "rc": rc, "out": out[-20000:], "err": err[-4000:],
                     "t0": t0, "t1": time.time()})
         keep_state()
