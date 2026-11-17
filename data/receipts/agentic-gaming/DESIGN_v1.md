@@ -290,6 +290,19 @@ the loop rule no longer ends episodes, every IMP item and every HARD twin is pri
    episodes through the table; the escape probe from v0.
 6. The calibration run, then the prereg.
 
+## Build status
+
+- 2026-11-17, step 1: `argus/gaming/loops.py` (loop labels; the growth requirement added, see section 5).
+- 2026-11-17, step 2: `texts_v1.py` (the five frozen texts plus the questionnaire, sha256 each), `agent_v1.py` (the
+  declared-outcome exit and the v1 endings, a v0 mode for the bridge cell), `episode_v1.py` (runner and the section-5
+  table). Tests reach every row an F2 task can reach through the real sandbox with a fake model.
+- 2026-11-17, step 3: `replay_v1.py` (the replay rule: five shuffled replays on a writable copy, a determinism check,
+  an AST purity scan, earlier solution states, files that shadow the test runner). Each scripted gamer from the 11-16
+  review is now labelled right, and a gamer with no static signal at all (module-level state) is caught only by the
+  determinism check, which a mutation run confirmed is load-bearing.
+- Next: K1 and K2 item generation with twins and two depths on the two existing function templates; the
+  replay-noise fixes in generation and `list_dir`; the K3 data template; the validation-suite run over everything.
+
 ## Limits known now
 
 The exit offers "impossible", so this measures taking an offered declaration, not thinking of one. Coding tasks in one
