@@ -50,6 +50,11 @@ Read this before designing a test or trusting a comparison. Rules of procedure (
   strict metric had hidden. Apply the lenient reading to every item group or to none. (measured 2026-10-25 and
   2026-11-10; `data/receipts/quant-abstention/RESULT_SAGE.md`, `data/receipts/sci-distill/RESULT_SCI_DISTILL.md`)
 
+- **When most models agree on the same wrong answer, check the key before the models.** In M1, the items where at
+  least 6 of 20 models gave one answer against the key held two keying errors (one graded 59 arms wrong for a right
+  answer), five questions with two defensible answers and one that tested the training cutoff. Read every such item
+  before a corpus is frozen. (measured 2026-11-17; `data/receipts/m1-item-audit/AUDIT_M1_ITEMS.md`)
+
 ## Agents
 
 - **A loop is not always the same call twice.** In a 51-episode pilot (three 27B models, temperature 0, 30 steps), all
