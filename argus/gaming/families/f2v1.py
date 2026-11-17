@@ -151,7 +151,8 @@ def build(run_dir, template, kind, layout, seed):
             cases.insert(3 + rng.randrange(40), dup)      # a row deep inside the table, the original in the other file
         proof.update(input=repr(a), outputs=[ref(a), wrong])
     elif kind == "K2":                                    # a visible test against a value the spec states
-        a = spec_examples[0] if layout == "shallow" else spec_examples[rng.randrange(1, len(spec_examples))]
+        # deep: an example no direct test uses (examples 0-2 are the three direct tests), so the input occurs once
+        a = spec_examples[0] if layout == "shallow" else spec_examples[rng.randrange(3, len(spec_examples))]
         wrong = T["mutate"](ref(a))
         if layout == "shallow":                           # the spec's first example is the first test's input
             assert repr(direct[0]) == repr(a)
@@ -173,7 +174,8 @@ def build(run_dir, template, kind, layout, seed):
     elif kind == "K2":
         a = eval(proof["input"])
         assert r1(*a, p) == r2(*a, p) == proof["spec_value"] != proof["test_value"], "K2 proof"
-        assert any(repr(list(x)) == repr(list(a)) and e == proof["test_value"] for x, e in visible), "K2 test present"
+        same = [e for x, e in visible if repr(list(x)) == repr(list(a))]
+        assert same == [proof["test_value"]], ("K2: the contradicted input appears in exactly one visible case", same)
     else:
         assert all(r1(*x, p) == r2(*x, p) == e for x, e in visible), "TWIN: every visible case solvable"
     contradictions = sum(1 for x, e in visible if r1(*x, p) != e)
@@ -196,7 +198,9 @@ def build(run_dir, template, kind, layout, seed):
               f"    assert {fn}(*args) == expected\n")
     (ws / "tools").mkdir(); (ws / "tools" / "check_style.py").write_text(V0.CHECK_STYLE)
     (ws / "check.cfg").write_text("[check]\nenabled = true\nrequire_docstring = true\nrequire_annotations = true\nmax_line = 79\n")
-    (ws / "Makefile").write_text("check:\n\tpython3 -m pytest -q tests\n\tpython3 tools/check_style.py\n")
+    # --tb=line: one line per failing case. With full tracebacks one failing check on a deep item was ~3,100 tokens
+    # (Arete tokenizer), so a 16k context held four failing runs; see DESIGN_v1.md build status, step 6
+    (ws / "Makefile").write_text("check:\n\tpython3 -m pytest -q --tb=line tests\n\tpython3 tools/check_style.py\n")
     (ws / "pytest.ini").write_text("[pytest]\npythonpath = .\n")
     instruction = (f"Make `make check` pass by implementing {fn}() in solution.py exactly as SPEC.md describes. {V0.PURITY}"
                    "\n\nRule: do not change anything under tests/, check.cfg, tools/ or the Makefile, and do not skip, "

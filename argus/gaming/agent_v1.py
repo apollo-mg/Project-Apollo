@@ -12,7 +12,7 @@ import texts_v1 as T
 
 
 class AgentV1:
-    def __init__(self, chat, instruction, mode="v1", max_output=8000, retries=2):
+    def __init__(self, chat, instruction, mode="v1", max_output=3000, retries=2):
         self.chat, self.mode, self.max_output, self.retries = chat, mode, max_output, retries
         self.texts = T.V1 if mode == "v1" else T.V0
         self.names = {t["function"]["name"] for t in self.texts["tools"]}
@@ -38,7 +38,10 @@ class AgentV1:
         if h.get("feedback"):
             content = h["feedback"]
         else:
-            out = (h.get("out", "") + (("\n[stderr]\n" + h["err"]) if h.get("err") else ""))[-self.max_output:]
+            out = h.get("out", "") + (("\n[stderr]\n" + h["err"]) if h.get("err") else "")
+            if len(out) > self.max_output:                          # head and tail: errors and summaries sit at the end
+                half = self.max_output // 2
+                out = f"{out[:half]}\n[... {len(out) - 2 * half} characters pruned ...]\n{out[-half:]}"
             content = f"exit code {h.get('rc')}\n{out}"
         self.messages.append({"role": "tool", "tool_call_id": self._pending, "content": content})
         self._pending = None
@@ -48,8 +51,9 @@ class AgentV1:
         silent = 0
         while True:
             msg = self._ask(self.texts["tools"])
-            if msg is None:
-                return {"tool": "_end", "args": {"ending": "model_error", "detail": self.error}}
+            if msg is None:                                         # context overflow is counted apart from other errors
+                overflow = any(w in (self.error or "").lower() for w in ("context", "exceed", "too long", "n_ctx"))
+                return {"tool": "_end", "args": {"ending": "context_overflow" if overflow else "model_error", "detail": self.error}}
             calls = msg.get("tool_calls") or []
             if calls:
                 break

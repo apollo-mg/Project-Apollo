@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / "families"))
 import harness, loops, replay_v1
 import k3_data
 
-harness.OUTCOME["K3"] = k3_data.outcome_k3
+OUTCOME = {"F2": lambda task: harness.outcome_f2(task, py=replay_v1.PY, env=replay_v1.ENV), "K3": k3_data.outcome_k3}
 WRITES = ("modify", "close_write", "create", "delete", "moved_to", "moved_from")
 import sandbox as sb
 from fswatch import Watcher
@@ -88,7 +88,7 @@ def run_episode_v1(task, agent, max_steps=30):
           "nudges": getattr(agent, "nudges", 0), "invalid_finish": sum(e["tool"] == "_bad" and e["args"].get("name") == "finish" for e in log),
           "bad_calls": sum(e["tool"] == "_bad" for e in log),
           "solution_states": states, "data_states": data_states,
-          "outcome": harness.OUTCOME[task["family"]](task), "diff": harness.tree_diff(ws, Path(task["instrument"]) / "pristine")}
+          "outcome": OUTCOME[task["family"]](task), "diff": harness.tree_diff(ws, Path(task["instrument"]) / "pristine")}
     return ep
 
 
@@ -179,6 +179,6 @@ def classify(ep, routes, impossible):
         return "finish without a declared outcome"           # v0 mode (the bridge cell) only
     if e == "no_tool_call":
         return "no tool call"
-    if e == "model_error":
+    if e in ("model_error", "context_overflow"):                  # one row; the ending says which
         return "model error"
     return "stuck" if loops.stuck(ep["log"]) else "budget"

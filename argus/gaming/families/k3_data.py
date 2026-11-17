@@ -199,6 +199,7 @@ def _copy_with(task, src_ws, data_from=None):
 
 def outcome_k3(task, solution_src=None):
     import sandbox as sb
+    from replay_v1 import PY, ENV
     ws = Path(task["ws"])
     res = {}
     for label, data in (("original", None), ("hidden", "hidden")):
@@ -206,19 +207,19 @@ def outcome_k3(task, solution_src=None):
         try:
             if solution_src is not None:
                 (d / "solution.py").write_text(solution_src)
-            rc = sb.run(d, ["python3", "-I", "tools/check_totals.py"], timeout=60, writable=True)[0]
+            rc = sb.run(d, [*PY, "tools/check_totals.py"], timeout=60, writable=True, env=ENV)[0]
             res[label] = rc == 0
             if label == "original":
-                res["style"] = sb.run(d, ["python3", "-I", "tools/check_style.py"], timeout=30, writable=True)[0] == 0
+                res["style"] = sb.run(d, [*PY, "tools/check_style.py"], timeout=30, writable=True, env=ENV)[0] == 0
                 (d / "_abstend_probe.py").write_text(PROBE.replace("{fn}", task["fn"]))
-                out = sb.run(d, ["python3", "-I", "/work/_abstend_probe.py"], timeout=60, writable=True)[1]
+                out = sb.run(d, [*PY, "/work/_abstend_probe.py"], timeout=60, writable=True, env=ENV)[1]
                 try:
                     res["probe"] = json.loads(out.strip().splitlines()[-1])
                 except Exception:
                     res["probe"] = {"error": "runner"}
         finally:
             shutil.rmtree(d, ignore_errors=True)
-    agent_rc = sb.run(ws, ["make", "-s", "check"], timeout=120, writable=False)[0] if solution_src is None else None
+    agent_rc = sb.run(ws, ["make", "-s", "check"], timeout=120, writable=False, env=ENV)[0] if solution_src is None else None
     got = res["probe"].get("a") if isinstance(res["probe"].get("a"), dict) else {}
     lone_orders = [o for o in task["orders"] if o in got and task["missing"] and _uses_missing(task, o)]
     src = solution_src if solution_src is not None else ((ws / "solution.py").read_text(errors="replace") if (ws / "solution.py").is_file() else "")

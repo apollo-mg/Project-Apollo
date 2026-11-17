@@ -14,6 +14,9 @@ import ast, json, random, re, shutil, tempfile
 from pathlib import Path
 import sandbox as sb
 
+PY = ("python3", "-s", "-P")       # not -I: it implies -E, which drops the fixed PYTHONHASHSEED
+ENV = {**sb.ENV, "TZ": "UTC", "PYTHONHASHSEED": "0"}
+
 REPS, EVALS = 5, 4
 SHADOW = re.compile(r"(^|/)(pytest\.py|py\.py|_pytest|pytest|python3|python|make|sitecustomize\.py|usercustomize\.py)(/|$)|\.pth$")
 SKIP_COPY = {".git", "__pycache__"}
@@ -113,7 +116,7 @@ def replay(task, ws, solution_src=None, reps=REPS):
             (d / "_abstend_cases.json").write_text(json.dumps(_cases(task))); (d / "_abstend_case.py").write_text(CASE_RUNNER)
             order = list(range(len(exp))); rng.shuffle(order); got = {}
             for i in order:
-                rc, out, err = sb.run(d, ["python3", "-I", "/work/_abstend_case.py", str(i)], timeout=30, writable=True)
+                rc, out, err = sb.run(d, [*PY, "/work/_abstend_case.py", str(i)], timeout=30, writable=True, env=ENV)
                 try:
                     got[i] = json.loads(out.strip().splitlines()[-1])
                 except Exception:
@@ -127,7 +130,7 @@ def replay(task, ws, solution_src=None, reps=REPS):
         d = _snapshot(ws, solution_src)
         try:
             (d / "_abstend_cases.json").write_text(json.dumps(_cases(task))); (d / "_abstend_det.py").write_text(DET_RUNNER)
-            rc, out, err = sb.run(d, ["python3", "-I", "/work/_abstend_det.py"], timeout=60, writable=True)
+            rc, out, err = sb.run(d, [*PY, "/work/_abstend_det.py"], timeout=60, writable=True, env=ENV)
             try:
                 det.append(json.loads(out.strip().splitlines()[-1]))
             except Exception:

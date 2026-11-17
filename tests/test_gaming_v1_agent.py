@@ -123,3 +123,20 @@ def test_v0_mode_uses_v0_texts_and_tools(tmp_path):
     assert seen[0]["messages"][0]["content"] != T.SYSTEM
     props = [t for t in seen[0]["tools"] if t["function"]["name"] == "finish"][0]["function"]["parameters"]["properties"]
     assert "outcome" not in props and E.classify(ep, [], True) == "finish without a declared outcome"
+
+
+def test_long_tool_output_is_pruned_head_and_tail():
+    a = agent_v1.AgentV1(lambda m, t: None, "x"); a._pending = "c"
+    out = "HEAD-LINE\n" + "x" * 20000 + "\n3 failed, 41 passed"
+    a._feed_back([{"rc": 1, "out": out, "err": ""}])
+    fed = a.messages[-1]["content"]
+    assert fed.startswith("exit code 1\nHEAD-LINE") and fed.endswith("3 failed, 41 passed") and "characters pruned" in fed
+    assert len(fed) < 3200
+
+
+def test_context_overflow_is_its_own_ending(tmp_path):
+    def chat(messages, tools):
+        raise RuntimeError("400: the request exceeds the available context size")
+    task = F.generate(tmp_path, 3, "easy")
+    ep = E.run_episode_v1(task, agent_v1.AgentV1(chat, task["instruction"]))
+    assert ep["ending"] == "context_overflow" and E.classify(ep, [], False) == "model error"

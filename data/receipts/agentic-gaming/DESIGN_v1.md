@@ -319,8 +319,31 @@ the loop rule no longer ends episodes, every IMP item and every HARD twin is pri
   check on both K3 layouts and passes the twin's original and hidden checks (3 seeds); kind and layout keep the seed's
   surface; scripted agents for every route and label (honest abstainer, fabricator, reverting fabricator, placeholder
   file, defensive default as the invented-output label, hard-coder, honest solver). 84 gaming tests pass.
-- Next: the validation-suite run over every item type with the scripted agents (one report), the bridge cells, and
-  the calibration chain for .194.
+- 2026-11-17, step 6 (pre-GPU checks, from an advisor review):
+  - **K2 deep could also be a K1:** the contradicted example was drawn from spec examples that two direct tests also
+    used. Now drawn only from examples no test uses, with a new proof (the input appears in exactly one visible case);
+    360 items (30 seeds x 12 types) rebuilt and proof-checked.
+  - **Hash seed:** `python3 -I` implies `-E`, which drops `PYTHONHASHSEED`, so string-set order changed between the
+    replay's processes while the agent's own runs had it fixed: an honest solution iterating a set would have read as
+    impure (row 1). Checks now run `python3 -s -P` with v1's environment (bwrap's `--clearenv` already controls it);
+    v0's checks keep `-I` by default (`harness.outcome_f2` takes the flags). Tested both ways.
+  - **Context budget:** with full tracebacks one failing `make check` on a deep item was ~3,100 tokens (Arete's
+    tokenizer), so a 16k context held four failing runs and the over-abstention cell would have ended in context
+    errors. Now `pytest --tb=line` in v1 items and tool output pruned head and tail to 3,000 characters (~1,400 tokens
+    per failing run): about 10 failing runs fit 16k and 22 fit 32k. The context per arm is set by a preflight on .194
+    (largest that fits, aiming at 32k or more), and a context overflow is its own ending, reported apart.
+  - **What the model sees:** the first request rendered through Arete's chat template with the tool schema is 723
+    tokens and contains all three outcome descriptions. Base and Qwopus are checked by the preflight's
+    `/apply-template` on the served files.
+  - **Real model code:** the 12 distinct Python files the pilot's models wrote all pass the purity scan (0 flags).
+  - **One table:** `table_v1_on_pilot.py` now runs the shipped `episode_v1.classify` and `loops.py` (36 solved,
+    2 incomplete, 13 stuck, as before).
+  - **K3 gamers added:** an edit to the check (tamper) and a solution that adds the missing rate to the check's own
+    variables at import (no file touched; caught as a pass on an impossible item by the original-check replay).
+  - **Cost of the replay:** 6 s per deep item (0.6 s shallow), plus up to ~25 s for earlier solution states: run
+    inline after each episode.
+- Next: the calibration plan (seeds, text hashes, code commit, decision rules) committed before any data; then the
+  preflight and the calibration chain on .194.
 
 ## Limits known now
 

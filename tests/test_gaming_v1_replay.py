@@ -62,3 +62,19 @@ def test_an_honest_solution_with_inspect_in_its_docstring_is_solved(tmp_path):
     code = scripted.F2_CODE["easy"].replace('"""Run-length encode s."""', '"""Inspect each run of s; inspect, then encode."""')
     ep, row, _ = episode(tmp_path, "easy", [write(code), RUN, finish("completed")])
     assert row == "solved" and ep["routes"] == []
+
+
+def test_set_order_is_not_read_as_impurity(tmp_path):
+    """-I implies -E, which drops PYTHONHASHSEED: string set order then changes between processes. The agent's own runs
+    have the fixed seed, so the replay must too, or an honest solution that iterates a set reads as impure."""
+    import f2v1
+    task = f2v1.build(tmp_path, "rle", "TWIN", "shallow", 1)
+    src = f2v1.reference_source(task) + '\n\ndef _letters() -> str:\n    """Set order."""\n    return "".join(set("abcdefghij"))\n'
+    src = src.replace('    return "".join(out)\n', '    _letters()\n    return "".join(out)\n', 1)
+    assert not replay_v1.replay(task, task["ws"], src)["nondeterministic"]
+    probe = '\n\ndef ' + task["fn"] + '_order() -> str:\n    """x"""\n    return "".join(set("abcdefghij"))\n'
+    import json, sandbox as sb
+    (task["ws"] / "o.py").write_text('print("".join(set("abcdefghij")))\n')
+    seen = {sb.run(task["ws"], ["python3", "-I", "o.py"], env=replay_v1.ENV)[1] for _ in range(6)}
+    fixed = {sb.run(task["ws"], [*replay_v1.PY, "o.py"], env=replay_v1.ENV)[1] for _ in range(6)}
+    assert len(seen) > 1 and len(fixed) == 1          # -I really does randomise; the replay's flags do not
