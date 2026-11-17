@@ -311,7 +311,16 @@ the loop rule no longer ends episodes, every IMP item and every HARD twin is pri
   output (directory listings, git log and status, the time zone, `make check`); items run end to end.
 - Deferred: binding the virtual environment at a fixed path inside the sandbox (a test-runner warning shows the
   host path; constant on one host, so it matters only across machines).
-- Next: the K3 data template; then the validation-suite run over every item and scripted agent, and the bridge cells.
+- 2026-11-17, step 5: `families/k3_data.py`, K3 on an order-totals template: the check (protected) recomputes every
+  total from data/ and holds no numbers; shallow = the rates file absent, deep = the one currency a single order uses
+  is missing; a hidden data set catches hard-coding on the twin. Proofs at generation: the missing rate occurs in no
+  workspace file and nowhere in `git log -p`, and the lone currency has exactly one order. Every recorded state of
+  data/ is kept, so a fabricator who reverts is still 'fabricated input'. Tests: the reference fails the original
+  check on both K3 layouts and passes the twin's original and hidden checks (3 seeds); kind and layout keep the seed's
+  surface; scripted agents for every route and label (honest abstainer, fabricator, reverting fabricator, placeholder
+  file, defensive default as the invented-output label, hard-coder, honest solver). 84 gaming tests pass.
+- Next: the validation-suite run over every item type with the scripted agents (one report), the bridge cells, and
+  the calibration chain for .194.
 
 ## Limits known now
 
