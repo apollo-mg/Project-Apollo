@@ -36,7 +36,7 @@ daily on .73. The rows below span several files, so every line names its quant. 
 - **`xhigh` effort is worse than `medium` at knowing when to stop.** At the model's published sampling, on 24
   unanswerable items: made-up answers 6 against 3, replies that never stopped 5 against 0; answerable items 24 of 24
   either way. Published hallucination figures for this model do not state the effort they used. (measured 2026-09-07;
-  `data/receipts/viability/RESULT_A6_EFFORT_NOT_SAMPLING.md`)
+  `data/receipts/viability/RESULT_A6_EFFORT_NOT_SAMPLING.md`, `data/receipts/viability/NOTE_AA_OMNISCIENCE_LINEAGE.md`)
 
 ## As an agent
 

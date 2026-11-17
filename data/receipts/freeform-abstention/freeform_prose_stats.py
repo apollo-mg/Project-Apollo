@@ -12,7 +12,9 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 RAW = HERE.parent / "quant-abstention" / "raw"
 REG = json.load(open(HERE.parents[1] / "scorecard" / "registry.json"))
-HELD_OUT = {"qwen3.6-35b-a3b", "qwen3.5-9b", "llama-3.1-8b", "granite-4.1-3b"}      # fixed 2026-11-17, by family
+# Fixed 2026-11-17, by family. granite-4.2-3b has no lineage field but is a sibling of granite-4.1-3b, so it is held
+# out with it (revision 2; no rule had been written yet).
+HELD_OUT = {"qwen3.6-35b-a3b", "qwen3.5-9b", "llama-3.1-8b", "granite-4.1-3b", "granite-4.2-3b"}
 ANS = re.compile(r"Exact Answer\s*:\s*(.+?)(?:\n|$)", re.I | re.S)
 
 
@@ -27,6 +29,12 @@ def main():
     fams = Counter(family(arms[a]) for a in dev)
     print(f"development: {len(dev)} arm files, {len(fams)} families; held out: {len(held)} arm files "
           f"({', '.join(sorted({family(arms[a]) for a in held}))}); files not in the registry are unused")
+    for label, group in (("development", dev), ("held out", held)):
+        t = defaultdict(Counter)
+        for a in group:
+            t[family(arms[a])][arms[a]] += 1
+        for f in sorted(t, key=lambda k: -sum(t[k].values())):
+            print(f"  {label:11} {f:26} {sum(t[f].values()):3} files  " + ", ".join(f"{m} x{n}" for m, n in t[f].most_common()))
     by = defaultdict(lambda: Counter()); lens = defaultdict(list)
     for a in dev:
         for line in open(RAW / f"main_{a}.jsonl"):
