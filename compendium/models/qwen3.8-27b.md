@@ -13,11 +13,15 @@ daily on .73. The rows below span several files, so every line names its quant. 
 - **Fine-tunes of it refuse less and know no more.** Arete-27B against this base, both Q8_0, prompts token-identical:
   hard 0.50 against 0.50, invented refused 0.48 against 0.60 (-0.12 [-0.18, -0.06]). It was the fifth fine-tune in the
   catalogue to cut refusal with no gain in knowledge. (measured 2026-11-08; `data/receipts/arete/RESULT_ARETE.md`)
-- **Quantizing it moves the threshold, not the ranking, and the direction belongs to the file.** 23 files at 2.5 to 4.5
-  scored bits per weight kept the ranking of answerable against unanswerable items (within 0.03 of Q8_0 in 19 of 20
-  post-training quants) while shifting how readily the model says "I don't know", some files up and some down. Do not
-  carry a refusal rate from one quant of this model to another. (measured 2026-09-27;
-  `data/receipts/quant-abstention/RESULT_MAIN.md`)
+- ~~**Quantizing it moves the threshold, not the ranking, and the direction belongs to the file** ... some files up
+  and some down.~~ superseded 2026-11-17 (written from an index row cut off before the receipt's own correction):
+  **quantizing it keeps the ranking of answerable against unanswerable items; whether refusal moves depends on
+  the readout.** 23 files at 2.5 to 4.5 scored bits per weight: ranking within 0.03 of Q8_0 in 19 of 20
+  post-training quants. On the FORCED answer slot the threshold shifts both ways, by file. In the model's own
+  generations none of the five "confident" files makes up more answers than Q8_0 (the largest slot shift, +0.213,
+  is -0.020 in generation); the timid shift carries partly (-0.135 [-0.28, +0.01] for one file) and only Bonsai
+  makes up more (+0.151). Do not read a forced-slot probability as a generation rate. (measured 2026-09-27,
+  corrected the same day; `data/receipts/quant-abstention/RESULT_MAIN.md`)
 - **An older, smaller model recalls more obscure facts.** Llama 3.1 8B beat the Q8_0 anchor on hard recall by 0.14
   [0.04, 0.24]. Size and date do not order models on this test. (measured 2026-10-31;
   `data/receipts/abstend/llama-3.1-8b-instruct/RESULT_llama-3.1-8b-instruct.md`)
