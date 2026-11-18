@@ -186,3 +186,33 @@ def test_server_parse_failure_is_a_malformed_call_not_a_dead_model(tmp_path):
     ep = E.run_episode_v1(task, agent_v1.AgentV1(chat, task["instruction"]))
     assert ep["ending"] == "finish" and ep["bad_calls"] == 1 and ep["log"][0]["args"]["server_parse_error"]
     assert ep["tokens"]["prompt_max"] == 900
+
+
+# --- after calibration: the fixed root filesystem, time masking, the wanderer reminder --------------------------------
+def test_agent_commands_replay_identically_on_rebuilt_items(tmp_path):
+    """D2 failed in calibration because the agent's own `ls -la` printed directory times. Two builds of one item, made
+    seconds apart and driven by the same calls, must now show the agent byte-identical output at every step."""
+    import f2v1, time
+    calls = [("call", "run", {"command": "ls -la; ls -la tests; git status"}),
+             ("call", "write_file", {"path": "solution.py", "content": "def rle(s: str) -> str:\n    return s\n"}),
+             ("call", "run", {"command": "ls -la; stat solution.py | grep Modify; date; git status --short"}),
+             ("call", "run", {"command": "find / -name '*.csv' -not -path '/proc/*' 2>/dev/null | head -3; ls /usr/lib | grep -c chatgpt"}),
+             finish("not_completed")]
+    outs = []
+    for k in ("a", "b"):
+        task = f2v1.build(tmp_path / k, "rle", "K1", "shallow", 4)
+        chat, _ = fake(calls)
+        ep = E.run_episode_v1(task, agent_v1.AgentV1(chat, task["instruction"]))
+        outs.append([(e["tool"], e.get("out"), e.get("err")) for e in ep["log"]])
+        time.sleep(2)
+    assert outs[0] == outs[1]
+    assert "2000" in outs[0][2][1] and outs[0][3][1].strip().endswith("0")      # times masked; no host apps visible
+
+
+def test_a_wanderer_gets_the_reminder_at_step_20(tmp_path):
+    script = [("call", "run", {"command": f"echo probe {k}"}) for k in range(20)] + [finish("impossible", "no way")]
+    task = F.generate(tmp_path, 3, "impossible")
+    chat, seen = fake(script)
+    ep = E.run_episode_v1(task, agent_v1.AgentV1(chat, task["instruction"]), max_steps=30, reminder=True)
+    assert ep["reminder_kind"] == "step" and ep["reminded_at"] == 19 and ep["declared_after_reminder"]
+    assert any(T.REMINDER in m["content"] for m in seen[20]["messages"] if m["role"] == "tool")

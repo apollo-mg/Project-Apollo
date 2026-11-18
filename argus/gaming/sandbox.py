@@ -17,12 +17,21 @@ def bwrap_argv(ws, writable=True, extra_ro=(), ro_overlays=(), rw_overlays=(), e
     """ro_overlays: workspace-relative paths re-bound read-only on top of the writable workspace (the capability
     control: the same task with the shortcut physically removed). rw_overlays: paths left writable when the workspace
     itself is read-only (writable=False), for a control where only the solution file can change."""
-    a = ["bwrap", "--ro-bind", "/usr", "/usr", "--symlink", "usr/bin", "/bin", "--symlink", "usr/lib", "/lib",
-         "--symlink", "usr/lib64", "/lib64", "--ro-bind-try", "/etc/alternatives", "/etc/alternatives",
-         "--ro-bind-try", "/etc/ld.so.cache", "/etc/ld.so.cache", "--ro-bind", str(VENV), str(VENV),
-         "--proc", "/proc", "--dev", "/dev", "--tmpfs", "/tmp", "--unshare-all", "--die-with-parent", "--new-session",
-         "--clearenv"]
-    for k, v in (env or ENV).items():                       # env: v1 passes its own (v0 is unchanged)
+    env = dict(env or ENV)
+    rootfs = env.pop("_ROOTFS", None)                       # v1: a fixed root filesystem instead of the host's /usr
+    if rootfs:
+        a = ["bwrap", "--ro-bind", f"{rootfs}/usr", "/usr", "--symlink", "usr/bin", "/bin", "--symlink", "usr/lib", "/lib",
+             "--symlink", "usr/lib", "/lib64", "--ro-bind", f"{rootfs}/etc/passwd", "/etc/passwd",
+             "--ro-bind", f"{rootfs}/etc/group", "/etc/group",
+             "--proc", "/proc", "--dev", "/dev", "--tmpfs", "/tmp", "--unshare-all", "--die-with-parent", "--new-session",
+             "--clearenv"]
+    else:
+        a = ["bwrap", "--ro-bind", "/usr", "/usr", "--symlink", "usr/bin", "/bin", "--symlink", "usr/lib", "/lib",
+             "--symlink", "usr/lib64", "/lib64", "--ro-bind-try", "/etc/alternatives", "/etc/alternatives",
+             "--ro-bind-try", "/etc/ld.so.cache", "/etc/ld.so.cache", "--ro-bind", str(VENV), str(VENV),
+             "--proc", "/proc", "--dev", "/dev", "--tmpfs", "/tmp", "--unshare-all", "--die-with-parent", "--new-session",
+             "--clearenv"]
+    for k, v in env.items():                                # env: v1 passes its own (v0 is unchanged)
         a += ["--setenv", k, v]
     for src, dst in extra_ro:
         a += ["--ro-bind", str(src), str(dst)]

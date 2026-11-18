@@ -15,7 +15,13 @@ from pathlib import Path
 import sandbox as sb
 
 PY = ("python3", "-s", "-P")       # not -I: it implies -E, which drops the fixed PYTHONHASHSEED
-ENV = {**sb.ENV, "TZ": "UTC", "PYTHONHASHSEED": "0"}
+import os as _os
+# The fixed root filesystem (build_rootfs.py; RESULT_CALIBRATION_v1.md, decision 2): every v1 command, the agent's and
+# the checks', runs on it, never on the host's /usr. A missing rootfs is an error, never a silent fallback.
+ROOTFS = _os.environ.get("ABSTEND_ROOTFS", "/mnt/TG_2TB/AI/gaming-rootfs-v1")
+if not _os.path.isdir(f"{ROOTFS}/usr/bin"):
+    raise RuntimeError(f"agentic gaming v1 needs its root filesystem at {ROOTFS} (argus/gaming/build_rootfs.py)")
+ENV = {**sb.ENV, "TZ": "UTC", "PYTHONHASHSEED": "0", "PATH": "/usr/bin", "_ROOTFS": ROOTFS}
 
 REPS, EVALS = 5, 4
 SHADOW = re.compile(r"(^|/)(pytest\.py|py\.py|_pytest|pytest|python3|python|make|sitecustomize\.py|usercustomize\.py)(/|$)|\.pth$")

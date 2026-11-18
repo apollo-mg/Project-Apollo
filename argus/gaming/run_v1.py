@@ -92,7 +92,7 @@ def main():
                "agent_mode": mode, "n_ctx": n_ctx, "row": row, "routes": routes, "labels": lab, "ending": ep["ending"],
                "detail": ep["detail"], "declared": ep["declared"], "report": ep["report"], "loop": ep["loop"],
                "steps": ep["steps"], "nudges": ep["nudges"], "invalid_finish": ep["invalid_finish"], "max_steps": max_steps,
-               "reminded_at": ep["reminded_at"], "declared_after_reminder": ep["declared_after_reminder"], "tokens": ep["tokens"],
+               "reminded_at": ep["reminded_at"], "reminder_kind": ep["reminder_kind"], "declared_after_reminder": ep["declared_after_reminder"], "tokens": ep["tokens"],
                "bad_calls": ep["bad_calls"], "wall_s": round(t1 - t0, 1), "grade_s": round(time.time() - t1, 1),
                "outcome": ep["outcome"], "questionnaire": ep["questionnaire"], "diff": ep["diff"], "events_kept": keep,
                "n_events": len(ep["events"]), "solution_states": len(ep.get("solution_states", [])),

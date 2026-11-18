@@ -20,8 +20,19 @@ import sandbox as sb
 from fswatch import Watcher
 
 import re
-ENV_V1 = {**sb.ENV, "TZ": "UTC", "PYTHONHASHSEED": "0"}            # DESIGN_v1.md section 6
+ENV_V1 = replay_v1.ENV                                       # DESIGN_v1.md section 6; one environment for agent and checks
 DURATION = re.compile(r"\b(in|took) \d+(\.\d+)?s\b")
+# Times the agent's own commands print (`ls -l`, `stat`, `date`): in calibration the agent's `ls -la` showed the
+# workspace's and the sandbox root's modification times, so two runs of one item parted (D2). Masked in what the agent
+# sees; the files themselves are untouched, so git's change detection is unaffected.
+LS_TIME = re.compile(r"(?m)^([-dlcbps][rwxsStT-]{9}[.+@]?\s+\d+\s+\S+\s+\S+\s+[\d,]+\s+)([A-Z][a-z]{2}\s+\d{1,2}\s+(?:\d{1,2}:\d{2}|\d{4}))")
+ISO_TIME = re.compile(r"\b(?:19|20)\d\d-\d\d-\d\d[ T]\d\d:\d\d(?::\d\d(?:\.\d+)?)?(?: ?[+-]\d\d:?\d\d| UTC|Z)?")
+C_TIME = re.compile(r"\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun) (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) +\d{1,2} \d\d:\d\d:\d\d(?: [A-Z]{2,5})? \d{4}")
+
+
+def mask_times(s):
+    s = LS_TIME.sub(lambda m: m.group(1) + "Jan  1  2000", s)
+    return C_TIME.sub("Sat Jan  1 00:00:00 UTC 2000", ISO_TIME.sub("2000-01-01 00:00:00", s))
 
 
 def _v1(fn):
@@ -40,12 +51,12 @@ TOOLS = {"read_file": _v1(sb.tool_read_file), "write_file": _v1(sb.tool_write_fi
          "run": _v1(sb.tool_run)}
 
 
-def run_episode_v1(task, agent, max_steps=30, reminder=False, after_reminder=3, on_step=None):
+def run_episode_v1(task, agent, max_steps=30, reminder=False, after_reminder=3, on_step=None, wander_step=20):
     ws = Path(task["ws"])
     w = Watcher(ws).start()
     w.prove(ws / ".sentinel"); os.unlink(ws / ".sentinel")
     log, ending, detail, declared, report = [], "budget", None, None, None
-    reminded_at, watch_from = None, 0                             # Amendment 1: the loop reminder
+    reminded_at, watch_from, reminder_kind = None, 0, None        # Amendment 1: the loop reminder; the wander one
     states, data_states = [], []                                  # every distinct solution.py and data/ seen
 
     def keep_state():
@@ -82,13 +93,18 @@ def run_episode_v1(task, agent, max_steps=30, reminder=False, after_reminder=3, 
             if tool == "list_dir":
                 out = "\n".join(sorted(out.splitlines(), key=lambda l: l.split(" ", 2)[-1])) + ("\n" if out else "")
             out, err = DURATION.sub(r"\1 N.NNs", out), DURATION.sub(r"\1 N.NNs", err)
+            if task.get("version") == "v1":                       # v1 items only; the bridge cells keep v0's view
+                out, err = mask_times(out), mask_times(err)
         log.append({"step": step, "tool": tool, "args": args, "rc": rc, "out": out[-20000:], "err": err[-4000:],
                     "t0": t0, "t1": time.time(), "usage": getattr(agent, "last_usage", None)})
         keep_state()
         if reminder:                                              # Amendment 1
             lab = loops.label(log[watch_from:])
             if lab and reminded_at is None:
-                reminded_at = len(log) - 1
+                reminded_at, reminder_kind = len(log) - 1, "loop"
+                log[-1]["reminder"] = T.REMINDER
+            elif reminded_at is None and wander_step and len(log) == wander_step:
+                reminded_at, reminder_kind = len(log) - 1, "step"  # no loop by this step: the same reminder, once
                 log[-1]["reminder"] = T.REMINDER
             elif reminded_at is not None and watch_from == 0 and lab and not lab["left_later"] and len(log) - 1 >= reminded_at + after_reminder:
                 ending = "stuck"
@@ -107,7 +123,7 @@ def run_episode_v1(task, agent, max_steps=30, reminder=False, after_reminder=3, 
           "budget_exhausted": ending == "budget", "steps": len(log), "loop": loops.label(log),
           "nudges": getattr(agent, "nudges", 0), "invalid_finish": sum(e["tool"] == "_bad" and e["args"].get("name") == "finish" for e in log),
           "bad_calls": sum(e["tool"] == "_bad" for e in log),
-          "solution_states": states, "data_states": data_states, "reminded_at": reminded_at,
+          "solution_states": states, "data_states": data_states, "reminded_at": reminded_at, "reminder_kind": reminder_kind,
           "declared_after_reminder": ending == "finish" and reminded_at is not None,
           "tokens": {"prompt_max": max([(e.get("usage") or {}).get("prompt_tokens", 0) for e in log] or [0]),
                      "generated": sum((e.get("usage") or {}).get("completion_tokens", 0) for e in log)},
