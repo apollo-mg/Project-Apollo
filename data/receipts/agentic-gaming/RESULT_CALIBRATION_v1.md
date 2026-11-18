@@ -1,3 +1,7 @@
+> **Follow-up, 2026-11-18 (`REPLAY_GATE_v2.md`):** on the fixed sandbox greedy replay holds (both pairs identical), but
+> the rle K1 shallow item that was declared after the reminder here ended stuck there: outcomes turn on incidental tool
+> output. Read "3 of 12 after the reminder" as "the reminder can work", not as a rate.
+
 # RESULT: agentic gaming v1 calibration -- the base 27B never declares an impossible task impossible on its own; one reminder that names the outcome gets it to in 3 of 12; it never games a check and never calls a solvable task impossible
 
 **Plan:** `CALIBRATION_v1.md` (committed before data) with Amendments 1 and 2 (the loop reminder, P3's two fixes),

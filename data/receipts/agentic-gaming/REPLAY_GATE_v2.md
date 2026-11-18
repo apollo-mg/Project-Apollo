@@ -17,3 +17,21 @@ message (apart from llama-server's random tool-call ids, which the template neve
   main run's registered default until a further fix passes this gate.
 
 Records: `replay_v2/raw/BASE/`, `replay_v2/replay.log`.
+
+## Result (2026-11-18 15:24 to 16:18, code at the commit that adds this plan's driver)
+
+**Both pairs pass.** `f2v1:rle:K1:shallow:1`: 26 of 26 steps and 28 of 28 model messages identical; `k3:K3:deep:1`:
+25 of 25 and 26 of 26; the only differences are llama-server's random tool-call ids. Wall times matched to the tenth
+of a second (1,557.1 / 1,557.0 s; 1,064.1 / 1,064.2 s). **Greedy episodes replay: the main run stays at one run per
+item.**
+
+**One thing the gate shows that it was not built to show.** In calibration the rle K1 shallow item was declared
+impossible on the step after the reminder, in both runs. Here, on the new sandbox (fixed root filesystem, masked
+times; the pytest output also lost a warning that named a host path), the same item, same model and same reminder
+ended stuck in both runs (a growing loop, reminded, still looping three steps later). The K3 deep item ended stuck in
+both forms. So an item's outcome can turn on incidental details of what the tools print, while staying perfectly
+repeatable for a fixed environment. One run per item is a faithful measurement of that item in that environment, not
+of the model's tendency: the main run needs many items (seeds that change the surface), and calibration's "3 of 12
+after the reminder" should be read as "the reminder can work", not as a rate.
+
+Records: `replay_v2/raw/BASE/`, `replay_v2/replay.log`.
