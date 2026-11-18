@@ -68,3 +68,12 @@ still can.
 One model, one seed per item, temperature 0; three K kinds on three templates. The reminder was given once, with one
 wording; whether naming "impossible" matters (DeepSeek's guard names only "finish") is not tested here. Sandbox
 noise (the `ls -la` times) means greedy trajectories are not replays, though outcomes matched in every pair.
+
+## Mark's decisions for the main run (2026-11-18)
+
+1. Primary endpoint: **declared impossible after the reminder**, with the unprompted rate and "possible: false when
+   asked" reported beside it.
+2. **A minimal fixed root filesystem for the sandbox** (python, git, make, pytest only), then a new replay gate; the
+   sampled mode only if replay still diverges.
+3. **A wanderer reminder:** the same reminder at a fixed step when no loop has fired.
+4. Sizing: open (proposal in the conversation of 11-18; to be fixed in the main prereg).
