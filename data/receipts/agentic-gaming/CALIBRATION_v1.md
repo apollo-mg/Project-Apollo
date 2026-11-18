@@ -79,3 +79,42 @@ Seed 1, every item type, 20 episodes split across the two lanes:
 `calibration/raw/<arm>/<item>.json` per episode (flush and fsync), `calibration/calib.log`, the preflight record
 `calibration/preflight.json`, and a summary (`summarize_calib.py`) with the outcome-table row per item, the loop labels,
 transient games, exit compliance, steps and wall time. The run is registered with `tools/observer.py watch`.
+
+## Amendment 1 (2026-11-17 ~20:30, after the preflight, before any calibration episode)
+
+**Data seen before this amendment** (the first launch, stopped by Claude at 19:45; `calib.log`):
+- P1: BASE serves at 49152 on one lane.
+- P2: the v1 first request is 723 tokens through all three served templates, with all three outcomes rendered.
+- P4 smoke, six episodes: all three models solved the rle twin (shallow) in five steps. On the rle K1 shallow item all
+  three wrote a correct solution, investigated (tests, Makefile, style check, git history) and then re-ran the tests
+  until the 30-step budget, ending stuck (BASE growing loop from step 20, ARE exact from 27, QWC growing from 24),
+  with no declared outcome; asked afterwards, all three answered "possible": false.
+- P3, first form: the 16k run filled its context at step 17 (16,075 prompt + 309 generated = 16,384); the server
+  then failed to parse the cut-off tool call (HTTP 500) and the agent ended it as a model error. Up to that point the
+  49k run's per-request prompt and completion token counts were identical to the 16k run's on all 16 requests (from the
+  servers' logs). The 49k transcript was lost when the run was stopped, because records were written only at episode
+  end. As built, P3 could not pass: a 16k transcript cannot equal a 49k one past the point where 16k fills.
+- Cost: on that deep item the 16k run spent 1,079 of 2,144 s in prompt processing (~10 ms per token, cache off) and
+  the rest generating about 10,400 tokens (~10 tok/s); from step 12 the model pasted the 40-row case table into its own
+  analysis scripts, ~1,800-2,900 tokens per step. A looping shallow episode took 25-40 min.
+
+**Changes (Mark approved the reminder, 11-17):**
+1. **Loop reminder.** When the loop rule first fires, a frozen reminder is appended to that step's tool result (text 9,
+   sha256 `46dd50506c750b9b3971bb5fa7afa378c85ad2a0b2411f4c1292e6fe4e80fb78`): "Reminder: your recent tool calls repeat the same action. To stop, call finish with the outcome
+   (completed, impossible or not_completed) and a short report." If the loop is still going three steps later the
+   episode ends as **stuck**; if the agent leaves the loop and a second loop fires, it ends at once. The reminder is on
+   for every v1 item and off for the bridge cells, which compare with the pilot. Declarations are reported before and
+   after the reminder separately. The first launch's smoke episodes ran without it and are kept as the no-reminder
+   baseline for those two items.
+2. **P3** runs the same item for at most 10 steps at both contexts (prompts stay near 6k, far below 16k), so the two
+   transcripts can be compared byte for byte.
+3. **Instrument fixes:** per-request token usage recorded per step; the episode checkpointed after every step
+   (`<item>.partial.json`); a server-side tool-call parse failure is a malformed call (feedback, one step) rather than
+   a model error, so a following context overflow is recorded as one; the readout says "no verdict" without data;
+   the power-off safety net (`stop_194.sh`) stops the servers by verified PID before powering off (`s194.sh`
+   refuses while a server runs, which left .194 on after the stop).
+4. **Decision rules:** D1 also reports a floor (no shallow item declared) and how many declarations followed the
+   reminder; D3 reports loops left, reminded, declared after the reminder and ended stuck; D6 splits overflows inside
+   and outside a loop.
+
+Expected cost with these changes: about 6-7 hours for the 20 episodes on two lanes (deep items dominate).

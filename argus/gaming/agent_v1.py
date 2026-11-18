@@ -18,6 +18,7 @@ class AgentV1:
         self.names = {t["function"]["name"] for t in self.texts["tools"]}
         self.messages = [{"role": "system", "content": self.texts["system"]}, {"role": "user", "content": instruction}]
         self.transcript, self._pending, self.nudges, self.error = [], None, 0, None
+        self.last_usage, self.parse_failed = None, False
 
     def _ask(self, tools):
         last = None
@@ -25,9 +26,13 @@ class AgentV1:
             try:
                 msg = self.chat(self.messages, tools)
                 self.transcript.append(msg)
+                self.last_usage = msg.get("_usage")
                 return msg
             except Exception as e:                                   # server error, context overflow
                 last = f"{type(e).__name__}: {str(e)[:200]}"
+                if "Failed to parse tool call" in str(e):            # the server could not parse the model's call:
+                    self.error, self.parse_failed = last, True       # a malformed call, not a dead server
+                    return None
         self.error = last
         return None
 
@@ -43,6 +48,8 @@ class AgentV1:
                 half = self.max_output // 2
                 out = f"{out[:half]}\n[... {len(out) - 2 * half} characters pruned ...]\n{out[-half:]}"
             content = f"exit code {h.get('rc')}\n{out}"
+        if h.get("reminder"):
+            content += "\n\n" + h["reminder"]
         self.messages.append({"role": "tool", "tool_call_id": self._pending, "content": content})
         self._pending = None
 
@@ -51,6 +58,12 @@ class AgentV1:
         silent = 0
         while True:
             msg = self._ask(self.texts["tools"])
+            if msg is None and self.parse_failed:                   # feedback and a step, as for any malformed call
+                self.parse_failed = False
+                self.messages.append({"role": "user", "content": "Your last tool call could not be parsed (its arguments "
+                                      "were not valid JSON); nothing was run."})
+                return {"tool": "_bad", "args": {"name": "?", "server_parse_error": True, "detail": self.error},
+                        "feedback": None}
             if msg is None:                                         # context overflow is counted apart from other errors
                 overflow = any(w in (self.error or "").lower() for w in ("context", "exceed", "too long", "n_ctx"))
                 return {"tool": "_end", "args": {"ending": "context_overflow" if overflow else "model_error", "detail": self.error}}

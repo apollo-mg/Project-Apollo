@@ -26,7 +26,10 @@ def chat_fn(url, max_tokens=4096, timeout=900):
         r = httpx.post(f"{url}/v1/chat/completions", json=body, timeout=timeout)
         if r.status_code != 200:
             raise RuntimeError(f"HTTP {r.status_code}: {r.text[:300]}")
-        return r.json()["choices"][0]["message"]
+        j = r.json()
+        msg = j["choices"][0]["message"]
+        msg["_usage"] = {**(j.get("usage") or {}), "finish_reason": j["choices"][0].get("finish_reason")}
+        return msg
     return chat
 
 
@@ -57,6 +60,7 @@ def main():
         n_ctx = httpx.get(f"{url}/props", timeout=30).json().get("default_generation_settings", {}).get("n_ctx")
     except Exception:
         n_ctx = None
+    max_steps = int(os.environ.get("MAX_STEPS", "30"))
     for spec in sys.argv[5:]:
         name = spec.replace(":", "_").replace("#", "_")
         dst = out / f"{name}.json"
@@ -64,8 +68,16 @@ def main():
             continue
         task, mode = build(spec, work / arm / name)
         agent = agent_v1.AgentV1(chat_fn(url), task["instruction"], mode=mode)
+        partial = out / f"{name}.partial.json"
+
+        def checkpoint(log, agent=agent, partial=partial, spec=spec):
+            """Amendment 1: the episode so far after every step, so a stopped run keeps what it saw."""
+            with open(partial, "w") as f:
+                json.dump({"item": spec, "log": [{k: v for k, v in e.items() if k not in ("out", "err")} | {"out": e.get("out", "")[-3000:]}
+                                                 for e in log], "transcript": agent.transcript}, f, default=str)
         t0 = time.time()
-        ep = E.run_episode_v1(task, agent, max_steps=30)
+        # the loop reminder is on for v1 items and off for the bridge cells, which compare with the pilot (Amendment 1)
+        ep = E.run_episode_v1(task, agent, max_steps=max_steps, reminder=not spec.startswith("bridge:"), on_step=checkpoint)
         t1 = time.time()
         routes, labels = E.routes(ep, task)
         imp = task["rung"] == "impossible"
@@ -79,7 +91,8 @@ def main():
                "kind": task.get("kind"), "layout": task.get("layout"), "rung": task["rung"], "seed": task["seed"],
                "agent_mode": mode, "n_ctx": n_ctx, "row": row, "routes": routes, "labels": lab, "ending": ep["ending"],
                "detail": ep["detail"], "declared": ep["declared"], "report": ep["report"], "loop": ep["loop"],
-               "steps": ep["steps"], "nudges": ep["nudges"], "invalid_finish": ep["invalid_finish"],
+               "steps": ep["steps"], "nudges": ep["nudges"], "invalid_finish": ep["invalid_finish"], "max_steps": max_steps,
+               "reminded_at": ep["reminded_at"], "declared_after_reminder": ep["declared_after_reminder"], "tokens": ep["tokens"],
                "bad_calls": ep["bad_calls"], "wall_s": round(t1 - t0, 1), "grade_s": round(time.time() - t1, 1),
                "outcome": ep["outcome"], "questionnaire": ep["questionnaire"], "diff": ep["diff"], "events_kept": keep,
                "n_events": len(ep["events"]), "solution_states": len(ep.get("solution_states", [])),
@@ -88,6 +101,7 @@ def main():
                "transcript": agent.transcript}
         with open(dst, "w") as f:
             json.dump(rec, f, default=str); f.flush(); os.fsync(f.fileno())
+        partial.unlink(missing_ok=True)
         print(f"{time.strftime('%H:%M:%S')} {arm} {spec}: {row} | ending {ep['ending']} declared {ep['declared']} | "
               f"{ep['steps']} steps {rec['wall_s']} s | routes {routes} | loop {(ep['loop'] or {}).get('kind')}", flush=True)
 

@@ -11,6 +11,7 @@ import os, sys, time
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent / "families"))
 import harness, loops, replay_v1
+import texts_v1 as T
 import k3_data
 
 OUTCOME = {"F2": lambda task: harness.outcome_f2(task, py=replay_v1.PY, env=replay_v1.ENV), "K3": k3_data.outcome_k3}
@@ -39,11 +40,12 @@ TOOLS = {"read_file": _v1(sb.tool_read_file), "write_file": _v1(sb.tool_write_fi
          "run": _v1(sb.tool_run)}
 
 
-def run_episode_v1(task, agent, max_steps=30):
+def run_episode_v1(task, agent, max_steps=30, reminder=False, after_reminder=3, on_step=None):
     ws = Path(task["ws"])
     w = Watcher(ws).start()
     w.prove(ws / ".sentinel"); os.unlink(ws / ".sentinel")
     log, ending, detail, declared, report = [], "budget", None, None, None
+    reminded_at, watch_from = None, 0                             # Amendment 1: the loop reminder
     states, data_states = [], []                                  # every distinct solution.py and data/ seen
 
     def keep_state():
@@ -62,12 +64,15 @@ def run_episode_v1(task, agent, max_steps=30):
             ending, detail = a["args"]["ending"], a["args"].get("detail")
             break
         if tool == "_bad":
-            log.append({"step": step, "tool": "_bad", "args": args, "rc": 2, "out": "", "err": a["feedback"],
-                        "feedback": a["feedback"], "t0": t0, "t1": t0})
+            log.append({"step": step, "tool": "_bad", "args": args, "rc": 2, "out": "", "err": a["feedback"] or "",
+                        "feedback": a["feedback"], "t0": t0, "t1": t0, "usage": getattr(agent, "last_usage", None)})
+            if on_step:
+                on_step(log)
             continue
         if tool == "finish":
             ending, declared, report = "finish", args.get("outcome"), args.get("report", "")
-            log.append({"step": step, "tool": "finish", "args": args, "t0": t0, "t1": t0})
+            log.append({"step": step, "tool": "finish", "args": args, "t0": t0, "t1": t0,
+                        "usage": getattr(agent, "last_usage", None)})
             break
         clean = {k: v for k, v in args.items() if k in harness.ALLOWED.get(tool, ()) and isinstance(v, str)}
         if tool not in TOOLS or any(k not in clean for k in harness.REQUIRED.get(tool, ())):
@@ -78,8 +83,23 @@ def run_episode_v1(task, agent, max_steps=30):
                 out = "\n".join(sorted(out.splitlines(), key=lambda l: l.split(" ", 2)[-1])) + ("\n" if out else "")
             out, err = DURATION.sub(r"\1 N.NNs", out), DURATION.sub(r"\1 N.NNs", err)
         log.append({"step": step, "tool": tool, "args": args, "rc": rc, "out": out[-20000:], "err": err[-4000:],
-                    "t0": t0, "t1": time.time()})
+                    "t0": t0, "t1": time.time(), "usage": getattr(agent, "last_usage", None)})
         keep_state()
+        if reminder:                                              # Amendment 1
+            lab = loops.label(log[watch_from:])
+            if lab and reminded_at is None:
+                reminded_at = len(log) - 1
+                log[-1]["reminder"] = T.REMINDER
+            elif reminded_at is not None and watch_from == 0 and lab and not lab["left_later"] and len(log) - 1 >= reminded_at + after_reminder:
+                ending = "stuck"
+                break
+            elif reminded_at is not None and watch_from == 0 and lab and lab["left_later"]:
+                watch_from = len(log)                             # it left the loop: watch for a new one from here
+            elif reminded_at is not None and watch_from > 0 and lab:
+                ending = "stuck"                                  # a second loop after the reminder ends the episode
+                break
+        if on_step:
+            on_step(log)
     events = w.stop()
     q = agent.questionnaire()
     ep = {"task": {k: v for k, v in task.items() if k not in ("ws", "instrument")}, "log": log, "events": events,
@@ -87,7 +107,10 @@ def run_episode_v1(task, agent, max_steps=30):
           "budget_exhausted": ending == "budget", "steps": len(log), "loop": loops.label(log),
           "nudges": getattr(agent, "nudges", 0), "invalid_finish": sum(e["tool"] == "_bad" and e["args"].get("name") == "finish" for e in log),
           "bad_calls": sum(e["tool"] == "_bad" for e in log),
-          "solution_states": states, "data_states": data_states,
+          "solution_states": states, "data_states": data_states, "reminded_at": reminded_at,
+          "declared_after_reminder": ending == "finish" and reminded_at is not None,
+          "tokens": {"prompt_max": max([(e.get("usage") or {}).get("prompt_tokens", 0) for e in log] or [0]),
+                     "generated": sum((e.get("usage") or {}).get("completion_tokens", 0) for e in log)},
           "outcome": OUTCOME[task["family"]](task), "diff": harness.tree_diff(ws, Path(task["instrument"]) / "pristine")}
     return ep
 
@@ -181,4 +204,6 @@ def classify(ep, routes, impossible):
         return "no tool call"
     if e in ("model_error", "context_overflow"):                  # one row; the ending says which
         return "model error"
+    if e == "stuck":                                              # ended by the loop rule after the reminder
+        return "stuck"
     return "stuck" if loops.stuck(ep["log"]) else "budget"

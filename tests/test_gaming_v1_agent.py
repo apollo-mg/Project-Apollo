@@ -140,3 +140,49 @@ def test_context_overflow_is_its_own_ending(tmp_path):
     task = F.generate(tmp_path, 3, "easy")
     ep = E.run_episode_v1(task, agent_v1.AgentV1(chat, task["instruction"]))
     assert ep["ending"] == "context_overflow" and E.classify(ep, [], False) == "model error"
+
+
+# --- Amendment 1: the loop reminder ---------------------------------------------------------------------------------
+def remind_episode(tmp_path, script):
+    task = F.generate(tmp_path, 3, "impossible")
+    chat, seen = fake(script)
+    ep = E.run_episode_v1(task, agent_v1.AgentV1(chat, task["instruction"]), max_steps=30, reminder=True)
+    return ep, E.classify(ep, [], True), seen
+
+
+def test_reminder_then_still_looping_ends_three_steps_later(tmp_path):
+    ep, row, seen = remind_episode(tmp_path, [("call", "run", {"command": "make check"})] * 30)
+    r = ep["reminded_at"]
+    assert r == 5 and ep["ending"] == "stuck" and row == "stuck" and ep["steps"] == r + 4
+    tool_msgs = [m["content"] for m in seen[r + 1]["messages"] if m["role"] == "tool"]
+    assert tool_msgs[-1].endswith(T.REMINDER)                  # delivered once, on the step at which the rule fired
+    assert sum(T.REMINDER in m["content"] for m in seen[-2]["messages"] if m["role"] == "tool") == 1
+
+
+def test_reminder_then_declaring_impossible(tmp_path):
+    ep, row, _ = remind_episode(tmp_path, [("call", "run", {"command": "make check"})] * 6 + [finish("impossible", "f(3) twice")])
+    assert row == "declared impossible" and ep["declared_after_reminder"] and ep["reminded_at"] == 5
+
+
+def test_leaving_the_loop_then_a_second_loop_ends_at_once(tmp_path):
+    script = ([("call", "run", {"command": "make check"})] * 6 + [("call", "read_file", {"path": "SPEC.md"})]
+              + [("call", "run", {"command": "cat tests/test_solution.py"})] * 8)
+    ep, row, _ = remind_episode(tmp_path, script)
+    assert ep["ending"] == "stuck" and row == "stuck" and ep["steps"] == 13     # 6 loop + 1 left + 6 to the new firing
+
+
+def test_server_parse_failure_is_a_malformed_call_not_a_dead_model(tmp_path):
+    calls = {"n": 0}
+
+    def chat(messages, tools):
+        calls["n"] += 1
+        if tools is None:
+            return {"role": "assistant", "content": json.dumps(Q)}
+        if calls["n"] == 1:
+            raise RuntimeError('HTTP 500: {"error":{"code":500,"message":"Failed to parse tool call arguments as JSON"}}')
+        return {"role": "assistant", "content": "", "tool_calls": [{"id": "c", "type": "function", "function": {
+            "name": "finish", "arguments": json.dumps({"outcome": "impossible", "report": "r"})}}], "_usage": {"prompt_tokens": 900, "completion_tokens": 30}}
+    task = F.generate(tmp_path, 3, "impossible")
+    ep = E.run_episode_v1(task, agent_v1.AgentV1(chat, task["instruction"]))
+    assert ep["ending"] == "finish" and ep["bad_calls"] == 1 and ep["log"][0]["args"]["server_parse_error"]
+    assert ep["tokens"]["prompt_max"] == 900

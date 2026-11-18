@@ -35,7 +35,7 @@ PYEOF
   log "$1: verified on :$3 at -c $4 (${FILE[$1]}), warm-up discarded, tool call OK"
 }
 stop_port() { ssh "$H" "pid=\$(ss -ltnp 2>/dev/null | grep ':$1 ' | sed -n 's/.*pid=\([0-9]*\).*/\1/p' | head -1); [ -n \"\$pid\" ] && [ \"\$(readlink /proc/\$pid/exe | xargs basename)\" = llama-server ] && kill \$pid; for i in \$(seq 1 30); do ss -ltn | grep -q ':$1 ' || exit 0; sleep 1; done"; }
-finish() { ssh "$H" 'pkill -x llama-server; for i in $(seq 1 30); do pgrep -x llama-server >/dev/null || exit 0; sleep 1; done'; log "powering .194 off"; "$ROOT/tools/s194.sh" off >> "$LOG" 2>&1; log "== DONE ($1)"; exit "$1"; }
+finish() { log "stopping servers and powering .194 off"; "$HERE/stop_194.sh" >> "$LOG" 2>&1; log "== DONE ($1)"; exit "$1"; }
 v1() { $PY "$HERE/run_v1.py" "$@" >> "$LOG" 2>&1; }
 
 ssh "$H" 'pgrep -x llama-server >/dev/null' && { log "ABORT: a llama-server is already running on .194"; exit 1; }
@@ -47,8 +47,12 @@ for C in 49152 40960 32768; do start BASE 0,1 8190 $C && { CTX=$C; break; }; don
 [ -n "$CTX" ] || { start BASE 0,1 8190 16384 || { log "ABORT: BASE does not serve even at 16384"; finish 1; }; CTX=16384; }
 log "P1: context $CTX"; $PY -c "import json,sys; p='$PRE'; import os; d=json.load(open(p)) if os.path.exists(p) else {}; d['context']=$CTX; json.dump(d,open(p,'w'),indent=1)"
 
-# P2 + P4: template and exit smoke, BASE on lane A, then ARE and QWC on lane B
+# P2 + P4: template and exit smoke, BASE on lane A, then ARE and QWC on lane B (skipped when already recorded:
+# Amendment 1 keeps the first launch's smoke episodes as the no-reminder baseline)
 SMOKE="f2v1:rle:TWIN:shallow:1 f2v1:rle:K1:shallow:1"
+if [ "$(ls "$OUT"/preflight/{BASE,ARE,QWC}/*.json 2>/dev/null | wc -l)" -ge 6 ]; then
+  log "P2/P4: already recorded (first launch), skipped"
+else
 $PY "$HERE/preflight_v1.py" template BASE "http://$H:8190" "$PRE" >> "$LOG" 2>&1 || { log "ABORT: P2 template, BASE"; finish 1; }
 start ARE 2,3 8191 $CTX || finish 1
 $PY "$HERE/preflight_v1.py" template ARE "http://$H:8191" "$PRE" >> "$LOG" 2>&1 || { log "ABORT: P2 template, ARE"; finish 1; }
@@ -58,14 +62,16 @@ wait; log "P4: BASE and ARE smoke done"; stop_port 8191
 start QWC 2,3 8191 $CTX || finish 1
 $PY "$HERE/preflight_v1.py" template QWC "http://$H:8191" "$PRE" >> "$LOG" 2>&1 || { log "ABORT: P2 template, QWC"; finish 1; }
 v1 QWC "http://$H:8191" "$OUT/preflight/QWC" "$WORK/pre" $SMOKE; log "P4: QWC smoke done"; stop_port 8191
+fi
 
-# P3: the same item at CTX and at 16384 must give byte-identical transcripts
+# P3 (Amendment 1): the same item at CTX and at 16384, capped at 10 steps so neither run can fill 16k, must give
+# byte-identical transcripts
 start BASE 2,3 8191 16384 || finish 1
 LEAK=f2v1:ranges:K1:deep:1
-v1 BASE "http://$H:8190" "$OUT/preflight/leak_ctx" "$WORK/leakA" $LEAK &
-v1 BASE "http://$H:8191" "$OUT/preflight/leak_16k" "$WORK/leakB" $LEAK &
+MAX_STEPS=10 v1 BASE "http://$H:8190" "$OUT/preflight/leak10_ctx" "$WORK/leakA" $LEAK &
+MAX_STEPS=10 v1 BASE "http://$H:8191" "$OUT/preflight/leak10_16k" "$WORK/leakB" $LEAK &
 wait
-$PY "$HERE/preflight_v1.py" leak "$OUT/preflight/leak_ctx/f2v1_ranges_K1_deep_1.json" "$OUT/preflight/leak_16k/f2v1_ranges_K1_deep_1.json" >> "$LOG" 2>&1 \
+$PY "$HERE/preflight_v1.py" leak "$OUT/preflight/leak10_ctx/f2v1_ranges_K1_deep_1.json" "$OUT/preflight/leak10_16k/f2v1_ranges_K1_deep_1.json" >> "$LOG" 2>&1 \
   || { log "ABORT: P3 transcripts differ between contexts"; finish 1; }
 log "P3: identical at $CTX and 16384"; stop_port 8191
 
