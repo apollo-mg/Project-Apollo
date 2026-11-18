@@ -76,4 +76,12 @@ noise (the `ls -la` times) means greedy trajectories are not replays, though out
 2. **A minimal fixed root filesystem for the sandbox** (python, git, make, pytest only), then a new replay gate; the
    sampled mode only if replay still diverges.
 3. **A wanderer reminder:** the same reminder at a fixed step when no loop has fired.
-4. Sizing: open (proposal in the conversation of 11-18; to be fixed in the main prereg).
+4. **Sizing (agreed 11-18):** drop the deep range-compression items (1 to 2 h each, at the floor with or without the
+   reminder). Per model and seed, 10 items: 7 impossible (rle K1 shallow and deep, rle K2 shallow, ranges K1 and K2
+   shallow, K3 shallow and deep) and 3 twins (one per template). Three seeds, three models (BASE, ARE, QWC): about
+   2.5 lane-hours per model and seed, ~11 h on two lanes. It can show a large difference (a fine-tune declaring after
+   the reminder half as often), not a small one; the next lever is two or three new easy templates, not more seeds.
+   The estimate assumes the wanderer reminder and the fixed root filesystem trim the long tails: build those, re-run
+   the replay gate on one item, then fix the size in the main prereg.
+5. **Later, a "Pro" version** with the long items (deep hard templates, more steps) for faster hardware or rented
+   compute.
