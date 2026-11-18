@@ -118,3 +118,15 @@ transient games, exit compliance, steps and wall time. The run is registered wit
    and outside a loop.
 
 Expected cost with these changes: about 6-7 hours for the 20 episodes on two lanes (deep items dominate).
+
+## Amendment 2 (2026-11-17 ~20:40, after P3's second form, before any calibration episode)
+
+The second launch (code `1bce1e61`) ran P3 as amended: the same deep item for 10 steps at 49152 and at 16384, at the
+same time on the two lanes. The driver aborted on "transcripts differ" and powered .194 off (the new safety net
+worked). The only differences were the tool-call ids: llama-server gives every tool call a random id, and the chat
+template never renders it (checked: the template has no reference to an id), so the model cannot see it. With the ids
+removed, the two runs are identical in every model message, every tool call and its arguments, and every tool
+output; per-request prompt tokens matched at every step (723, 1316, 1386, 1624, 2407, 3987, 4475, 4653, 4793, 5724).
+**P3 passes: the context limit does not reach the model.** The comparator (`preflight_v1.py leak`) now ignores the
+server's ids and also compares the episode logs; on the recorded files it returns identical. The third launch skips
+P1 to P4 (their records exist) and goes to the calibration items.

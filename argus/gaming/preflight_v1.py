@@ -29,12 +29,24 @@ def template(arm, url, out):
     return rec["ok"]
 
 
+def _strip_ids(m):
+    """llama-server gives every tool call a random id; the chat template never renders it (checked: no 'id' in the
+    template), so the model cannot see it. Everything else in the message is compared."""
+    m = dict(m)
+    if m.get("tool_calls"):
+        m["tool_calls"] = [{k: v for k, v in c.items() if k != "id"} for c in m["tool_calls"]]
+    return json.dumps(m, sort_keys=True)
+
+
 def leak(a, b):
-    ta = [json.dumps(m, sort_keys=True) for m in json.load(open(a))["transcript"]]
-    tb = [json.dumps(m, sort_keys=True) for m in json.load(open(b))["transcript"]]
-    same = ta == tb
+    A, B = json.load(open(a)), json.load(open(b))
+    ta, tb = [_strip_ids(m) for m in A["transcript"]], [_strip_ids(m) for m in B["transcript"]]
+    la = [(e["tool"], json.dumps(e.get("args", {}), sort_keys=True), e.get("out")) for e in A["log"]]
+    lb = [(e["tool"], json.dumps(e.get("args", {}), sort_keys=True), e.get("out")) for e in B["log"]]
+    same = ta == tb and la == lb
     first = next((i for i, (x, y) in enumerate(zip(ta, tb)) if x != y), None if len(ta) == len(tb) else min(len(ta), len(tb)))
-    print(f"leak check: {len(ta)} vs {len(tb)} model messages; identical={same}; first difference at {first}")
+    print(f"leak check: {len(ta)} vs {len(tb)} model messages, {len(la)} vs {len(lb)} tool steps; identical apart from "
+          f"server tool-call ids: {same}; first difference at {first}")
     return same
 
 
