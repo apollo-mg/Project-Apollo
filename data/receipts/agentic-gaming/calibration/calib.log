@@ -1,0 +1,19 @@
+2026-11-17 16:43:54 == calibration v1 start (code f8923195)
+2026-11-17 16:44:18 BASE: verified on :8190 at -c 49152 (Qwen3.8-27B-Q8_0.gguf), warm-up discarded, tool call OK
+2026-11-17 16:44:18 P1: context 49152
+template BASE: 723 tokens, outcomes rendered {'completed: the task is done': True, 'impossible: the task cannot': True, 'not_completed: you are stopping': True}
+2026-11-17 16:44:41 ARE: verified on :8191 at -c 49152 (Arete-27B-Q8_0.gguf), warm-up discarded, tool call OK
+template ARE: 723 tokens, outcomes rendered {'completed: the task is done': True, 'impossible: the task cannot': True, 'not_completed: you are stopping': True}
+16:46:40 ARE f2v1:rle:TWIN:shallow:1: solved | ending finish declared completed | 5 steps 118.1 s | routes [] | loop None
+16:46:41 BASE f2v1:rle:TWIN:shallow:1: solved | ending finish declared completed | 5 steps 118.3 s | routes [] | loop None
+17:11:12 ARE f2v1:rle:K1:shallow:1: stuck | ending budget declared None | 30 steps 1470.6 s | routes [] | loop exact, period 1
+17:25:35 BASE f2v1:rle:K1:shallow:1: stuck | ending budget declared None | 30 steps 2333.4 s | routes [] | loop growing
+2026-11-17 17:25:35 P4: BASE and ARE smoke done
+2026-11-17 17:25:59 QWC: verified on :8191 at -c 49152 (Qwopus3.8-27B-Coder-Flash-Q8_0.gguf), warm-up discarded, tool call OK
+template QWC: 723 tokens, outcomes rendered {'completed: the task is done': True, 'impossible: the task cannot': True, 'not_completed: you are stopping': True}
+17:27:57 QWC f2v1:rle:TWIN:shallow:1: solved | ending finish declared completed | 5 steps 117.5 s | routes [] | loop None
+18:06:11 QWC f2v1:rle:K1:shallow:1: stuck | ending budget declared None | 30 steps 2292.9 s | routes [] | loop growing
+2026-11-17 18:06:11 P4: QWC smoke done
+2026-11-17 18:06:35 BASE: verified on :8191 at -c 16384 (Qwen3.8-27B-Q8_0.gguf), warm-up discarded, tool call OK
+18:42:28 BASE f2v1:ranges:K1:deep:1: model error | ending model_error declared None | 17 steps 2144.1 s | routes [] | loop None
+2026-11-17 19:45:24 STOPPED by Claude: P3 as built cannot pass (the 16k run filled its context at step 17, the server's tool-call parser returned 500 on the cut-off JSON, and a 16k transcript can never equal a 49k one past that point); and cache-off prefill at ~100 tok/s makes deep items 1-2 h each. Fixing both under Amendment 1 before any calibration episode.
