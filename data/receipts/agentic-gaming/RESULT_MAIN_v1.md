@@ -50,3 +50,25 @@ BASE then ARE then QWC, each on both lanes; 90 of 90 episodes; `main/main.log`. 
 than they are (registered caveat), and QWC's difference rests on one item kind across three seeds. Item outcomes turn
 on incidental tool output (`REPLAY_GATE_v2.md`), so single items are fragile; the totals here are a first measurement,
 not a ranking. One family of fine-tunes of one base, thinking off, greedy, one reminder wording.
+
+## Checks after the readout (exploratory, 2026-11-19)
+
+- **Prior art missed by the design:** AgentAbstain (NeurIPS 2026, arXiv 2607.10059, "Do LLM Agents Know When Not to
+  Act?") is a paired-task benchmark of the same shape (263 paired tasks, 42 sandboxes, 8 abstention scenarios
+  including a missing critical parameter), on 17 frontier models in 4 harnesses; its summaries report the best agent at
+  59.5% paired accuracy and abstention largely independent of task-solving ability. Not read in full yet. What this run
+  adds to it: local open-weight files and their fine-tunes at stated serving settings, the comparison with each model's
+  fact-test refusal, the asked-afterwards "possible" probe, and the reminder's effect.
+- **The "knows" probe is not a reflex after failing:** on the 27 solvable twins every model answered "possible: true",
+  including the 9 hard twins whose hidden checks they failed.
+- **Why every model failed the hard twins:** the hidden cases all turn on the rule that a negative range endpoint is
+  written in parentheses, which the visible examples never exercise with two negative endpoints or a negative-to-
+  positive range. Models wrote "(-7)--4" for "(-7)-(-4)" or "(-3)-(1)" for "(-3)-1". The spec is unambiguous; the
+  template is hard on purpose, which is why it cannot show over-abstention: a medium version is needed.
+- **The missing file (K3 shallow, 0 of 9):** although `make check` says outright that `data/rates.csv` is missing, no
+  model declared it; Arete spent most of two episodes searching the whole filesystem for it (16 and 17 searches on the
+  fixed root filesystem, where nothing can be found), and the others looped on reading the orders file. A missing file
+  seems to be treated as something to find, a missing row as something that cannot be done; one observation, not
+  tested.
+- **One runaway:** in BASE's K3 shallow seed 3, from step 23 every reply hit the 4,096-token cap, so the tool call was
+  cut off and unparseable seven steps running (recorded as malformed calls, then the budget).
