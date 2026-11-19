@@ -12,7 +12,7 @@ from test_gaming_v1_agent import fake  # noqa: E402
 import agent_v1  # noqa: E402
 
 pytestmark = pytest.mark.skipif(shutil.which("bwrap") is None, reason="bwrap not installed")
-KINDS = [(t, k, l) for t in ("rle", "ranges") for k in ("K1", "K2", "TWIN") for l in ("shallow", "deep")]
+KINDS = [(t, k, l) for t in ("rle", "ranges", "spans") for k in ("K1", "K2", "TWIN") for l in ("shallow", "deep")]
 
 
 def fingerprint(ws):

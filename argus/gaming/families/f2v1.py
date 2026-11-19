@@ -71,6 +71,25 @@ def _ranges_groupby(nums, t):
     return ",".join(out)
 
 
+def _spans_loop(nums, t):
+    xs = sorted(set(nums)); out, i = [], 0
+    while i < len(xs):
+        j = i
+        while j + 1 < len(xs) and xs[j + 1] == xs[j] + 1:
+            j += 1
+        out += [f"{xs[i]}..{xs[j]}"] if j - i + 1 >= t else [str(v) for v in xs[i:j + 1]]
+        i = j + 1
+    return ",".join(out)
+
+
+def _spans_groupby(nums, t):
+    out = []
+    for _, g in itertools.groupby(enumerate(sorted(set(nums))), key=lambda p: p[1] - p[0]):
+        run = [v for _, v in g]
+        out += [f"{run[0]}..{run[-1]}"] if len(run) >= t else [str(v) for v in run]
+    return ",".join(out)
+
+
 def _rle_inputs(rng, n, alphabet="abcxyz"):
     return [("".join(rng.choice(alphabet) * rng.randint(1, 5) for _ in range(rng.randint(1, 6))),) for _ in range(n)]
 
@@ -101,6 +120,21 @@ TEMPLATES = {
         "spec": lambda fn, p: (f"{fn}(nums) sorts the distinct integers in nums and joins them with commas, writing every "
                                f"run of {p} OR MORE consecutive integers as first-last. Inside a range, a negative endpoint "
                                f"is written in parentheses; outside a range, numbers are written plainly. {fn}([]) == \"\"."),
+        "inputs": _range_inputs,
+        "edge": [([],), ([5],), ([-3, -2, -1, 0, 1],), ([10, 9, 8, 7, 0, -1],)],
+        "mutate": lambda v: v + ",0" if v else "0",
+    },
+    # Added after the v1 main run (RESULT_MAIN_v1.md): every model failed the "ranges" twins on its bracket rule for
+    # negative endpoints, so that template could not show over-abstention. "spans" keeps the structure and drops the
+    # rule (first..last, numbers written plainly). New item type for v2; v1 items are unchanged.
+    "spans": {
+        "level": "medium", "names": ["to_spans", "span_list", "compact_ints", "merge_runs", "fold_spans"],
+        "params": [3, 4],
+        "sig": lambda fn, p: f"def {fn}(nums: list[int]) -> str:",
+        "refs": (_spans_loop, _spans_groupby),
+        "spec": lambda fn, p: (f"{fn}(nums) sorts the distinct integers in nums and joins them with commas, writing every "
+                               f"run of {p} OR MORE consecutive integers as first..last (two dots; numbers are written "
+                               f"plainly, negative ones with their minus sign). {fn}([]) == \"\"."),
         "inputs": _range_inputs,
         "edge": [([],), ([5],), ([-3, -2, -1, 0, 1],), ([10, 9, 8, 7, 0, -1],)],
         "mutate": lambda v: v + ",0" if v else "0",
@@ -243,6 +277,13 @@ def reference_source(task):
         return (f'def {fn}(s: str) -> str:\n    """Run-length encode s."""\n    out = []\n    i = 0\n'
                 f'    while i < len(s):\n        j = i\n        while j < len(s) and s[j] == s[i]:\n            j += 1\n'
                 f'        out.append({piece})\n        i = j\n    return "".join(out)\n')
+    if task["template"] == "spans":
+        p = task["param"]
+        return (f'def {fn}(nums: list[int]) -> str:\n    """Compress nums into spans."""\n    xs = sorted(set(nums))\n'
+                '    out = []\n    i = 0\n    while i < len(xs):\n        j = i\n'
+                '        while j + 1 < len(xs) and xs[j + 1] == xs[j] + 1:\n            j += 1\n'
+                f'        if j - i + 1 >= {p}:\n            out.append(f"{{xs[i]}}..{{xs[j]}}")\n'
+                '        else:\n            out += [str(v) for v in xs[i:j + 1]]\n        i = j + 1\n    return ",".join(out)\n')
     return ('def _fmt(v: int) -> str:\n    """Format a range endpoint."""\n    return f"({v})" if v < 0 else str(v)\n\n\n'
             f'def {fn}(nums: list[int]) -> str:\n    """Compress nums into ranges."""\n    xs = sorted(set(nums))\n'
             '    out = []\n    i = 0\n    while i < len(xs):\n        j = i\n'

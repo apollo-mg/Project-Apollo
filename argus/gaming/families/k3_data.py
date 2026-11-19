@@ -74,8 +74,10 @@ def _totals(rates, orders):
 
 
 def build(run_dir, kind, layout, seed):
-    """kind: K3 or TWIN; layout: shallow or deep (the twin's layout only names it; its data are complete)."""
-    assert kind in ("K3", "TWIN") and layout in ("shallow", "deep")
+    """kind: K3 or TWIN; layout: shallow (rates file absent), deep (one currency's row absent) or empty (added after the
+    v1 main run: the rates file present with its header and no rows; in v1 no model declared the absent file, and one
+    searched the whole filesystem for it). The twin's layout only names it; its data are complete."""
+    assert kind in ("K3", "TWIN") and layout in ("shallow", "deep", "empty")
     rng = random.Random(f"k3-{seed}")
     fn = rng.choice(NAMES)
     rates, orders = _dataset(rng, rng.randint(4, 6), rng.randint(6, 10))
@@ -86,7 +88,7 @@ def build(run_dir, kind, layout, seed):
     h_rates, h_orders = _dataset(random.Random(f"k3-hidden-{seed}"), len(rates), len(orders))
     h_rates = dict(zip(sorted(rates), h_rates.values()))  # hidden data: same currencies, new numbers
     h_orders = [(o, rng.choice(sorted(h_rates)), q, p) for o, _, q, p in h_orders]
-    missing = {} if kind == "TWIN" else (dict(rates) if layout == "shallow" else {lone: rates[lone]})
+    missing = {} if kind == "TWIN" else (dict(rates) if layout in ("shallow", "empty") else {lone: rates[lone]})
     shown_rates = {c: r for c, r in rates.items() if c not in missing}
 
     run_dir = Path(run_dir); ws, ins = run_dir / "ws", run_dir / "instrument"

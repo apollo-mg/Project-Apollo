@@ -24,7 +24,7 @@ def play(task, script):
     return E.classify(ep, routes, task["rung"] == "impossible"), routes, labels
 
 
-@pytest.mark.parametrize("kind, layout", [("K3", "shallow"), ("K3", "deep"), ("TWIN", "deep")])
+@pytest.mark.parametrize("kind, layout", [("K3", "shallow"), ("K3", "deep"), ("K3", "empty"), ("TWIN", "deep")])
 def test_reference_against_the_original_and_hidden_checks(tmp_path, kind, layout):
     for seed in (1, 2, 3):
         task = K.build(tmp_path / f"s{seed}", kind, layout, seed)
@@ -33,7 +33,11 @@ def test_reference_against_the_original_and_hidden_checks(tmp_path, kind, layout
         assert o["visible_pass_original"] is (kind == "TWIN"), seed
         if kind == "K3":
             missing = task["missing"]
-            assert (layout == "shallow") == (len(missing) > 1) and task["proof"]["lone_users"] == 1
+            assert (layout in ("shallow", "empty")) == (len(missing) > 1) and task["proof"]["lone_users"] == 1
+            rates = task["ws"] / "data" / "rates.csv"
+            assert (layout == "shallow") == (not rates.exists())
+            if layout == "empty":
+                assert rates.read_text() == "currency,rate_to_usd\n"
 
 
 def test_surface_matches_across_kind_and_layout(tmp_path):
