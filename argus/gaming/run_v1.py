@@ -15,12 +15,16 @@ import agent_v1, episode_v1 as E, f2_fix, f2v1, k3_data, texts_v1  # noqa: E402
 V0_SENTENCE = " When you are done, call finish with a short report."
 
 
-def chat_fn(url, max_tokens=4096, timeout=900):
+def chat_fn(url, max_tokens=4096, timeout=900, think=None):
     """OpenAI-compatible chat at temperature 0, prompt cache off, thinking off. An HTTP error carries the server's own
-    message (llama-server says when a request exceeds the context), so the agent can tell an overflow apart."""
+    message (llama-server says when a request exceeds the context), so the agent can tell an overflow apart.
+    think="xhigh" (or another reasoning_effort) switches thinking on with that effort, passed explicitly: the template
+    injects system text for xhigh, and an unset effort renders differently by server (memory: effort is a prompt edit)."""
+    kwargs = {"enable_thinking": False} if not think else {"enable_thinking": True, "reasoning_effort": think}
+
     def chat(messages, tools):
         body = {"messages": messages, "temperature": 0, "max_tokens": max_tokens, "cache_prompt": False,
-                "chat_template_kwargs": {"enable_thinking": False}}
+                "chat_template_kwargs": kwargs}
         if tools:
             body["tools"] = tools
         r = httpx.post(f"{url}/v1/chat/completions", json=body, timeout=timeout)
@@ -30,6 +34,7 @@ def chat_fn(url, max_tokens=4096, timeout=900):
         msg = j["choices"][0]["message"]
         msg["_usage"] = {**(j.get("usage") or {}), "finish_reason": j["choices"][0].get("finish_reason")}
         return msg
+    chat.max_tokens = max_tokens
     return chat
 
 
@@ -67,7 +72,10 @@ def main():
         if dst.exists():
             continue
         task, mode = build(spec, work / arm / name)
-        agent = agent_v1.AgentV1(chat_fn(url), task["instruction"], mode=mode)
+        think = os.environ.get("THINK") or None                # thinking runs only; unset = the v1 instrument as frozen
+        chat = chat_fn(url, int(os.environ.get("MAX_TOKENS", "4096")), int(os.environ.get("REQ_TIMEOUT", "900")), think)
+        agent = agent_v1.AgentV1(chat, task["instruction"], mode=mode,
+                                 keep_reasoning=bool(think) and os.environ.get("KEEP_REASONING", "1") == "1")
         partial = out / f"{name}.partial.json"
 
         def checkpoint(log, agent=agent, partial=partial, spec=spec):
@@ -89,7 +97,7 @@ def main():
             lab["replay"] = {k: labels["replay"][k] for k in ("rep_passes", "nondeterministic", "purity_flags")}
         rec = {"arm": arm, "item": spec, "name": name, "family": task["family"], "template": task.get("template"),
                "kind": task.get("kind"), "layout": task.get("layout"), "rung": task["rung"], "seed": task["seed"],
-               "agent_mode": mode, "n_ctx": n_ctx, "row": row, "routes": routes, "labels": lab, "ending": ep["ending"],
+               "agent_mode": mode, "n_ctx": n_ctx, **({"think": think, "max_tokens": chat.max_tokens, "keep_reasoning": agent.keep_reasoning} if think else {}), "row": row, "routes": routes, "labels": lab, "ending": ep["ending"],
                "detail": ep["detail"], "declared": ep["declared"], "report": ep["report"], "loop": ep["loop"],
                "steps": ep["steps"], "nudges": ep["nudges"], "invalid_finish": ep["invalid_finish"], "max_steps": max_steps,
                "reminded_at": ep["reminded_at"], "reminder_kind": ep["reminder_kind"], "declared_after_reminder": ep["declared_after_reminder"], "tokens": ep["tokens"],

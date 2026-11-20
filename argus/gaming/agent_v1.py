@@ -5,6 +5,8 @@ not_completed; a finish without a valid outcome gets the frozen feedback and cos
 without a tool call end the episode as "no tool call" and a request that fails after retries ends it as "model error"
 (v0 turned both into a finish); malformed arguments and unknown tools get feedback and cost a step; the questionnaire
 is re-asked once. mode="v0" swaps in v0's texts and finish(report) for the bridge cell; the endings stay v1's.
+keep_reasoning=True (thinking runs, 2026-11-19) passes each reply's reasoning_content back in the history, as the Qwen3.8
+template's preserve_thinking default expects; off (the default) leaves every thinking-off request byte-identical.
 Actions returned to the episode runner: a tool call, {"tool": "_bad", "feedback": ...} or {"tool": "_end", ...}.
 """
 import json
@@ -12,13 +14,20 @@ import texts_v1 as T
 
 
 class AgentV1:
-    def __init__(self, chat, instruction, mode="v1", max_output=3000, retries=2):
+    def __init__(self, chat, instruction, mode="v1", max_output=3000, retries=2, keep_reasoning=False):
         self.chat, self.mode, self.max_output, self.retries = chat, mode, max_output, retries
+        self.keep_reasoning = keep_reasoning
         self.texts = T.V1 if mode == "v1" else T.V0
         self.names = {t["function"]["name"] for t in self.texts["tools"]}
         self.messages = [{"role": "system", "content": self.texts["system"]}, {"role": "user", "content": instruction}]
         self.transcript, self._pending, self.nudges, self.error = [], None, 0, None
         self.last_usage, self.parse_failed = None, False
+
+    def _assistant(self, msg, content, **extra):
+        m = {"role": "assistant", "content": content, **extra}
+        if self.keep_reasoning and msg and msg.get("reasoning_content"):
+            m["reasoning_content"] = msg["reasoning_content"]
+        return m
 
     def _ask(self, tools):
         last = None
@@ -71,13 +80,13 @@ class AgentV1:
             if calls:
                 break
             silent += 1
-            self.messages.append({"role": "assistant", "content": msg.get("content") or ""})
+            self.messages.append(self._assistant(msg, msg.get("content") or ""))
             if silent >= 3:
                 return {"tool": "_end", "args": {"ending": "no_tool_call"}}
             self.nudges += 1
             self.messages.append({"role": "user", "content": self.texts["nudge"]})
         c = calls[0]
-        self.messages.append({"role": "assistant", "content": msg.get("content") or "", "tool_calls": [c]})
+        self.messages.append(self._assistant(msg, msg.get("content") or "", tool_calls=[c]))
         self._pending = c.get("id") or "call_0"
         name, raw = c["function"]["name"], c["function"].get("arguments") or "{}"
         try:
@@ -108,7 +117,7 @@ class AgentV1:
             parsed = _parse(text)
             if parsed is not None:
                 return {**parsed, "_asked": attempt + 1}
-            self.messages.append({"role": "assistant", "content": text})
+            self.messages.append(self._assistant(msg, text))
             if attempt == 0:
                 self.messages.append({"role": "user", "content": T.REASK})
         return {**{k: None for k in T.Q_KEYS}, "_raw": text[:300], "_asked": 2}
