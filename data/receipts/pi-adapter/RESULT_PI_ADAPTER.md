@@ -93,6 +93,11 @@ prompts are not pi's.
 - **Time:** both arms took 7.2 lane-hours, although PIA took fewer steps and generated fewer tokens (68k vs 126k; BASE's
   total includes one runaway episode with seven replies at the 4,096-token cap). The adapter's cost per token was not
   measured.
+- **How far each variant moved on M1 (stored arms, after the data):** against the stored base C.A, answer texts
+  changed on 223 of 240 items for Arete, 204 for Qwopus Coder and 112 for the pi adapter; grades changed on 24, 21
+  and 8. The adapter has the smallest footprint on facts and the largest effect as an agent. This fits on-policy RL
+  staying close to its base, but the adapter is also a rank-32 LoRA stopped at step 160 of 1,000, where Arete and
+  Qwopus are full fine-tunes; size of change and kind of training are confounded here.
 - **Reminders fired:** PIA loop 5, step-20 5, none 20; BASE loop 7, step-20 12, none 11.
 
 ## Deviation
