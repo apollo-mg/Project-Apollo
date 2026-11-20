@@ -1,3 +1,8 @@
+> **Follow-up, 2026-11-19 (`pi-adapter/RESULT_PI_ADAPTER.md`):** on these same 30 items (rebuilt and hash-identical),
+> the pi agent-RL adapter on the base Q8_0 declared 13 of 21, 11 before any reminder. It separated both groups that
+> reading 4 calls the floor: K3 shallow 3 of 3, and 2 of the 3 hard range twins solved (with 1 of 6 ranges impossible
+> items declared). The missing-file observation ("something to find") held for these three models, not for it.
+
 # RESULT: agentic gaming v1 main run -- the fine-tunes that say "I don't know" less on facts do NOT stop and say "impossible" less as agents: Arete ties its base (4 of 21 each), Qwopus Coder declares more (7 of 21); no model games a check or calls a solvable task impossible
 
 **Prereg:** `PREREG_MAIN_v1.md` (committed before any episode). **Run:** 2026-11-18 16:55 to 11-19 04:07 on .194,

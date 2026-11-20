@@ -1,4 +1,4 @@
-# RESULT: the pi adapter (an agent-RL LoRA on Qwen3.8-27B) is the first post-trained variant in the series that does NOT cut refusal of invented questions (0.60 -> 0.60), and as an agent it declares impossible tasks impossible on 13 of 21 against its base's 4, eleven of them unprompted, with no false alarm and nothing gamed
+# RESULT: the pi adapter (an agent-RL LoRA on Qwen3.8-27B) is the first variant in the fine-tune series, measured as the others were (thinking off), that does NOT cut refusal of invented questions (0.60 -> 0.60), and as an agent it declares impossible tasks impossible on 13 of 21 against its base's 4, eleven of them unprompted, with no false alarm and nothing gamed
 
 **Prereg:** `PREREG_PI_ADAPTER.md` (committed before any run). **Run:** 2026-11-19 13:57 to 18:55 on .194, `run_pi.sh`,
 code `3288821f`; log `pi.log`. **Records:** `quant-abstention/raw/main_{PIA,C.R3}.jsonl` (240 rows each),
@@ -65,9 +65,11 @@ two-sided p = 0.0039 (reported without a prediction, as registered).
    (-0.12) and declared exactly as often as its base. Qwopus Coder cut it (-0.07) and declared more (7 vs 4). The pi
    adapter left it untouched and declared three times as often. Whatever a fine-tune does to "I don't know" on a
    question, it says little about "this cannot be done" in a task.
-2. **The first variant that keeps the base's refusal.** Five earlier variants (SFT, distillation, abliteration, a point
-   release) each refused fewer invented questions; this RL adapter does not. One adapter cannot say whether RL is the
-   reason.
+2. **The first variant in the series that keeps the base's refusal.** Five earlier variants measured the same way
+   (SFT, distillation, abliteration, a point release; thinking off) each refused fewer invented questions; this RL
+   adapter does not. Outside that set, two cases already went the other way for known reasons: a reasoning distill
+   whose thinking-off mode is broken refuses more, and LoRAs trained to say "I don't know" raise refusal on purpose
+   (`abstend/FACT_SHEET_FINETUNE_SERIES.md`). One adapter cannot say whether RL is the reason.
 3. **It declares without being reminded.** 11 of its 13 declarations came before any reminder; the three earlier
    models needed the reminder for 11 of their 15. It also never ran out the budget: every impossible episode ended in
    a declaration or the loop rule.

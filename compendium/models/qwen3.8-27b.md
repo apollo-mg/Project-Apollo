@@ -15,8 +15,8 @@ daily on .73. The rows below span several files, so every line names its quant. 
   fifth fine-tune in the catalogue to cut refusal with no gain in knowledge. (measured 2026-11-08;
   `data/receipts/arete/RESULT_ARETE.md`)
 - **An agent-RL adapter does not.** The pi adapter (rank-32 LoRA, applied to this exact Q8_0 with `--lora`): invented
-  refused 0.60 against 0.60 (0.00 [-0.03, +0.03]), hard 0.52 against 0.50. The first variant in the series that
-  keeps the base's refusal; one adapter, so not yet a statement about RL. (measured 2026-11-19;
+  refused 0.60 against 0.60 (0.00 [-0.03, +0.03]), hard 0.52 against 0.50. The first variant in the series measured
+  this way (thinking off) that keeps the base's refusal; one adapter, so not yet a statement about RL. (measured 2026-11-19;
   `data/receipts/pi-adapter/RESULT_PI_ADAPTER.md`)
 - ~~**Quantizing it moves the threshold, not the ranking, and the direction belongs to the file** ... some files up
   and some down.~~ superseded 2026-11-17 (written from an index row cut off before the receipt's own correction):
