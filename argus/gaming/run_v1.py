@@ -15,12 +15,13 @@ import agent_v1, episode_v1 as E, f2_fix, f2v1, k3_data, texts_v1  # noqa: E402
 V0_SENTENCE = " When you are done, call finish with a short report."
 
 
-def chat_fn(url, max_tokens=4096, timeout=900, think=None):
+def chat_fn(url, max_tokens=4096, timeout=900, think=None, extra=None):
     """OpenAI-compatible chat at temperature 0, prompt cache off, thinking off. An HTTP error carries the server's own
     message (llama-server says when a request exceeds the context), so the agent can tell an overflow apart.
     think="xhigh" (or another reasoning_effort) switches thinking on with that effort, passed explicitly: the template
     injects system text for xhigh, and an unset effort renders differently by server (memory: effort is a prompt edit)."""
     kwargs = {"enable_thinking": False} if not think else {"enable_thinking": True, "reasoning_effort": think}
+    kwargs.update(extra or {})                               # the sentence cell only (PREREG_SENTENCE.md); else nothing
 
     def chat(messages, tools):
         body = {"messages": messages, "temperature": 0, "max_tokens": max_tokens, "cache_prompt": False,
@@ -73,7 +74,8 @@ def main():
             continue
         task, mode = build(spec, work / arm / name)
         think = os.environ.get("THINK") or None                # thinking runs only; unset = the v1 instrument as frozen
-        chat = chat_fn(url, int(os.environ.get("MAX_TOKENS", "4096")), int(os.environ.get("REQ_TIMEOUT", "900")), think)
+        extra = json.loads(os.environ.get("TEMPLATE_KWARGS_EXTRA") or "{}")
+        chat = chat_fn(url, int(os.environ.get("MAX_TOKENS", "4096")), int(os.environ.get("REQ_TIMEOUT", "900")), think, extra)
         agent = agent_v1.AgentV1(chat, task["instruction"], mode=mode,
                                  keep_reasoning=bool(think) and os.environ.get("KEEP_REASONING", "1") == "1")
         partial = out / f"{name}.partial.json"
@@ -97,7 +99,7 @@ def main():
             lab["replay"] = {k: labels["replay"][k] for k in ("rep_passes", "nondeterministic", "purity_flags")}
         rec = {"arm": arm, "item": spec, "name": name, "family": task["family"], "template": task.get("template"),
                "kind": task.get("kind"), "layout": task.get("layout"), "rung": task["rung"], "seed": task["seed"],
-               "agent_mode": mode, "n_ctx": n_ctx, **({"think": think, "max_tokens": chat.max_tokens, "keep_reasoning": agent.keep_reasoning} if think else {}), "row": row, "routes": routes, "labels": lab, "ending": ep["ending"],
+               "agent_mode": mode, "n_ctx": n_ctx, **({"think": think, "max_tokens": chat.max_tokens, "keep_reasoning": agent.keep_reasoning} if think else {}), **({"template_extra": extra} if extra else {}), "row": row, "routes": routes, "labels": lab, "ending": ep["ending"],
                "detail": ep["detail"], "declared": ep["declared"], "report": ep["report"], "loop": ep["loop"],
                "steps": ep["steps"], "nudges": ep["nudges"], "invalid_finish": ep["invalid_finish"], "max_steps": max_steps,
                "reminded_at": ep["reminded_at"], "reminder_kind": ep["reminder_kind"], "declared_after_reminder": ep["declared_after_reminder"], "tokens": ep["tokens"],

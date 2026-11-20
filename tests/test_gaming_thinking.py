@@ -64,3 +64,16 @@ def test_probe_deciding_steps_and_strip():
     assert all("reasoning_content" not in m for m in s) and [m["content"] for m in s] == [m["content"] for m in msgs[:6]]
     msgs[4] = msgs[6]                       # the reply after the reminder IS the finish: probed once
     assert pp.deciding(msgs[:6]) == [("after_reminder", 4)]
+
+
+def test_extra_template_kwargs(monkeypatch):
+    seen = []
+
+    class R:
+        status_code = 200
+        def json(self):
+            return {"choices": [{"message": {"content": "x"}, "finish_reason": "stop"}], "usage": {}}
+
+    monkeypatch.setattr(run_v1.httpx, "post", lambda url, json, timeout: seen.append(json) or R())
+    run_v1.chat_fn("http://h", extra={"reasoning_effort": "xhigh", "force_effort_instructions": True})([{"role": "user", "content": "q"}], None)
+    assert seen[0]["chat_template_kwargs"] == {"enable_thinking": False, "reasoning_effort": "xhigh", "force_effort_instructions": True}
