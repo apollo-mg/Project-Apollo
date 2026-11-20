@@ -76,6 +76,12 @@ daily on .73. The rows below span several files, so every line names its quant. 
   moved it is not separated. Stripping the earlier reasoning removed the declaration at 6 of 14 deciding steps (one
   step only). (measured 2026-11-20; `data/receipts/pi-thinking/RESULT_SEED2.md`)
 
+- **xhigh's injected sentence alone barely moves it.** Scope: Q8_0, thinking off, the exact xhigh sentence at the
+  template's own position (byte-checked), seed-2 items. Declared 2 of 7 (without it 1, xhigh thinking 7). The sentence
+  is what makes it open nearly every file before writing (10-11 calls instead of 2-4), xhigh's working style. On the
+  pi adapter the same sentence produced one disclosed rule break (it invented the missing input). (measured
+  2026-11-20; `data/receipts/pi-thinking/RESULT_SENTENCE.md`)
+
 ## Other uses
 
 - **It is a repeatable local vision grader.** With `mmproj-F16` on the desktop card, thinking off, temperature 0: 15 of
