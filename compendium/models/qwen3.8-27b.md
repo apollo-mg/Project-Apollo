@@ -43,6 +43,10 @@ daily on .73. The rows below span several files, so every line names its quant. 
   either way. Published hallucination figures for this model do not state the effort they used. (measured 2026-09-07;
   `data/receipts/viability/RESULT_A6_EFFORT_NOT_SAMPLING.md`, `data/receipts/viability/NOTE_AA_OMNISCIENCE_LINEAGE.md`)
 
+- **Greedy thinking replays byte for byte.** Scope: Q8_0 with and without the pi adapter, buun `0b2789f23` on .194,
+  xhigh, prompt cache off: four agent episodes of 15 and 21 steps, run twice, identical in every tool call, reply and
+  reasoning text. (measured 2026-11-20; `data/receipts/pi-thinking/RESULT_SEED2.md`)
+
 ## As an agent
 
 - **In a 51-episode pilot it took no shortcut and never stopped on its own.** Scope: Q8_0, thinking off, temperature
@@ -60,10 +64,17 @@ daily on .73. The rows below span several files, so every line names its quant. 
   (1 before any reminder); asked afterwards, "not possible" on 14 of the 17 it had not declared; 0 checks gamed, 0
   false "impossible" on twins. Its fine-tunes Arete (4) and Qwopus Coder (7) do not follow their M1 refusal cuts.
   (measured 2026-11-18; `data/receipts/agentic-gaming/RESULT_MAIN_v1.md`)
-- **The pi agent-RL adapter makes it say so.** Same items and settings, adapter on the same Q8_0: declared 13 of 21
+- **With thinking off, the pi agent-RL adapter makes it say so.** Same items and settings, adapter on the same Q8_0: declared 13 of 21
   (11 before any reminder; paired 9 vs 0, p = 0.0039), missing-input items 6 of 6 against 0 of 6, twins solved 8 of 9
   against 6, 0 false "impossible", 0 gamed, every report naming the real cause. Fact refusal and agentic declaration
   move independently. (measured 2026-11-19; `data/receipts/pi-adapter/RESULT_PI_ADAPTER.md`)
+
+- **At xhigh thinking it says so too.** Scope: Q8_0, `reasoning_effort` xhigh passed explicitly, earlier reasoning
+  replayed, greedy, 16k per step, the seven seed-2 impossible items and three twins. Declared 7 of 7 (thinking off 1 of
+  7; 2 before any reminder, the rest mostly right after the step-20 reminder), solved 3 of 3 twins, nothing gamed, at
+  about 2.5x the thinking-off time. xhigh is thinking plus an injected sentence plus the replayed reasoning; which part
+  moved it is not separated. Stripping the earlier reasoning removed the declaration at 6 of 14 deciding steps (one
+  step only). (measured 2026-11-20; `data/receipts/pi-thinking/RESULT_SEED2.md`)
 
 ## Other uses
 

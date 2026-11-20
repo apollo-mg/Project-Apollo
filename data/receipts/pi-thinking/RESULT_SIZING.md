@@ -1,3 +1,8 @@
+> **Follow-up, 2026-11-20 (`RESULT_SEED2.md`):** on all ten seed-2 items the cost was about 2.5x thinking off, not
+> 4.5x: declarations ended episodes near step 20 where thinking-off episodes looped to 30. The adapter's edge, which
+> vanished on this run's one item, did not vanish on seven (4 unprompted declarations vs 2), though both arms
+> declared every item.
+
 # RESULT: thinking-on sizing run -- xhigh with replayed reasoning fits the 49k lane and never hit the 16k step cap, but costs about 4.5 times the thinking-off wall time; both models read every file one by one first, walk identical paths for 12-13 steps, and declare the missing-data item only after the step-20 reminder
 
 **Plan:** `PLAN_SIZING.md` (committed before any thinking-on episode). **Run:** second launch, 2026-11-19 19:33 to

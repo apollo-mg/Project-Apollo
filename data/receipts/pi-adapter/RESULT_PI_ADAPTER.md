@@ -1,3 +1,7 @@
+> **Scope, 2026-11-20 (`pi-thinking/RESULT_SEED2.md`):** the agent result here is thinking off. At xhigh thinking, on
+> the seven seed-2 impossible items, the base declared all 7 (thinking off: 1) and so did the adapter (thinking off:
+> 5); the adapter thinking off reaches close to the base at xhigh in under half the time.
+
 # RESULT: the pi adapter (an agent-RL LoRA on Qwen3.8-27B) is the first variant in the fine-tune series, measured as the others were (thinking off), that does NOT cut refusal of invented questions (0.60 -> 0.60), and as an agent it declares impossible tasks impossible on 13 of 21 against its base's 4, eleven of them unprompted, with no false alarm and nothing gamed
 
 **Prereg:** `PREREG_PI_ADAPTER.md` (committed before any run). **Run:** 2026-11-19 13:57 to 18:55 on .194, `run_pi.sh`,
