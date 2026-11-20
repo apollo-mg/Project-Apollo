@@ -31,7 +31,16 @@ PYEOF
 
 log "== thinking sizing start (code $(git -C "$ROOT" rev-parse --short HEAD))"
 "$ROOT/tools/s194.sh" on >> "$LOG" 2>&1 || { log "ABORT: .194 did not come up"; exit 1; }
-ssh "$H" 'pgrep -x llama-server >/dev/null' && { log "ABORT: a llama-server is already running"; finish 1; }
+# First launch (19:27): sshd reset connections seconds after boot, so the next checks got nothing. Wait until a real
+# command answers three times in a row, 10 s apart, and make every check fail closed.
+ok=0; for i in $(seq 1 40); do
+  if [ "$(ssh -o ConnectTimeout=5 -o BatchMode=yes "$H" 'echo ready' 2>/dev/null)" = ready ]; then ok=$((ok + 1)); else ok=0; fi
+  [ $ok -ge 3 ] && break; sleep 10
+done
+[ $ok -ge 3 ] || { log "ABORT: ssh to .194 not stable after boot"; finish 1; }
+log "ssh stable"
+st=$(ssh "$H" 'pgrep -x llama-server >/dev/null && echo RUNNING || echo CLEAR' 2>/dev/null)
+[ "$st" = CLEAR ] || { log "ABORT: llama-server check returned '$st'"; finish 1; }
 h=$(ssh "$H" "sha256sum $LORA | cut -d' ' -f1"); [ "$h" = "$LORA_SHA" ] || { log "ABORT: adapter hash $h"; finish 1; }
 start BASE 0,1 8190 0 && start PIA 2,3 8191 1 || finish 1
 $PY "$HERE/preflight_think.py" BASE "http://$H:8190" "$OUT/preflight.json" >> "$LOG" 2>&1 \
