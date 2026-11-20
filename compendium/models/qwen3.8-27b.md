@@ -10,9 +10,14 @@ daily on .73. The rows below span several files, so every line names its quant. 
   Scope: Q8_0 (sha256 `a680f44a...`), 240 items, greedy, a two-P100 lane on .194. A same-day replay matched the
   stored arm byte for byte, 240 of 240.
   (measured 2026-11-08; `data/receipts/arete/RESULT_ARETE.md`)
-- **Fine-tunes of it refuse less and know no more.** Arete-27B against this base, both Q8_0, prompts token-identical:
-  hard 0.50 against 0.50, invented refused 0.48 against 0.60 (-0.12 [-0.18, -0.06]). It was the fifth fine-tune in the
-  catalogue to cut refusal with no gain in knowledge. (measured 2026-11-08; `data/receipts/arete/RESULT_ARETE.md`)
+- **Its SFT and distilled fine-tunes refuse less and know no more.** Arete-27B against this base, both Q8_0, prompts
+  token-identical: hard 0.50 against 0.50, invented refused 0.48 against 0.60 (-0.12 [-0.18, -0.06]). It was the
+  fifth fine-tune in the catalogue to cut refusal with no gain in knowledge. (measured 2026-11-08;
+  `data/receipts/arete/RESULT_ARETE.md`)
+- **An agent-RL adapter does not.** The pi adapter (rank-32 LoRA, applied to this exact Q8_0 with `--lora`): invented
+  refused 0.60 against 0.60 (0.00 [-0.03, +0.03]), hard 0.52 against 0.50. The first variant in the series that
+  keeps the base's refusal; one adapter, so not yet a statement about RL. (measured 2026-11-19;
+  `data/receipts/pi-adapter/RESULT_PI_ADAPTER.md`)
 - ~~**Quantizing it moves the threshold, not the ranking, and the direction belongs to the file** ... some files up
   and some down.~~ superseded 2026-11-17 (written from an index row cut off before the receipt's own correction):
   **quantizing it keeps the ranking of answerable against unanswerable items; whether refusal moves depends on
@@ -49,6 +54,16 @@ daily on .73. The rows below span several files, so every line names its quant. 
   items, 3 seeds. Prompt cache off: 75.0% without MTP against 69.2% with (-5.8 points, p = 0.12). Prompt cache on:
   +9.2 points for MTP (p = 0.0098) and tasks finished 17% faster. Neither supersedes the other. (measured 2026-09-24;
   `data/receipts/mtp-agentic/RESULT_MTP_AGENTIC.md`, `data/receipts/mtp-agentic/RESULT_MTP_AGENTIC_SPEED.md`)
+
+- **On impossible tasks it mostly does not say so, though it knows.** Scope: Q8_0, thinking off, greedy, 30 steps, a
+  loop/step-20 reminder, 21 impossible items and 9 solvable twins on a fixed sandbox. Declared "impossible" on 4 of 21
+  (1 before any reminder); asked afterwards, "not possible" on 14 of the 17 it had not declared; 0 checks gamed, 0
+  false "impossible" on twins. Its fine-tunes Arete (4) and Qwopus Coder (7) do not follow their M1 refusal cuts.
+  (measured 2026-11-18; `data/receipts/agentic-gaming/RESULT_MAIN_v1.md`)
+- **The pi agent-RL adapter makes it say so.** Same items and settings, adapter on the same Q8_0: declared 13 of 21
+  (11 before any reminder; paired 9 vs 0, p = 0.0039), missing-input items 6 of 6 against 0 of 6, twins solved 8 of 9
+  against 6, 0 false "impossible", 0 gamed, every report naming the real cause. Fact refusal and agentic declaration
+  move independently. (measured 2026-11-19; `data/receipts/pi-adapter/RESULT_PI_ADAPTER.md`)
 
 ## Other uses
 

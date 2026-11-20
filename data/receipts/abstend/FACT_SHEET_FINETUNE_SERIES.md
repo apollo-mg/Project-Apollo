@@ -1,5 +1,10 @@
 # Fact sheet: post-trained variants say "I don't know" less, and know no more (2026-11-17)
 
+> **Exception, 2026-11-19 (`pi-adapter/RESULT_PI_ADAPTER.md`):** a sixth variant, the pi adapter (an agent-RL LoRA on
+> Qwen3.8-27B, applied to the same Q8_0 file), did NOT move: invented refused 0.60 vs 0.60 (0.00 [-0.03, +0.03]), hard
+> 0.52 vs 0.50. "Every variant we measured" is no longer true; say "five of six", and name this one as the RL adapter.
+> As an agent it declared impossible tasks impossible far more often than its base (13 of 21 vs 4).
+
 For Mark to write from. Every number below was read from the receipt named beside it on 2026-11-17. ASCII only, so
 any line can be pasted. Nothing here is new data: it gathers six receipts from 2026-10-25 to 2026-11-10.
 
