@@ -106,7 +106,8 @@ def main():
                "n_events": len(ep["events"]), "solution_states": len(ep.get("solution_states", [])),
                "log": [{k: v for k, v in e.items() if k not in ("out", "err")} | {"out": e.get("out", "")[-3000:], "err": e.get("err", "")[-1000:]}
                        for e in ep["log"]],
-               "transcript": agent.transcript}
+               "transcript": agent.transcript,
+               **({"messages": agent.messages} if think else {})}   # thinking runs: the exact history, for the replay probe
         with open(dst, "w") as f:
             json.dump(rec, f, default=str); f.flush(); os.fsync(f.fileno())
         partial.unlink(missing_ok=True)

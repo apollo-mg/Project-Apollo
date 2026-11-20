@@ -37,3 +37,30 @@ def test_request_body_off_and_on(monkeypatch):
     assert off == {"messages": [{"role": "user", "content": "q"}], "temperature": 0, "max_tokens": 4096,
                    "cache_prompt": False, "chat_template_kwargs": {"enable_thinking": False}}
     assert on["chat_template_kwargs"] == {"enable_thinking": True, "reasoning_effort": "xhigh"} and on["max_tokens"] == 16384
+
+
+def _probe():
+    import importlib.util
+    p = Path(__file__).resolve().parents[1] / "data" / "receipts" / "pi-thinking" / "probe_preserve.py"
+    spec = importlib.util.spec_from_file_location("probe_preserve", p)
+    m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+    return m
+
+
+def test_probe_deciding_steps_and_strip():
+    pp = _probe()
+    T = pp.T
+    fin = {"id": "f", "type": "function", "function": {"name": "finish", "arguments": json.dumps({"outcome": "impossible", "report": "r"})}}
+    msgs = [{"role": "system", "content": "s"}, {"role": "user", "content": "u"},
+            {"role": "assistant", "content": "", "reasoning_content": "r1", "tool_calls": [CALL]},
+            {"role": "tool", "tool_call_id": "c1", "content": "out\n\n" + T.REMINDER},
+            {"role": "assistant", "content": "", "reasoning_content": "r2", "tool_calls": [CALL]},
+            {"role": "tool", "tool_call_id": "c1", "content": "out"},
+            {"role": "assistant", "content": "", "reasoning_content": "r3", "tool_calls": [fin]},
+            {"role": "tool", "tool_call_id": "f", "content": "finished"}]
+    assert pp.deciding(msgs) == [("after_reminder", 4), ("finish", 6)]
+    assert pp.action(msgs[6]) == "finish:impossible" and pp.action(msgs[4]) == "list_dir"
+    s = pp.strip(msgs[:6])
+    assert all("reasoning_content" not in m for m in s) and [m["content"] for m in s] == [m["content"] for m in msgs[:6]]
+    msgs[4] = msgs[6]                       # the reply after the reminder IS the finish: probed once
+    assert pp.deciding(msgs[:6]) == [("after_reminder", 4)]
