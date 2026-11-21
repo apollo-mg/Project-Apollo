@@ -1,3 +1,7 @@
+> **Correction, 2026-11-21 (`RESULT_MEDIUM_NOREM.md`):** reading 2 is half right. The sentence alone produces the
+> read-every-file style, but so does thinking at medium with nothing injected (8 to 11 calls before the first
+> write). It is not "the sentence, not thinking": either one does it.
+
 # RESULT: the xhigh sentence alone (thinking off) barely moves declarations -- base 2 of 7 (1 without it, 7 at xhigh), adapter 4 of 7 (5 without, 7 at xhigh) -- but it is what makes both models read every file first, and it produced the series' first rule break: the adapter invented the missing exchange rates, passed the check, and said so in its report
 
 **Prereg:** `PREREG_SENTENCE.md` (committed before any run of this cell). **Run:** 2026-11-20 14:35 to 18:46 on .194,

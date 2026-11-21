@@ -1,3 +1,8 @@
+> **Follow-up, 2026-11-21 (`RESULT_MEDIUM_NOREM.md`):** the step-20 reminder was not doing the work. Run again with
+> the reminder off, every reminded item replayed its first 20 replies exactly and still declared, mostly at the
+> same step 21. Reading 2's "plus a reminder" is withdrawn; thinking at medium (nothing injected) also declares
+> 7 of 7, so thinking is the active part.
+
 # RESULT: thinking-on A/B, seed 2 -- at xhigh effort the base Qwen3.8-27B declares all 7 impossible items impossible (thinking off: 1) and so does the adapter (thinking off: 5); both solve all 3 twins; nothing gamed; greedy thinking replays byte for byte; stripping the earlier reasoning removes the declaration at 6 of 14 deciding steps and adds none
 
 **Prereg:** `PREREG_SEED2.md` (committed before any seed-2 thinking episode). **Run:** 2026-11-19 21:38 to 11-20

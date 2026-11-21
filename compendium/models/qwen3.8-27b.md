@@ -78,9 +78,15 @@ daily on .73. The rows below span several files, so every line names its quant. 
 
 - **xhigh's injected sentence alone barely moves it.** Scope: Q8_0, thinking off, the exact xhigh sentence at the
   template's own position (byte-checked), seed-2 items. Declared 2 of 7 (without it 1, xhigh thinking 7). The sentence
-  is what makes it open nearly every file before writing (10-11 calls instead of 2-4), xhigh's working style. On the
+  alone makes it open nearly every file before writing (10-11 calls instead of 2-4); thinking at medium does too. On the
   pi adapter the same sentence produced one disclosed rule break (it invented the missing input). (measured
   2026-11-20; `data/receipts/pi-thinking/RESULT_SENTENCE.md`)
+
+- **Thinking at `medium` is the better setting for saying "impossible".** Scope: Q8_0, thinking on at medium (the
+  template injects nothing), reasoning replayed, greedy, seed-2 items. Declared 7 of 7, 6 before any reminder (xhigh: 7,
+  2 before), solved 3 of 3 twins, in about 70% of xhigh's time. With the reminder off, xhigh still declared every item
+  at the same step: the reminder was not needed. Thinking off 1 of 7, the xhigh sentence alone 2: thinking is the
+  active part. (measured 2026-11-21; `data/receipts/pi-thinking/RESULT_MEDIUM_NOREM.md`)
 
 ## Other uses
 
