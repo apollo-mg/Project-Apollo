@@ -10,7 +10,9 @@ sys.path.insert(0, str(ROOT / "argus" / "gaming")); sys.path.insert(0, str(ROOT 
 import k3_data, texts_v1 as T  # noqa: E402
 from preflight_v1 import OUTCOME_PHRASES  # noqa: E402
 
-KW = {"enable_thinking": True, "reasoning_effort": "xhigh"}
+import os
+EFFORT = os.environ.get("THINK_EFFORT", "xhigh")      # xhigh: the sentence must be injected; medium: nothing may be
+KW = {"enable_thinking": True, "reasoning_effort": EFFORT}
 SENTINEL = "SENTINEL_REASONING_4471"
 
 
@@ -31,7 +33,7 @@ def main(arm, url, out):
                      "chat_template_kwargs": {"enable_thinking": False}}).json().get("prompt", "")
     n = lambda s: len(httpx.post(f"{url}/tokenize", json={"content": s}, timeout=120).json().get("tokens", []))
     checks = {"outcomes_rendered": all(p in p1 for p in OUTCOME_PHRASES),
-              "xhigh_injected": "xhigh" in p1 and "xhigh" not in off,
+              "effort_text_as_expected": bool(p1) and (("Reasoning effort is set to xhigh" in p1) if EFFORT == "xhigh" else ("Reasoning effort is set" not in p1)),
               "reasoning_replayed": SENTINEL in p2,
               "think_opened": p1.rstrip().endswith("<think>")}
     rec = {"arm": arm, "checks": checks, "ok": all(checks.values()), "tokens_xhigh": n(p1), "tokens_off": n(off),

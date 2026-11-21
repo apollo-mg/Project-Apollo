@@ -48,7 +48,7 @@ def strip(prefix):
 
 
 def main(url, raw, out):
-    chat = run_v1.chat_fn(url, 16384, 3600, "xhigh")
+    chats = {}
     done = set()
     if Path(out).exists():
         done = {(r["item"], r["kind"]) for r in map(json.loads, open(out))}
@@ -59,12 +59,14 @@ def main(url, raw, out):
         if rec.get("rung") != "impossible" or "messages" not in rec:
             continue
         msgs = rec["messages"]
+        effort = rec.get("think") or "xhigh"                     # the episode's own effort (xhigh or medium)
+        chat = chats.setdefault(effort, run_v1.chat_fn(url, 16384, 3600, effort))
         for kind, d in deciding(msgs):
             if (rec["item"], kind) in done:
                 continue
             prefix = msgs[:d]
             n_strip = sum(len(m.get("reasoning_content") or "") for m in prefix)
-            row = {"arm": rec["arm"], "item": rec["item"], "kind": kind, "index": d, "row": rec["row"],
+            row = {"arm": rec["arm"], "item": rec["item"], "kind": kind, "index": d, "row": rec["row"], "think": effort,
                    "reasoning_chars_stripped": n_strip, "recorded": action(msgs[d])}
             if n_strip == 0:
                 row["skipped"] = "no earlier reasoning to strip"

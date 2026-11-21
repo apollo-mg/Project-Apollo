@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# PREREG_MEDIUM_NOREM.md driver: power on, BASE on GPUs 0+1 and PIA (base + pi LoRA) on 2+3, preflight at medium and
+# xhigh; per lane: cell M (thinking at medium, ten seed-2 items, 8 h wall), its probe (1 h), cell N (xhigh, reminder off,
+# the reminded items plus one control, 8 h wall). Powers .194 off.
+set -uo pipefail
+HERE="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(cd "$HERE/../../.." && pwd)"
+PY=$ROOT/venv_cachyos/bin/python3; H=10.0.0.194; BIN='~/buun-0b278/build_sm60/bin/llama-server'
+BASE_F='~/AI/Models/qwopus/Qwen3.8-27B-Q8_0.gguf'; LORA='~/AI/Models/pi-adapter/Qwen3.8-27B-pi-lora-F16.gguf'
+LORA_SHA=a64f91844f19e67da500d8628bdf9383aa334e61b7ab687805802e7d272d7b67
+FLAGS="-ngl 99 -sm layer -c 49152 -ctk f16 -ctv f16 -np 1 -fit off --jinja --host 0.0.0.0"
+OUT=$HERE/medium_norem; WORK=/tmp/claude-1000/gaming_mn; LOG=$OUT/run.log; mkdir -p "$OUT/medium" "$OUT/norem" "$WORK"
+WALL=$((8 * 3600))
+log() { echo "$(date '+%F %T') $*" | tee -a "$LOG"; }
+finish() { "$ROOT/argus/gaming/stop_194.sh" >> "$LOG" 2>&1; log "== DONE ($1)"; exit "$1"; }
+start() {   # ARM GPUS PORT LORA(0/1)
+  local extra=""; [ "$4" = 1 ] && extra="--lora $LORA"
+  ssh "$H" "CUDA_VISIBLE_DEVICES=$2 GGML_CUDA_ALLREDUCE=internal nohup $BIN -m $BASE_F $extra $FLAGS --port $3 > ~/think_$1_$3.log 2>&1 < /dev/null &"
+  local i up=0; for i in $(seq 1 120); do sleep 5; curl -sf -m 5 "http://$H:$3/health" >/dev/null && { up=1; break; }; done
+  [ $up = 1 ] || { log "$1: not healthy on :$3"; return 1; }
+  local n; n=$(curl -s -m 5 "http://$H:$3/lora-adapters" | $PY -c 'import json,sys; print(len(json.load(sys.stdin)))')
+  [ "$n" = "$4" ] || { log "$1: expected $4 adapter(s) on :$3, found $n"; return 1; }
+  $PY - "http://$H:$3" <<'PYEOF' || { log "$1: no tool call on :$3"; return 1; }
+import sys, httpx
+tools = [{"type": "function", "function": {"name": "list_dir", "description": "List a directory.", "parameters": {"type": "object", "properties": {"path": {"type": "string"}}}}}]
+body = {"messages": [{"role": "user", "content": "List the files in the current directory."}], "tools": tools, "temperature": 0, "max_tokens": 512, "cache_prompt": False, "chat_template_kwargs": {"enable_thinking": False}}
+for k in range(2):   # the first is the discarded warm-up
+    m = httpx.post(sys.argv[1] + "/v1/chat/completions", timeout=600, json=body).json()["choices"][0]["message"]
+sys.exit(0 if m.get("tool_calls") else 1)
+PYEOF
+  log "$1: up on :$3 ($n adapter), tool call verified, warm-up discarded"
+}
+
+log "== medium + no-reminder cells start (code $(git -C "$ROOT" rev-parse --short HEAD))"
+"$ROOT/tools/s194.sh" on >> "$LOG" 2>&1 || { log "ABORT: .194 did not come up"; exit 1; }
+# First launch (19:27): sshd reset connections seconds after boot, so the next checks got nothing. Wait until a real
+# command answers three times in a row, 10 s apart, and make every check fail closed.
+ok=0; for i in $(seq 1 40); do
+  if [ "$(ssh -o ConnectTimeout=5 -o BatchMode=yes "$H" 'echo ready' 2>/dev/null)" = ready ]; then ok=$((ok + 1)); else ok=0; fi
+  [ $ok -ge 3 ] && break; sleep 10
+done
+[ $ok -ge 3 ] || { log "ABORT: ssh to .194 not stable after boot"; finish 1; }
+log "ssh stable"
+st=$(ssh "$H" 'pgrep -x llama-server >/dev/null && echo RUNNING || echo CLEAR' 2>/dev/null)
+[ "$st" = CLEAR ] || { log "ABORT: llama-server check returned '$st'"; finish 1; }
+h=$(ssh "$H" "sha256sum $LORA | cut -d' ' -f1"); [ "$h" = "$LORA_SHA" ] || { log "ABORT: adapter hash $h"; finish 1; }
+start BASE 0,1 8190 0 && start PIA 2,3 8191 1 || finish 1
+for e in medium xhigh; do
+  for a in BASE:8190 PIA:8191; do
+    THINK_EFFORT=$e $PY "$HERE/preflight_think.py" "${a%%:*}_$e" "http://$H:${a#*:}" "$OUT/preflight.json" >> "$LOG" 2>&1 \
+      || { log "ABORT: preflight failed (${a%%:*}, $e; see preflight.json)"; finish 1; }
+  done
+done
+log "preflight passed on both, at medium and xhigh"
+
+ITEMS_M="f2v1:rle:TWIN:shallow:2 f2v1:ranges:TWIN:shallow:2 k3:TWIN:shallow:2 k3:K3:shallow:2 f2v1:rle:K1:shallow:2 f2v1:ranges:K2:shallow:2 f2v1:rle:K2:shallow:2 k3:K3:deep:2 f2v1:rle:K1:deep:2 f2v1:ranges:K1:shallow:2"
+ITEMS_N_BASE="f2v1:rle:K2:shallow:2 k3:K3:shallow:2 f2v1:rle:K1:shallow:2 f2v1:ranges:K2:shallow:2 k3:K3:deep:2 f2v1:ranges:K1:shallow:2"
+ITEMS_N_PIA="f2v1:rle:K1:shallow:2 k3:K3:shallow:2 k3:K3:deep:2 f2v1:rle:K1:deep:2"
+export MAX_TOKENS=16384 REQ_TIMEOUT=3600 KEEP_REASONING=1
+lane() {   # ARM PORT WORKDIR NITEMS...
+  local arm=$1 port=$2 wd=$3; shift 3
+  THINK=medium timeout "$WALL" $PY "$ROOT/argus/gaming/run_v1.py" "$arm" "http://$H:$port" "$OUT/medium/$arm" "$WORK/$wd-m" $ITEMS_M >> "$LOG" 2>&1
+  [ $? = 124 ] && log "$arm: cell M wall limit reached (checkpoints kept)"
+  log "$arm: cell M done, $(ls "$OUT/medium/$arm" 2>/dev/null | grep -vc partial) of 10"
+  timeout 3600 $PY "$HERE/probe_preserve.py" "http://$H:$port" "$OUT/medium/$arm" "$OUT/probe_$arm.jsonl" >> "$LOG" 2>&1
+  log "$arm: probe exit $?, $(cat "$OUT/probe_$arm.jsonl" 2>/dev/null | wc -l) rows"
+  THINK=xhigh REMINDER=0 timeout "$WALL" $PY "$ROOT/argus/gaming/run_v1.py" "$arm" "http://$H:$port" "$OUT/norem/$arm" "$WORK/$wd-n" "$@" >> "$LOG" 2>&1
+  [ $? = 124 ] && log "$arm: cell N wall limit reached (checkpoints kept)"
+  log "$arm: cell N done, $(ls "$OUT/norem/$arm" 2>/dev/null | grep -vc partial) of $#"
+}
+lane BASE 8190 A $ITEMS_N_BASE &
+PA=$!
+lane PIA 8191 B $ITEMS_N_PIA &
+PB=$!
+echo "$PA $PB" > "$OUT/lane.pids"
+wait "$PA" "$PB"
+finish 0

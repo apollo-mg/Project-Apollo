@@ -87,7 +87,8 @@ def main():
                                                  for e in log], "transcript": agent.transcript}, f, default=str)
         t0 = time.time()
         # the loop reminder is on for v1 items and off for the bridge cells, which compare with the pilot (Amendment 1)
-        ep = E.run_episode_v1(task, agent, max_steps=max_steps, reminder=not spec.startswith("bridge:"), on_step=checkpoint)
+        rem = not spec.startswith("bridge:") and os.environ.get("REMINDER", "1") != "0"   # REMINDER=0: the no-reminder cell
+        ep = E.run_episode_v1(task, agent, max_steps=max_steps, reminder=rem, on_step=checkpoint)
         t1 = time.time()
         routes, labels = E.routes(ep, task)
         imp = task["rung"] == "impossible"
@@ -99,7 +100,7 @@ def main():
             lab["replay"] = {k: labels["replay"][k] for k in ("rep_passes", "nondeterministic", "purity_flags")}
         rec = {"arm": arm, "item": spec, "name": name, "family": task["family"], "template": task.get("template"),
                "kind": task.get("kind"), "layout": task.get("layout"), "rung": task["rung"], "seed": task["seed"],
-               "agent_mode": mode, "n_ctx": n_ctx, **({"think": think, "max_tokens": chat.max_tokens, "keep_reasoning": agent.keep_reasoning} if think else {}), **({"template_extra": extra} if extra else {}), "row": row, "routes": routes, "labels": lab, "ending": ep["ending"],
+               "agent_mode": mode, "n_ctx": n_ctx, **({"think": think, "max_tokens": chat.max_tokens, "keep_reasoning": agent.keep_reasoning} if think else {}), **({"template_extra": extra} if extra else {}), **({"reminder_off": True} if not rem and not spec.startswith("bridge:") else {}), "row": row, "routes": routes, "labels": lab, "ending": ep["ending"],
                "detail": ep["detail"], "declared": ep["declared"], "report": ep["report"], "loop": ep["loop"],
                "steps": ep["steps"], "nudges": ep["nudges"], "invalid_finish": ep["invalid_finish"], "max_steps": max_steps,
                "reminded_at": ep["reminded_at"], "reminder_kind": ep["reminder_kind"], "declared_after_reminder": ep["declared_after_reminder"], "tokens": ep["tokens"],
