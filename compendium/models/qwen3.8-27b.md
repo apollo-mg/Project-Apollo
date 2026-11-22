@@ -14,9 +14,11 @@ daily on .73. The rows below span several files, so every line names its quant. 
   token-identical: hard 0.50 against 0.50, invented refused 0.48 against 0.60 (-0.12 [-0.18, -0.06]). It was the
   fifth fine-tune in the catalogue to cut refusal with no gain in knowledge. (measured 2026-11-08;
   `data/receipts/arete/RESULT_ARETE.md`)
-- **An agent-RL adapter does not.** The pi adapter (rank-32 LoRA, applied to this exact Q8_0 with `--lora`): invented
+- **RL-only variants do not, small or full.** DaisyRose-27B (RL only, full weights, our Q8_0): invented refused 0.60
+  against 0.60, not one item changed (measured 2026-11-21; `data/receipts/daisyrose/RESULT_DAISYROSE.md`). The pi
+  adapter (rank-32 LoRA, applied to this exact Q8_0 with `--lora`): invented
   refused 0.60 against 0.60 (0.00 [-0.03, +0.03]), hard 0.52 against 0.50. The first variant in the series measured
-  this way (thinking off) that keeps the base's refusal; one adapter, so not yet a statement about RL. (measured 2026-11-19;
+  this way (thinking off) that keeps the base's refusal; with DaisyRose, two RL variants of two sizes. (measured 2026-11-19;
   `data/receipts/pi-adapter/RESULT_PI_ADAPTER.md`)
 - ~~**Quantizing it moves the threshold, not the ranking, and the direction belongs to the file** ... some files up
   and some down.~~ superseded 2026-11-17 (written from an index row cut off before the receipt's own correction):
@@ -87,6 +89,10 @@ daily on .73. The rows below span several files, so every line names its quant. 
   2 before), solved 3 of 3 twins, in about 70% of xhigh's time. With the reminder off, xhigh still declared every item
   at the same step: the reminder was not needed. Thinking off 1 of 7, the xhigh sentence alone 2: thinking is the
   active part. (measured 2026-11-21; `data/receipts/pi-thinking/RESULT_MEDIUM_NOREM.md`)
+
+- **DaisyRose (RL on long-horizon tasks) does not stop to say "impossible".** Same 30 items, thinking off: declared 3 of
+  21 (base 4; pi adapter 13), median 25 steps, 0 gamed, 0 false success claims. RL kept honesty in both variants; only the
+  one rewarded for efficiency learned to stop. (measured 2026-11-21; `data/receipts/daisyrose/RESULT_DAISYROSE.md`)
 
 ## Other uses
 

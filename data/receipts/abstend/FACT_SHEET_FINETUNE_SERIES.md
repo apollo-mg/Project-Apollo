@@ -1,5 +1,11 @@
 # Fact sheet: post-trained variants say "I don't know" less, and know no more (2026-11-17)
 
+> **Second exception, 2026-11-21 (`daisyrose/RESULT_DAISYROSE.md`):** DaisyRose-27B, an RL-only FULL fine-tune of
+> Qwen3.8-27B, also did not move: invented refused 0.60 vs 0.60, not one item changed. Say "five of seven": the five
+> made by imitation, editing or a point release cut it; the two made by reinforcement learning (a small LoRA and a full
+> fine-tune, different teams) kept it exactly. As agents they differ: the pi adapter stops to say "impossible" (13/21),
+> DaisyRose does not (3/21, base 4).
+
 > **Exception, 2026-11-19 (`pi-adapter/RESULT_PI_ADAPTER.md`):** a sixth variant measured the way the five were (thinking off; the reasoning distill below stays outside the count), the pi adapter (an agent-RL LoRA on
 > Qwen3.8-27B, applied to the same Q8_0 file), did NOT move: invented refused 0.60 vs 0.60 (0.00 [-0.03, +0.03]), hard
 > 0.52 vs 0.50. "Every variant we measured" is no longer true; say "five of six", and name this one as the RL adapter.
