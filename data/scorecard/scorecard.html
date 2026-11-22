@@ -41,7 +41,7 @@ svg.chart { display: block; width: 100%; min-width: 620px; height: auto; font-fa
 select { font: inherit; font-size: 0.88rem; color: var(--ink); background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 5px 8px; }
 select:focus-visible, summary:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid var(--know); outline-offset: 2px; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 16px; align-items: start; }
-.card { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.card { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 16px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; min-width: 0; }
 .card-head { display: grid; gap: 4px; }
 .meta { font: 0.78rem/1.4 var(--mono); color: var(--muted); }
 .setup { font-size: 0.84rem; color: var(--muted); }
@@ -62,12 +62,14 @@ select:focus-visible, summary:focus-visible, a:focus-visible, input:focus-visibl
 .bar .ci::before, .bar .ci::after { content: ""; position: absolute; top: -3px; width: 2px; height: 8px; background: var(--ink); }
 .bar .ci::before { left: 0; } .bar .ci::after { right: 0; }
 .val { font: 500 0.84rem var(--mono); text-align: right; font-variant-numeric: tabular-nums; }
-details { border-top: 1px solid var(--rule); padding-top: 8px; }
+details { border-top: 1px solid var(--rule); padding-top: 8px; min-width: 0; }
 summary { cursor: pointer; font-size: 0.84rem; color: var(--muted); }
 .tbl { overflow-x: auto; margin-top: 8px; }
 table { border-collapse: collapse; width: 100%; font-size: 0.8rem; font-variant-numeric: tabular-nums; }
 th, td { text-align: right; padding: 4px 6px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
-th:first-child, td:first-child { text-align: left; white-space: normal; min-width: 150px; }
+th { white-space: normal; vertical-align: bottom; }
+th:first-child, td:first-child { text-align: left; white-space: normal; min-width: 110px; }
+.card th, .card td { padding: 4px 3px; }
 th { font: 500 0.7rem var(--mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
 .foot { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; font-size: 0.8rem; }
 a { color: var(--know); }
@@ -213,7 +215,7 @@ function otherTable(c) {
   const restM1 = m1.filter(x => x !== p), restAb = ab.filter(x => x !== pa);
   if (!restM1.length && !restAb.length) return "";
   let h = `<details><summary>Other setups (${restM1.length + restAb.length})</summary>`;
-  if (restM1.length) h += `<div class="tbl"><table><thead><tr><th>M1 setup</th><th>Hard</th><th>Refuses invented</th><th>Makes up</th><th>Unfinished</th></tr></thead><tbody>` +
+  if (restM1.length) h += `<div class="tbl"><table><thead><tr><th>M1 setup</th><th>Hard</th><th>Refuses invented</th><th>Makes up</th><th>Unfin&shy;ished</th></tr></thead><tbody>` +
     restM1.map(x => `<tr><td>${esc(setupText(x))}</td><td>${pct(val(x, K.hard))}${finNote(x, "hard")}</td><td>${pct(val(x, K.refuse))}${finNote(x, "refuse")}</td><td>${pct(val(x, K.confab))}${finNote(x, "confab")}</td><td>${pct(val(x, K.unf))}</td></tr>`).join("") + `</tbody></table></div>`;
   if (restAb.length) h += `<div class="tbl"><table><thead><tr><th>AbstentionBench setup</th><th>Abstains</th><th>Missing info</th><th>False premise</th><th>Precision</th></tr></thead><tbody>` +
     restAb.map(x => `<tr><td>${esc(setupText(x))} · <b>${abInst(x)}</b></td><td>${pct(val(x, AB(x, "rec")))}</td><td>${pct(val(x, AB(x, "miss")))}</td><td>${pct(val(x, AB(x, "fp")))}</td><td>${pct(val(x, AB(x, "prec")))}</td></tr>`).join("") + `</tbody></table></div>`;
