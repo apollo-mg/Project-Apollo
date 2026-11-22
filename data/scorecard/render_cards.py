@@ -7,6 +7,7 @@ HERE = Path(__file__).resolve().parent
 REPO = "https://github.com/apollo-mg/Project-Apollo/blob/main/data/receipts/"
 TREE = "https://github.com/apollo-mg/Project-Apollo/tree/main/data/receipts/"
 RECEIPT = {
+    "daisyrose-27b": REPO + "daisyrose/RESULT_DAISYROSE.md", "qwen3.8-27b-pi-adapted": REPO + "pi-adapter/RESULT_PI_ADAPTER.md",
     "qwen3.8-27b": REPO + "quant-abstention/RESULT_MAIN.md", "qwen3.8-27b-uncensored": REPO + "abliteration/RESULT_ABLITERATION_CALIB.md",
     "orcasaq-2-27b": REPO + "abliteration/RESULT_ABLITERATION_CALIB.md", "qwen3.8-flash-next": REPO + "quant-abstention/RESULT_FLASHNEXT.md", "deepseek-v4.1-flash-1017": REPO + "ds41-h2h/RESULT_DS41_H2H.md", "qwopus3.8-27b-coder-flash": REPO + "qwopus/RESULT_QWOPUS_CODER.md", "ripple-65b-preview": REPO + "ripple/RESULT_RIPPLE.md", "arete-27b": REPO + "arete/RESULT_ARETE.md",
     "nemotron-3.5-super-vl": REPO + "quant-abstention/RESULT_SUPERVL.md", "nemotron-3.5-bolt": REPO + "quant-abstention/RESULT_BOLT.md",

@@ -151,7 +151,7 @@ const DATA = __DATA__;
 const SHORT = {"reflection-beam-1.0":"Beam 1.0","nemotron-3.5-super-vl":"Super VL","nemotron-3.5-bolt":"Bolt","qwen3.8-flash-next":"Flash-Next",
   "swift-flash-next":"Swift (Flash-Next)","ornith-1.5-122b":"Ornith 122B","qwen3.6-35b-a3b":"Qwen3.6 35B","sage-a1.5":"Sage-A1.5","qwen3.8-27b":"Qwen3.8 27B",
   "qwen3.8-27b-uncensored":"27B uncensored","orcasaq-2-27b":"OrcaSAQ-2","recursive-flint":"Flint","ternary-bonsai-2-27b":"Bonsai 27B","swift-bonsai-2":"Swift-Bonsai",
-  "phi-4-mini":"Phi-4-mini","nanbeige4.3-33b":"Nanbeige 33B","granite-4.1-3b":"Granite 4.1","granite-4.2-3b":"Granite 4.2","llama-3.1-8b-instruct":"Llama 3.1 8B"};
+  "daisyrose-27b":"DaisyRose","qwen3.8-27b-pi-adapted":"pi adapter","phi-4-mini":"Phi-4-mini","nanbeige4.3-33b":"Nanbeige 33B","granite-4.1-3b":"Granite 4.1","granite-4.2-3b":"Granite 4.2","llama-3.1-8b-instruct":"Llama 3.1 8B"};
 // M1 has versions (2026-11-22): v2 regrades v1's stored answers with the audited key. The menu picks one; versions are
 // never mixed on one screen.
 const M1M = { easy:"knowledge.easy_acc", hard:"knowledge.hard_acc", refuse:"honesty.invented_refusal_lenient",
@@ -260,20 +260,30 @@ function renderChart() {
   const pts = cards.map(c => { const p = primary(m1cfgs(c)); return p ? { c, p, t: thinkCfg(c), hx: val(p, K.hard), ry: val(p, K.refuse) } : null; }).filter(Boolean);
   if (showArrows) pts.forEach(o => { if (!o.t) return; const tx = val(o.t, K.hard), ty = val(o.t, K.refuse);
     g += `<line x1="${x(o.hx)}" y1="${y(o.ry)}" x2="${x(tx)}" y2="${y(ty)}" stroke="var(--muted)" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ah)"></line>`; });
-  const placed = [];
-  pts.sort((a, b) => b.ry - a.ry).forEach(o => {
-    const px = x(o.hx), py = y(o.ry), lab = SHORT[o.c.model_id] || o.c.display, w = lab.length * 6.6 + 4;
-    const conf = val(o.p, K.confab), over = val(o.p, K.over);
-    const col = over >= 0.10 ? "--caution" : conf >= 0.5 ? "--warn" : o.ry >= 0.85 ? "--good" : "--know";
-    g += `<circle cx="${px}" cy="${py}" r="6" fill="var(${col})" stroke="var(--surface)" stroke-width="1.5"><title>${esc(o.c.display)}: hard ${pct(o.hx)}, refuses invented ${pct(o.ry)}</title></circle>`;
+  const placed = pts.map(o => ({ x: x(o.hx) - 7, y: y(o.ry) - 7, w: 14, h: 14 }));   // dots are obstacles too, not only labels
+  // dots that sit on one spot share one label (2026-11-22: a base and two RL variants of it land on the same point)
+  const groups = [];
+  pts.sort((a, b) => b.ry - a.ry || a.hx - b.hx).forEach(o => {
+    o.px = x(o.hx); o.py = y(o.ry);
+    const grp = groups.find(gr => gr.some(q => Math.abs(q.px - o.px) <= 12 && Math.abs(q.py - o.py) <= 4));
+    grp ? grp.push(o) : groups.push([o]);
+  });
+  groups.forEach(grp => {
+    grp.forEach(o => {
+      const conf = val(o.p, K.confab), over = val(o.p, K.over);
+      const col = over >= 0.10 ? "--caution" : conf >= 0.5 ? "--warn" : o.ry >= 0.85 ? "--good" : "--know";
+      g += `<circle cx="${o.px}" cy="${o.py}" r="6" fill="var(${col})" stroke="var(--surface)" stroke-width="1.5"><title>${esc(o.c.display)}: hard ${pct(o.hx)}, refuses invented ${pct(o.ry)}</title></circle>`;
+    });
+    const xs = grp.map(o => o.px), pr = Math.max(...xs), pl = Math.min(...xs), py = grp[0].py;
+    const lab = grp.map(o => SHORT[o.c.model_id] || o.c.display).join(" · "), w = lab.length * 6.6 + 4;
     const cands = [[10, 4, "start"], [-10, 4, "end"], [10, -10, "start"], [10, 16, "start"], [-10, -10, "end"], [-10, 16, "end"], [10, -22, "start"], [10, 28, "start"]];
-    let chosen = cands[0];
+    let chosen = cands[0], ax = pr;
     for (const cd of cands) {
-      const bx = cd[2] === "start" ? px + cd[0] : px + cd[0] - w, by = py + cd[1] - 11;
+      const a = cd[2] === "start" ? pr : pl, bx = cd[2] === "start" ? a + cd[0] : a + cd[0] - w, by = py + cd[1] - 11;
       if (bx < L || bx + w > W - 4 || by < T - 6 || by + 13 > H - B + 4) continue;
-      if (!placed.some(b => bx < b.x + b.w && bx + w > b.x && by < b.y + b.h && by + 13 > b.y)) { chosen = cd; placed.push({ x: bx, y: by, w, h: 13 }); break; }
+      if (!placed.some(b => bx < b.x + b.w && bx + w > b.x && by < b.y + b.h && by + 13 > b.y)) { chosen = cd; ax = a; placed.push({ x: bx, y: by, w, h: 13 }); break; }
     }
-    g += `<text x="${px + chosen[0]}" y="${py + chosen[1]}" text-anchor="${chosen[2]}" font-size="12" fill="var(--ink)">${esc(lab)}</text>`;
+    g += `<text x="${ax + chosen[0]}" y="${py + chosen[1]}" text-anchor="${chosen[2]}" font-size="12" fill="var(--ink)">${esc(lab)}</text>`;
   });
   svg.innerHTML = g;
 }

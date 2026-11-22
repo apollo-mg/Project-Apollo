@@ -175,6 +175,22 @@
    "total_b": 9,
    "active_b": 9,
    "lineage": "qwen3.5-9b"
+  },
+  "daisyrose-27b": {
+   "display": "DaisyRose-27B",
+   "developer": "RadixArk",
+   "arch": "dense",
+   "total_b": 27,
+   "active_b": 27,
+   "lineage": "qwen3.8-27b"
+  },
+  "qwen3.8-27b-pi-adapted": {
+   "display": "Qwen3.8-27B pi adapter",
+   "developer": "harness-hub",
+   "arch": "dense",
+   "total_b": 27,
+   "active_b": 27,
+   "lineage": "qwen3.8-27b"
   }
  },
  "m1_arms": {
@@ -688,6 +704,20 @@
    "thinking": "on (Qwen sampling)",
    "primary": false,
    "note": "our conversion, one converter for both models; single P100 per server (sci-distill/PREREG_SCI_DISTILL.md)"
+  },
+  "DRS": {
+   "model": "daisyrose-27b",
+   "quant": "Q8_0 (our conversion)",
+   "thinking": "off",
+   "primary": true,
+   "note": "RL-only full fine-tune; same build and lanes as the base's ceiling; base replayed the same day (C.R4, byte-identical to C.A)"
+  },
+  "PIA": {
+   "model": "qwen3.8-27b-pi-adapted",
+   "quant": "Q8_0 base + F16 LoRA (rank 32)",
+   "thinking": "off",
+   "primary": true,
+   "note": "RL LoRA applied with --lora to the base's own Q8_0; base replayed the same day (C.R3, byte-identical to C.A)"
   }
  },
  "abench_arms": {
