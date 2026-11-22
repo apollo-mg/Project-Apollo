@@ -1,3 +1,9 @@
+> **Adopted, 2026-11-22:** the proposed key is now instrument **M1-v2** in the scorecard (`data/scorecard/build_scorecard.py`,
+> `v2_rows`): v1's stored answers regraded, never re-run, as rows beside the frozen M1-v1 ones. On top of v1's strict
+> grade: the seven added answers, the accent fold and the ", <country>" alias rule, and the training-cutoff item
+> dropped (hard n = 99). Measured over all 82 M1 setups: easy +0.000 to +0.075, hard +0.001 to +0.049, refusal of
+> invented items unchanged; every v1 row byte-identical. The scorecard page has a version menu; versions are never mixed.
+
 # AUDIT: M1's items checked where the models agree against the key (2026-11-17)
 
 **Result:** of 240 items, 35 were flagged; **two real items were keyed wrong or too narrowly** (models were right),
