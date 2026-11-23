@@ -54,3 +54,21 @@ architecture or layer-count summary at its default verbosity, so the registered 
 `raw/g1_failed/`). G1 is now: the file's own header says `sensenova_loop`, loop count 2, 57 blocks
 (`check_meta.py`); the server reaches "model loaded"; and the only tensors it reports unused are `blk.56` (the MTP
 layer, not loaded without MTP) -- so every trunk layer is used. Nothing else changes.
+
+## Amendment 1 (2026-11-23 ~17:30 EST, after G2 failed, before any reference number)
+
+**Why:** G2 stopped the run (16.56 vs 8.02, `RESULT_SENSENOVA_LOOP.md`). Its diagnostics point to the training mix, not
+a broken port, but cannot show parity. **Mark (11-23):** go ahead with the reference check.
+
+**The reference check:** SenseTime's own implementation (`modeling_sensenova_loop.py` from sensenova/SenseNova-Loop-9B,
+read in full before it runs; every `.py` in the repo likewise) on the full-precision weights (LFS hashes checked),
+computed in FP32 on .194's CPUs, on the same wikitext-2 test file scored as `llama-perplexity` does: the whole file
+tokenized once, chunks of 512 tokens, no BOS (the model adds none), each chunk scored on its second half. First 20
+chunks. Before scoring, the reference tokenizer must give the same token IDs as the llama.cpp server for the file's
+first 4,000 characters.
+
+- **Accept the port** if the reference's 20-chunk perplexity is within 5 % of llama.cpp's on the same chunks (Q8_0,
+  GPU: 17.54). Then G2 is replaced by this agreement and the M1 arms run exactly as registered (Q35R, SNL, SNLH).
+- **Reject the port** if the reference is below 17.54 / 1.05 = 16.7 or above 18.4: no M1; the receipt reports the gap,
+  and the numbers go to Mark for the PR.
+- Prediction: the port is accepted (the reference is also about 17.5). Confidence 0.7.
