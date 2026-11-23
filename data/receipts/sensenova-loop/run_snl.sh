@@ -36,6 +36,10 @@ if serve $FAITH $SNLF snl_g1; then
   [ "$META" = "sensenova_loop 2 57" ] && [ "$UNUSED" = "unused tensor blk.56 " ] && grep -q "model loaded" $H/raw/server_snl_g1.log \
     || { log "STOP: G1 failed"; exit 1; }
 else log "STOP: G1 server failed to start"; kill $SP 2>/dev/null; exit 1; fi
+# Amendment 1: when the reference check accepted the port (raw/amend1_verdict.txt says ACCEPT), G2 is replaced by it
+if grep -q '^ACCEPT' $H/raw/amend1_verdict.txt 2>/dev/null; then
+  log "G2 replaced by Amendment 1: $(head -1 $H/raw/amend1_verdict.txt)"
+else
 # G2: perplexity, both models on the SNL build
 for spec in Q35R:$Q35 SNL:$SNLF; do
   T=${spec%%:*}; M=${spec#*:}
@@ -45,6 +49,7 @@ done
 PQ=$(grep -o 'PPL = [0-9.]*' $H/raw/ppl_Q35R.log | tail -1 | cut -d' ' -f3); PS=$(grep -o 'PPL = [0-9.]*' $H/raw/ppl_SNL.log | tail -1 | cut -d' ' -f3)
 python3 -c "import sys; q,s=float('$PQ' or 'nan'),float('$PS' or 'nan'); sys.exit(0 if s <= 1.5*q else 1)" \
   && log "G2 pass: SNL $PS vs Q35R $PQ" || { log "STOP: G2 failed: SNL $PS vs Q35R $PQ"; exit 1; }
+fi
 # M1 arms
 C4=$(git -C $R/engines/llama_cpp_4bc61eed rev-parse --short=9 HEAD); CH=$(git -C $R/engines/llama_cpp_0ba8e4ad rev-parse --short=9 HEAD)
 for spec in Q35R:$FAITH:$Q35:$C4:f904644b SNL:$FAITH:$SNLF:$C4:0db6188d SNLH:$HEADB:$SNLF:$CH:0db6188d; do

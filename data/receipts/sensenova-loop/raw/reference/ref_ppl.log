@@ -1,0 +1,40 @@
+The repository ~/AI/Models/sensenova-loop-9b-bf16 contains custom code which must be executed to correctly load the model. You can inspect the repository content at ~/AI/Models/sensenova-loop-9b-bf16 .
+ You can inspect the repository content at https://hf.co/~/AI/Models/sensenova-loop-9b-bf16.
+You can avoid this prompt in future by passing the argument `trust_remote_code=True`.
+
+Do you wish to run the custom code? [y/N] [transformers] You are using a model of type `sensenova_loop` to instantiate a model of type ``. This may be expected if you are loading a checkpoint that shares a subset of the architecture (e.g., loading a `sam2_video` checkpoint into `Sam2Model`), but is otherwise not supported and can yield errors. Please verify that the checkpoint is compatible with the model you are instantiating.
+[transformers] The tokenizer you are loading from '~/AI/Models/sensenova-loop-9b-bf16' with an incorrect regex pattern: https://huggingface.co/mistralai/Mistral-Small-3.1-24B-Instruct-2503/discussions/84#69121093e8b480e709447d5e. This will lead to incorrect tokenization. You should set the `fix_mistral_regex=True` flag when loading this tokenizer to fix this issue.
+[transformers] Token indices sequence length is longer than the specified maximum sequence length for this model (297193 > 262144). Running this sequence through the model will result in indexing errors
+tokens 297193; chunks available 580; scoring 20; threads 20
+Loading weights:   0%|          | 0/856 [00:00<?, ?it/s]Loading weights:   0%|          | 1/856 [00:00<02:00,  7.11it/s]Loading weights:   8%|▊         | 70/856 [00:00<00:02, 302.14it/s]Loading weights:  12%|█▏        | 101/856 [00:00<00:02, 284.91it/s]Loading weights:  15%|█▌        | 130/856 [00:00<00:02, 275.78it/s]Loading weights:  18%|█▊        | 158/856 [00:00<00:02, 234.76it/s]Loading weights:  22%|██▏       | 185/856 [00:00<00:02, 223.82it/s]Loading weights:  26%|██▋       | 226/856 [00:00<00:02, 246.36it/s]Loading weights:  30%|██▉       | 255/856 [00:01<00:02, 241.96it/s]Loading weights:  34%|███▍      | 295/856 [00:01<00:02, 264.97it/s]Loading weights:  38%|███▊      | 323/856 [00:01<00:02, 258.43it/s]Loading weights:  43%|████▎     | 364/856 [00:01<00:01, 272.13it/s]Loading weights:  46%|████▌     | 392/856 [00:01<00:01, 263.90it/s]Loading weights:  50%|█████     | 428/856 [00:01<00:01, 280.77it/s]Loading weights:  53%|█████▎    | 457/856 [00:01<00:01, 272.42it/s]Loading weights:  57%|█████▋    | 485/856 [00:01<00:01, 255.73it/s]Loading weights:  60%|█████▉    | 511/856 [00:02<00:01, 220.71it/s]Loading weights:  76%|███████▌  | 651/856 [00:02<00:00, 506.51it/s]Loading weights: 100%|██████████| 856/856 [00:02<00:00, 378.96it/s]
+[transformers] [1mSenseNovaLoopForConditionalGeneration LOAD REPORT[0m from: ~/AI/Models/sensenova-loop-9b-bf16
+Key                                   | Status     |  | 
+--------------------------------------+------------+--+-
+model.language_model.loop_gate.logits | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+loaded in 3 s; class SenseNovaLoopForConditionalGeneration; loop plan (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31)
+[transformers] `causal_conv1d_fn` is falling back to its reference PyTorch implementation because `causal_conv1d` is not installed. This is correct but much slower; install `causal_conv1d` for the optimized kernel.
+[transformers] `chunk_gated_delta_rule` is falling back to its reference PyTorch implementation because `flash-linear-attention` is not installed. This is correct but much slower; install `flash-linear-attention` for the optimized kernel.
+{"chunk": 1, "chunk_ppl": 8.714051681468835, "running_ppl": 8.714051681468835, "seconds": 32.8}
+{"chunk": 2, "chunk_ppl": 20.801011755261545, "running_ppl": 13.463323938099014, "seconds": 28.7}
+{"chunk": 3, "chunk_ppl": 11.456869854557723, "running_ppl": 12.758223037538626, "seconds": 27.1}
+{"chunk": 4, "chunk_ppl": 10.978897603567685, "running_ppl": 12.288031790725535, "seconds": 27.2}
+{"chunk": 5, "chunk_ppl": 18.4566971533713, "running_ppl": 13.329585915747522, "seconds": 26.2}
+{"chunk": 6, "chunk_ppl": 22.014969975755807, "running_ppl": 14.492174835723883, "seconds": 24.1}
+{"chunk": 7, "chunk_ppl": 28.022367356253163, "running_ppl": 15.923691106915712, "seconds": 26.1}
+{"chunk": 8, "chunk_ppl": 31.516161831854824, "running_ppl": 17.342229994563944, "seconds": 24.8}
+{"chunk": 9, "chunk_ppl": 17.414962036452035, "running_ppl": 17.350296308857178, "seconds": 24.8}
+{"chunk": 10, "chunk_ppl": 26.128772698607467, "running_ppl": 18.07540793933752, "seconds": 23.6}
+{"chunk": 11, "chunk_ppl": 16.559111033969813, "running_ppl": 17.93200773887991, "seconds": 21.1}
+{"chunk": 12, "chunk_ppl": 14.753508638704634, "running_ppl": 17.642811095986122, "seconds": 23.8}
+{"chunk": 13, "chunk_ppl": 33.844350182618776, "running_ppl": 18.54943720875702, "seconds": 22.5}
+{"chunk": 14, "chunk_ppl": 10.243586258710145, "running_ppl": 17.779143279186194, "seconds": 22.7}
+{"chunk": 15, "chunk_ppl": 15.401081136605884, "running_ppl": 17.609763434295523, "seconds": 25.1}
+{"chunk": 16, "chunk_ppl": 28.92019125002419, "running_ppl": 18.16431393433745, "seconds": 25.5}
+{"chunk": 17, "chunk_ppl": 6.901959109700341, "running_ppl": 17.159262180104122, "seconds": 24.2}
+{"chunk": 18, "chunk_ppl": 18.61265133492349, "running_ppl": 17.236943424949953, "seconds": 24.3}
+{"chunk": 19, "chunk_ppl": 23.768434469355665, "running_ppl": 17.53091094659193, "seconds": 24.6}
+{"chunk": 20, "chunk_ppl": 18.119269898028033, "running_ppl": 17.559869909233683, "seconds": 22.7}
+Final estimate: PPL = 17.5599 over 20 chunks

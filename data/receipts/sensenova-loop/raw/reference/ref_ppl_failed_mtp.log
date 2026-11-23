@@ -1,0 +1,24 @@
+The repository ~/AI/Models/sensenova-loop-9b-bf16 contains custom code which must be executed to correctly load the model. You can inspect the repository content at ~/AI/Models/sensenova-loop-9b-bf16 .
+ You can inspect the repository content at https://hf.co/~/AI/Models/sensenova-loop-9b-bf16.
+You can avoid this prompt in future by passing the argument `trust_remote_code=True`.
+
+Do you wish to run the custom code? [y/N] [transformers] You are using a model of type `sensenova_loop` to instantiate a model of type ``. This may be expected if you are loading a checkpoint that shares a subset of the architecture (e.g., loading a `sam2_video` checkpoint into `Sam2Model`), but is otherwise not supported and can yield errors. Please verify that the checkpoint is compatible with the model you are instantiating.
+[transformers] The tokenizer you are loading from '~/AI/Models/sensenova-loop-9b-bf16' with an incorrect regex pattern: https://huggingface.co/mistralai/Mistral-Small-3.1-24B-Instruct-2503/discussions/84#69121093e8b480e709447d5e. This will lead to incorrect tokenization. You should set the `fix_mistral_regex=True` flag when loading this tokenizer to fix this issue.
+[transformers] Token indices sequence length is longer than the specified maximum sequence length for this model (297193 > 262144). Running this sequence through the model will result in indexing errors
+tokens 297193; chunks available 580; scoring 20; threads 20
+Traceback (most recent call last):
+  File "~/snlref/ref_ppl.py", line 21, in <module>
+    model = AutoModelForCausalLM.from_pretrained(MODEL, trust_remote_code=True, dtype=torch.float32)
+  File "~/venv-snlref/lib/python3.14/site-packages/transformers/models/auto/auto_factory.py", line 392, in from_pretrained
+    return model_class.from_pretrained(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        pretrained_model_name_or_path, *model_args, config=config, **hub_kwargs, **kwargs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "~/venv-snlref/lib/python3.14/site-packages/transformers/modeling_utils.py", line 4339, in from_pretrained
+    loading_info, disk_offload_index = cls._load_pretrained_model(model, state_dict, checkpoint_files, load_config)
+                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "~/venv-snlref/lib/python3.14/site-packages/transformers/modeling_utils.py", line 4470, in _load_pretrained_model
+    file_pointer = safe_open(file, framework="pt", device=device, backend=backend)
+FileNotFoundError: No such file or directory: ~/AI/Models/sensenova-loop-9b-bf16/mtp.safetensors
