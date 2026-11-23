@@ -27,7 +27,13 @@ def load(arm, items):
 
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("--out", default=str(HERE / "RESULT_frozen.json")); a = ap.parse_args()
+    ap = argparse.ArgumentParser(); ap.add_argument("--out", default=str(HERE / "RESULT_frozen.json"))
+    ap.add_argument("--suffix", default="", help="Amendment 1 replicate arms, e.g. _S1 (FZ_BASE stays shared)"); a = ap.parse_args()
+    global ARMS, LAYERS
+    if a.suffix:
+        ARMS = ["FZ_BASE"] + [x + a.suffix for x in ARMS[1:]]
+        LAYERS = {k + (a.suffix if k != "FZ_BASE" else ""): v for k, v in LAYERS.items()}
+    N = lambda x: x + a.suffix
     items = {x["id"]: x for x in map(json.loads, open(QA / "corpus" / "M1.jsonl"))}
     U = sorted(i for i, x in items.items() if x["arm"] == "U")
     R = {arm: load(arm, items) for arm in ARMS}
@@ -55,38 +61,38 @@ def main():
         print(f"{arm:10s} {LAYERS[arm]:6s} {o['invented_refused']:>8d}/100 {o['E_correct']:>8d}/{o['E_wrong']:<5d} "
               f"{o['H_correct']:>10d}/{o['H_wrong']}/{o['H_refused']:<6d} {unf:>5d} "
               f"{(f'{loss:.4f}' if loss is not None else '-'):>10s} {(secs if secs is not None else '-'):>7}")
-    if "FZ_BASE" not in ref or "FZ_ALL" not in ref:
+    if "FZ_BASE" not in ref or N("FZ_ALL") not in ref:
         print("\nbase or reference arm missing: no tests"); json.dump(out, open(a.out, "w"), indent=1); return
     rng = np.random.default_rng(SEED); idx = rng.integers(0, len(U), (NB, len(U)))
     rb = ref["FZ_BASE"]; D = lambda arm: rb - ref[arm]
     ci = lambda v: (float(np.percentile(v, 2.5)), float(np.percentile(v, 97.5)))
-    dall_bs = D("FZ_ALL")[idx].mean(1)
+    dall_bs = D(N("FZ_ALL"))[idx].mean(1)
     print("\n## Tests (drop D = base minus arm, invented items; S = D(arm) / D(FZ_ALL))\n")
-    r_all = ref["FZ_ALL"].mean()
+    r_all = ref[N("FZ_ALL")].mean()
     m_ok = r_all <= 0.40
     out["tests"]["M"] = {"r_ALL": r_all, "holds": bool(m_ok)}
     print(f"- M  manipulation check: r(FZ_ALL) = {r_all:.2f} (base {rb.mean():.2f}) -> {'holds' if m_ok else 'FAILS: replication failed, H1-H2 not evaluated'}")
-    for arm in ("FZ_FRZ10", "FZ_FRZ20", "FZ_LAST20"):
+    for arm in (N("FZ_FRZ10"), N("FZ_FRZ20"), N("FZ_LAST20")):
         if arm not in ref: continue
         d = D(arm); d_bs = d[idx].mean(1)
         with np.errstate(divide="ignore", invalid="ignore"):
             s_bs = np.where(dall_bs > 0, d_bs / dall_bs, np.nan)
-        s = d.mean() / D("FZ_ALL").mean() if D("FZ_ALL").mean() > 0 else float("nan")
+        s = d.mean() / D(N("FZ_ALL")).mean() if D(N("FZ_ALL")).mean() > 0 else float("nan")
         s_ci = (float(np.nanpercentile(s_bs, 2.5)), float(np.nanpercentile(s_bs, 97.5)))
         out["tests"][arm] = {"D": float(d.mean()), "D_ci95": ci(d_bs), "S": float(s), "S_ci95": s_ci}
         line = (f"- {arm}: D = {d.mean():+.2f} [{ci(d_bs)[0]:+.2f}, {ci(d_bs)[1]:+.2f}], "
                 f"S = {s:.2f} [{s_ci[0]:.2f}, {s_ci[1]:.2f}]")
-        if m_ok and arm == "FZ_FRZ10":
+        if m_ok and arm == N("FZ_FRZ10"):
             h1 = s >= 0.5 and ci(d_bs)[0] > 0
             out["tests"]["H1"] = bool(h1)
             line += f"  H1 (last 10 frozen does NOT protect) -> {'holds' if h1 else 'FAILS: freezing the last 10 protects most of it'}"
-        if m_ok and arm == "FZ_FRZ20":
+        if m_ok and arm == N("FZ_FRZ20"):
             h2 = s >= 0.5
             out["tests"]["H2"] = bool(h2)
             line += f"  H2 (last 20 frozen does NOT protect) -> {'holds' if h2 else 'FAILS: freezing the last 20 protects most of it'}"
         print(line)
-    if "FZ_FRZ20" in ref and "FZ_LAST20" in ref:
-        h3 = D("FZ_FRZ20") - D("FZ_LAST20"); h3_bs = h3[idx].mean(1)
+    if N("FZ_FRZ20") in ref and N("FZ_LAST20") in ref:
+        h3 = D(N("FZ_FRZ20")) - D(N("FZ_LAST20")); h3_bs = h3[idx].mean(1)
         out["tests"]["H3"] = {"D_FRZ20_minus_D_LAST20": float(h3.mean()), "ci95": ci(h3_bs)}
         print(f"- H3 first half vs last half (D(FZ_FRZ20) - D(FZ_LAST20)): {h3.mean():+.2f} [{ci(h3_bs)[0]:+.2f}, {ci(h3_bs)[1]:+.2f}] (no direction predicted)")
     json.dump(out, open(a.out, "w"), indent=1)

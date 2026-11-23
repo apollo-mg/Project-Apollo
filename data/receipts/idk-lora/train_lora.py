@@ -21,7 +21,9 @@ SEED, R, ALPHA, DROP, LR, EPOCHS, MB, ACC, MAXLEN = 20261017, 16, 32, 0.05, 1e-4
 UNK_TARGET = "Exact Answer: UNKNOWN"
 
 mode, outdir = sys.argv[1], Path(sys.argv[2]); outdir.mkdir(parents=True, exist_ok=True)
-random.seed(SEED); torch.manual_seed(SEED)
+# PREREG_FROZEN_LAYERS Amendment 1: optional TRAIN_SEED changes LoRA init, dropout and batch order only (items stay SEED's)
+TSEED = int(os.environ.get("TRAIN_SEED", SEED))
+random.seed(SEED); torch.manual_seed(TSEED)
 pool = {x["id"]: x for x in map(json.loads, open(HERE / "train_pool.jsonl"))}
 lab = [r for r in map(json.loads, open(HERE / "raw" / "labels_G41.jsonl")) if r["split"] == "train"]
 sys.path.insert(0, str(HERE)); from bare_rule import regrade   # Deviation 2: labels re-graded before balancing
@@ -53,6 +55,8 @@ if mode == "lora2":   # PREREG_IDK_LORA2: the same items in F2 (plain) and F3 (a
                  for r in unk]
     print("lora2 dropped known pairs:", drops, flush=True)
 rng.shuffle(data)
+import hashlib; ITEMS_SHA = hashlib.sha256(",".join(sorted(r["id"] for r in known_s + (unknown_s if mode != "ctrl" else []))).encode()).hexdigest()[:16]
+print("items_sha", ITEMS_SHA, "train_seed", TSEED, flush=True)
 if os.environ.get("IDK_SMOKE"): data, EPOCHS = data[:32], 1   # code smoke test only; never used for an arm
 
 tok = AutoTokenizer.from_pretrained(BASE)
@@ -83,7 +87,7 @@ pad = tok.pad_token_id if tok.pad_token_id is not None else tok.eos_token_id
 log, t0, step = [], time.time(), 0
 model.train()
 for ep in range(EPOCHS):
-    order = list(range(len(enc))); random.Random(SEED + ep).shuffle(order)
+    order = list(range(len(enc))); random.Random(TSEED + ep).shuffle(order)
     for b0 in range(0, len(order), MB * ACC):
         opt.zero_grad(set_to_none=True); tot = 0.0
         chunk = order[b0:b0 + MB * ACC]
@@ -99,7 +103,7 @@ for ep in range(EPOCHS):
         log.append({"step": step, "epoch": ep, "loss": tot, "lr": sched.get_last_lr()[0], "t": round(time.time() - t0, 1)})
         if step % 20 == 0 or step == steps: print(log[-1], flush=True)
 model.save_pretrained(outdir / "adapter")
-json.dump({"mode": mode, "layers": LAYERS, "n_per_class": n, "lora2_dropped_known": locals().get("drops"), "known_total": len(known), "unknown_total": len(unknown),
+json.dump({"mode": mode, "layers": LAYERS, "train_seed": TSEED, "items_sha": ITEMS_SHA, "n_per_class": n, "lora2_dropped_known": locals().get("drops"), "known_total": len(known), "unknown_total": len(unknown),
            "examples": len(enc), "steps": steps, "seconds": round(time.time() - t0, 1), "log": log},
           open(outdir / "train_log.json", "w"), indent=1)
 print("saved", outdir / "adapter", "examples", len(enc), "seconds", round(time.time() - t0, 1))

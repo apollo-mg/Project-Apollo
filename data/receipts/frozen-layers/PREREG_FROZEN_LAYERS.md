@@ -56,3 +56,19 @@ over the 100 invented items, 10,000 resamples, seed 20261123 (S computed per res
 One 3B model, one data set (short factual answers in M1's own format, so the push is on the test's home ground), LoRA
 rather than a full fine-tune, one seed, greedy. "End layers" means the last 10 or 20 of 40. No claim about the
 fine-tunes measured on the RL page, which are other models trained on other data.
+
+## Amendment 1 (2026-11-23 ~14:25 EST, after the result, before any replicate)
+
+**Why:** the result (`RESULT_FROZEN_LAYERS.md`, `c971e1d1`) rests on one training seed. Its bootstrap resamples the 100
+invented items, so its intervals hold no variance from the LoRA's initialisation, dropout or batch order, and the H3 gap
+(48 vs 57 of 100) could be within that. **Data seen:** the five arms above.
+
+**The replicate:** the four adapted arms again at training seeds 1 and 2 (`TRAIN_SEED`, new in `train_lora.py`: it sets
+`torch.manual_seed` -- LoRA init and dropout -- and the per-epoch batch order). The 449 training items stay the ones
+drawn with seed 20261017 (checked: the same item-ID hash in every training log). Arms `FZ_<ARM>_S1`, `FZ_<ARM>_S2`;
+FZ_BASE is shared (it has no adapter). Everything else as above. S and D per seed against that seed's FZ_ALL.
+
+- **R1:** H1 replicates: S(FRZ10) >= 0.5 on both new seeds. Confidence 0.9.
+- **R2:** the H3 direction replicates: D(FRZ20) > D(LAST20) (the first half does more damage) on both new seeds.
+  Confidence 0.55. If it fails on either, the receipt states the first-vs-last-half difference as not established.
+- Reported: per-seed invented declined for every arm, and the mean over the three seeds.
