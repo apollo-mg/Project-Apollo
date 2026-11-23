@@ -12,7 +12,7 @@ PY=/mnt/TG_2TB/AI/hermes-go/.venv/bin/python
 H=10.0.0.194; BIN='~/buun-0b278/build_sm60/bin/llama-server'
 BASE_F='~/AI/Models/qwopus/Qwen3.8-27B-Q8_0.gguf'; LORA='~/AI/Models/pi-adapter/Qwen3.8-27B-pi-lora-F16.gguf'
 LORA_SHA=a64f91844f19e67da500d8628bdf9383aa334e61b7ab687805802e7d272d7b67
-FLAGS="-ngl 99 -sm layer -c 49152 -ctk f16 -ctv f16 -np 1 -fit off --jinja --temp 0 --seed 1 --chat-template-kwargs '{\"enable_thinking\":false}' --host 0.0.0.0"
+FLAGS="-ngl 99 -sm layer -c 65536 -ctk q8_0 -ctv q8_0 -np 1 -fit off --jinja --temp 0 --seed 1 --chat-template-kwargs '{\"enable_thinking\":false}' --host 0.0.0.0"
 OUTNAME=${1:?outname}
 OUT=$A/runs/pi_$OUTNAME; mkdir -p "$OUT"; LOG=$OUT/run.log
 SCEN=$A/families_v5.json
@@ -40,6 +40,7 @@ d = json.load(urllib.request.urlopen(u + "/props", timeout=20))
 p = d["default_generation_settings"]["params"]
 assert d.get("model_path", "").endswith("Qwen3.8-27B-Q8_0.gguf"), d.get("model_path")
 assert p["temperature"] == 0, p["temperature"]
+assert d["default_generation_settings"].get("n_ctx", 0) >= 64000, "Hermes needs a 64K window"
 n = len(json.load(urllib.request.urlopen(u + "/lora-adapters", timeout=20)))
 assert n == lora, f"{arm}: {n} adapters, expected {lora}"
 body = json.dumps({"messages": [{"role": "user", "content": "Write one sentence about rivers."}], "max_tokens": 64}).encode()
