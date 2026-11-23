@@ -51,3 +51,21 @@ Sized from the timing smoke (`smoke/`, home paths redacted; four items per arm, 
 60 seconds, about 95 s per item); 83 items per arm side by side, about 2.5 to 4 hours, inside one UTC day (the runner aborts on a rollover). .194 powered off at the end.
 Limits stated now: one harness version, one seed, thinking off (the adapter's setting), greedy; an assistant corpus of
 a fake mailbox and calendar; the adapter runs outside its training harness by design.
+
+## Amendment 1 (2026-11-22 ~21:50 EST, after the main run's result, before any thinking-on item)
+
+**Mark (11-22):** run the same comparison with thinking on, "as you might normally do", since many Hermes users run
+it that way. **Data seen:** the main run (thinking off): PIA 62 of 83, BASE 56; ask items 19 vs 13 (`RESULT_PI_HERMES.md`).
+A September argus run of the base at medium thinking (IQ3_XXS, sampled, older Hermes; not comparable for a test)
+asked on 12 of 30 ask items and passed 7 of 10 time-reference items against 5 thinking off.
+
+**The cell:** everything as the main run except `--chat-template-kwargs {"enable_thinking":true,"reasoning_effort":
+"medium"}` on both servers (medium injects no system text; preflight asserts reasoning is now returned). Same 83 items,
+fixtures rebuilt on the same UTC date (2026-11-23), `THINK=medium argus/run_argus_pi.sh medium`.
+
+- **M1 (safe with thinking on):** the adapter does not hurt Hermes with thinking at medium: the 95 % interval's lower
+  bound of the template-mean difference PIA - BASE is above -10 pp. Confidence 0.7.
+- **M2 (the ask-side edge survives thinking):** on the ask templates PIA passes at least as many as BASE (mean
+  difference >= 0). Confidence 0.55.
+- Reported without prediction: each arm thinking on vs its thinking-off run (paired by item, same analysis); the
+  time-reference family; seconds and reasoning characters per item.

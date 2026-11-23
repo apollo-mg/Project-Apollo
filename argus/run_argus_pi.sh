@@ -12,7 +12,13 @@ PY=/mnt/TG_2TB/AI/hermes-go/.venv/bin/python
 H=10.0.0.194; BIN='~/buun-0b278/build_sm60/bin/llama-server'
 BASE_F='~/AI/Models/qwopus/Qwen3.8-27B-Q8_0.gguf'; LORA='~/AI/Models/pi-adapter/Qwen3.8-27B-pi-lora-F16.gguf'
 LORA_SHA=a64f91844f19e67da500d8628bdf9383aa334e61b7ab687805802e7d272d7b67
-FLAGS="-ngl 99 -sm layer -c 65536 -ctk q8_0 -ctv q8_0 -np 1 -fit off --jinja --temp 0 --seed 1 --chat-template-kwargs '{\"enable_thinking\":false}' --host 0.0.0.0"
+THINK=${THINK:-off}   # off (the main run) or medium (Amendment 1: thinking on, reasoning_effort medium, nothing injected)
+case "$THINK" in
+  off) KW='{"enable_thinking":false}' ;;
+  medium) KW='{"enable_thinking":true,"reasoning_effort":"medium"}' ;;
+  *) echo "ABORT: THINK must be off or medium"; exit 1 ;;
+esac
+FLAGS="-ngl 99 -sm layer -c 65536 -ctk q8_0 -ctv q8_0 -np 1 -fit off --jinja --temp 0 --seed 1 --chat-template-kwargs '$KW' --host 0.0.0.0"
 OUTNAME=${1:?outname}
 OUT=$A/runs/pi_$OUTNAME; mkdir -p "$OUT"; LOG=$OUT/run.log
 SCEN=$A/families_v5.json
@@ -32,9 +38,9 @@ start() {   # NAME GPUS PORT LORA(0/1)
   [ $up = 1 ] || { log "ABORT: $1 not healthy on :$3"; exit 1; }
 }
 preflight() {   # ARM LOCALPORT LORA(0/1): what the agent will actually reach, through the tunnel
-  "$PY" - "$2" "$4" "$1" <<'PYEOF' || { log "ABORT: $1 preflight failed"; exit 1; }
+  "$PY" - "$2" "$4" "$1" "$THINK" <<'PYEOF' || { log "ABORT: $1 preflight failed"; exit 1; }
 import json, sys, urllib.request
-port, lora, arm = sys.argv[1], int(sys.argv[2]), sys.argv[3]
+port, lora, arm, think = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4]
 u = f"http://127.0.0.1:{port}"
 d = json.load(urllib.request.urlopen(u + "/props", timeout=20))
 p = d["default_generation_settings"]["params"]
@@ -43,12 +49,13 @@ assert p["temperature"] == 0, p["temperature"]
 assert d["default_generation_settings"].get("n_ctx", 0) >= 64000, "Hermes needs a 64K window"
 n = len(json.load(urllib.request.urlopen(u + "/lora-adapters", timeout=20)))
 assert n == lora, f"{arm}: {n} adapters, expected {lora}"
-body = json.dumps({"messages": [{"role": "user", "content": "Write one sentence about rivers."}], "max_tokens": 64}).encode()
+body = json.dumps({"messages": [{"role": "user", "content": "Write one sentence about rivers."}], "max_tokens": 64 if think == "off" else 1024}).encode()
 for k in range(2):   # the first is the discarded warm-up
     r = json.load(urllib.request.urlopen(urllib.request.Request(u + "/v1/chat/completions", body, {"Content-Type": "application/json"}), timeout=300))
 m = r["choices"][0]["message"]
-assert not (m.get("reasoning_content") or "").strip(), "thinking is on: reasoning_content returned"
-print(f"--- {arm}: Q8_0 on :{port} via tunnel, temp 0, {n} adapter(s), thinking off, warm-up discarded")
+has_r = bool((m.get("reasoning_content") or "").strip())
+assert has_r == (think != "off"), f"thinking should be {think}, reasoning_content {'present' if has_r else 'absent'}"
+print(f"--- {arm}: Q8_0 on :{port} via tunnel, temp 0, {n} adapter(s), thinking {think}, warm-up discarded")
 PYEOF
 }
 
@@ -98,7 +105,7 @@ for spec in hbA:8091 hbB:8091 hpA:8092 hpB:8092; do
 done
 for p in 8091 8092; do curl -s -m 2 "http://127.0.0.1:$p/health" >/dev/null 2>&1 && { echo "ABORT: something already answers on :$p"; exit 1; }; done
 
-log "== pi Hermes A/B ($OUTNAME) start, code $(git -C "$R" rev-parse --short HEAD), UTC date $RUN_DATE"
+log "== pi Hermes A/B ($OUTNAME) start, code $(git -C "$R" rev-parse --short HEAD), UTC date $RUN_DATE, thinking $THINK"
 "$R/tools/s194.sh" on >> "$LOG" 2>&1 || { log "ABORT: .194 did not come up"; exit 1; }
 ok=0; for i in $(seq 1 40); do
   if [ "$(ssh -o ConnectTimeout=5 -o BatchMode=yes "$H" 'echo ready' 2>/dev/null)" = ready ]; then ok=$((ok + 1)); else ok=0; fi
