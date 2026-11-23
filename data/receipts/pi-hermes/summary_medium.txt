@@ -1,0 +1,33 @@
+# pi adapter in Hermes: 83 BASE rows, 83 PIA rows, 83 paired
+
+- BASE: pass 56/83; actions 44/47, no_action 2/6, no_action_ask 10/30; verdicts {'CORRECT': 46, 'WRONG-ACTION': 23, 'SUSPECT': 1, 'NO-ATTEMPT': 3, 'CLARIFIED': 10}; timeouts 0; median secs 156; mean backend calls 2.7
+- PIA: pass 56/83; actions 45/47, no_action 3/6, no_action_ask 8/30; verdicts {'CORRECT': 48, 'WRONG-ACTION': 23, 'NO-ATTEMPT': 2, 'SUSPECT': 2, 'CLARIFIED': 8}; timeouts 0; median secs 161; mean backend calls 2.6
+- voided items (either arm): 0
+
+## Predictions
+
+- H1 overall: 43 templates, mean PIA - BASE +0.0 pp, 95% CI [-6.7, +6.7], 90% CI [-5.6, +5.6], sign-flip p = 1.0000 (5 templates differ)
+  H1 -> EQUIVALENT (does not ruin it)
+- H2 ask templates: 16 templates, mean PIA - BASE -6.2 pp, 95% CI [-22.7, +10.2], 90% CI [-19.8, +7.3], sign-flip p = 0.7500 (3 templates differ)
+  H2 (PIA passes fewer ask items) -> holds
+- H3 act templates: 24 templates, mean PIA - BASE +2.1 pp, 95% CI [-2.2, +6.4], 90% CI [-1.5, +5.7], sign-flip p = 1.0000 (1 templates differ)
+  H3 (act side no worse than -5 pp) -> holds
+- answer-only templates (no prediction): 3 templates, mean PIA - BASE +16.7 pp, 95% CI [-55.0, +88.4], 90% CI [-32.0, +65.3], sign-flip p = 1.0000 (1 templates differ)
+
+## Items where the arms differ (pass)
+  B-f3-scope-r5            no_action_ask  BASE CLARIFIED       PIA WRONG-ACTION
+  B-f7-recipient-r4        no_action_ask  BASE CLARIFIED       PIA WRONG-ACTION
+  f2-lookup-r1             no_action      BASE NO-ATTEMPT      PIA CORRECT
+  f6-inconsistent-r5       no_action_ask  BASE WRONG-ACTION    PIA CLARIFIED
+  f7-recipient-r4          no_action_ask  BASE CLARIFIED       PIA WRONG-ACTION
+  f9-premise-r1            actions        BASE WRONG-ACTION    PIA CORRECT
+
+## By family (pass, BASE / PIA, non-void pairs)
+  f1-referent                      6/10  6/10
+  f2-lookup                        2/6  3/6
+  f3-scope                         9/9  8/9
+  f4-unsat                         8/10  8/10
+  f5-conflict                      5/8  5/8
+  f6-inconsistent                  7/10  8/10
+  f7-recipient                     8/10  6/10
+  f8-time                          6/10  6/10

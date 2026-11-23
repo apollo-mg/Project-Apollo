@@ -50,3 +50,28 @@ adapter asked which review was meant).
 One run per item, greedy, thinking off; prompt cache on (single draws, the same condition for both arms); 43
 templates, and the ask-side difference rests on five templates (p = 0.06); one Hermes version, an assistant corpus on
 a fake mailbox and calendar; q8_0 KV at 64K (Hermes's minimum), not the f16 KV of the adapter's other runs.
+
+## Amendment 1 result: thinking at medium (2026-11-23 00:29 to 03:23 EST, `raw_medium/`, `summary_medium.txt`)
+
+Same 83 items, both servers at `reasoning_effort` medium (preflight confirmed reasoning returned); no void, no timeout.
+
+| | BASE off | PIA off | BASE medium | PIA medium |
+|---|---|---|---|---|
+| all 83 items | 56 | **62** | 56 | 56 |
+| act items (47) | 43 | 42 | 44 | 45 |
+| ask items (30): asked | 13 | **19** | 10 | **8** |
+| acted when it should have asked | 15 | 7 | 23 | 23 |
+| median seconds per item | 65 | 72 | 156 | 161 |
+
+| | result |
+|---|---|
+| M1 the adapter does not hurt with thinking on (95% lower bound > -10 pp) | **holds:** 0.0 pp, 95% CI [-6.7, +6.7] (equivalent within +/-10) |
+| M2 the ask-side edge survives thinking | **fails:** -6.2 pp on the ask templates (n.s., p = 0.75): 8 of 30 vs 10 |
+
+**Reading.** Thinking at medium makes Hermes guess more, not less: on ambiguous requests the base asked 10 times
+instead of 13 and acted wrongly 23 times instead of 15; the adapter fell from 19 asks to 8. Thinking helps the act side
+slightly (44-45 of 47) and costs about 2.3x the time. With thinking on the two models are indistinguishable (56 vs 56),
+so the adapter is safe to run with thinking on, but its carefulness only shows with thinking off. The most careful
+setup measured is the adapter with thinking off (62 of 83, 19 asks). This is the opposite of the coding test, where
+thinking made the base stop and say "impossible": in an assistant, reasoning seems to talk the model into a
+reasonable guess. One run per item; the ask-side comparisons rest on 16 templates.
