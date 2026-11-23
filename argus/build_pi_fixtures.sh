@@ -14,7 +14,8 @@ for spec in hbA:8671:A:8091 hbB:8672:B:8091 hpA:8673:A:8092 hpB:8674:B:8092; do
     done
     if [ "$WORLD" = B ]; then WORLD=B "$A/make_fixture.sh" "$FX" "$GW" >/dev/null; else "$A/make_fixture.sh" "$FX" "$GW" >/dev/null; fi
     CFG="$A/fixtures/$FX/agent-home/config.yaml"
-    sed -i "s|base_url: http://127.0.0.1:[0-9]*/v1|base_url: http://127.0.0.1:$MPORT/v1|; s|default: Qwen3.8-27B-UD-IQ3_XXS|default: Qwen3.8-27B-Q8_0|" "$CFG"
+    # the master agent-home/config.yaml may point anywhere (2026-11-22 it held .194:8084 and a local Q6_K path): replace both lines
+    sed -i "s|^\(  base_url: \)http://[^ ]*/v1|\1http://127.0.0.1:$MPORT/v1|; s|^\(  default: \).*|\1Qwen3.8-27B-Q8_0|" "$CFG"
     grep -q "base_url: http://127.0.0.1:$MPORT/v1" "$CFG" || { echo "FAIL: $FX not pointed at :$MPORT"; exit 1; }
     tar -cf "$A/fixtures/$FX.agent-home.pristine.tar" -C "$A/fixtures/$FX" agent-home
     echo "fixture $FX: world $WORLD, gateway $GW, model :$MPORT, calendar $(TZ=UTC date +%F), pristine $(sha256sum < "$A/fixtures/$FX.agent-home.pristine.tar" | cut -c1-12)"
