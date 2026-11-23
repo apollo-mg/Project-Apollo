@@ -27,12 +27,14 @@ until [ -s /mnt/TG_2TB/AI/Models/sensenova-loop-9b-gguf/sha256.txt ] && grep -q 
 done
 [ "$(cut -c1-64 /mnt/TG_2TB/AI/Models/sensenova-loop-9b-gguf/sha256.txt)" = "$SNLSHA" ] || { log "STOP: SNL sha256 mismatch"; exit 1; }
 log "download verified; $(grep BUILD_OK $R/run/build_4bc61eed.log | cut -c1-60)"
-# G1: load
+# G1 (Deviation 1: this build logs no arch / n_layer summary at default verbosity): the file's header says
+# sensenova_loop, loop count 2, 57 blocks; the server loads; the only unused tensors are blk.56 (the MTP layer, not loaded)
 if serve $FAITH $SNLF snl_g1; then
-  A=$(grep -m1 -E "arch +=" $H/raw/server_snl_g1.log); L=$(grep -m1 -E "n_layer +=" $H/raw/server_snl_g1.log)
-  log "G1 $A | $L | $(grep -m3 -i -E 'loop' $H/raw/server_snl_g1.log | tr '\n' ' ' | cut -c1-300)"
   kill $SP; wait $SP 2>/dev/null
-  echo "$A" | grep -q sensenova_loop && echo "$L" | grep -q -E "= 57$" || { log "STOP: G1 failed"; exit 1; }
+  META=$($PY $H/check_meta.py $SNLF); UNUSED=$(grep -o "unused tensor blk\.[0-9]*" $H/raw/server_snl_g1.log | sort -u | tr '\n' ' ')
+  log "G1 header: $META | unused: $UNUSED| $(grep -c 'model loaded' $H/raw/server_snl_g1.log) model-loaded line"
+  [ "$META" = "sensenova_loop 2 57" ] && [ "$UNUSED" = "unused tensor blk.56 " ] && grep -q "model loaded" $H/raw/server_snl_g1.log \
+    || { log "STOP: G1 failed"; exit 1; }
 else log "STOP: G1 server failed to start"; kill $SP 2>/dev/null; exit 1; fi
 # G2: perplexity, both models on the SNL build
 for spec in Q35R:$Q35 SNL:$SNLF; do

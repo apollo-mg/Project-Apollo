@@ -46,3 +46,11 @@ Paired differences SNL - Q35R with a bootstrap over items, 10,000 resamples, see
 Full-model numerical parity with the reference is unverified (the PR says so); G2 catches gross breakage only. Lineage
 not stated, so SNL vs Q35R is a comparison of two models, not a fine-tune against its base. One condition (thinking off,
 greedy, two loops), one quant (the official Q8_0).
+
+## Deviation 1 (2026-11-23 ~16:58 EST, before any perplexity or M1 row)
+
+The first launch stopped at G1: the server loaded the model and answered health, but this llama.cpp build logs no
+architecture or layer-count summary at its default verbosity, so the registered grep found nothing (log kept in
+`raw/g1_failed/`). G1 is now: the file's own header says `sensenova_loop`, loop count 2, 57 blocks
+(`check_meta.py`); the server reaches "model loaded"; and the only tensors it reports unused are `blk.56` (the MTP
+layer, not loaded without MTP) -- so every trunk layer is used. Nothing else changes.
