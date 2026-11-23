@@ -1,0 +1,16 @@
+# frozen layers: arms complete ['FZ_BASE', 'FZ_ALL_S2', 'FZ_FRZ10_S2', 'FZ_FRZ20_S2', 'FZ_LAST20_S2']
+
+arm        layers inv. refused  E right/wrong  H right/wrong/refused unfin final loss train s
+FZ_BASE    none         81/100       25/13            12/49/38         1          -       -
+FZ_ALL_S2  0-39          0/100       25/15            21/79/0          0     0.0966    52.1
+FZ_FRZ10_S2 0-29          2/100       26/14            18/82/0          0     0.0856    47.9
+FZ_FRZ20_S2 0-19         45/100       27/13            17/75/8          0     0.0639    42.2
+FZ_LAST20_S2 20-39        61/100       23/16            15/66/19         0     0.0477    42.1
+
+## Tests (drop D = base minus arm, invented items; S = D(arm) / D(FZ_ALL))
+
+- M  manipulation check: r(FZ_ALL) = 0.00 (base 0.81) -> holds
+- FZ_FRZ10_S2: D = +0.79 [+0.71, +0.87], S = 0.98 [0.94, 1.00]  H1 (last 10 frozen does NOT protect) -> holds
+- FZ_FRZ20_S2: D = +0.36 [+0.27, +0.46], S = 0.44 [0.34, 0.55]  H2 (last 20 frozen does NOT protect) -> FAILS: freezing the last 20 protects most of it
+- FZ_LAST20_S2: D = +0.20 [+0.13, +0.28], S = 0.25 [0.16, 0.34]
+- H3 first half vs last half (D(FZ_FRZ20) - D(FZ_LAST20)): +0.16 [+0.09, +0.23] (no direction predicted)
