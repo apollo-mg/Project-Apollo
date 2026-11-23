@@ -89,7 +89,11 @@ for spec in hbA:8091 hbB:8091 hpA:8092 hpB:8092; do
   grep -q "AFM-45" "$A/fixtures/$FX/fake-google/reset.sh" || { echo "ABORT: $FX reset.sh not stripped"; exit 1; }
   "$A/fixtures/$FX/fake-google/reset.sh" >/dev/null && ! grep -q -i -E "ambiguity|_note|isomorph|EXTRA" "$A/fixtures/$FX/fake-google/state.json" \
     || { echo "ABORT: $FX stripped state leaks authoring notes"; exit 1; }
-  grep -q "$RUN_DATE" "$A/fixtures/$FX/fake-google/fixtures/seed.json" || { echo "ABORT: $FX calendar not anchored to $RUN_DATE (rebuild fixtures today)"; exit 1; }
+  # rebase_seed.py snaps the world to the anchor's weekday (Thursday) on or after the build's UTC date: it must be the
+  # Thursday that follows THIS run's UTC date, or the fixture was built for another day
+  want=$("$PY" -c "import datetime as d,sys;n=d.date.fromisoformat(sys.argv[1]);print(n+d.timedelta((3-n.weekday())%7))" "$RUN_DATE")
+  got=$("$PY" -c "import json,sys;print(json.load(open(sys.argv[1])).get('_rebased',{}).get('to'))" "$A/fixtures/$FX/fake-google/fixtures/seed.json")
+  [ "$got" = "$want" ] || { echo "ABORT: $FX world anchored to $got, this run needs $want (rebuild fixtures)"; exit 1; }
 done
 for p in 8091 8092; do curl -s -m 2 "http://127.0.0.1:$p/health" >/dev/null 2>&1 && { echo "ABORT: something already answers on :$p"; exit 1; }; done
 
