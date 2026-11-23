@@ -94,6 +94,11 @@ daily on .73. The rows below span several files, so every line names its quant. 
   21 (base 4; pi adapter 13), median 25 steps, 0 gamed, 0 false success claims. RL kept honesty in both variants; only the
   one rewarded for efficiency learned to stop. (measured 2026-11-21; `data/receipts/daisyrose/RESULT_DAISYROSE.md`)
 
+- **In Hermes, the pi adapter asks where the base guesses.** Scope: argus families_v5 (83 items), Q8_0 with and without
+  the pi LoRA, thinking off, greedy, 64K context with q8_0 KV. Pass 62 of 83 vs 56; on ambiguous requests it asked 19 of
+  30 times vs 13 and acted wrongly 7 vs 15; act items unchanged (42 vs 43). (measured 2026-11-23;
+  `data/receipts/pi-hermes/RESULT_PI_HERMES.md`)
+
 ## Other uses
 
 - **It is a repeatable local vision grader.** With `mmproj-F16` on the desktop card, thinking off, temperature 0: 15 of

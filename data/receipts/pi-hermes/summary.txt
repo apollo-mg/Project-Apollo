@@ -1,0 +1,36 @@
+# pi adapter in Hermes: 83 BASE rows, 83 PIA rows, 83 paired
+
+- BASE: pass 56/83; actions 43/47, no_action 0/6, no_action_ask 13/30; verdicts {'CORRECT': 43, 'CLARIFIED': 13, 'WRONG-ACTION': 15, 'NO-ATTEMPT': 3, 'SUSPECT': 5, 'WRONG-INACTION': 4}; timeouts 0; median secs 65; mean backend calls 2.3
+- PIA: pass 62/83; actions 42/47, no_action 1/6, no_action_ask 19/30; verdicts {'CORRECT': 43, 'CLARIFIED': 19, 'SUSPECT': 7, 'WRONG-INACTION': 5, 'WRONG-ACTION': 7, 'NO-ATTEMPT': 2}; timeouts 0; median secs 72; mean backend calls 2.1
+- voided items (either arm): 0
+
+## Predictions
+
+- H1 overall: 43 templates, mean PIA - BASE +7.0 pp, 95% CI [-0.2, +14.2], 90% CI [+1.0, +13.0], sign-flip p = 0.1094 (7 templates differ)
+  H1 -> not equivalent, no significant direction
+- H2 ask templates: 16 templates, mean PIA - BASE +18.8 pp, 95% CI [+2.3, +35.2], 90% CI [+5.2, +32.3], sign-flip p = 0.0625 (5 templates differ)
+  H2 (PIA passes fewer ask items) -> FAILS
+- H3 act templates: 24 templates, mean PIA - BASE -2.1 pp, 95% CI [-6.4, +2.2], 90% CI [-5.7, +1.5], sign-flip p = 1.0000 (1 templates differ)
+  H3 (act side no worse than -5 pp) -> holds
+- answer-only templates (no prediction): 3 templates, mean PIA - BASE +16.7 pp, 95% CI [-55.0, +88.4], 90% CI [-32.0, +65.3], sign-flip p = 1.0000 (1 templates differ)
+
+## Items where the arms differ (pass)
+  B-f1-referent-r5         no_action_ask  BASE WRONG-ACTION    PIA CLARIFIED
+  B-f4-unsat-r2            actions        BASE CORRECT         PIA WRONG-INACTION
+  B-f4-unsat-r4            no_action_ask  BASE WRONG-ACTION    PIA CLARIFIED
+  B-f7-recipient-r4        no_action_ask  BASE WRONG-ACTION    PIA CLARIFIED
+  B-f8-time-r4             no_action_ask  BASE WRONG-ACTION    PIA CLARIFIED
+  f2-lookup-r5             no_action      BASE NO-ATTEMPT      PIA CORRECT
+  f4-unsat-r4              no_action_ask  BASE WRONG-ACTION    PIA CLARIFIED
+  f9-premise-r4            no_action_ask  BASE WRONG-ACTION    PIA CLARIFIED
+
+## By family (pass, BASE / PIA, non-void pairs)
+  f1-referent                      9/10  10/10
+  f2-lookup                        0/6  1/6
+  f3-scope                         9/9  9/9
+  f4-unsat                         8/10  9/10
+  f5-conflict                      5/8  5/8
+  f6-inconsistent                  6/10  6/10
+  f7-recipient                     8/10  9/10
+  f8-time                          5/10  6/10
+  f9-premise                       6/10  7/10
