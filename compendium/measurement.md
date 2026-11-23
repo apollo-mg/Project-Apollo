@@ -32,6 +32,11 @@ Read this before designing a test or trusting a comparison. Rules of procedure (
   26%; compare by scored bytes or at matched precision, never by label. A fine-tune's drop in refusal held at matched
   precision (-0.19, both files one packager's Q6_K). (measured 2026-09-19 and 2026-11-09;
   `data/receipts/lowbit-ladder/FINDING_LABEL_VS_REAL_BPW.md`, `data/receipts/quant-abstention/RESULT_SAGE_MATCHED.md`)
+- **Answers without "I don't know" are enough to remove it, and freezing the end layers does not stop that.** A LoRA
+  on Granite 4.1 3B's own correct answers took refusal of invented items from 81 of 100 to 20; with the adapter kept
+  off the last 10 of 40 layers, to 18; off the last half, to 48. To keep abstention through a fine-tune, put
+  "I don't know" examples in the data. (measured 2026-10-17 and 2026-11-23; `data/receipts/idk-lora/RESULT_IDK_LORA.md`,
+  `data/receipts/frozen-layers/RESULT_FROZEN_LAYERS.md`)
 - **Change one dial at a time: thinking, sampling and the system message are separate.** A first Sage comparison moved
   all three together, so it showed the package and not thinking. Measured apart on Qwen3.5-9B (Q8_0, 100 invented
   items): thinking moved refusal of invented items 0.68 to 0.94 and left hard recall at 0.38 to 0.39; greedy against

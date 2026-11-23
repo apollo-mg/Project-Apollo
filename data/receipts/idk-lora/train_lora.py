@@ -7,7 +7,7 @@ and targets only. Prompt = the M1 prompt through the model's chat template; loss
 LoRA r 16, alpha 32, dropout 0.05 on q/k/v/o/gate/up/down; AdamW lr 1e-4, cosine, 3 % warmup; 2 epochs; micro-batch 8
 x accumulation 2 = effective 16; max length 384; LoRA weights in fp32 under bf16 autocast; seed 20261017.
 
-Usage: train_lora.py {lora|ctrl} OUTDIR     -> OUTDIR/adapter (PEFT) + OUTDIR/train_log.json"""
+Usage: [LORA_LAYERS=a-b] train_lora.py {lora|ctrl} OUTDIR   -> OUTDIR/adapter (PEFT) + OUTDIR/train_log.json"""
 import json, math, os, random, sys, time
 from pathlib import Path
 import torch
@@ -66,8 +66,12 @@ enc = [encode(m, a) for m, a in data]
 
 model = AutoModelForCausalLM.from_pretrained(BASE, dtype=torch.bfloat16).cuda()
 model.gradient_checkpointing_enable(); model.enable_input_require_grads()
+# PREREG_FROZEN_LAYERS: optional LORA_LAYERS="a-b" puts adapters on decoder layers a..b only (unset = all, as before)
+LAYERS = os.environ.get("LORA_LAYERS")
+LAYERS = list(range(int(LAYERS.split("-")[0]), int(LAYERS.split("-")[1]) + 1)) if LAYERS else None
 model = get_peft_model(model, LoraConfig(r=R, lora_alpha=ALPHA, lora_dropout=DROP, task_type="CAUSAL_LM",
-                       target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]))
+                       target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+                       **({"layers_to_transform": LAYERS, "layers_pattern": "layers"} if LAYERS else {})))
 for p in model.parameters():
     if p.requires_grad: p.data = p.data.float()
 params = [p for p in model.parameters() if p.requires_grad]
@@ -95,7 +99,7 @@ for ep in range(EPOCHS):
         log.append({"step": step, "epoch": ep, "loss": tot, "lr": sched.get_last_lr()[0], "t": round(time.time() - t0, 1)})
         if step % 20 == 0 or step == steps: print(log[-1], flush=True)
 model.save_pretrained(outdir / "adapter")
-json.dump({"mode": mode, "n_per_class": n, "lora2_dropped_known": locals().get("drops"), "known_total": len(known), "unknown_total": len(unknown),
+json.dump({"mode": mode, "layers": LAYERS, "n_per_class": n, "lora2_dropped_known": locals().get("drops"), "known_total": len(known), "unknown_total": len(unknown),
            "examples": len(enc), "steps": steps, "seconds": round(time.time() - t0, 1), "log": log},
           open(outdir / "train_log.json", "w"), indent=1)
 print("saved", outdir / "adapter", "examples", len(enc), "seconds", round(time.time() - t0, 1))
