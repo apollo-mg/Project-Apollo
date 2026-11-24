@@ -47,3 +47,12 @@ B4 as registered cannot run: the old `4bc61eed7` binary was built without `llama
 `tools/rocm724.sh` against the 10.1 rebuild, three runs each, alternating; decode speed as the median `gen_tps` of the M1
 replays (Q35R_P724, today on 7.2.4, against Q35R_N10). The same `llama-perplexity` runs also give each side's perplexity,
 reported as a numeric-drift check (no prediction).
+
+## Deviation 2 (2026-11-24 ~18:10 EST, after the builds, before any B-measure result was read)
+
+- **`tq_f7c3638e` built**, but its server prints `version: 10943 (f7c3638e8)` without the word "commit", so
+  `build_engine.sh`'s gate aborted after a complete build. Checked by hand: the right commit. Treated as built.
+- **`buun_1e50db7b` failed at CMake generate** with tests on: `HIP_ARCHITECTURES is empty for target
+  "test-exl3-byte-dot"` (a HIP test target in buun's `tests/`). Rebuilt once with `-DCMAKE_HIP_ARCHITECTURES=gfx1201`
+  added (`EXTRA_CMAKE`, new in `build_engine.sh`), after B4 so the compile cannot touch the speed runs; the failure itself
+  is reported as a finding for buun.
