@@ -39,3 +39,11 @@ original configuration (tests off) and add only `llama-bench`.
 
 One card (RX 9070 XT), one OS image; `test-backend-ops` checks single ops against the CPU backend, not whole models. A
 build that fails is reported with its error, not fixed here; fixes or reports to the fork owners are Mark's call.
+
+## Deviation 1 (2026-11-24 ~17:45 EST, before any build finished or any B-measure ran)
+
+B4 as registered cannot run: the old `4bc61eed7` binary was built without `llama-bench`. B4 is now: prompt processing from
+`llama-perplexity`'s own timing (Qwen3.5-9B Q8_0, wikitext-2 test, `-c 512`, 20 chunks), old binary through
+`tools/rocm724.sh` against the 10.1 rebuild, three runs each, alternating; decode speed as the median `gen_tps` of the M1
+replays (Q35R_P724, today on 7.2.4, against Q35R_N10). The same `llama-perplexity` runs also give each side's perplexity,
+reported as a numeric-drift check (no prediction).
