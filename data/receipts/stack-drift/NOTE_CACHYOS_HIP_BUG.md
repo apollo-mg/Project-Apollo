@@ -24,3 +24,5 @@ carries `7.16.0-0000000`, so the two may differ in source revision as well as fl
 the same perplexity as on the 7.2.4 runtime (8.3434).
 
 **Searched first (11-24, briefly):** no matching report in ROCm/rocm-systems issues or on the web.
+
+**Reported 2026-11-24 by Mark:** [CachyOS/CachyOS-PKGBUILDS#2196](https://github.com/CachyOS/CachyOS-PKGBUILDS/issues/2196) (package `hip-runtime-amd 10.1-2.1`, cachyos-extra-v3). Re-test the system runtime with `hip_stream_repro.cpp` after any update of that package.
