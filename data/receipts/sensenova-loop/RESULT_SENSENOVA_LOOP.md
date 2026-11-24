@@ -68,3 +68,10 @@ Thinking off and greedy (the model's own example runs thinking on); two loops, t
 Q8_0); M1 is short English factual questions; lineage not stated, so this compares two models, not a fine-tune against
 its base. The Q35R-Q35B comparison mixes a build change with a backend change, so it is only a preview of the planned
 three-stack drift test.
+
+## Lineage (added 2026-11-24, `lineage/SUMMARY.md`)
+
+SenseNova-Loop-9B was initialised from Qwen3.5-9B: every transformer layer matches at cosine 0.967-0.980 (a shifted-layer
+control reads 0.000), embeddings 0.985, the vision tower is identical, and the median layer matrix moved by 0.255 of its
+own size. So SNL vs Q35R is a retrained, looped model against its own base; the loop and the retraining stay
+confounded.
