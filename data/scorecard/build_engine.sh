@@ -48,9 +48,10 @@ if [ "$TARGET" = sm60 ]; then
     -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA_FA=ON -DGGML_SCHED_MAX_COPIES=4 -DLLAMA_BUILD_TESTS=OFF > /dev/null
 else
   HIPCXX="$(hipconfig -l)/clang" HIP_PATH="$(hipconfig -R)" cmake -B "$BUILD" -DGGML_HIP=ON -DGPU_TARGETS=gfx1201 \
-    -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA_FA=ON -DGGML_SCHED_MAX_COPIES=4 -DLLAMA_BUILD_TESTS=OFF > /dev/null
+    -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA_FA=ON -DGGML_SCHED_MAX_COPIES=4 -DLLAMA_BUILD_TESTS=${BUILD_TESTS:-OFF} > /dev/null
 fi
-cmake --build "$BUILD" -j "$JOBS" --target llama-server llama-cli llama-perplexity
+# 2026-11-24: BUILD_TESTS=ON (gfx1201 only) and EXTRA_TARGETS (e.g. "test-backend-ops llama-bench"); defaults unchanged
+cmake --build "$BUILD" -j "$JOBS" --target llama-server llama-cli llama-perplexity ${EXTRA_TARGETS:-}
 B="$DST/$BUILD/bin/llama-server"
 V=$("$B" --version 2>&1 | grep -m1 -o "commit [0-9a-f]*" || true)
 [ -n "$V" ] && [[ "$C" == "${V#commit }"* ]] || { echo "ABORT: built server reports '${V:-no commit}', expected $S"; exit 1; }
