@@ -10,12 +10,12 @@ COMMIT=33aeb17f8; FL="-c 16384 -ctk f16 -ctv f16 -np 1 --jinja --cache-ram 0"
 case $STACK in
   desk) HOST=local; IP=127.0.0.1; PORT=8095; BIN=$R/engines/rocm10/up_33aeb17f/build_rocm/bin
         Q35=/mnt/TG_2TB/AI/Models/sci-distill-gguf/Qwen3.5-9B-Q8_0.gguf; ENV1=""; GPU1="-ngl 99"; WD=$H/raw/desk ;;
-  n194) HOST=mark@10.0.0.194; IP=10.0.0.194; PORT=8190; BIN=/home/mark/llama.cpp-33aeb17f/build_sm60/bin
-        Q35=/home/mark/AI/Models/sci-distill/Qwen3.5-9B-Q8_0.gguf; Q27=/home/mark/AI/Models/qwopus/Qwen3.8-27B-Q8_0.gguf
-        ENV1="CUDA_VISIBLE_DEVICES=0 GGML_CUDA_ALLREDUCE=internal"; GPU1="-ngl 99 -sm layer -fit off"; WD=/home/mark/drift ;;
-  n73)  HOST=mark@10.0.0.73; IP=10.0.0.73; PORT=8190; BIN=/home/mark/llama.cpp-33aeb17f/build_sm60/bin
+  n194) HOST=mark@10.0.0.194; IP=10.0.0.194; PORT=8190; BIN=~/llama.cpp-33aeb17f/build_sm60/bin
+        Q35=~/AI/Models/sci-distill/Qwen3.5-9B-Q8_0.gguf; Q27=~/AI/Models/qwopus/Qwen3.8-27B-Q8_0.gguf
+        ENV1="CUDA_VISIBLE_DEVICES=0 GGML_CUDA_ALLREDUCE=internal"; GPU1="-ngl 99 -sm layer -fit off"; WD=~/drift ;;
+  n73)  HOST=mark@10.0.0.73; IP=10.0.0.73; PORT=8190; BIN=~/llama.cpp-33aeb17f/build_sm60/bin
         Q35=/mnt/models/drift/Qwen3.5-9B-Q8_0.gguf; Q27=/mnt/HDD/kld/Qwen3.8-27B-Q8_0.gguf
-        ENV1="CUDA_VISIBLE_DEVICES=0 GGML_CUDA_ALLREDUCE=internal"; GPU1="-ngl 99 -sm layer -fit off"; WD=/home/mark/drift ;;
+        ENV1="CUDA_VISIBLE_DEVICES=0 GGML_CUDA_ALLREDUCE=internal"; GPU1="-ngl 99 -sm layer -fit off"; WD=~/drift ;;
   *) echo "usage: run_drift.sh desk|n194|n73"; exit 2 ;;
 esac
 rx() { if [ $HOST = local ]; then bash -c "$1"; else ssh -o BatchMode=yes $HOST "$1"; fi; }
