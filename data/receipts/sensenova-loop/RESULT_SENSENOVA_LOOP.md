@@ -1,4 +1,4 @@
-# RESULT: SenseNova-Loop-9B, a looped model that matches Qwen3.8-27B on agent benchmarks, knows a third as many hard facts as Qwen3.5-9B (14 vs 42 of 100) and declines fewer invented questions (53 vs 65); the llama.cpp port matches SenseTime's reference, and the PR's newest commit changes 209 of 240 answers
+# RESULT: SenseNova-Loop-9B, a looped model whose card puts it level with Qwen3.8-27B on agent benchmarks, knows a third as many hard facts as Qwen3.5-9B (14 vs 42 of 100) and declines fewer invented questions (53 vs 65); the llama.cpp port matches SenseTime's reference, and the PR's newest commit changes 209 of 240 answers
 
 **Prereg:** `PREREG_SENSENOVA_LOOP.md` (`61d9e4bd`), Deviation 1 (`8f8d25ec`, G1 rewritten before any perplexity or M1
 row), Amendment 1 (`6bc85aa2`, the reference check, before any reference number). **Runs:** 2026-11-23, RX 9070 XT,
@@ -35,21 +35,26 @@ diagnostics in `raw/` (`g1_failed/`, `g2_stop/`, `reference/`, `diag/`).
 | | result |
 |---|---|
 | H1 SNL declines fewer invented questions (0.55) | **holds:** 53 vs 65 |
-| H2 looping buys no facts: hard accuracy at most +0.05 (0.6) | **holds, far beyond the prediction:** 14 vs 42 |
+| H2 looping buys no facts: hard accuracy at most +0.05 (0.6) | **holds, far beyond the prediction:** 14 vs 42 -- but two different models cannot separate looping from training; the loop-count dial could |
 | E1 the PR head's shared caches change >= 24 of 240 answers (0.6) | **holds:** 209 of 240 answers differ (35 grades); SNLH 50 / 13 / 25 on the three rows above; wikitext +2.4 % |
+| Replay (added after the result, not preregistered): SNL again on `4bc61eed7` (arm SNL2) | **240 of 240 answers identical** -- the faithful build is deterministic, so all 209 changes are the shortcut's |
 
-The easy misses are real errors, checked by hand: Daegu for North Gyeongsang (its capital before 2016), Leoncavallo for
-*Cavalleria rusticana*, an invented "San Juan de Los Lagos" for Guarico. Reported, not a gate: Q35R on this build and
+Read by hand, several easy misses are clear errors: Daegu for North Gyeongsang (its capital before 2016), Leoncavallo
+for *Cavalleria rusticana*, an invented "San Juan de Los Lagos" for Guarico. Others are dating disputes the key may not
+settle (*David Copperfield* 1849 against 1850, Kabul University 1932 against 1931); both arms are scored on one key. Reported, not a gate: Q35R on this build and
 card against the stored Q35B (.194 P100, CUDA build 67107ac34f): 160 of 240 answers identical, 227 grades identical,
 the totals equal or within 3 (invented 65 / 65, hard 42 / 42, easy 36 / 33).
 
+Replay script `run_replay.sh`, comparison `summary_replay.txt`.
+
 ## Reading
 
-1. **A strong agent is not a knowledgeable one.** SenseNova-Loop-9B's card puts it level with Qwen3.8-27B on agent
-   benchmarks, yet on short factual questions it knows a third of what Qwen3.5-9B knows, answers wrongly more (78 hard
+1. **A strong agent is not a knowledgeable one.** SenseNova-Loop-9B's card puts it level with Qwen3.8-27B on several
+   agent benchmarks (lower on NL2Repo), yet on short factual questions it knows a third of what Qwen3.5-9B knows, answers wrongly more (78 hard
    wrong against 53), and declines fewer invented questions. Its doubled English Wikipedia perplexity, confirmed on the
-   reference, says the same from the other side: its training went to agent work, code and other languages, not English
-   trivia. Looping adds compute per token, not stored facts.
+   reference, points the same way: most likely its training went to agent work, code and other languages, not English
+   trivia. Two different models cannot say whether the loop itself plays any part; running the same weights at 1, 2
+   and 3 loops could.
 2. **The port is right; the newest commit is not neutral.** At `4bc61eed7` llama.cpp matches SenseTime's own code to
    0.1 % in perplexity. The PR head (`0ba8e4adf`, 11-22), which lets the second loop reuse the first loop's
    full-attention cache where the reference keeps one per pass, rewrites most greedy answers (209 of 240, usually from
