@@ -48,3 +48,12 @@ between them; byte-identical stacks can also stand in for each other in replays.
 One commit, one model per size, one quant, greedy only (sampling adds its own variation), one card per small-model run.
 The desktop's ROCm is days old in this setup. A difference shows that the stacks drift, not which one is "right"; the
 CPU reference is a reference, not ground truth.
+
+## Deviation 1 (2026-11-24 ~18:20 EST, before any DESK row; the P100 stacks had started)
+
+The system ROCm 10.1 HIP runtime crashes creating a second HIP stream on the 9070: a 10-line HIP program (no llama.cpp)
+segfaults in 17 of 20 runs under 10.1 and 0 of 20 under the private 7.2.4 runtime, always at the same instruction
+(`libamdhip64.so.7.16.0` +0x74d5b8), which is where every llama.cpp crash lands (`PREREG_ROCM10.md` results). The DESK
+stack is therefore the same `33aeb17f8` build (compiled with the ROCm 10.1 toolchain, LLVM 24) run on the ROCm 7.2.4
+runtime libraries through `tools/rocm724.sh`; checked first: three `llama-perplexity` runs, identical results. Everything
+else as registered.

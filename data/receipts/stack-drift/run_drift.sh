@@ -9,7 +9,7 @@ PY=$R/venv_cachyos/bin/python3; S=$H/raw/state_drift_$STACK.log; log() { echo "$
 COMMIT=33aeb17f8; FL="-c 16384 -ctk f16 -ctv f16 -np 1 --jinja --cache-ram 0"
 case $STACK in
   desk) HOST=local; IP=127.0.0.1; PORT=8095; BIN=$R/engines/rocm10/up_33aeb17f/build_rocm/bin
-        Q35=/mnt/TG_2TB/AI/Models/sci-distill-gguf/Qwen3.5-9B-Q8_0.gguf; ENV1=""; GPU1="-ngl 99"; WD=$H/raw/desk ;;
+        Q35=/mnt/TG_2TB/AI/Models/sci-distill-gguf/Qwen3.5-9B-Q8_0.gguf; ENV1="$R/tools/rocm724.sh"; GPU1="-ngl 99"; WD=$H/raw/desk ;;  # Deviation 1: 7.2.4 runtime
   n194) HOST=mark@10.0.0.194; IP=10.0.0.194; PORT=8190; BIN=~/llama.cpp-33aeb17f/build_sm60/bin
         Q35=~/AI/Models/sci-distill/Qwen3.5-9B-Q8_0.gguf; Q27=~/AI/Models/qwopus/Qwen3.8-27B-Q8_0.gguf
         ENV1="CUDA_VISIBLE_DEVICES=0 GGML_CUDA_ALLREDUCE=internal"; GPU1="-ngl 99 -sm layer -fit off"; WD=~/drift ;;
