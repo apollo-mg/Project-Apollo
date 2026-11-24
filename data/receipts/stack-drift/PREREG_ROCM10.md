@@ -56,3 +56,13 @@ reported as a numeric-drift check (no prediction).
   "test-exl3-byte-dot"` (a HIP test target in buun's `tests/`). Rebuilt once with `-DCMAKE_HIP_ARCHITECTURES=gfx1201`
   added (`EXTRA_CMAKE`, new in `build_engine.sh`), after B4 so the compile cannot touch the speed runs; the failure itself
   is reported as a finding for buun.
+
+## Deviation 3 (2026-11-24 ~18:40 EST): the measures run again on a working ROCm 10.1 runtime
+
+The first measure pass (18:01) ran on CachyOS's `hip-runtime-amd 10.1-2.1`, which segfaults creating a second HIP stream
+(`NOTE_CACHYOS_HIP_BUG.md`); its B1/B2/B3 failures are that runtime's, not the builds'. Those results are kept
+(`raw/state_measures.log`) and reported as such. B1-B4 run again unchanged except that every ROCm 10.1 side runs through
+`tools/rocm101arch.sh` (Arch's `hip-runtime-amd 10.1-2`, everything else the system's 10.1), after the desktop drift
+runs, into `raw/state_measures_arch.log`. buun's head (Deviation 2) is rebuilt first. The predictions stand as
+registered.
+B4's runs add `--perf` (the first pass printed no `prompt eval time`; the default timing report is off in these builds).

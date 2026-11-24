@@ -1,0 +1,26 @@
+# NOTE: CachyOS's build of hip-runtime-amd 10.1 segfaults creating a second HIP stream on gfx1201; Arch's build of the same version does not (2026-11-24)
+
+**Symptom:** after the 11-24 update (ROCm 7.2.4 -> 10.1), every llama.cpp HIP build on the desktop (RX 9070 XT, gfx1201,
+kernel 7.3.5-2-cachyos) crashed at context creation; gdb: `hipStreamCreateWithFlags` -> SIGSEGV inside
+`libamdhip64.so.7`; the kernel logs a general protection fault at `libamdhip64.so.7.16.0-4f6d503` +0x74d5b8 for every
+crash. Builds made with the 10.1 toolchain run fine on the 7.2.4 runtime, so the compiler is not at fault.
+
+**Minimal repro** (`hip_stream_repro.cpp`, no llama.cpp): hipGetDeviceCount, hipSetDevice(0), hipMalloc 1 MiB,
+hipStreamCreateWithFlags(NonBlocking), hipStreamCreate, hipStreamSynchronize. Built with `/opt/rocm/bin/hipcc
+--offload-arch=gfx1201`, run 20 times per runtime (only `libamdhip64` / `libhsa-runtime64` swapped via `LD_LIBRARY_PATH`):
+
+| libamdhip64 | libhsa-runtime64 | crashes of 20 |
+|---|---|---|
+| CachyOS `hip-runtime-amd 10.1-2.1` (cachyos-extra-v3; sha256 `58eb452cde2a3903...`) | CachyOS `hsa-rocr 10.1-1.1` | **17** (all at the second stream) |
+| CachyOS 10.1-2.1 | Arch `hsa-rocr 10.1-1` | **10** |
+| Arch `hip-runtime-amd 10.1-2` (extra; sha256 `4c34b4b5d6abd9c7...`, signature good) | CachyOS 10.1-1.1 | **0** |
+| Arch 10.1-2 | Arch 10.1-1 | **0** |
+| private ROCm 7.2.4 (unpacked from pacman's cache) | 7.2.4 | **0** |
+
+So the fault is in CachyOS's build of the 10.1 HIP runtime, not in AMD's 10.1 source as Arch builds it. Both libraries
+report GCC 16.2.1 20260810 in `.comment`; CachyOS's file name carries a source hash (`7.16.0-4f6d503`) where Arch's
+carries `7.16.0-0000000`, so the two may differ in source revision as well as flags. With Arch's `libamdhip64` swapped in
+(`tools/rocm101arch.sh`), the mainline `33aeb17f8` build ran three `llama-perplexity` passes cleanly on ROCm 10.1, with
+the same perplexity as on the 7.2.4 runtime (8.3434).
+
+**Searched first (11-24, briefly):** no matching report in ROCm/rocm-systems issues or on the web.
