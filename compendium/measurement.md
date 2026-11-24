@@ -38,6 +38,11 @@ Read this before designing a test or trusting a comparison. Rules of procedure (
   fine-tune, put "I don't know" examples in the data, and expect some real questions declined as the cost.
   Compare fine-tunes over several training seeds, not one. (measured 2026-10-17 and 2026-11-23;
   `data/receipts/idk-lora/RESULT_IDK_LORA.md`, `data/receipts/frozen-layers/RESULT_FROZEN_LAYERS.md`)
+- **A perplexity gap to another model is not an implementation check; the reference implementation is.** SenseNova-Loop-9B
+  read 2.07x Qwen3.5-9B's wikitext perplexity on a new llama.cpp port, which looked like a broken port; SenseTime's own
+  code gave the same number to 0.1 % on the same chunks. Models trained away from English web text legitimately score
+  high there. To vet a new port, score the same chunks with the reference code (tokens checked identical first).
+  (measured 2026-11-23; `data/receipts/sensenova-loop/RESULT_SENSENOVA_LOOP.md`)
 - **Change one dial at a time: thinking, sampling and the system message are separate.** A first Sage comparison moved
   all three together, so it showed the package and not thinking. Measured apart on Qwen3.5-9B (Q8_0, 100 invented
   items): thinking moved refusal of invented items 0.68 to 0.94 and left hard recall at 0.38 to 0.39; greedy against
