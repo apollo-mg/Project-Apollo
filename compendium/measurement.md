@@ -38,6 +38,11 @@ Read this before designing a test or trusting a comparison. Rules of procedure (
   fine-tune, put "I don't know" examples in the data, and expect some real questions declined as the cost.
   Compare fine-tunes over several training seeds, not one. (measured 2026-10-17 and 2026-11-23;
   `data/receipts/idk-lora/RESULT_IDK_LORA.md`, `data/receipts/frozen-layers/RESULT_FROZEN_LAYERS.md`)
+- **An OS update can swap the GPU runtime under a frozen binary.** CachyOS moved the desktop from ROCm 7.2.4 to 10.1 on
+  2026-11-24; every llama.cpp build made against 7.2.4 then segfaulted on load. Unpacking the cached 7.2.4 packages into a
+  private tree and running through `tools/rocm724.sh` replayed two stored arms 240 of 240. After any system update,
+  replay one stored arm before trusting a desktop instrument. (measured 2026-11-24;
+  `data/receipts/stack-drift/NOTE_ROCM10_UPDATE.md`)
 - **A perplexity gap to another model is not an implementation check; the reference implementation is.** SenseNova-Loop-9B
   read 2.07x Qwen3.5-9B's wikitext perplexity on a new llama.cpp port, which looked like a broken port; SenseTime's own
   code gave the same number to 0.1 % on the same chunks. Models trained away from English web text legitimately score
