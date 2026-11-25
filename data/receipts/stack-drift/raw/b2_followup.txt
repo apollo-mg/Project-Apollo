@@ -1,0 +1,9 @@
+B2 follow-up (2026-11-24, after the Arch-runtime pass), same binaries, test-backend-ops -b ROCm0 -o MUL_MAT:
+mainline 33aeb17f8, -p "n=2105344":  tools/rocm101arch.sh  1 FAIL, ERR = 0.004223549
+                                     tools/rocm724.sh      1 FAIL, ERR = 0.004299278
+turboquant f7c3638e8, -p "q8_cr", 5 runs per runtime (68 tests per run):
+  rocm101arch: passed 67 68 68 67 68 (2 failing tests in 5 runs)
+  rocm724:     passed 65 67 67 68 68 (4 failing tests in 5 runs)
+buun 1e50db7be: HIP headers define __ldcg only for __half / __half2 in both versions:
+  /opt/rocm/include/hip/amd_detail/amd_hip_fp16.h:606,611 (10.1); rocm-7.2.4 .../amd_hip_fp16.h:622,627
+  dsv4-hc.cu:275  epoch = __ldcg(launch_epoch);   (launch_epoch: unsigned int *)
