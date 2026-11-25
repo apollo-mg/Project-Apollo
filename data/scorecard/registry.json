@@ -191,6 +191,22 @@
    "total_b": 27,
    "active_b": 27,
    "lineage": "qwen3.8-27b"
+  },
+  "sensenova-loop-9b": {
+   "display": "SenseNova-Loop-9B",
+   "developer": "SenseTime",
+   "arch": "dense",
+   "total_b": 9,
+   "active_b": 9,
+   "lineage": "qwen3.5-9b"
+  },
+  "inkling-2-mini": {
+   "display": "Inkling-2-Mini",
+   "developer": "Thinking Machines",
+   "arch": "MoE",
+   "total_b": 26.4,
+   "active_b": 3.4,
+   "lineage": null
   }
  },
  "m1_arms": {
@@ -718,6 +734,48 @@
    "thinking": "off",
    "primary": true,
    "note": "RL LoRA applied with --lora to the base's own Q8_0; base replayed the same day (C.R3, byte-identical to C.A)"
+  },
+  "SNL": {
+   "model": "sensenova-loop-9b",
+   "quant": "Q8_0 (official)",
+   "thinking": "off",
+   "primary": true,
+   "note": "looped (middle 24 layers run twice, as trained); llama.cpp PR 32588 4bc61eed7 on the RX 9070 XT; perplexity matched SenseTime's reference to 0.1 %; built from Qwen3.5-9B (weights cosine 0.97) (sensenova-loop/RESULT_SENSENOVA_LOOP.md)"
+  },
+  "SNL_L1": {
+   "model": "sensenova-loop-9b",
+   "quant": "Q8_0 (official, rewritten to 1 loop)",
+   "thinking": "off",
+   "primary": false,
+   "note": "loop count 1, below the trained 2; reference-checked within 0.3 % (sensenova-loop/loopcount/RESULT_LOOP_DIAL.md)"
+  },
+  "SNL_L3": {
+   "model": "sensenova-loop-9b",
+   "quant": "Q8_0 (official, rewritten to 3 loops)",
+   "thinking": "off",
+   "primary": false,
+   "note": "loop count 3, above the trained 2; reference-checked within 0.3 % (sensenova-loop/loopcount/RESULT_LOOP_DIAL.md)"
+  },
+  "Q35R": {
+   "model": "qwen3.5-9b",
+   "quant": "Q8_0 (our conversion)",
+   "thinking": "off",
+   "primary": false,
+   "note": "SenseNova's matched reference: RX 9070 XT, llama.cpp PR 32588 4bc61eed7 (sensenova-loop/RESULT_SENSENOVA_LOOP.md)"
+  },
+  "INK": {
+   "model": "inkling-2-mini",
+   "quant": "AD-Q6_K (AtomicChat)",
+   "thinking": "minimal (effort 'none'; it cannot be switched off)",
+   "primary": true,
+   "note": "looped MoE (middle 12 layers run three times); 2x P100, mainline 33aeb17f8 with -ts 1,3; greedy, 4096 tokens: 22 items ran into reasoning loops (inkling-mini/RESULT_INKLING_MINI.md)"
+  },
+  "Q27LOW": {
+   "model": "qwen3.8-27b",
+   "quant": "Q8_0",
+   "thinking": "on (effort 'low')",
+   "primary": false,
+   "note": "brief thinking, Inkling-2-Mini's matched reference: 2x P100, mainline 33aeb17f8, 4096 tokens (inkling-mini/RESULT_Q27_LOW.md)"
   }
  },
  "abench_arms": {
