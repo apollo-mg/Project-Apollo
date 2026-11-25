@@ -1,0 +1,36 @@
+## Totals (bare-answer rule)
+
+DR_DESK_1  invented declined  64/100  hard right  42/100  easy right 34/40
+DR_DESK_2  invented declined  64/100  hard right  42/100  easy right 34/40
+DR_N194_1  invented declined  66/100  hard right  44/100  easy right 34/40
+DR_N194_2  invented declined  66/100  hard right  44/100  easy right 34/40
+DR_N73_1   invented declined  66/100  hard right  44/100  easy right 34/40
+DR_N73_2   invented declined  66/100  hard right  44/100  easy right 34/40
+DR27_N194  invented declined  59/100  hard right  48/100  easy right 33/40
+DR27_N73   invented declined  59/100  hard right  48/100  easy right 33/40
+
+## Pairs (answers identical / grades identical, of 240)
+
+DR_DESK_1  vs DR_DESK_2 : 240 / 240
+DR_N194_1  vs DR_N194_2 : 240 / 240
+DR_N73_1   vs DR_N73_2  : 240 / 240
+DR_N194_1  vs DR_N73_1  : 240 / 240
+DR_N194_2  vs DR_N73_2  : 240 / 240
+DR_N194_1  vs DR_N73_2  : 240 / 240
+DR_DESK_1  vs DR_N194_1 : 153 / 230
+DR_DESK_1  vs DR_N73_2  : 153 / 230
+DR27_N194  vs DR27_N73  : 240 / 240
+
+## Tests
+
+- D1 each machine agrees with itself: [240, 240, 240] -> holds
+- D2 the two P100 machines identical: 240 of 240 -> holds
+- D3 desktop vs .194: answers identical 153 (not identical), grades 230 (>=225: True); invented declined diff -0.02 [-0.07, +0.03], hard right diff -0.02 [-0.05, +0.00] (both include 0: True) -> holds
+
+## D4 logits against the CPU reference (10 chunks)
+
+desk  mean KLD 0.000670  99% KLD 0.003484  same top 98.784 %  PPL 9.219478 (base 9.209641)
+n194  mean KLD 0.006451  99% KLD 0.027614  same top 94.588 %  PPL 9.240122 (base 9.209641)
+n73   mean KLD 0.006451  99% KLD 0.027614  same top 94.588 %  PPL 9.240122 (base 9.209641)
+- D4 -> FAILS
+- D5 the daily model, .194 vs .73: 240 of 240 -> holds
