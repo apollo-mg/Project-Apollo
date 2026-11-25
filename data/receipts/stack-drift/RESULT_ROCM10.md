@@ -35,7 +35,7 @@ on the system's ROCm 10.1 with only Arch's `libamdhip64` swapped in (`tools/rocm
 
 ROCm 10.1 itself is usable on the 9070 for llama.cpp: with a working HIP runtime, every build that compiles runs, speed is
 unchanged (decode a little faster), and the same source recompiled under LLVM 24 changes wording on a share of answers
-while the scored totals hold. The problem was one distro's build of one library. No op failure was introduced by 10.1;
+while the scored totals hold. The crash was an upstream clr alignment bug (ROCm/rocm-systems#11256, open since 2026-09-04) that CachyOS's CPU-optimised build of one library exposes and Arch's generic build does not (`NOTE_CACHYOS_HIP_BUG.md`). No op failure was introduced by 10.1;
 the forks' issues are buun's HIP portability (any ROCm) and a flaky turboquant test tolerance.
 
 ## Limits
