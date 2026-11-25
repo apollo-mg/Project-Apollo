@@ -1,0 +1,11 @@
+free check: max used 0 MiB; 0, 16270 MiB 1, 16270 MiB 
+default healthy=0
+0.24.817.768 E ggml_backend_buft_alloc_buffer_n_default: failed to allocate CUDA0 buffer of size 22791389184
+0.25.113.618 E llama_model_load: error loading model: unable to allocate CUDA0 buffer
+ts11 healthy=0
+0.27.310.857 E ggml_backend_buft_alloc_buffer_n_default: failed to allocate CUDA0 buffer of size 22791389184
+0.27.621.179 E llama_model_load: error loading model: unable to allocate CUDA0 buffer
+bash: -c: line 1: syntax error near unexpected token `('
+bash: -c: line 1: `CUDA_VISIBLE_DEVICES=0,1 GGML_CUDA_ALLREDUCE=internal timeout 240 ~/llama.cpp-33aeb17f/build_sm60/bin/llama-server -m /mnt/models/inkling/Inkling-2-Mini-AD-Q6_K.gguf -ngl 99 -sm layer -fit off -c 16384 -ctk f16 -ctv f16 -np 1 --jinja --cache-ram 0 -ot blk\.(1[2-9]|2[0-3])\.=CUDA1 -lv 4 --port 8191 > ~/inkling/diag_ot.log 2>&1 & SP=$!; ok=0; for i in $(seq 110); do curl -s -m 2 127.0.0.1:8191/health | grep -q ok && { ok=1; break; }; kill -0 $SP 2>/dev/null || break; sleep 2; done; kill $SP 2>/dev/null; wait $SP 2>/dev/null; echo "ot healthy=$ok"'
+grep: ~/inkling/diag_ot.log: No such file or directory
+DIAG_DONE 22:02:08
