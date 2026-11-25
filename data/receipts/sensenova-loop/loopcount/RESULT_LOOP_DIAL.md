@@ -53,3 +53,5 @@ trained at 2 loops and run at 3, the extra caution also cost some knowledge.
 One model, trained at 2 loops, so 1 and 3 are off its training distribution; greedy, thinking off; short factual English
 questions; one quant; the shift at 3 loops could be partly a general loss of confidence off-distribution rather than
 deliberate caution -- the drop in real answers right says it is not free.
+
+**Files (2026-11-25):** the two rewritten GGUFs moved to the NAS (`Models/sensenova-loop-9b-gguf-loops/`), sha256 re-checked there against `rewrite_log.txt`; `rewrite_loops.py` regenerates them from the official Q8_0 in seconds.
