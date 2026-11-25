@@ -49,3 +49,9 @@ Minimal reasoning against thinking off (the main confound); greedy only, though 
 (AD-Q6_K) of a 26B MoE against a 27B dense Q8_0; the 2-GPU split needed `-ts 1,3` (`raw/diag_split.log`); one smoke
 question had matched an M1 topic (disclosed in the prereg). A same-condition comparison would need Qwen3.8-27B with
 thinking on at a low effort, or a sampled run of both.
+
+## Follow-up (2026-11-25): the same-condition reference (`RESULT_Q27_LOW.md`)
+
+Qwen3.8-27B with thinking on at "low" declines 88 invented questions (vs 59 thinking off) and gets 44 hard facts right.
+Against that, Inkling's 78 / 33 is less cautious and less knowledgeable: the +0.19 above was mostly the reasoning.
+Inkling still makes up fewer invented answers (6 vs 12); 16 of its invented items ended in repetition loops instead.

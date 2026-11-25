@@ -104,3 +104,7 @@ daily on .73. The rows below span several files, so every line names its quant. 
 - **It is a repeatable local vision grader.** With `mmproj-F16` on the desktop card, thinking off, temperature 0: 15 of
   15 images scored identically across three repeats, about 1.0 s per grade. (measured 2026-09-11;
   `data/receipts/svgbench-pelican3/RESULT_LOCAL_VLM_GRADER.md`)
+- **Thinking makes it far more willing to decline on M1.** At `reasoning_effort` "low" (thinking on), invented questions
+  declined 88 against 59 with thinking off, hard facts right 44 against 48 (Q8_0, .73, mainline 33aeb17f8, greedy). On
+  AbstentionBench thinking went the other way, so the direction depends on the test. (measured 2026-11-25;
+  `data/receipts/inkling-mini/RESULT_Q27_LOW.md`)
