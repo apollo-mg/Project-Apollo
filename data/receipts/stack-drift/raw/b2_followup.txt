@@ -7,3 +7,7 @@ turboquant f7c3638e8, -p "q8_cr", 5 runs per runtime (68 tests per run):
 buun 1e50db7be: HIP headers define __ldcg only for __half / __half2 in both versions:
   /opt/rocm/include/hip/amd_detail/amd_hip_fp16.h:606,611 (10.1); rocm-7.2.4 .../amd_hip_fp16.h:622,627
   dsv4-hc.cu:275  epoch = __ldcg(launch_epoch);   (launch_epoch: unsigned int *)
+turboquant cc1a79194 (Tom's 2026-09-03 build; 7.2.4 compiler) on the 7.2.4 runtime, -p "q8_cr", 5 runs: passed 68 67 68 68 67
+  (2 failing tests in 5 runs). test-backend-ops seeds its inputs from std::random_device, so each run draws new data.
+  Failing-test errors across the 10.1-compiled runs: 0.00057 0.00062 0.00078 0.00083 0.00086 0.00133 0.00318 0.01116 (tolerance 0.0005).
+mainline n=2105344 case: absent from the older 7.2.4-compiled test-backend-ops binaries (buun Sep 9, tq_head Sep 3: 0/0 run).

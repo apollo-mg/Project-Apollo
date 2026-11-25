@@ -36,7 +36,7 @@ Perplexity on the same 10 chunks: CPU 9.2096, desktop 9.2195 (+0.11 %), P100s 9.
    different NVIDIA driver versions. A run on either can replace a run on the other, byte for byte.
 3. **Replays must stay on one machine family.** A replay that crosses from the desktop to a P100 will differ in wording
    for a third of the answers; that is drift, not a fault.
-4. **Pascal is the noisier arithmetic, not RDNA4.** Against the CPU reference the desktop's next-token distributions are
+4. **The P100s sit furthest from the CPU reference, not the 9070.** Against the CPU reference the desktop's next-token distributions are
    ten times closer than the P100s' (mean KLD 0.00067 vs 0.0065), and pick the same top token 98.8 % of the time against
    94.6 %. A plausible cause is the lower-precision paths llama.cpp takes on sm_60 (no `dp4a`), untested here. The effect
    on scores is still small (D3).

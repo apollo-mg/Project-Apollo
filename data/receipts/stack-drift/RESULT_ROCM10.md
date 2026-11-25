@@ -1,4 +1,4 @@
-# RESULT: ROCm 10.1 on the desktop works for llama.cpp once CachyOS's broken HIP runtime is swapped for Arch's build -- same speed, small numeric drift, totals unchanged; no op failure is caused by 10.1; buun's newest commit cannot build for AMD at all, on any ROCm
+# RESULT: ROCm 10.1 on the desktop works for llama.cpp once CachyOS's broken HIP runtime is swapped for Arch's build -- same speed, small numeric drift, totals unchanged; neither op-test failure comes from 10.1's runtime, and turboquant's predates the update; buun's newest commit cannot build for AMD at all, on any ROCm
 
 **Prereg:** `PREREG_ROCM10.md` (`ac79eb99`) with Deviation 1 (B4 via `llama-perplexity`), Deviation 2 (the turboquant gate
 and buun's CMake flag) and Deviation 3 (the measures rerun on Arch's HIP runtime). **Runs:** 2026-11-24, RX 9070 XT, kernel
@@ -18,10 +18,10 @@ on the system's ROCm 10.1 with only Arch's `libamdhip64` swapped in (`tools/rocm
 | | result |
 |---|---|
 | **B1** builds and runs (0.7) | **4 of 5 build and answer correctly** (buun 38ada0e1b, PR 32588 4bc61eed7, mainline 33aeb17f8, turboquant f7c3638e8); buun's head 1e50db7be does not build (below). Fails as registered (5 of 5 predicted) |
-| **B2** op tests, mainline clean in MUL_MAT / MUL_MAT_ID / FLASH_ATTN_EXT (0.7) | **fails narrowly:** mainline 21,002 of 21,003 pass; the one failure is MUL_MAT f16 x f32 at m=16, n=2,105,344, k=32 (error 0.0042 against 0.0005). It fails the same way on the 7.2.4 runtime (0.0043), so 10.1's runtime is not the cause. Turboquant: 21,203 of 21,204; its one failure (MUL_MAT on its own `q8_cr` type, random data) is flaky on both runtimes: 2 failing tests in 5 runs on 10.1, 4 in 5 on 7.2.4 |
+| **B2** op tests, mainline clean in MUL_MAT / MUL_MAT_ID / FLASH_ATTN_EXT (0.7) | **fails narrowly:** mainline 21,002 of 21,003 pass; the one failure is MUL_MAT f16 x f32 at m=16, n=2,105,344, k=32 (error 0.0042 against 0.0005). It fails the same way on the 7.2.4 runtime (0.0043), so 10.1's runtime is not the cause; whether LLVM 24 is, is untested (no 7.2.4-compiled binary contains that test case). Turboquant: 21,203 of 21,204; its one failure is MUL_MAT on its own `q8_cr` type, which fails on some of the random inputs `test-backend-ops` draws each run (`std::random_device`), with errors from 1.1x to 22x the tolerance (0.00057-0.0112): 2 failing tests in 5 runs on the 10.1 runtime, 4 in 5 on the 7.2.4 runtime (same 10.1-compiled binary), and 2 in 5 on Tom's September build (`cc1a79194`, 7.2.4 compiler and runtime) -- so it predates the update (`raw/b2_followup.txt`) |
 | **B3** same source, 7.2.4 build vs 10.1 build: not byte-identical (0.6) | **holds:** Granite 3B (buun 38ada0e1b) 220 of 240 answers identical, Qwen3.5-9B (4bc61eed7) 168 of 240 |
 | **B3** at most 10 grades change (0.7) | **holds for Granite (4), misses for Qwen (11).** Totals: Granite invented / hard / easy 81 / 12 / 25 both; Qwen 65 / 42 / 36 -> 65 / 41 / 34 |
-| **B4** speed (reported) | prompt processing the same (0.57-0.64 s per pass on 7.2.4, 0.63 on 10.1); decode about 2 % faster on 10.1 (Granite 100.7 -> 102.4 tok/s, Qwen 57.0 -> 58.4, the M1 medians); perplexity 8.4718 -> 8.4759 (20 chunks) |
+| **B4** speed (reported) | prompt processing roughly the same by `llama-perplexity`'s first-pass estimate (0.57-0.64 s per pass on 7.2.4, 0.63 on 10.1; `--perf` printed no throughput, so this is an ETA figure, not a measured rate); decode about 2 % faster on 10.1 (Granite 100.7 -> 102.4 tok/s, Qwen 57.0 -> 58.4, the M1 medians); perplexity 8.4718 -> 8.4759 (20 chunks) |
 
 ## buun's head (`1e50db7be`), two build bugs for buun
 
@@ -35,8 +35,10 @@ on the system's ROCm 10.1 with only Arch's `libamdhip64` swapped in (`tools/rocm
 
 ROCm 10.1 itself is usable on the 9070 for llama.cpp: with a working HIP runtime, every build that compiles runs, speed is
 unchanged (decode a little faster), and the same source recompiled under LLVM 24 changes wording on a share of answers
-while the scored totals hold. The crash was an upstream clr alignment bug (ROCm/rocm-systems#11256, open since 2026-09-04) that CachyOS's CPU-optimised build of one library exposes and Arch's generic build does not (`NOTE_CACHYOS_HIP_BUG.md`). No op failure was introduced by 10.1;
-the forks' issues are buun's HIP portability (any ROCm) and a flaky turboquant test tolerance.
+while the scored totals hold. The crash was an upstream clr alignment bug (ROCm/rocm-systems#11256, open since 2026-09-04) that CachyOS's CPU-optimised build of one library exposes and Arch's generic build does not (`NOTE_CACHYOS_HIP_BUG.md`). Neither op-test failure comes from 10.1's runtime; turboquant's
+`q8_cr` failure predates the update (old compiler and runtime fail it too), and mainline's has not been tested against
+the old compiler. The forks' issues are buun's HIP portability (any ROCm) and turboquant's `q8_cr` precision on some
+inputs, which Tom may want to look at.
 
 ## Limits
 
