@@ -80,3 +80,10 @@ So without the supervised stage, neither the base nor RL alone produces a model 
 No base anchor, so this measures what DPO and RL changed after SFT, not what SFT did to the base. One family at 7B; greedy,
 thinking off; one quant (Q8_0); M1 is short factual English questions. Hard right sits at 16-17 of 100, a low base, so
 "no stage adds facts" is weak evidence at this size. The hedge rule was written after the registered results were seen.
+
+## Follow-up (2026-11-26): the reasoning branch (`RESULT_OLMO3_THINK.md`)
+
+Reading 1 holds for the Instruct branch only. On Olmo 3 7B's Think branch the RL stage raised invented-question
+declining from 53 to 73 of 100 (+0.20 [+0.11, +0.30]), turning wrong answers into "UNKNOWN" without losing right ones;
+DPO raised it from 27 to 53. Whether RL moves caution depended on the branch. The trailing-UNKNOWN habit did not recur
+there (4 rows at Think-DPO).
