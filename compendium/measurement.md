@@ -38,6 +38,11 @@ Read this before designing a test or trusting a comparison. Rules of procedure (
   fine-tune, put "I don't know" examples in the data, and expect some real questions declined as the cost.
   Compare fine-tunes over several training seeds, not one. (measured 2026-10-17 and 2026-11-23;
   `data/receipts/idk-lora/RESULT_IDK_LORA.md`, `data/receipts/frozen-layers/RESULT_FROZEN_LAYERS.md`)
+- **Score each training-stage checkpoint for format habits before reading its caution.** Olmo 3 7B after DPO wrote a
+  separate "UNKNOWN" line after its answer on 119 of 240 M1 items (24 of 40 easy, 10 of them right); after SFT 2, after
+  RL 26. A parser that reads the answer line and one that reads the last line disagree on half its rows. Count trailing
+  hedges per arm and item group before comparing stages. (measured 2026-11-25;
+  `data/receipts/olmo3-ladder/RESULT_OLMO3_LADDER.md`)
 - **An OS update can swap the GPU runtime under a frozen binary.** CachyOS moved the desktop from ROCm 7.2.4 to 10.1 on
   2026-11-24; every llama.cpp build made against 7.2.4 then segfaulted on load. Unpacking the cached 7.2.4 packages into a
   private tree and running through `tools/rocm724.sh` replayed two stored arms 240 of 240. After any system update,
