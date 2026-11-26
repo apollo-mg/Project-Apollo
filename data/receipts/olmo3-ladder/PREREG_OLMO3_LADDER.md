@@ -37,3 +37,13 @@ greedy, `run_main.py --max-tokens 1024 --usage --no-think-check` (these template
 
 No base anchor (the base cannot do M1's format), so this measures what each stage after SFT changes, not what SFT did to
 the base; one model family at 7B; greedy, thinking off; one quant; M1 is short factual English questions.
+
+## Deviation 1 (2026-11-25 ~19:30 EST; the first attempt's 55 partial rows per arm were set aside unread)
+
+The first attempt (`raw/attempt1/`) stopped at item 55 in OL_SFT and OL_DPO: `run_main.py`'s optional slot readout (a
+forced "Exact Answer:" completion read for token probabilities, not used in grading) got no `completion_probabilities`
+back. OL_RL never started: llama.cpp could not parse the final model's chat template (its `tools is none` test meets
+`tools` as undefined, falls into the tools branch, and `tojson` fails). Changes: every arm adds `--skip-slot`; OL_RL is
+served with the SFT/DPO template file (`olmo3_instruct_sft_template.jinja`), which differs from its own only in that
+tools test -- rendered with jinja2 and no tools, M1's prompt comes out byte-identical through all three templates. All
+three arms rerun from scratch. Nothing else changes.
