@@ -12,7 +12,7 @@ import argparse, json, re, sys
 from pathlib import Path
 HERE = Path(__file__).resolve().parent; QA = HERE.parent / "quant-abstention"
 sys.path.insert(0, str(HERE.parent / "idk-lora")); from bare_rule import regrade  # noqa: E402
-ARMS = ("OL_SFT", "OL_DPO", "OL_RL")
+DEFAULT_ARMS = ("OL_SFT", "OL_DPO", "OL_RL")
 def norm(line):
     s = re.sub(r"[*_`#>]", "", line).strip()
     s = re.sub(r"^exact answer\s*:\s*", "", s, flags=re.I).strip()
@@ -26,7 +26,9 @@ def hedged(content):
     first = norm(earlier[0])
     return bool(first) and len(first) <= 60 and first.upper() not in ("UNKNOWN",)
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("--out", default=str(HERE / "RESULT_hedge.json")); a = ap.parse_args()
+    ap = argparse.ArgumentParser(); ap.add_argument("--out", default=str(HERE / "RESULT_hedge.json"))
+    ap.add_argument("--arms", nargs=3, default=list(DEFAULT_ARMS), help="11-25: three arms, ladder order (default the Instruct ladder, unchanged)"); a = ap.parse_args()
+    ARMS = tuple(a.arms)
     items = {x["id"]: x for x in map(json.loads, open(QA / "corpus" / "M1.jsonl"))}
     R = {arm: {r["id"]: r for r in map(json.loads, open(QA / "raw" / f"main_{arm}.jsonl")) if "id" in r} for arm in ARMS}
     pt = {arm: {i: (r.get("gen_usage") or {}).get("prompt_tokens") for i, r in R[arm].items()} for arm in ARMS}
@@ -44,8 +46,8 @@ def main():
                     "declined_strict": sum(g[i] == "ABSTAINED" or i in h for i in ids)}
         out["arms"][arm] = o; print(arm, json.dumps(o))
     U = {arm: out["arms"][arm]["U"] for arm in ARMS}
-    s = {arm: U[arm]["declined_strict"] for arm in ARMS}
-    out["strict_predictions"] = {"P1": abs(s["OL_RL"] - s["OL_DPO"]) <= 5, "P2": s["OL_DPO"] < s["OL_SFT"]}
+    s = {arm: U[arm]["declined_strict"] for arm in ARMS}; sft, dpo, rl = ARMS
+    out["strict_predictions"] = {"P1": abs(s[rl] - s[dpo]) <= 5, "P2": s[dpo] < s[sft]}
     print("strict reading, invented declined:", s, "-> P1", "holds" if out["strict_predictions"]["P1"] else "flips to FAIL",
           "| P2", "holds" if out["strict_predictions"]["P2"] else "still fails")
     json.dump(out, open(a.out, "w"), indent=1)
