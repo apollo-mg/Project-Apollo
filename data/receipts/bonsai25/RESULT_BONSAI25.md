@@ -78,5 +78,6 @@ show the same direction on their targets (2.5 closer to FP16 on every agentic be
 compression loss repaired, not a new behaviour. It does not account for everything: 2.5 adds about 10 declines of its own,
 and its forced-slot probability of "UNKNOWN" (0.93) is above Qwen's (0.70, another engine and machine), so something
 pushes it past its teacher; its declines are also longer than its answers (median 83.5 vs 60.5 tokens: premise checks).
-This matches our compression data, where low-bit files decline less than Q8_0 of the same model
-(`quant-abstention/RESULT_MAIN.md`), and contrasts with the Olmo ladders, where caution moved with the training stage.
+It fits our 2.5-4.5 bpw quant study only loosely: there the direction of a file's shift was set by the file, not
+the bit width, and in generation no file answered more invented questions than Q8_0 (`quant-abstention/RESULT_MAIN.md`).
+Bonsai 2 at 1.76 bpw, with its own recovery training, is the first compressed file we have seen do so (44 vs 59-60).
