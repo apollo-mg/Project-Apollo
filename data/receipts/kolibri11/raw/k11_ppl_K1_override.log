@@ -1,0 +1,41 @@
+/home/mark/llama.cpp-pr32891/src/llama-graph.cpp:2442: fatal error
+⚠️ warning: The current terminal doesn't support styling.  Styled output might not appear as expected.
+[New LWP 367448]
+[New LWP 367447]
+[New LWP 367446]
+[New LWP 367445]
+[New LWP 367436]
+[New LWP 367435]
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/usr/lib/x86_64-linux-gnu/libthread_db.so.1".
+__syscall_cancel_arch () at ../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S:56
+⚠️ warning: 56	../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S: No such file or directory
+#0  __syscall_cancel_arch () at ../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S:56
+56	in ../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S
+#1  0x000071eadc2a035c in __internal_syscall_cancel (a1=<optimized out>, a2=<optimized out>, a3=<optimized out>, a4=<optimized out>, a5=0, a6=0, nr=61) at ./nptl/cancellation.c:49
+⚠️ warning: 49	./nptl/cancellation.c: No such file or directory
+#2  __syscall_cancel (a1=<optimized out>, a2=<optimized out>, a3=<optimized out>, a4=<optimized out>, a5=a5@entry=0, a6=a6@entry=0, nr=61) at ./nptl/cancellation.c:75
+75	in ./nptl/cancellation.c
+#3  0x000071eadc31ca8f in __GI___wait4 (pid=<optimized out>, stat_loc=<optimized out>, options=<optimized out>, usage=<optimized out>) at ../sysdeps/unix/sysv/linux/wait4.c:30
+⚠️ warning: 30	../sysdeps/unix/sysv/linux/wait4.c: No such file or directory
+#4  0x000071eadbb35623 in ggml_print_backtrace () from /home/mark/llama.cpp-pr32891/build_sm60/bin/libggml-base.so.1
+#5  0x000071eadbb357d6 in ggml_abort () from /home/mark/llama.cpp-pr32891/build_sm60/bin/libggml-base.so.1
+#6  0x000071eadb8ce46d in llm_graph_context::build_moe_ffn(ggml_tensor*, ggml_tensor*, ggml_tensor*, ggml_tensor*, ggml_tensor*, ggml_tensor*, ggml_tensor*, ggml_tensor*, ggml_tensor*, ggml_tensor*, long, long, llm_ffn_op_type, bool, float, llama_expert_gating_func_type, int, ggml_tensor*, ggml_tensor*, ggml_tensor*, ggml_tensor*, ggml_tensor*, ggml_tensor*, ggml_tensor*, ggml_tensor*, float) const () from /home/mark/llama.cpp-pr32891/build_sm60/bin/libllama.so.1
+#7  0x000071eadb8ce506 in llm_graph_context::build_moe_ffn(ggml_tensor*, ggml_tensor*, ggml_tensor*, ggml_tensor*, ggml_tensor*, ggml_tensor*, long, long, llm_ffn_op_type, bool, float, llama_expert_gating_func_type, int, ggml_tensor*, ggml_tensor*, ggml_tensor*, ggml_tensor*, ggml_tensor*, ggml_tensor*, ggml_tensor*, float) const () from /home/mark/llama.cpp-pr32891/build_sm60/bin/libllama.so.1
+#8  0x000071eadb7aaa35 in llama_model_kolibri1::graph::graph(llm_graph_params const&) () from /home/mark/llama.cpp-pr32891/build_sm60/bin/libllama.so.1
+#9  0x000071eadb7ab366 in llama_model_kolibri1::build_arch_graph(llm_graph_params const&) const () from /home/mark/llama.cpp-pr32891/build_sm60/bin/libllama.so.1
+#10 0x000071eadb978b9d in llama_model::build_graph(llm_graph_params const&) const () from /home/mark/llama.cpp-pr32891/build_sm60/bin/libllama.so.1
+#11 0x000071eadb87c216 in llama_context::graph_reserve(unsigned int, unsigned int, unsigned int, llama_memory_context_i const*, bool, unsigned long*) () from /home/mark/llama.cpp-pr32891/build_sm60/bin/libllama.so.1
+#12 0x000071eadb87e6ea in llama_context::resolve_fused_ops(llama_memory_context_i const*, unsigned int) () from /home/mark/llama.cpp-pr32891/build_sm60/bin/libllama.so.1
+#13 0x000071eadb87ef98 in llama_context::sched_reserve() () from /home/mark/llama.cpp-pr32891/build_sm60/bin/libllama.so.1
+#14 0x000071eadb881590 in llama_context::llama_context(llama_model const&, llama_context_params) () from /home/mark/llama.cpp-pr32891/build_sm60/bin/libllama.so.1
+#15 0x000071eadb8825f4 in llama_init_from_model () from /home/mark/llama.cpp-pr32891/build_sm60/bin/libllama.so.1
+#16 0x000071eadbecba5c in common_init_result::common_init_result(common_params&, bool) () from /home/mark/llama.cpp-pr32891/build_sm60/bin/libllama-common.so.1
+#17 0x000071eadbecddfe in common_init_from_params(common_params&, bool) () from /home/mark/llama.cpp-pr32891/build_sm60/bin/libllama-common.so.1
+#18 0x000071eadc4c0b17 in llama_perplexity(int, char**) () from /home/mark/llama.cpp-pr32891/build_sm60/bin/libllama-perplexity-impl.so
+#19 0x000071eadc22a601 in __libc_start_call_main (main=main@entry=0x571cdd138060 <main>, argc=argc@entry=21, argv=argv@entry=0x7ffd701a1ef8) at ../sysdeps/nptl/libc_start_call_main.h:59
+⚠️ warning: 59	../sysdeps/nptl/libc_start_call_main.h: No such file or directory
+#20 0x000071eadc22a718 in __libc_start_main_impl (main=0x571cdd138060 <main>, argc=21, argv=0x7ffd701a1ef8, init=<optimized out>, fini=<optimized out>, rtld_fini=<optimized out>, stack_end=0x7ffd701a1ee8) at ../csu/libc-start.c:360
+⚠️ warning: 360	../csu/libc-start.c: No such file or directory
+#21 0x0000571cdd138095 in _start ()
+[Inferior 1 (process 367433) detached]
