@@ -55,3 +55,28 @@ wrong became right and 3 right became wrong. Neither model shows the trailing-UN
 Thinking off only (the card defaults to xhigh reasoning); greedy, where the vendor recommends 0.7 to 1.0; one packing
 (PQ2_0) on one machine; M1 is short factual English questions and does not test the tool calling 2.5 was tuned for;
 the Qwen3.8-27B row is another machine and engine, for context only.
+
+## Follow-up (2026-11-27, exploratory, after the registered results): why? A closer copy of its teacher
+
+PrismML's two whitepapers (Bonsai 2, September; Bonsai 2.5, November) describe benchmarks, format and kernels, and say
+nothing about how either model was trained or about factuality, hallucination or abstention. So the recipe is unknown;
+what our data shows is that Bonsai 2.5 behaves much more like its full-precision base, Qwen3.8-27B (two Q8_0 thinking-off
+references: DR27_N73 on .73 and C.A; grades only, other machines):
+
+| | Bonsai 2 | Bonsai 2.5 |
+|---|---|---|
+| same grade as Qwen3.8-27B, invented items (DR27_N73 / C.A) | 74 / 73 | **81 / 81** |
+| same grade, all 240 items | 162 / 160 | **173 / 170** |
+| Qwen's invented declines (59 / 60) it also makes | 39 / 39 | **51 / 52** |
+| declines Qwen does not make | 5 / 5 | 11 / 10 |
+| median output tokens (Qwen 58.5) | 30 | 62.5 |
+
+Reading: ternary compression (Bonsai 2) lost about a third of the base model's declines -- the ones Qwen made and Bonsai 2
+answered instead -- and Bonsai 2.5 recovered most of them, along with the base model's answer length. PrismML's own tables
+show the same direction on their targets (2.5 closer to FP16 on every agentic benchmark, e.g. AppWorld 51.2 -> 90.5 against
+93.2). The simplest account is that whatever closed the agentic gap to FP16 also brought back the teacher's caution: a
+compression loss repaired, not a new behaviour. It does not account for everything: 2.5 adds about 10 declines of its own,
+and its forced-slot probability of "UNKNOWN" (0.93) is above Qwen's (0.70, another engine and machine), so something
+pushes it past its teacher; its declines are also longer than its answers (median 83.5 vs 60.5 tokens: premise checks).
+This matches our compression data, where low-bit files decline less than Q8_0 of the same model
+(`quant-abstention/RESULT_MAIN.md`), and contrasts with the Olmo ladders, where caution moved with the training stage.
