@@ -78,6 +78,7 @@ show the same direction on their targets (2.5 closer to FP16 on every agentic be
 compression loss repaired, not a new behaviour. It does not account for everything: 2.5 adds about 10 declines of its own,
 and its forced-slot probability of "UNKNOWN" (0.93) is above Qwen's (0.70, another engine and machine), so something
 pushes it past its teacher; its declines are also longer than its answers (median 83.5 vs 60.5 tokens: premise checks).
-It fits our 2.5-4.5 bpw quant study only loosely: there the direction of a file's shift was set by the file, not
-the bit width, and in generation no file answered more invented questions than Q8_0 (`quant-abstention/RESULT_MAIN.md`).
-Bonsai 2 at 1.76 bpw, with its own recovery training, does (56 answered vs 39; declined 44 vs 59-60).
+It fits our quant study (`quant-abstention/RESULT_MAIN.md`, 2026-09): there the post-training quants shifted caution
+in directions set by the file, none answered more invented questions than Q8_0 in generation, and Bonsai 2 was the one
+outlier whose extra made-up answers carried into generation (invented answered wrongly 0.57 vs 0.39 at Q8_0) and the
+only arm that lost ranking. Bonsai 2.5 has largely repaired that outlier.
