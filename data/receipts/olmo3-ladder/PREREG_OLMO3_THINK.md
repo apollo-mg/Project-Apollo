@@ -48,3 +48,13 @@ and may provoke repetition loops (Inkling-2-Mini: 22 of 240), counted as unfinis
 
 No base anchor; one family at 7B; greedy at a vendor temperature of 0.6; one quant; a 16,384-token cap (the vendor's
 generation config allows 32,768); M1 is short factual English questions.
+
+## Amendment 1 (2026-11-27 ~14:00 EST, after the registered results, before any row of the new arm; Mark's OK)
+
+`RESULT_OLMO3_THINK.md` found Think-SFT's own template carries a different default system message from Think-DPO and
+Think (19 tokens shorter, no "function-calling" wording or no-functions line, cutoff "December" vs "November 2024"). New
+arm `TH_SFT_T`: Think-SFT served with the Think-DPO template file (`olmo3_think_dpo_template.jinja`, byte-identical to
+Think's), everything else as `TH_SFT`. **Gate:** its prompt token counts equal TH_DPO's on 240 of 240 items.
+**Prediction A1 (the system message is not what moved SFT -> DPO):** |TH_SFT_T - TH_SFT| invented declined <= 0.05.
+Confidence 0.6. **Reported without prediction:** the paired difference (bootstrap as registered), loops to the cap,
+finished-only declining, and TH_DPO - TH_SFT_T as the system-message-matched DPO step.
