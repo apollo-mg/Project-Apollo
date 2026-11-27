@@ -80,4 +80,4 @@ and its forced-slot probability of "UNKNOWN" (0.93) is above Qwen's (0.70, anoth
 pushes it past its teacher; its declines are also longer than its answers (median 83.5 vs 60.5 tokens: premise checks).
 It fits our 2.5-4.5 bpw quant study only loosely: there the direction of a file's shift was set by the file, not
 the bit width, and in generation no file answered more invented questions than Q8_0 (`quant-abstention/RESULT_MAIN.md`).
-Bonsai 2 at 1.76 bpw, with its own recovery training, is the first compressed file we have seen do so (44 vs 59-60).
+Bonsai 2 at 1.76 bpw, with its own recovery training, does (56 answered vs 39; declined 44 vs 59-60).
