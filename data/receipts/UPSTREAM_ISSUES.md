@@ -6,6 +6,20 @@ first. "Reported" means someone filed it; "not reported" means the facts are her
 
 ---
 
+## 2026-07-11 (status 2026-11-27) -- llama.cpp: Tesla P100 (sm_60) silently does fp32 math in fp16
+
+- **Where:** ggml-org/llama.cpp mainline, `ggml/src/ggml-cuda/common.cuh` (the `FAST_FP16_AVAILABLE` device macro and the
+  host `fast_fp16_available()` / `fast_fp16_hardware_available()` gates exempt sm_61 only). Still present in `33aeb17f8`.
+- **Shows:** on P100s, flash-attention tile kernels and cuBLAS run in half precision: median KLD ~0.002 against an f32
+  reference, ~3.5 % greedy top tokens flipped; P100s sit ten times farther from the CPU than the desktop 9070 (mean KLD
+  0.0065 vs 0.00067, `stack-drift/RESULT_STACK_DRIFT.md`, which left the cause untested).
+- **Fix:** three lines carving sm_60 out like sm_61 (`tools/patches/sm60-fp32-carveout.patch`): median KLD 0.000001,
+  same-top 99.9 %.
+- **Status:** reported by Mark as #25593; **closed 2026-11-27 as not planned by the stale bot**, still labelled
+  "bug-unconfirmed". Merged in buun-llama-cpp (#80) and llama-cpp-turboquant (#212); mainline and mainline-based forks
+  lack it.
+- **Receipt:** `data/Apollo Docs/Pascal_FAST_FP16_Carveout_Results.md`.
+
 ## 2026-11-25 -- llama.cpp: looped models split across GPUs by loop slots, not stored layers
 
 - **Where:** ggml-org/llama.cpp mainline `33aeb17f8` (2026-11-24), architecture `inkling2_loop` (Inkling-2-Mini).
