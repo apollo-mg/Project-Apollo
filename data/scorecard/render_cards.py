@@ -15,7 +15,7 @@ RECEIPT = {
     "reflection-beam-1.0": REPO + "quant-abstention/RESULT_BEAM.md", "recursive-flint": REPO + "quant-abstention/RESULT_FLINT.md",
     "ornith-1.5-122b": REPO + "quant-abstention/RESULT_ORNITH.md", "sage-a1.5": REPO + "quant-abstention/RESULT_SAGE.md",
     "qwen3.6-35b-a3b": REPO + "quant-abstention/RESULT_SAGE.md", "qwen3.5-9b": REPO + "sci-distill/RESULT_SCI_DISTILL.md", "dsv4p-qwen3.5-9b": REPO + "sci-distill/RESULT_SCI_DISTILL.md", "nanbeige4.3-33b": REPO + "quant-abstention/RESULT_NANBEIGE.md",
-    "ternary-bonsai-2-27b": REPO + "quant-abstention/RESULT_MAIN.md", "granite-4.1-3b": TREE + "idk-lora", "granite-4.2-3b": TREE + "idk-lora",
+    "ternary-bonsai-2-27b": REPO + "quant-abstention/RESULT_MAIN.md", "ternary-bonsai-2.5-27b": REPO + "bonsai25/RESULT_BONSAI25.md", "granite-4.1-3b": TREE + "idk-lora", "granite-4.2-3b": TREE + "idk-lora",
     "phi-4-mini": TREE + "idk-lora", "llama-3.1-8b-instruct": REPO + "abstentionbench/RESULT_ABSTENTIONBENCH.md",
 }
 cards = json.load(open(HERE / "cards.json"))
