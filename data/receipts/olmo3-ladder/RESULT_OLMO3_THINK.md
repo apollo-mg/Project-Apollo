@@ -68,5 +68,13 @@ Think-SFT's own template carries a different default system message from Think-D
 identical. So SFT -> DPO, and each Think-vs-Instruct pair, also changes the system message; DPO -> RL does not.
 Think-SFT's loops (34 rows) cloud its numbers; greedy at the vendor's temperature of 0.6 likely provokes them. One family
 at 7B; one quant; a 16,384-token cap; short factual English questions; the transition analysis was written after the
-registered results were seen. Not tested: Think-SFT served with the DPO template, which would separate the system
-message from the training step (about 3.5 hours on the desktop).
+registered results were seen. Tested since (Amendment 1, below): with the DPO template Think-SFT declines the same 27, so the system message is not
+what moved SFT -> DPO.
+
+## Amendment 1 result (2026-11-27): the system message did not move SFT -> DPO
+
+`TH_SFT_T` (Think-SFT served with the Think-DPO template; gate: prompt tokens equal TH_DPO's on 240 of 240): invented declined
+27 (TH_SFT 27), answered 47, hard 14 / 71 / 5, easy 21, 36 runs to the cap (TH_SFT 34). **A1 holds:** |TH_SFT_T - TH_SFT| =
+0.00 [-0.09, +0.09]. Against this matched control, DPO still adds +0.26 [+0.16, +0.36] invented declines. The SFT -> DPO
+step is the training, not the default system message; the system-message caveat in Limits is resolved.
+Records: `quant-abstention/raw/main_TH_SFT_T.jsonl`, `raw/state_think_t.log`, `summary_think_t.txt`.
