@@ -58,6 +58,7 @@ def build_parser():
     ap.add_argument("--sampling", default=None, help="2026-10-25: JSON of sampling fields for R-gen (e.g. Sage's recommended temperature/top_k/presence_penalty) plus a per-item seed; default none = greedy, so earlier arms are unchanged. R-slot stays greedy")
     ap.add_argument("--seed-base", type=int, default=20261025)
     ap.add_argument("--shard", default=None, help="2026-11-09: I/N runs only items whose corpus index %% N == I (one process per server; the --arm names the shard, merge_shards.py joins them); default none = every item, so earlier arms are unchanged")
+    ap.add_argument("--chat-only", action="store_true", help="2026-11-27: for servers without llama.cpp's /tokenize and /apply-template (Strata's Inkling engine): skip the UNKNOWN-variant tokenization and the prompt render (render_tail recorded empty); needs --skip-slot and --no-think-check; default off, so earlier arms are unchanged")
     ap.add_argument("--split-think", action="store_true", help="2026-11-25: when the server returns no reasoning_content, split the content at the last </think> (before -> reasoning, after -> content; no </think> -> all reasoning, content empty), as the server does for templates it recognises; for templates that open <think> in the generation prompt but that llama.cpp does not parse (Olmo 3 Think); default off, so earlier arms are unchanged")
     ap.add_argument("--neutral-penalties", action="store_true", help="2026-10-28: R-gen sends NEUTRAL penalties, applied before --sampling so vendor values still win; default off, so earlier arms are unchanged")
     return ap
@@ -66,7 +67,7 @@ def build_parser():
 def header_fields(a):
     """The header-row fields that come from the arguments alone (the pipeline compares these against stored runs)."""
     return {"arm": a.arm, "corpus": a.corpus, "max_tokens": a.max_tokens, "thinking": bool(a.thinking), "template_kwargs": json.loads(a.template_kwargs), "skip_slot": bool(a.skip_slot), **({"system": a.system} if a.system else {}), **({"sampling": json.loads(a.sampling), "seed_base": a.seed_base} if a.sampling else {}), **({"usage": True, "timeout": a.timeout} if a.usage else {}),
-            **({"neutral_penalties": True} if a.neutral_penalties else {}), **({"split_think": True} if a.split_think else {}), **({"shard": a.shard} if a.shard else {}), "meta": json.loads(a.meta)}
+            **({"neutral_penalties": True} if a.neutral_penalties else {}), **({"split_think": True} if a.split_think else {}), **({"chat_only": True} if a.chat_only else {}), **({"shard": a.shard} if a.shard else {}), "meta": json.loads(a.meta)}
 
 
 def main():
@@ -81,17 +82,24 @@ def main():
     c = httpx.Client(timeout=a.timeout)
 
     # the answer-slot variants must be single tokens in THIS model's vocabulary, or P_abs is not what it claims
-    vt = {v: c.post(f"{a.url}/tokenize", json={"content": "Exact Answer:" + v, "with_pieces": True}).json()["tokens"]
-          for v in VARIANTS}
-    base = c.post(f"{a.url}/tokenize", json={"content": "Exact Answer:"}).json()["tokens"]
-    var_ids = {}
-    for v, toks in vt.items():
-        tail = toks[len(base):]
-        var_ids[v] = tail[0]["id"] if len(tail) == 1 else None
-    if None in var_ids.values():
-        print("WARNING: a variant is not a single token after 'Exact Answer:':", var_ids, flush=True)
+    if a.chat_only:
+        if not (a.skip_slot and a.no_think_check):
+            sys.exit("--chat-only needs --skip-slot and --no-think-check")
+        var_ids = {v: None for v in VARIANTS}
+    else:
+        vt = {v: c.post(f"{a.url}/tokenize", json={"content": "Exact Answer:" + v, "with_pieces": True}).json()["tokens"]
+              for v in VARIANTS}
+        base = c.post(f"{a.url}/tokenize", json={"content": "Exact Answer:"}).json()["tokens"]
+        var_ids = {}
+        for v, toks in vt.items():
+            tail = toks[len(base):]
+            var_ids[v] = tail[0]["id"] if len(tail) == 1 else None
+        if None in var_ids.values():
+            print("WARNING: a variant is not a single token after 'Exact Answer:':", var_ids, flush=True)
 
     def render(q):
+        if a.chat_only:
+            return ""
         msgs = SYS + [{"role": "user", "content": PROMPT.format(q=q)}]
         return c.post(f"{a.url}/apply-template", json={"messages": msgs,
                       "chat_template_kwargs": {"enable_thinking": False, **json.loads(a.template_kwargs)}}).json()["prompt"]
