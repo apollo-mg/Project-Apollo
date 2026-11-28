@@ -45,3 +45,9 @@ Perplexity on the same 10 chunks: CPU 9.2096, desktop 9.2195 (+0.11 %), P100s 9.
 
 One commit, one quant (Q8_0), greedy only, one 9B and one 27B; the desktop ran on the 7.2.4 runtime with 10.1-built
 binaries (Deviation 1); KLD over 10 chunks; the CPU is a reference, not ground truth.
+
+## Follow-up (2026-11-27): the P100 gap explained (`RESULT_SM60_FP32.md`)
+
+The untested cause in reading 3 was mainline's fast-FP16 path on sm_60. With the three-line carve-out, the same KLD run on
+.73 falls from 0.006451 to 0.000603 (same top 99.06 %), level with the desktop. M1 wording against the desktop does not
+improve (154 vs 153 of 240 identical), so the D3 drift is greedy decoding on different numeric paths, not this bug.
