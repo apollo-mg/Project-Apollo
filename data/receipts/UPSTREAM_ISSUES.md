@@ -18,7 +18,8 @@ first. "Reported" means someone filed it; "not reported" means the facts are her
 - **Status:** reported by Mark as #25593; **closed 2026-11-27 as not planned by the stale bot**, still labelled
   "bug-unconfirmed". Merged in buun-llama-cpp (#80) and llama-cpp-turboquant (#212); mainline and mainline-based forks
   lack it.
-- **Receipt:** `data/Apollo Docs/Pascal_FAST_FP16_Carveout_Results.md`.
+- **Measured on current mainline (11-27):** P100 vs CPU mean KLD 0.0065 -> 0.0006 with the fix, level with the desktop.
+- **Receipt:** `data/Apollo Docs/Pascal_FAST_FP16_Carveout_Results.md`, `stack-drift/RESULT_SM60_FP32.md`.
 
 ## 2026-11-25 -- llama.cpp: looped models split across GPUs by loop slots, not stored layers
 
